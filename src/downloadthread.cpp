@@ -731,10 +731,10 @@ void DownloadThread::_writeComplete()
     _filename.replace("/dev/rdisk", "/dev/disk");
 #endif
 
-    if (_ejectEnabled && _config.isEmpty() && _cmdline.isEmpty() && _firstrun.isEmpty())
+    if (_ejectEnabled && _config.isEmpty() && _cmdline.isEmpty() && !_openHDGround.isEmpty() && _openHDAir.isEmpty())
         eject_disk(_filename.constData());
 
-    if (!_config.isEmpty() || !_cmdline.isEmpty() || !_firstrun.isEmpty())
+    if (!_config.isEmpty() || !_cmdline.isEmpty()|| !_openHDGround.isEmpty() || !_openHDAir.isEmpty())
     {
         if (!_customizeImage())
             return;
@@ -836,11 +836,12 @@ qint64 DownloadThread::_sectorsWritten()
     return -1;
 }
 
-void DownloadThread::setImageCustomization(const QByteArray &config, const QByteArray &cmdline, const QByteArray &firstrun, const QByteArray &cloudinit, const QByteArray &cloudInitNetwork, const QByteArray &initFormat)
+void DownloadThread::setImageCustomization(const QByteArray &config, const QByteArray &cmdline, const QByteArray &openHDGround, const QByteArray &openHDAir, const QByteArray &cloudinit, const QByteArray &cloudInitNetwork, const QByteArray &initFormat)
 {
     _config = config;
     _cmdline = cmdline;
-    _firstrun = firstrun;
+    _openHDAir = openHDAir;
+    _openHDGround = openHDGround;
     _cloudinit = cloudinit;
     _cloudinitNetwork = cloudInitNetwork;
     _initFormat = initFormat;
@@ -1062,7 +1063,7 @@ bool DownloadThread::_customizeImage()
             /* If issue.txt mentions pi-gen, and there is no user-data file assume
              * it is a RPI OS flavor, and use the old systemd unit firstrun script stuff */
             _initFormat = "systemd";
-            qDebug() << "using firstrun script invoked by systemd customization method";
+            qDebug() << "copying openhd detection file";
         }
         else
         {
@@ -1073,47 +1074,35 @@ bool DownloadThread::_customizeImage()
         }
     }
 
-    if (!_firstrun.isEmpty() && _initFormat == "systemd")
+    if (!_openHDAir.isEmpty() && _initFormat == "systemd")
     {
-        QFile f(folder+"/firstrun.sh");
-        if (f.open(f.WriteOnly) && f.write(_firstrun) == _firstrun.length())
+        QFile d(folder+"/OpenHD"+"/ground.txt");
+        d.remove();
+        QFile f(folder+"/OpenHD"+"/air.txt");
+        if (f.open(f.WriteOnly) && f.write(_openHDAir) == _openHDAir.length())
         {
-            f.close();
+           qDebug() << "folder:" << f;
         }
         else
         {
-            emit error(tr("Error creating firstrun.sh on FAT partition"));
+            emit error(tr("Error creating air.txt on FAT partition"));
             return false;
         }
 
-        _cmdline += " systemd.run=/boot/firstrun.sh systemd.run_success_action=reboot systemd.unit=kernel-command-line.target";
     }
 
-    if (!_cloudinit.isEmpty() && _initFormat == "cloudinit")
+    if (!_openHDGround.isEmpty() && _initFormat == "systemd")
     {
-        _cloudinit = "#cloud-config\n"+_cloudinit;
-        QFile f(folder+"/user-data");
-        if (f.open(f.WriteOnly) && f.write(_cloudinit) == _cloudinit.length())
+        QFile d(folder+"/OpenHD"+"/air.txt");
+        d.remove();
+        QFile g(folder+"/OpenHD"+"/ground.txt");
+        if (g.open(g.WriteOnly) && g.write(_openHDGround) == _openHDGround.length())
         {
-            f.close();
+           qDebug() << "folder:" << g;
         }
         else
         {
-            emit error(tr("Error creating user-data cloudinit file on FAT partition"));
-            return false;
-        }
-    }
-
-    if (!_cloudinitNetwork.isEmpty() && _initFormat == "cloudinit")
-    {
-        QFile f(folder+"/network-config");
-        if (f.open(f.WriteOnly) && f.write(_cloudinitNetwork) == _cloudinitNetwork.length())
-        {
-            f.close();
-        }
-        else
-        {
-            emit error(tr("Error creating network-config cloudinit file on FAT partition"));
+            emit error(tr("Error creating ground.txt on FAT partition"));
             return false;
         }
     }

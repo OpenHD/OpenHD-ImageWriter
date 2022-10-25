@@ -332,8 +332,8 @@ Controlled Folder Access scheint aktiviert zu sein. Bitte fügen Sie sowohl rpi-
     </message>
     <message>
         <location filename="../OptionsPopup.qml" line="96"/>
-        <source>Image customization options</source>
-        <translation>OS-Modifizierungen</translation>
+        <source>OpenHD install settings</source>
+        <translation>OpenHD Installationseinstellungen</translation>
     </message>
     <message>
         <location filename="../OptionsPopup.qml" line="104"/>

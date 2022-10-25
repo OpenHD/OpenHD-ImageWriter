@@ -133,6 +133,7 @@ ApplicationWindow {
                     Text {
                         id: text2
                         text: qsTr("Storage")
+                        color: "#fff"
                         Layout.fillWidth: true
                         Layout.preferredHeight: 17
                         Layout.preferredWidth: 100
@@ -243,8 +244,8 @@ ApplicationWindow {
                         onClicked: {
                             optionspopup.openPopup()
                         }
-                        visible: false
-                        Accessible.description: qsTr("Select this button to access advanced settings")
+                        visible: true
+                        Accessible.description: qsTr("Select this button to configure Settings")
                         contentItem: Image {
                             source: "icons/ic_cog_red.svg"
                             fillMode: Image.PreserveAspectFit
@@ -736,7 +737,6 @@ ApplicationWindow {
                         width: 10
                         policy: dstlist.contentHeight > dstlist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
                     }
-
                     Keys.onSpacePressed: {
                         if (currentIndex == -1)
                             return
@@ -750,13 +750,13 @@ ApplicationWindow {
                     Keys.onEnterPressed: Keys.onSpacePressed(event)
                     Keys.onReturnPressed: Keys.onSpacePressed(event)
                 }
-            }
+                
+                }
         }
     }
 
     Component {
         id: dstdelegate
-
         Item {
             width: window.width-100
             height: 60
@@ -779,6 +779,7 @@ ApplicationWindow {
                property bool mouseOver: false
 
             }
+
             Rectangle {
                id: dstborderrect
                implicitHeight: 1
@@ -800,6 +801,7 @@ ApplicationWindow {
                         fillMode: Image.Pad
                     }
                 }
+
                 Column {
                     width: parent.parent.width-64
 
@@ -850,6 +852,7 @@ ApplicationWindow {
         }
     }
 
+
     MsgPopup {
         id: msgpopup
     }
@@ -860,7 +863,7 @@ ApplicationWindow {
         yesButton: true
         noButton: true
         title: qsTr("Are you sure you want to quit?")
-        text: qsTr("Raspberry Pi Imager is still busy.<br>Are you sure you want to quit?")
+        text: qsTr("OpenHD Imager is still busy.<br>Are you sure you want to quit?")
         onYes: {
             Qt.quit()
         }
@@ -875,7 +878,7 @@ ApplicationWindow {
         onYes: {
             langbar.visible = false
             writebutton.enabled = false
-            customizebutton.visible = false
+            customizebutton.visible = true
             cancelwritebutton.enabled = true
             cancelwritebutton.visible = true
             cancelverifybutton.enabled = true
@@ -1001,7 +1004,7 @@ ApplicationWindow {
     function resetWriteButton() {
         progressText.visible = false
         progressBar.visible = false
-        customizebutton.visible = imageWriter.imageSupportsCustomization()
+        customizebutton.visible = true
         osbutton.enabled = true
         dstbutton.enabled = true
         writebutton.visible = true
@@ -1046,7 +1049,7 @@ ApplicationWindow {
         if (imageWriter.readyToWrite()) {
             writebutton.enabled = true
         }
-        customizebutton.visible = imageWriter.imageSupportsCustomization()
+        customizebutton.visible = true
     }
 
     function onCancelled() {
@@ -1278,7 +1281,7 @@ ApplicationWindow {
             if (imageWriter.readyToWrite()) {
                 writebutton.enabled = true
             }
-            customizebutton.visible = false
+            customizebutton.visible = true
         }
     }
 

@@ -20,7 +20,6 @@
         <file>icons/cat_misc_utility_images.png</file>
         <file>icons/cat_media_players.png</file>
         <file>icons/cat_emulation_and_games.png</file>
-        <file>OptionsPopup.qml</file>
         <file>countries.txt</file>
         <file>timezones.txt</file>
         <file>UseSavedSettingsPopup.qml</file>
@@ -35,5 +34,8 @@
         <file>qmlcomponents/ImButton.qml</file>
         <file>qmlcomponents/ImCheckBox.qml</file>
         <file>qmlcomponents/ImRadioButton.qml</file>
+        <file>OptionsPopup.qml</file>
+        <file>icons/OpenHD-advanced.webp</file>
+        <file>icons/OpenHD-old.webp</file>
     </qresource>
 </RCC>

@@ -10,40 +10,64 @@ on:
   pull_request:
     branches: [ "qml" ]
 
+
+defaults:
+  run:
+    shell: cmd
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: windows-latest
+    runs-on: windows-2019
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
- 
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v2
+      - uses: actions/checkout@v3
+      - uses: msys2/setup-msys2@v2
         with:
-          version: '5.12.11'
+          update: true
+          install: >-
+            p7zip
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          aqtversion: '==2.1.*'
+          version: '5.15.2'
           host: 'windows'
           target: 'desktop'
-          arch: 'win32_mingw73'
-          dir: '${{github.workspace}}/qt/'
-          install-deps: 'true'
-          tools: 'tools_openssl_src'
+          arch: 'win32_mingw81'
+          tools: 'tools_ifw tools_qtcreator,qt.tools.qtcreator,'
+          setup-python: false
+
+      - name: Download JOM
+        uses: suisei-cn/actions-download-file@v1
+        with:
+          url:    http://download.qt.io/official_releases/jom/jom.zip
+
+      - name: Unzip JOM
+        run:  |
+              7z x jom.zip -ojom
           
       # Runs a set of commands using the runners shell
       - name: Build
         run: |
           dir
-          cmake src
+          mkdir -p build
+          cd build
+          cmake ../src
+          make 
           cd deploy
-          dir
           cd ..
+          cd ..
+          msys2 -c '7z a -tzip -r myzip.zip *'
+
       - name: Upload to Github
         uses: 'actions/upload-artifact@v2'
         with:
           name: "OpenHD Image Writer"
           path: |
-            deploy/*.exe
+            *.zip
           if-no-files-found: error
