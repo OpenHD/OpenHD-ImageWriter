@@ -65,7 +65,7 @@ jobs:
           command: "push"
           format: "deb"
           owner: "openhd"
-          repo: "openhd-x86-evo"
+          repo: ${{ github.ref_name }}
           distro: "ubuntu"
           release: "lunar"
           republish: "true" # needed ONLY if version is not changing

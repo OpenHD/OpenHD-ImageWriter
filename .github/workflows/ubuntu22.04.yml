@@ -55,7 +55,7 @@ jobs:
           command: "push"
           format: "deb"
           owner: "openhd"
-          repo: "openhd-2-3-evo"
+          repo: ${{ github.ref_name }}
           distro: "ubuntu"
           release: "jammy"
           republish: "true" # needed ONLY if version is not changing
