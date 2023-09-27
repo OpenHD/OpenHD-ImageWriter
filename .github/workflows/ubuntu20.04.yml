@@ -4,13 +4,17 @@ name: OpenHD Image Writer
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "qml" branch
   push:
-    branches: [ "master" ]
-    paths-ignore:
-      - '**/Windows.yml'
-  pull_request:
-    branches: [ "master" ]
+   branches:
+      - "2.5-evo"
+      - "dev-release"
+      - "release"
+   paths-ignore:
+      - '**.md'
+      - '**.asciidoc'
+      - '**.adoc'
+      - '.gitignore'
+      - 'LICENSE'
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:

@@ -2,9 +2,16 @@ name: OpenHD Image Writer Windows
 
 on:
   push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+   branches:
+      - "2.5-evo"
+      - "dev-release"
+      - "release"
+   paths-ignore:
+      - '**.md'
+      - '**.asciidoc'
+      - '**.adoc'
+      - '.gitignore'
+      - 'LICENSE'
 
 env:
   BUILD_TYPE: Release
