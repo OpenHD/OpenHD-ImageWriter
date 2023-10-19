@@ -1,3 +1,8 @@
+openhdimagewriter (2.0.0) stable; urgency=high
+
+ * TODO
+
+ -- Raphael Scholle <raphael@openhdfpv.org>  Sat, 02 Sep 2023 02:06:52 +0100
 openhdimagewriter (1.9.2) stable; urgency=high
 
  * refactor a lot of settings to QSettings
