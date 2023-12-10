@@ -25,7 +25,7 @@ ApplicationWindow {
     minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 420
     //maximumHeight: imageWriter.isEmbeddedMode() ? -1 : 420
 
-    title: qsTr("OpenHD Imager ALPHA v%1").arg(imageWriter.constantVersion())
+    title: qsTr("OpenHD ImageWriter ALPHA v%1").arg(imageWriter.constantVersion())
 
     FontLoader {id: roboto;      source: "fonts/Roboto-Regular.ttf"}
     FontLoader {id: robotoLight; source: "fonts/Roboto-Light.ttf"}
