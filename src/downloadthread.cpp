@@ -43,7 +43,7 @@ DownloadThread::DownloadThread(const QByteArray &url, const QByteArray &localfil
     if (!_curlCount)
         curl_global_init(CURL_GLOBAL_DEFAULT);
     _curlCount++;
-    _ejectEnabled = settings.value("eject", true).toBool();
+    //_ejectEnabled = settings.value("eject", true).toBool();
 }
 
 DownloadThread::~DownloadThread()
@@ -111,7 +111,15 @@ QByteArray DownloadThread::_fileGetContentsTrimmed(const QString &filename)
 
 bool DownloadThread::_openAndPrepareDevice()
 {
+    QSettings settings_;
+    std::cout << "_____________________________-DEBUG-_______________________________________" << std::endl;
+
     emit preparationStatusUpdate(tr("opening drive"));
+
+    if (_filename.startsWith("/dev/update-"))
+    {
+    std::cout << "running update procedure without modifying the image" << std::endl;
+    }
 
     if (_filename.startsWith("/dev/"))
     {
@@ -128,6 +136,7 @@ bool DownloadThread::_openAndPrepareDevice()
 
     if (std::regex_match(_filename.constData(), m, windriveregex))
     {
+
         _nr = QByteArray::fromStdString(m[1]);
 
         if (!_nr.isEmpty()) {

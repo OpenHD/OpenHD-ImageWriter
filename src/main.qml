@@ -365,11 +365,11 @@ ApplicationWindow {
 
                     ImButton {
                         id: writebutton
+                        visible: !updateButton.visible
                         property var image_name
                         property var use_settings
                         property var bootType
                         property string camera:""
-
                         text: qsTr("WRITE")
                         Layout.minimumHeight: 40
                         Layout.fillWidth: true
@@ -398,6 +398,43 @@ ApplicationWindow {
                             }
                         }
                     }
+                    ImButton {
+                        id: updateButton
+                        visible:ospopup.visible
+                        property var image_name
+                        property var use_settings
+                        property var bootType
+                        property string camera:""
+
+                        text: qsTr("UPDATE")
+                        Layout.minimumHeight: 40
+                        Layout.fillWidth: true
+                        Accessible.ignored: ospopup.visible || dstpopup.visible
+                        Accessible.description: qsTr("Select this button to start writing the image")
+                        enabled: false
+                        onClicked: {
+                            if (!imageWriter.readyToWrite()) {
+                                return
+                            }
+                            image_name=imageWriter.srcFileName();
+                            bootType=imageWriter.getValue("bootType");
+                            camera=imageWriter.getValue("camera");
+                            if(image_name.includes("configurable")){
+                                if(bootType!=="Air" && bootType!=="Ground" ){
+                                    console.log("Cannot write yet, air or ground not set yet");
+                                    onError("Cannot write yet, air or ground not set yet - please open settings and select air or ground")
+                                    return;
+                                }
+                            }
+                            use_settings=imageWriter.getValue("useSettings")
+                            if (!optionspopup.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
+                                usesavedsettingspopup.openPopup()
+                            } else {
+                                confirmwritepopup.askForConfirmation()
+                            }
+                        }
+                    }
+
                 }
 
                 ColumnLayout {

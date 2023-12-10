@@ -312,22 +312,6 @@ Popup {
                         }
                     }
                 }
-                GroupBox {
-                    title: qsTr("Imager settings")
-                    Layout.fillWidth: true
-
-                    ColumnLayout {
-                        spacing: -10
-
-                        ImCheckBox {
-                            id: chkEject
-                            text: qsTr("Do not flash config files")
-                            onCheckedChanged: {
-                               useSettings=false;
-                            }
-                        }
-                    }
-                }
             }
         }
 

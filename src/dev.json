@@ -1,0 +1,365 @@
+{
+    "imager": {
+        "latest_version": "1.9.2-OpenHD",
+        "url": "https://openhdfpv.org/downloads/"
+    },
+    "os_list": [
+        {
+            "name": "OpenHD Evo Raspberry",
+            "description": "Images for Raspberry-Pi SBC's",
+            "icon": "https://upload.wikimedia.org/wikipedia/de/thumb/c/cb/Raspberry_Pi_Logo.svg/570px-Raspberry_Pi_Logo.svg.png",
+            "subitems": [
+                {
+                    "name": "OpenHD-2.5.2-beta",
+                    "description": "",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-pi-bullseye-configurable-2.5-evo-2023-12-03_2216.img.xz",
+                    "extract_size": 2927120896,
+                    "extract_sha256": "0d7b04cb07255ecc4d0c160ac559c2f755bdbe542d091edee1adb17b23ea987f",
+                    "image_download_size": 841667460,
+                    "release_date": "2023-12-04",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "OpenHD-2.4.1-evo",
+                    "description": "Expose more camera setting, enable Gpio switching, performance and bugfixes",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/OpenHD-image-pi-bullseye-configurable-2.4-evo-2023-06-30_2230.img.xz",
+                    "extract_size": 3452678656,
+                    "extract_sha256": "7c24543a3b075e773ae51fcb53c768efea4a740d1c6e3eef30463e9140c1d247",
+                    "image_download_size": 928471500,
+                    "release_date": "2023-06-30",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "OpenHD-2.4-evo-beta ",
+                    "description": "Adds 6.x Kernel, IMX708 support, more Camera settings, MCS via RC,...",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/OpenHD-image-pi-bullseye-configurable-2.4-evo-2023-06-23_1731.img.xz",
+                    "extract_size": 3452572160,
+                    "extract_sha256": "2dcfcc440ce6f4ae6c81afe7124b743b6df4aba060c35d1329533abc3c513d1c",
+                    "image_download_size": 946835456,
+                    "release_date": "2023-06-23",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "OpenHD-2.3.6-evo ",
+                    "description": "OpenHD Evo for Raspberry",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/OpenHD-image-pi-bullseye-release--2.3-evo-2023-06-04_2201-configurable.img.xz",
+                    "extract_size": 3473338880,
+                    "extract_sha256": "711b71b461e3d1f245b04737bfabd53bf89569b523d06f23f03144753b8c69b6",
+                    "image_download_size": 908356600,
+                    "release_date": "2023-06-04",
+                    "init_format": "systemd"
+                },
+                {
+            
+                    "name": "OpenHD-2.3.5-evo-beta ",
+                    "description": "OpenHD Evo for Raspberry",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/OpenHD-image-pi-bullseye-configurable-2.3-evo-2023-05-18_1031.zip",
+                    "extract_size": 3416003072,
+                    "extract_sha256": "d2018a810260a47c9c98bdc2f0ab28eb21dd0a4e261210d49d68268cfa0eace0",
+                    "image_download_size": 1181022536,
+                    "release_date": "2023-05-18",
+                    "init_format": "systemd"
+                },
+                {
+                    
+                    "name": "OpenHD-2.3.3-evo-beta ",
+                    "description": "OpenHD Evo for Raspberry",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
+                    "url": "https://openhd-images.fra1.cdn.digitaloceanspaces.com/Downloader/OpenHD-image-pi-bullseye-release--2.3-evo-2023-03-10_2127-configurable.img.xz",
+                    "extract_size": 3416003072,
+                    "extract_sha256": "7e4cc3adfccb982471bac209b80c6fa0634026d37a766093ce77775c81f79d0a",
+                    "image_download_size": 1181022536,
+                    "release_date": "2023-03-10",
+                    "init_format": "systemd"
+                }
+                        ]
+        },
+        {
+            "name": "OpenHD Evo Radxa",
+            "description": "Images for Radxa SBC's",
+            "icon": "https://forum.radxa.com/uploads/default/original/1X/afb83a5d13f03ccc5f26a0c5800a02e320b06468.png",
+            "subitems": [
+                {
+                    "name": "OpenHD-2.5.2-beta",
+                    "description": "Radxa Zero 3W NO-EMMC",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-radxa-zero3w--2.5-evo-2023-12-03_2217.img.xz",
+                    "extract_size": 5632000000,
+                    "extract_sha256": "013849716a21bd38a9b5eb30b58378b5881029a36b26aa6e33ce6b5e9bae11d3",
+                    "image_download_size": 1373243512,
+                    "release_date": "2023-12-04",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "OpenHD-2.5.2-beta",
+                    "description": "Radxa Zero 3W EMMC",
+                    "icon": "https://i0.wp.com/openhdfpv.org/wp-content/uploads/2021/09/cropped-cropped-52e3f1a166dab3645fd8b5ece206721fef1cd5d3.png?w=512&ssl=1",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-EMMC-radxa-zero3w--2.5-evo.img.xz",
+                    "extract_size": 9500000256,
+                    "extract_sha256": "ec38facf9a21d9c2887d82cb11ed4a0b0c4367f1a9cad03ad338aa2274c2dbcb",
+                    "image_download_size": 3622275044,
+                    "release_date": "2023-12-04",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "OpenHD-2.5.2-beta",
+                    "description": "Radxa Rock5 A",
+                    "icon": "https://i0.wp.com/openhdfpv.org/wp-content/uploads/2021/09/cropped-cropped-52e3f1a166dab3645fd8b5ece206721fef1cd5d3.png?w=512&ssl=1",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-rock5a-configurable-2.5-evo-2023-12-03_2216.img.xz",
+                    "extract_size": 6800000000,
+                    "extract_sha256": "2f3703dff270508bbbbafd5e7b7a32c551413bde12ff540a1665444356f4d99c",
+                    "image_download_size": 1733522120,
+                    "release_date": "2023-12-04",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "OpenHD-2.5.2-beta",
+                    "description": "Radxa Rock5 B",
+                    "icon": "https://i0.wp.com/openhdfpv.org/wp-content/uploads/2021/09/cropped-cropped-52e3f1a166dab3645fd8b5ece206721fef1cd5d3.png?w=512&ssl=1",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-rock5b--2.5-evo-2023-12-03_2215.img.xz",
+                    "extract_size": 6800000000,
+                    "extract_sha256": "da11991d7ea755a72d29a3d617be7b542ec38167dad8309e9d7a13a60e9a8bcf",
+                    "image_download_size": 1763458708,
+                    "release_date": "2023-12-04",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "OpenHD-2.4.1-evo Rock5B",
+                    "description": "Added custom kernel and 8812bu support, only Ground",
+                    "icon": "https://i0.wp.com/openhdfpv.org/wp-content/uploads/2021/09/cropped-cropped-52e3f1a166dab3645fd8b5ece206721fef1cd5d3.png?w=512&ssl=1",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/OpenHD-image-rock5b--2.4-evo-2023-06-30_2230.img.xz",
+                    "extract_size": 14500000256,
+                    "extract_sha256": "399ba04a68a7f0872a9239f096fc0da8c2aacb56b5d0d028fe3e8822f971fa2d",
+                    "image_download_size": 1698576940,
+                    "release_date": "2023-30-06",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "DEBUG",
+                    "description": "debug image not for production",
+                    "icon": "https://i0.wp.com/openhdfpv.org/wp-content/uploads/2021/09/cropped-cropped-52e3f1a166dab3645fd8b5ece206721fef1cd5d3.png?w=512&ssl=1",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/temp/OpenHD-image-rock5a-configurable-2.4-evo-2023-08-02_2122.img.xz",
+                    "extract_size": 6500000256,
+                    "extract_sha256": "a5fcff4338c47907d7c939ea589eefcc2c59d9c166abca5e677bcc3aea10d3f1",
+                    "image_download_size": 1522832684,
+                    "release_date": "2023-08-02",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "OpenHD-2.4.1-evo Rock5A",
+                    "description": "Added custom kernel and 8812bu support, only Ground",
+                    "icon": "https://i0.wp.com/openhdfpv.org/wp-content/uploads/2021/09/cropped-cropped-52e3f1a166dab3645fd8b5ece206721fef1cd5d3.png?w=512&ssl=1",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/OpenHD-image-rock5a--2.4-evo-2023-06-30_2231.img.xz",
+                    "extract_size": 14500000256,
+                    "extract_sha256": "628d2af56d11a27058401089a02979e1b5932a2d452c88e922d21db588d565cd",
+                    "image_download_size": 1647829508,
+                    "release_date": "2023-30-06",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "OpenHD-2.4-evo-beta Rock5B",
+                    "description": "Initial Radxa Rock5B support, only Ground",
+                    "icon": "https://i0.wp.com/openhdfpv.org/wp-content/uploads/2021/09/cropped-cropped-52e3f1a166dab3645fd8b5ece206721fef1cd5d3.png?w=512&ssl=1",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/OpenHD-ground-rock5b--2.4-evo-2023-06-23_1731.img.xz",
+                    "extract_size": 14500000256,
+                    "extract_sha256": "edffe76325aa19c4a11fa462599f9d84487df1376e3a24d716299bcb720dd621",
+                    "image_download_size": 1410447972,
+                    "release_date": "2023-23-06",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "OpenHD-2.4-evo-beta Rock5A",
+                    "description": "Initial Radxa Rock5A support, only Ground",
+                    "icon": "https://i0.wp.com/openhdfpv.org/wp-content/uploads/2021/09/cropped-cropped-52e3f1a166dab3645fd8b5ece206721fef1cd5d3.png?w=512&ssl=1",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/OpenHD-ground-rock5a--2.4-evo-2023-06-23_1731.img.xz",
+                    "extract_size": 14500000256,
+                    "extract_sha256": "dcbc281452122a3046a0631a6d80e5fe2ddbe0976138933345fa5dec8fbdd393",
+                    "image_download_size": 1404092244,
+                    "release_date": "2023-23-06",
+                    "init_format": "systemd"
+                }
+                        ]
+        },
+        {
+            "name": "OpenHD Evo X86",
+            "description": "Images for normal Computers",
+            "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/x86.png",
+            "subitems": [
+                {
+                    "name": "OpenHD-2.5.2-beta",
+                    "description": "",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/x86-ohd.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-x86-lunar-configurable-2.5-evo-2023-12-03_2215.img.xz",
+                    "extract_size": 15790768128,
+                    "extract_sha256": "938995306af8a4c295686735df5ff2c37fd7b1716ab4d1fbb7908aaa41a0ae07",
+                    "image_download_size": 5063589628,
+                    "release_date": "2023-30-06",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "OpenHD-2.4.1-evo",
+                    "description": "updated to latest OpenHD/QOpenHD",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/x86-ohd.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/OpenHD-image-x86-jammy--2.4-evo-2023-06-30_2230.img.xz",
+                    "extract_size": 16500000256,
+                    "extract_sha256": "8cecff8366272328694382dc5f644b5c962e9876a11428090256379170396253",
+                    "image_download_size": 5616280016,
+                    "release_date": "2023-30-06",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "OpenHD-2.4-evo-beta ",
+                    "description": "updated to latest OpenHD/QOpenHD",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/x86-ohd.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/OpenHD-image-x86-jammy--2.4-evo-2023-06-23_1731.img.xz",
+                    "extract_size": 16500000256,
+                    "extract_sha256": "aa65dbbe24308d318df977710bcc70620fe988f9499d83fe6b1d2e2547032b31",
+                    "image_download_size": 5691925560,
+                    "release_date": "2023-23-06",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "OpenHD-2.3.6-evo ",
+                    "description": "OpenHD Evo for x86",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/x86-ohd.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/OpenHD-image-x86-jammy-testing--2.3-evo-2023-06-04_2201.img.xz",
+                    "extract_size": 16500000256,
+                    "extract_sha256": "98097d16c15a02f9025b4baee3416421a3e20c8112dfc76b51c295409f91a064",
+                    "image_download_size": 6143738016,
+                    "release_date": "2023-06-04"
+                },
+                {
+                    "name": "OpenHD-2.3.5-evo-beta ",
+                    "description": "OpenHD Evo for x86",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/x86-ohd.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/OpenHD-image-x86-jammy--2.3-evo-2023-05-18_1030.img.xz",
+                    "extract_size": 16500000256,
+                    "extract_sha256": "fb722a0b3f25576c96cfb0e514e6128b01ee48b90163d29cbcad32f77adc1797",
+                    "image_download_size": 5769245024,
+                    "release_date": "2023-03-10"
+                },
+                {
+                    "name": "OpenHD-2.3.3-evo-beta ",
+                    "description": "OpenHD Evo for x86",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/x86-ohd.png",
+                    "url": "https://openhd-images.fra1.cdn.digitaloceanspaces.com/Downloader/OpenHD-image-x86-jammy-testing--2.3-evo-2023-03-10_2126.img.xz",
+                    "extract_size": 15728640000,
+                    "extract_sha256": "da0495dfd3a6f2e662a65207ee8f84695869cb4137e6059d133e681cd9d12045",
+                    "image_download_size": 6194596280,
+                    "release_date": "2023-03-10"
+                }
+                        ]
+        },
+        {
+            "name": "OpenHD 2.0",
+            "description": "OpenHD 2.0 Images",
+            "icon": "https://openhd-images.fra1.cdn.digitaloceanspaces.com/Downloader/OpenHD-old.png",
+            "subitems": [
+                {
+                    "name": "OpenHD 2.0.12 Raspberry Pi",
+                    "description": "Raspberry Pi Buster",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
+                    "url": "https://openhd-images.fra1.cdn.digitaloceanspaces.com/Downloader/Open.HD-2.0.12b-buster.zip",
+                    "extract_size": 4001370112,
+                    "extract_sha256": "3d0e3cea1972ad99cc5aa33c549ec0c7a3f1747e65eb8c853fb12a880f00c511",
+                    "image_download_size": 1596698624,
+                    "release_date": "2021-23-09"
+                },
+                {
+                    "name": "OpenHD 2.0.8 B",
+                    "description": "Raspberry Pi Buster",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
+                    "url": "https://openhd-images.fra1.cdn.digitaloceanspaces.com/Downloader/Open.HD-2.0.8-buster.img.gz",
+                    "extract_size": 4001370112,
+                    "extract_sha256": "3fc94dc9871a3fda65900c40dfc7a3fbaabf25204023be8b6da07cb47fbb8151",
+                    "image_download_size": 1569824768,
+                    "release_date": "2020-17-12"
+                },
+                {
+                    "name": "OpenHD 2.0.8 S",
+                    "description": "Raspberry Pi Stretch",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
+                    "url": "https://openhd-images.fra1.cdn.digitaloceanspaces.com/Downloader/Open.HD-2.0.8-stretch.img.gz",
+                    "extract_size": 4013953024,
+                    "extract_sha256": "7b59470ef660d10ae2928ad3b86a08eb69f978ddeeab6d66ef79cb5b9ce645ef",
+                    "image_download_size": 1351294976,
+                    "release_date": "2020-17-12"
+                }
+                        ]
+        },
+        {
+            
+            "name": "Mirrors in case of Downtime",
+            "description": "Emergency backups of the latest Images",
+            "icon": "https://www.nicepng.com/png/detail/58-589511_emergency-alert-icon.png",
+            "subitems": [
+                {
+                    "name": "OpenHD-2.4.1-evo",
+                    "description": "OpenHD Evo for Raspberry",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
+                    "url": "https://github.com/OpenHD/OpenHD-ImageBuilder/releases/download/2.4.1/OpenHD-image-pi-bullseye-configurable-2.4-evo-2023-06-30_2230.img.xz",
+                    "extract_size": 3473338880,
+                    "extract_sha256": "7c24543a3b075e773ae51fcb53c768efea4a740d1c6e3eef30463e9140c1d247",
+                    "image_download_size": 908356600,
+                    "release_date": "2023-06-04",
+                    "init_format": "systemd"
+                }
+                        ]
+        },
+        {
+            "name": "OpenHD Evo Depricated",
+            "description": "OpenHD Images for depricated SBC's",
+            "icon": "https://openhdfpv.org/wp-content/Downloader/OpenHD-advanced.png",
+            "subitems": [
+                {
+                    "name": "OpenHD-2.3.3-evo-beta ",
+                    "description": "OpenHD Evo for Jetson 2GB",
+                    "icon": "https://i0.wp.com/openhdfpv.org/wp-content/uploads/2021/09/cropped-cropped-52e3f1a166dab3645fd8b5ece206721fef1cd5d3.png?w=512&ssl=1",
+                    "url": "https://openhd-images.fra1.cdn.digitaloceanspaces.com/Downloader/OpenHD-image-jetson-nano-2gb-bionic-testing--2.3-evo-2023-03-10_2145.img.xz",
+                    "extract_size": 15732310016,
+                    "extract_sha256": "eb124811b86c72d56db26738fc73c5fdec9ab361e6f387c4e02fe668f8cca127",
+                    "image_download_size": 6617753600,
+                    "release_date": "2023-03-10"
+                },
+                {
+                    "name": "OpenHD-2.3.3-evo-beta ",
+                    "description": "OpenHD Evo for Jetson 4GB",
+                    "icon": "https://i0.wp.com/openhdfpv.org/wp-content/uploads/2021/09/cropped-cropped-52e3f1a166dab3645fd8b5ece206721fef1cd5d3.png?w=512&ssl=1",
+                    "url": "https://openhd-images.fra1.cdn.digitaloceanspaces.com/Downloader/OpenHD-image-jetson-nano-4gb-bionic-testing--2.3-evo-2023-03-10_2145.img.xz",
+                    "extract_size": 15367929856,
+                    "extract_sha256": "6e74f071fa078810c1acf06917124e0e9b0314697e3d2782dc1982653bacc5da",
+                    "image_download_size": 6434877512,
+                    "release_date": "2023-03-10"
+                },
+                {
+                    "name": "OpenHD-2.3.2-beta ",
+                    "description": "OpenHD Evo for Jetson 2GB",
+                    "icon": "https://i0.wp.com/openhdfpv.org/wp-content/uploads/2021/09/cropped-cropped-52e3f1a166dab3645fd8b5ece206721fef1cd5d3.png?w=512&ssl=1",
+                    "url": "https://openhd-images.fra1.cdn.digitaloceanspaces.com/Downloader/OpenHD-image-jetson-nano-2gb-bionic-testing--2.3-evo-2023-03-06_2007.img.xz",
+                    "extract_size": 14838903296,
+                    "extract_sha256": "a4795fede6412f22e31f234b381ea378798d4f62d01346b39108f66f61ec8f7f",
+                    "image_download_size": 6389115840,
+                    "release_date": "2023-03-06",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "OpenHD-2.3.2-beta ",
+                    "description": "OpenHD Evo for Jetson 4GB",
+                    "icon": "https://i0.wp.com/openhdfpv.org/wp-content/uploads/2021/09/cropped-cropped-52e3f1a166dab3645fd8b5ece206721fef1cd5d3.png?w=512&ssl=1",
+                    "url": "https://openhd-images.fra1.cdn.digitaloceanspaces.com/Downloader/OpenHD-image-jetson-nano-4gb-bionic-testing--2.3-evo-2023-03-06_2007.img.xz",
+                    "extract_size": 14885933568,
+                    "extract_sha256": "cb3fa7aceda4de2b9159dbfbb8226f186b75d5ca3aa7cec378f59398fc8bba40",
+                    "image_download_size": 6346920140,
+                    "release_date": "2023-03-06",
+                    "init_format": "systemd"
+                }
+                
+                        ]
+        }              
+    ]
+}

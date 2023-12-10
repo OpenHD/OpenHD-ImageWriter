@@ -61,6 +61,7 @@
 #endif
 
 #include <iostream>
+#include <filesystem>
 
 
 ImageWriter::ImageWriter(QObject *parent)
