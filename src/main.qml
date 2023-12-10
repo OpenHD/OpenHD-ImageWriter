@@ -1107,7 +1107,7 @@ ApplicationWindow {
         yesButton: true
         noButton: true
         title: qsTr("Are you sure you want to quit?")
-        text: qsTr("OpenHD Imager is still busy.<br>Are you sure you want to quit?")
+        text: qsTr("OpenHD ImageWriter is still busy.<br>Are you sure you want to quit?")
         onYes: {
             Qt.quit()
         }
@@ -1162,7 +1162,7 @@ ApplicationWindow {
         noButton: true
         property url url
         title: qsTr("Update available")
-        text: qsTr("There is a newer version of Imager available.<br>Would you like to visit the website to download it?")
+        text: qsTr("There is a newer version of the ImageWriter is available.<br>Would you like to visit the website to download it?")
         onYes: {
             Qt.openUrlExternally(url)
         }

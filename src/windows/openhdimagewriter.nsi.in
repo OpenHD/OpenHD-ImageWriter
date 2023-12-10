@@ -4,12 +4,12 @@
 #              by Vlasis K. Barkas aka Red Wine red_wine@freemail.gr Sep 2006               
 ############################################################################################
 
-!define APP_NAME "OpenHD Imager"
+!define APP_NAME "OpenHD ImageWriter"
 !define COMP_NAME "OpenHD"
 !define VERSION "@IMAGER_VERSION_STR@"
 !define INSTALLER_NAME "imager-${VERSION}.exe"
 !define COPYRIGHT "OpenHD"
-!define DESCRIPTION "OpenHD Imager"
+!define DESCRIPTION "OpenHD ImageWriter"
 !define MAIN_APP_EXE "openhdimagewriter.exe"
 !define INSTALL_TYPE "SetShellVarContext current"
 !define REG_ROOT "HKCU"
@@ -37,7 +37,7 @@ OutFile "${INSTALLER_NAME}"
 BrandingText "${APP_NAME}"
 XPStyle on
 InstallDirRegKey "${REG_ROOT}" "${REG_APP_PATH}" ""
-InstallDir "$PROGRAMFILES\OpenHD Imager"
+InstallDir "$PROGRAMFILES\OpenHD ImageWriter"
 
 ######################################################################
 
@@ -84,14 +84,14 @@ InstallDir "$PROGRAMFILES\OpenHD Imager"
 !insertmacro MUI_LANGUAGE "Dutch"
 !insertmacro MUI_LANGUAGE "Italian"
 
-LangString termMsg ${LANG_ENGLISH} "OpenHD Imager seems to be running and busy.$\nDo you want to terminate process?"
-LangString stopMsg ${LANG_ENGLISH} "Stopping OpenHD Imager"
+LangString termMsg ${LANG_ENGLISH} "OpenHD ImageWriter seems to be running and busy.$\nDo you want to terminate process?"
+LangString stopMsg ${LANG_ENGLISH} "Stopping OpenHD ImageWriter"
 LangString win7Msg ${LANG_ENGLISH} "Windows 7 or above required"
-LangString termMsg ${LANG_DUTCH} "OpenHD Imager is momenteel actief.$\nWilt u het programma afsluiten?"
-LangString stopMsg ${LANG_DUTCH} "Bezig met afsluiten OpenHD Imager"
+LangString termMsg ${LANG_DUTCH} "OpenHD ImageWriter is momenteel actief.$\nWilt u het programma afsluiten?"
+LangString stopMsg ${LANG_DUTCH} "Bezig met afsluiten OpenHD ImageWriter"
 LangString win7Msg ${LANG_DUTCH} "Minimaal Windows 7 is vereist"
-LangString termMsg ${LANG_ITALIAN} "OpenHD Imager sembra essere in esecuzione e occupato.$\nVuoi terminare il processo OpenHD Imager?"
-LangString stopMsg ${LANG_ITALIAN} "Chiusura processo OpenHD Imager"
+LangString termMsg ${LANG_ITALIAN} "OpenHD ImageWriter sembra essere in esecuzione e occupato.$\nVuoi terminare il processo OpenHD ImageWriter?"
+LangString stopMsg ${LANG_ITALIAN} "Chiusura processo OpenHD ImageWriter"
 LangString win7Msg ${LANG_ITALIAN} "Per l'esecuzione del programma è richiesto Windows 7 o versioni successive"
 
 ######################################################################
@@ -637,7 +637,7 @@ WriteRegStr SHCTX "Software\Classes\.gz\OpenWithProgIds" "RPI_IMAGINGUTILITY" ""
 WriteRegStr SHCTX "Software\Classes\.xz\OpenWithProgIds" "RPI_IMAGINGUTILITY" ""
 WriteRegStr SHCTX "Software\Classes\.img\OpenWithProgIds" "RPI_IMAGINGUTILITY" ""
 WriteRegStr SHCTX "Software\Classes\.zstd\OpenWithProgIds" "RPI_IMAGINGUTILITY" ""
-WriteRegStr SHCTX "Software\Classes\RPI_IMAGINGUTILITY\shell\open" "FriendlyAppName" "OpenHD Imager"
+WriteRegStr SHCTX "Software\Classes\RPI_IMAGINGUTILITY\shell\open" "FriendlyAppName" "OpenHD ImageWriter"
 WriteRegStr SHCTX "Software\Classes\RPI_IMAGINGUTILITY\shell\open\command" "" '"$INSTDIR\openhdimagewriter.exe" "%1"'
 
 SectionEnd

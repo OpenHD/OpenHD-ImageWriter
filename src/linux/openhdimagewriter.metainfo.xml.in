@@ -3,11 +3,11 @@
   <id>org.raspberrypi.openhdimagewriter</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>Apache-2.0</project_license>
-  <name>OpenHD Pi Imager</name>
+  <name>OpenHD Pi ImageWriter</name>
   <summary>OpenHD imaging utility</summary>
   <description>
     <p>
-      OpenHD Imager downloads a .JSON file from the OpenHD
+      OpenHD ImageWriter downloads a .JSON file from the OpenHD
       website with a list of all current download options, ensuring you are
       always installing the most up-to-date version.
     </p>
@@ -21,7 +21,7 @@
       to the SD card.
     </p>
     <p>
-      During this process, OpenHD Imager also caches the downloaded
+      During this process, OpenHD ImageWriter also caches the downloaded
       operating system image – that is to say, it saves a local copy on your
       computer, so you can program additional SD cards without having to
       download the file again and includes OpenHD settings into the image.
