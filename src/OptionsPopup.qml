@@ -302,7 +302,7 @@ Popup {
 
                         ImCheckBox {
                             id: setWifiHotspot
-                            visible: true
+                            visible: false
                             text: qsTr("WifiHotspot")
                             onCheckedChanged: {
                                 if (checked) {
