@@ -2,7 +2,7 @@
     <qresource prefix="/">
         <file>main.qml</file>
         <file>qtquickcontrols2.conf</file>
-        <file>icons/rpi-imager.ico</file>
+        <file>icons/openhdimagewriter.ico</file>
         <file>fonts/Roboto-Bold.ttf</file>
         <file>fonts/Roboto-Light.ttf</file>
         <file>fonts/Roboto-Regular.ttf</file>
@@ -37,5 +37,6 @@
         <file>OptionsPopup.qml</file>
         <file>icons/OpenHD-advanced.webp</file>
         <file>icons/OpenHD-old.webp</file>
+        <file>icons/donate.svg</file>
     </qresource>
 </RCC>

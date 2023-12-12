@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=OpenHD-ImageWriter
+Comment=OpenHD Image Writer
+Icon=openhdimagewriter
+Exec=OpenHDImageWriter
+Categories=Utility
+StartupNotify=false

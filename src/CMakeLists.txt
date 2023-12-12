@@ -10,10 +10,10 @@ OPTION (ENABLE_CHECK_VERSION "Check for version updates" ON)
 OPTION (ENABLE_TELEMETRY "Enable sending telemetry" ON)
 
 project(OpenHDImageWriter LANGUAGES CXX C)
-set(IMAGER_VERSION_MAJOR 1)
-set(IMAGER_VERSION_MINOR 8)
-set(IMAGER_VERSION_STR "${IMAGER_VERSION_MAJOR}.${IMAGER_VERSION_MINOR}.2")
-set(IMAGER_VERSION_CSV "${IMAGER_VERSION_MAJOR},${IMAGER_VERSION_MINOR},2,0")
+set(IMAGER_VERSION_MAJOR 2)
+set(IMAGER_VERSION_MINOR 0)
+set(IMAGER_VERSION_STR "${IMAGER_VERSION_MAJOR}.${IMAGER_VERSION_MINOR}.0")
+set(IMAGER_VERSION_CSV "${IMAGER_VERSION_MAJOR},${IMAGER_VERSION_MINOR},0,0")
 add_definitions(-DIMAGER_VERSION_STR="${IMAGER_VERSION_STR}")
 add_definitions(-DIMAGER_VERSION_CSV=${IMAGER_VERSION_CSV})
 
@@ -27,9 +27,9 @@ set(HEADERS config.h imagewriter.h networkaccessmanagerfactory.h nan.h drivelist
 
 # Add dependencies
 if (APPLE)
-    set_source_files_properties("icons/rpi-imager.icns" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+    set_source_files_properties("icons/openhdimagewriter.icns" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
     set(DEPENDENCIES acceleratedcryptographichash.cpp mac/macfile.cpp mac/macfile.h dependencies/mountutils/src/darwin/functions.cpp
-        dependencies/drivelist/src/darwin/list.mm dependencies/drivelist/src/darwin/REDiskList.m icons/rpi-imager.icns)
+        dependencies/drivelist/src/darwin/list.mm dependencies/drivelist/src/darwin/REDiskList.m icons/openhdimagewriter.icns)
     enable_language(OBJC C)
 elseif (UNIX)
     set(DEPENDENCIES dependencies/mountutils/src/linux/functions.cpp linux/linuxdrivelist.cpp)
@@ -61,7 +61,7 @@ elseif (UNIX)
 elseif (WIN32)
     set(DEPENDENCIES acceleratedcryptographichash.cpp dependencies/mountutils/src/windows/functions.cpp dependencies/drivelist/src/windows/list.cpp
         windows/winfile.cpp windows/winfile.h
-        windows/rpi-imager.rc)
+        windows/openhdimagewriter.rc)
     find_package(Qt5WinExtras REQUIRED)
     set(EXTRALIBS setupapi wlanapi Qt5::WinExtras)
 endif()
@@ -108,16 +108,16 @@ else()
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${DEPENDENCIES})
 endif()
 
-# Enable link time optimization if available
-include(CheckIPOSupported)
-check_ipo_supported(RESULT iposupported OUTPUT ipoerror)
+# # Enable link time optimization if available
+# include(CheckIPOSupported)
+# check_ipo_supported(RESULT iposupported OUTPUT ipoerror)
 
-if(iposupported)
-    message("Enabled LTO")
-    set_property(TARGET ${PROJECT_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
-else()
-    message(STATUS "LTO not supported: <${ipoerror}>")
-endif()
+# if(iposupported)
+#     message("Enabled LTO")
+#     set_property(TARGET ${PROJECT_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+# else()
+#     message(STATUS "LTO not supported: <${ipoerror}>")
+# endif()
 
 if(ENABLE_TELEMETRY)
     add_definitions(-DTELEMETRY_ENABLED_DEFAULT=true)
@@ -195,7 +195,7 @@ if (WIN32)
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
             "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe" "${CMAKE_BINARY_DIR}/dependencies/fat32format/fat32format.exe"
-            "${CMAKE_SOURCE_DIR}/../license.txt" "${CMAKE_SOURCE_DIR}/windows/rpi-imager-cli.cmd"
+            "${CMAKE_SOURCE_DIR}/../license.txt" "${CMAKE_SOURCE_DIR}/windows/openhdimagewriter.cmd"
             "${CMAKE_BINARY_DIR}/deploy")
 
     add_custom_command(TARGET ${PROJECT_NAME}
@@ -203,10 +203,23 @@ if (WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy
             "${Qt5_DIR}/../../../bin/libcrypto-3.dll" "${Qt5_DIR}/../../../bin/libcrypto-3.dll"
             "${CMAKE_BINARY_DIR}/deploy")
+        add_custom_command(TARGET ${PROJECT_NAME}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_CURRENT_SOURCE_DIR}/windows/libssl-1_1.dll" "${CMAKE_BINARY_DIR}/deploy")
+        add_custom_command(TARGET ${PROJECT_NAME}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_CURRENT_SOURCE_DIR}/windows/libcrypto-1_1.dll" "${CMAKE_BINARY_DIR}/deploy")
+        add_custom_command(TARGET ${PROJECT_NAME}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_CURRENT_SOURCE_DIR}/windows/libcrypto.dll" "${CMAKE_BINARY_DIR}/deploy")
+
 
     configure_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/windows/rpi-imager.nsi.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/rpi-imager.nsi"
+        "${CMAKE_CURRENT_SOURCE_DIR}/windows/openhdimagewriter.nsi.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/openhdimagewriter.nsi"
         @ONLY)
 
     add_custom_command(TARGET ${PROJECT_NAME}
@@ -282,14 +295,14 @@ else()
     endif()
 
     configure_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/linux/rpi-imager.metainfo.xml.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/rpi-imager.metainfo.xml"
+        "${CMAKE_CURRENT_SOURCE_DIR}/linux/openhdimagewriter.metainfo.xml.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/openhdimagewriter.metainfo.xml"
         @ONLY)
 
     install(TARGETS OpenHDImageWriter DESTINATION bin)
-    install(FILES icons/rpi-imager.png DESTINATION share/icons/hicolor/128x128/apps)
-    install(FILES linux/rpi-imager.desktop DESTINATION share/applications)
-    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/rpi-imager.metainfo.xml" DESTINATION share/metainfo)
+    install(FILES icons/openhdimagewriter.png DESTINATION share/icons/hicolor/128x128/apps)
+    install(FILES linux/openhdimagewriter.desktop DESTINATION share/applications)
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/openhdimagewriter.metainfo.xml" DESTINATION share/metainfo)
 endif()
 
 get_target_property(QT_TARGET_TYPE Qt5::Core TYPE)

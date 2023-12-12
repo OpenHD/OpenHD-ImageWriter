@@ -103,9 +103,8 @@ public:
     Q_INVOKABLE QString getPSK(const QString &ssid);
 
     Q_INVOKABLE bool getBoolSetting(const QString &key);
+    Q_INVOKABLE QString getValue(const QString &key);
     Q_INVOKABLE void setSetting(const QString &key, const QVariant &value);
-    Q_INVOKABLE void setImageCustomization(const QByteArray &config, const QByteArray &cmdline, const QByteArray &openHDAir, const QByteArray &openHDGround, const QByteArray &cloudinit, const QByteArray &cloudinitNetwork);
-    Q_INVOKABLE void setSavedCustomizationSettings(const QVariantMap &map);
     Q_INVOKABLE QVariantMap getSavedCustomizationSettings();
     Q_INVOKABLE void clearSavedCustomizationSettings();
     Q_INVOKABLE bool hasSavedCustomizationSettings();
@@ -157,7 +156,7 @@ protected slots:
 protected:
     QUrl _src, _repo;
     QString _dst, _cacheFileName, _parentCategory, _osName, _currentLang, _currentLangcode, _currentKeyboard;
-    QByteArray _expectedHash, _cachedFileHash, _cmdline, _config, _openHDAir, _openHDGround, _cloudinit, _cloudinitNetwork, _initFormat;
+    QByteArray _expectedHash, _cachedFileHash, _cmdline, _config, _initFormat;
     quint64 _downloadLen, _extrLen, _devLen, _dlnow, _verifynow;
     DriveListModel _drivelist;
     QQmlApplicationEngine *_engine;

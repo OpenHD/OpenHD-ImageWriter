@@ -33,6 +33,8 @@ using namespace std;
 QByteArray DownloadThread::_proxy;
 int DownloadThread::_curlCount = 0;
 
+QSettings settings;
+
 DownloadThread::DownloadThread(const QByteArray &url, const QByteArray &localfilename, const QByteArray &expectedHash, QObject *parent) :
     QThread(parent), _startOffset(0), _lastDlTotal(0), _lastDlNow(0), _verifyTotal(0), _lastVerifyNow(0), _bytesWritten(0), _lastFailureOffset(0), _sectorsStart(-1), _url(url), _filename(localfilename), _expectedHash(expectedHash),
     _firstBlock(nullptr), _cancelled(false), _successful(false), _verifyEnabled(false), _cacheEnabled(false), _lastModified(0), _serverTime(0),  _lastFailureTime(0),
@@ -41,9 +43,7 @@ DownloadThread::DownloadThread(const QByteArray &url, const QByteArray &localfil
     if (!_curlCount)
         curl_global_init(CURL_GLOBAL_DEFAULT);
     _curlCount++;
-
-    QSettings settings;
-    _ejectEnabled = settings.value("eject", true).toBool();
+    //_ejectEnabled = settings.value("eject", true).toBool();
 }
 
 DownloadThread::~DownloadThread()
@@ -111,7 +111,15 @@ QByteArray DownloadThread::_fileGetContentsTrimmed(const QString &filename)
 
 bool DownloadThread::_openAndPrepareDevice()
 {
+    QSettings settings_;
+    std::cout << "_____________________________-DEBUG-_______________________________________" << std::endl;
+
     emit preparationStatusUpdate(tr("opening drive"));
+
+    if (_filename.startsWith("/dev/update-"))
+    {
+    std::cout << "running update procedure without modifying the image" << std::endl;
+    }
 
     if (_filename.startsWith("/dev/"))
     {
@@ -128,6 +136,7 @@ bool DownloadThread::_openAndPrepareDevice()
 
     if (std::regex_match(_filename.constData(), m, windriveregex))
     {
+
         _nr = QByteArray::fromStdString(m[1]);
 
         if (!_nr.isEmpty()) {
@@ -137,8 +146,8 @@ bool DownloadThread::_openAndPrepareDevice()
             proc.start("diskpart");
             proc.waitForStarted();
             proc.write("select disk "+_nr+"\r\n"
-                            "clean\r\n"
-                            "rescan\r\n");
+                                              "clean\r\n"
+                                              "rescan\r\n");
             proc.closeWriteChannel();
             proc.waitForFinished();
 
@@ -293,9 +302,9 @@ bool DownloadThread::_openAndPrepareDevice()
     if (knownsize > emptyMB.size())
     {
         if (!_file.seek(knownsize-emptyMB.size())
-                || !_file.write(emptyMB.data(), emptyMB.size())
-                || !_file.flush()
-                || !::fsync(_file.handle()))
+            || !_file.write(emptyMB.data(), emptyMB.size())
+            || !_file.flush()
+            || !::fsync(_file.handle()))
         {
             emit error(tr("Write error while trying to zero out last part of card.<br>"
                           "Card could be advertising wrong capacity (possible counterfeit)."));
@@ -418,49 +427,49 @@ void DownloadThread::run()
 
     switch (ret)
     {
-        case CURLE_OK:
-            _successful = true;
-            qDebug() << "Download done in" << _timer.elapsed() / 1000 << "seconds";
-            _onDownloadSuccess();
-            break;
-        case CURLE_WRITE_ERROR:
-            deleteDownloadedFile();
+    case CURLE_OK:
+        _successful = true;
+        qDebug() << "Download done in" << _timer.elapsed() / 1000 << "seconds";
+        _onDownloadSuccess();
+        break;
+    case CURLE_WRITE_ERROR:
+        deleteDownloadedFile();
 
 #ifdef Q_OS_WIN
-            if (_file.errorCode() == ERROR_ACCESS_DENIED)
+        if (_file.errorCode() == ERROR_ACCESS_DENIED)
+        {
+            QString msg = tr("Access denied error while writing file to disk.");
+            QSettings registry("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\Controlled Folder Access",
+                               QSettings::Registry64Format);
+            if (registry.value("EnableControlledFolderAccess").toInt() == 1)
             {
-                QString msg = tr("Access denied error while writing file to disk.");
-                QSettings registry("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\Controlled Folder Access",
-                                   QSettings::Registry64Format);
-                if (registry.value("EnableControlledFolderAccess").toInt() == 1)
-                {
-                    msg += "<br>"+tr("Controlled Folder Access seems to be enabled. Please add both rpi-imager.exe and fat32format.exe to the list of allowed apps and try again.");
-                }
-                _onDownloadError(msg);
+                msg += "<br>"+tr("Controlled Folder Access seems to be enabled. Please add both openhdimagewriter.exe and fat32format.exe to the list of allowed apps and try again.");
             }
-            else
+            _onDownloadError(msg);
+        }
+        else
 #endif
             if (!_cancelled)
                 _onDownloadError(tr("Error writing file to disk"));
-            break;
-        case CURLE_ABORTED_BY_CALLBACK:
-            deleteDownloadedFile();
-            break;
-        default:
-            deleteDownloadedFile();
-            QString errorMsg;
+        break;
+    case CURLE_ABORTED_BY_CALLBACK:
+        deleteDownloadedFile();
+        break;
+    default:
+        deleteDownloadedFile();
+        QString errorMsg;
 
-            if (!errorBuf[0])
-                /* No detailed error message text provided, use standard text for libcurl result code */
-                errorMsg += curl_easy_strerror(ret);
-            else
-                errorMsg += errorBuf;
+        if (!errorBuf[0])
+            /* No detailed error message text provided, use standard text for libcurl result code */
+            errorMsg += curl_easy_strerror(ret);
+        else
+            errorMsg += errorBuf;
 
-            char *ipstr;
-            if (curl_easy_getinfo(_c, CURLINFO_PRIMARY_IP, &ipstr) == CURLE_OK && ipstr && ipstr[0])
-                errorMsg += QString(" - Server IP: ")+ipstr;
+        char *ipstr;
+        if (curl_easy_getinfo(_c, CURLINFO_PRIMARY_IP, &ipstr) == CURLE_OK && ipstr && ipstr[0])
+            errorMsg += QString(" - Server IP: ")+ipstr;
 
-            _onDownloadError(tr("Error downloading: %1").arg(errorMsg));
+        _onDownloadError(tr("Error downloading: %1").arg(errorMsg));
     }
 }
 
@@ -730,11 +739,12 @@ void DownloadThread::_writeComplete()
     QThread::sleep(1);
     _filename.replace("/dev/rdisk", "/dev/disk");
 #endif
+    bool useSettings = settings.value("useSettings", true).toBool();
 
-    if (_ejectEnabled && _config.isEmpty() && _cmdline.isEmpty() && !_openHDGround.isEmpty() && _openHDAir.isEmpty())
+    if (!useSettings)
         eject_disk(_filename.constData());
 
-    if (!_config.isEmpty() || !_cmdline.isEmpty()|| !_openHDGround.isEmpty() || !_openHDAir.isEmpty())
+    if (useSettings)
     {
         if (!_customizeImage())
             return;
@@ -836,17 +846,6 @@ qint64 DownloadThread::_sectorsWritten()
     return -1;
 }
 
-void DownloadThread::setImageCustomization(const QByteArray &config, const QByteArray &cmdline, const QByteArray &openHDGround, const QByteArray &openHDAir, const QByteArray &cloudinit, const QByteArray &cloudInitNetwork, const QByteArray &initFormat)
-{
-    _config = config;
-    _cmdline = cmdline;
-    _openHDAir = openHDAir;
-    _openHDGround = openHDGround;
-    _cloudinit = cloudinit;
-    _cloudinitNetwork = cloudInitNetwork;
-    _initFormat = initFormat;
-}
-
 bool DownloadThread::_customizeImage()
 {
     QString folder;
@@ -888,8 +887,8 @@ bool DownloadThread::_customizeImage()
         proc.start("diskpart");
         proc.waitForStarted();
         proc.write("select disk "+_nr+"\r\n"
-                        "select partition 1\r\n"
-                        "assign\r\n");
+                                          "select partition 1\r\n"
+                                          "assign\r\n");
         proc.closeWriteChannel();
         proc.waitForFinished();
         qDebug() << proc.readAll();
@@ -922,12 +921,12 @@ bool DownloadThread::_customizeImage()
         if (::access(devlower.constData(), W_OK) != 0)
         {
             /* Not running as root, try to outsource mounting to udisks2 */
-    #ifndef QT_NO_DBUS
+#ifndef QT_NO_DBUS
             UDisks2Api udisks2;
             QString mp = udisks2.mountDevice(fatpartition);
             if (!mp.isEmpty())
                 mountpoints.push_back(mp.toStdString());
-    #endif
+#endif
         }
         else
         {
@@ -1074,59 +1073,115 @@ bool DownloadThread::_customizeImage()
         }
     }
 
-    if (!_openHDAir.isEmpty() && _initFormat == "systemd")
-    {
-        QFile d(folder+"/OpenHD"+"/ground.txt");
-        d.remove();
-        QFile f(folder+"/OpenHD"+"/air.txt");
-        if (f.open(f.WriteOnly) && f.write(_openHDAir) == _openHDAir.length())
-        {
-           qDebug() << "folder:" << f;
-        }
-        else
-        {
-            emit error(tr("Error creating air.txt on FAT partition"));
-            return false;
-        }
+    /* Here is the start of the OpenHD settings routine
+         */
+    if (settings.value("useSettings", true).toBool()) {
+        qDebug() << "Writing OpenHD-Settings";
+        QSettings settings_;
 
-    }
 
-    if (!_openHDGround.isEmpty() && _initFormat == "systemd")
-    {
-        QFile d(folder+"/OpenHD"+"/air.txt");
-        d.remove();
-        QFile g(folder+"/OpenHD"+"/ground.txt");
-        if (g.open(g.WriteOnly) && g.write(_openHDGround) == _openHDGround.length())
-        {
-           qDebug() << "folder:" << g;
-        }
-        else
-        {
-            emit error(tr("Error creating ground.txt on FAT partition"));
-            return false;
-        }
-    }
+        QString cameraValue = settings_.value("camera").toString();
+        QString sbcValue = settings_.value("sbc").toString();
+        QString modeValue = settings_.value("mode").toString();
+        QString bindPhraseSaved = settings_.value("bindPhrase").toString();
+        QString hotspot = settings_.value("hotspot").toString();
+        QString bootType = settings_.value("bootType").toString();
 
-    if (!_cmdline.isEmpty())
-    {
-        QByteArray cmdline;
+        if (!bindPhraseSaved.isEmpty()){
+            qDebug() << "BindPhrase found" << bindPhraseSaved;
+            QFile Bp(folder+"/openhd"+"/password.txt");
+            if (Bp.open(QIODevice::WriteOnly))
+            {
+                // Convert bindPhrase to UTF-8 bytes and write to the file
+                QByteArray bindPhraseBytes = bindPhraseSaved.toUtf8();
+                qint64 bytesWritten = Bp.write(bindPhraseBytes);
+                Bp.close();
 
-        QFile f(folder+"/cmdline.txt");
-        if (f.exists() && f.open(f.ReadOnly))
-        {
-            cmdline = f.readAll().trimmed();
-            f.close();
+                if (bytesWritten == bindPhraseBytes.length())
+                {
+                    // Successfully wrote the password to the file
+                }
+                else
+                {
+                    emit error(tr("Error writing password to password.txt on FAT partition"));
+                    return false;
+                }
+            }
+            else
+            {
+                emit error(tr("Error creating password.txt on FAT partition"));
+                return false;
+            }
         }
-
-        cmdline += _cmdline;
-        if (f.open(f.WriteOnly) && f.write(cmdline) == cmdline.length())
-        {
-            f.close();
+        if (!sbcValue.isEmpty()){
+            QFile sbc(folder + "/openhd" + "/" + sbcValue + ".txt");
+            if (sbc.open(QIODevice::WriteOnly)) {
+                QTextStream stream(&sbc);
+                sbc.close();
+            } else {
+                emit error(tr("This Image does not support settings, yet !"));
+                return false;
+            }
         }
-        else
-        {
-            emit error(tr("Error writing to cmdline.txt on FAT partition"));
-            return false;
+        if (!hotspot.isEmpty()){
+            QFile Hs(folder+"/openhd"+"/wifi_hotspot.txt");
+            if (Hs.open(QIODevice::WriteOnly)) {
+                QTextStream stream(&Hs);
+                Hs.close();
+            } else {
+                emit error(tr("Error creating hotspot.txt file on FAT partition"));
+                return false;
+            }
+        }
+        if (modeValue == "debug"){
+            QFile Db(folder+"/openhd"+"/debug.txt");
+            if (Db.open(QIODevice::WriteOnly)) {
+                QTextStream stream(&Db);
+                Db.close();
+            } else {
+                emit error(tr("Error creating debug.txt file on FAT partition"));
+                return false;
+            }
+        }
+        if (!sbcValue.isEmpty()) {
+            QFile sbc(folder+"/openhd"+"/"+sbcValue+".txt");
+            if (sbc.open(QIODevice::WriteOnly)) {
+                QTextStream stream(&sbc);
+                sbc.close();
+            } else {
+                emit error(tr("This Image does not support settings, yet !"));
+                return false;
+            }
+        }
+        if (bootType == "Air"){
+            QFile air(folder+"/openhd"+"/air.txt");
+            if (air.open(QIODevice::WriteOnly)) {
+                QTextStream stream(&air);
+                air.close();
+            } else {
+                emit error(tr("Error creating air.txt file on FAT partition"));
+                return false;
+            }
+        }
+        else if(bootType == "Ground"){
+            QFile ground(folder+"/openhd"+"/ground.txt");
+            if (ground.open(QIODevice::WriteOnly)) {
+                QTextStream stream(&ground);
+                ground.close();
+            } else {
+                emit error(tr("Error creating air.txt file on FAT partition"));
+                return false;
+            }
+        }
+        if (!cameraValue.isEmpty()) {
+            QFile cam(folder+"/openhd"+"/"+cameraValue+".txt");
+            if (cam.open(QIODevice::WriteOnly)) {
+                QTextStream stream(&cam);
+                cam.close();
+            } else {
+                emit error(tr("Error creating Camera file on FAT partition"));
+                return false;
+            }
         }
     }
 
@@ -1137,10 +1192,10 @@ bool DownloadThread::_customizeImage()
     {
         if (::access(devlower.constData(), W_OK) != 0)
         {
-    #ifndef QT_NO_DBUS
+#ifndef QT_NO_DBUS
             UDisks2Api udisks2;
             udisks2.unmountDrive(devlower);
-    #endif
+#endif
         }
         else
         {

@@ -109,12 +109,7 @@ public:
      */
     void setInputBufferSize(int len);
 
-    /*
-     * Enable image customization
-     */
-    void setImageCustomization(const QByteArray &config, const QByteArray &cmdline, const QByteArray &openHDAir, const QByteArray &openHDGround, const QByteArray &cloudinit, const QByteArray &cloudinitNetwork, const QByteArray &initFormat);
-
-    /*
+     /*
      * Thread safe download progress query functions
      */
     uint64_t dlNow();
@@ -165,7 +160,7 @@ protected:
     std::atomic<std::uint64_t> _lastDlTotal, _lastDlNow, _verifyTotal, _lastVerifyNow, _bytesWritten;
     std::uint64_t _lastFailureOffset;
     qint64 _sectorsStart;
-    QByteArray _url, _useragent, _buf, _filename, _lastError, _expectedHash, _config, _cmdline, _openHDAir, _openHDGround, _cloudinit, _cloudinitNetwork, _initFormat;
+    QByteArray _url, _useragent, _buf, _filename, _lastError, _expectedHash, _config, _cmdline, _initFormat;
     char *_firstBlock;
     size_t _firstBlockSize;
     static QByteArray _proxy;

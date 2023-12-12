@@ -1,8 +1,87 @@
-openhdimagewriter (1.7.2) unstable; urgency=medium
+openhdimagewriter (2.0.0) stable; urgency=high
 
+ * TODO
+
+ -- Raphael Scholle <raphael@openhdfpv.org>  Sat, 02 Sep 2023 02:06:52 +0100
+openhdimagewriter (1.9.2) stable; urgency=high
+
+ * refactor a lot of settings to QSettings
+ * refactor all settings
+ * remove a few bugs with it
+
+ -- Raphael Scholle <raphael@openhdfpv.org>  Sat, 02 Sep 2023 02:06:52 +0100
+openhdimagewriter (1.9.1) stable; urgency=high
+
+ * refactor a lot of settings to QSettings
+ * add wifi-hotspot
+ * add details page
+ * add camera-selection
+ * add wifi-hotspot
+ * add debug mode
+
+ -- Raphael Scholle <raphael@openhdfpv.org>  Sat, 02 Sep 2023 02:06:52 +0100
+ 
+openhdimagewriter (1.9.0) stable; urgency=high
+
+ * add bindphrase
+
+ -- Raphael Scholle <raphael@openhdfpv.org>  Thu, 12 Aug 2023 02:06:52 +0100
+
+openhdimagewriter (1.8.8) stable; urgency=high
+
+ * Change URL to Github
+
+ -- Raphael Scholle <raphael@openhdfpv.org>  Thu, 12 JAN 2023 02:06:52 +0100
+
+openhdimagewriter (1.8.7) stable; urgency=medium
+
+ * Change URL to new Server
+
+  * add warning messages
+  * bugfixes
+
+ -- Raphael Scholle <raphael@openhdfpv.org>  Thu, 12 JAN 2023 02:06:52 +0100
+
+openhdimagewriter (1.8.6) stable; urgency=medium
+
+ * Qol OpenHD release based on rpi-imager
+
+  * removed cancel option, user now must save settings
+
+ -- Raphael Scholle <raphael@openhdfpv.org>  Thu, 12 JAN 2023 02:06:52 +0100
+
+
+openhdimagewriter (1.8.5) unstable; urgency=medium
+
+ * Qol OpenHD release based on rpi-imager
+
+  * settings is no longer shown when not supported
+  * removed minor display bug
+  * removed settings that are not supported yet
+
+ -- Raphael Scholle <raphael@openhdfpv.org>  Thu, 12 DEC 2022 22:47:52 +0100
+
+
+openhdimagewriter (1.8.4) unstable; urgency=medium
+
+ * Qol OpenHD release based on rpi-imager
+
+  * added donate button
+
+ -- Raphael Scholle <raphael@openhdfpv.org>  Thu, 12 DEC 2022 22:47:52 +0100
+
+
+
+openhdimagewriter (1.8.3) unstable; urgency=medium
+
+ * Qol OpenHD release based on rpi-imager
   
+  * added compatibility for additional platform images
 
- -- Floris Bos <bos@je-eigen-domein.nl>  Thu, 24 Mar 2022 17:58:52 +0100
+ -- Raphael Scholle <raphael@openhdfpv.org>  Thu, 08 NOV 2022 18:47:52 +0100
+
+
+
 
 rpi-imager (1.7.1) unstable; urgency=medium
 

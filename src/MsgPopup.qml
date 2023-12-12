@@ -14,13 +14,14 @@ Popup {
     x: 75
     y: (parent.height-height)/2
     width: parent.width-150
-    height: msgpopupbody.implicitHeight+150
+    height: msgpopupbody.implicitHeight+175
     padding: 0
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     property alias title: msgpopupheader.text
     property alias text: msgpopupbody.text
     property bool continueButton: true
+    property bool detailsButton: false
     property bool quitButton: false
     property bool yesButton: false
     property bool noButton: false
@@ -91,8 +92,20 @@ Popup {
 
         RowLayout {
             Layout.alignment: Qt.AlignCenter | Qt.AlignBottom
-            Layout.bottomMargin: 10
             spacing: 20
+
+
+            ImButton {
+                visible: msgpopup.detailsButton
+                text: qsTr("Details")
+                onClicked:{
+                   onClicked: {
+                   detailsPopup.visible = !detailsPopup.visible;
+                   }
+                }
+                Material.foreground: activeFocus ? "#d1dcfb" : "#ffffff"
+                Material.background: "#2C3E50"
+                }
 
             ImButton {
                 text: qsTr("NO")
@@ -125,7 +138,6 @@ Popup {
                 Material.foreground: activeFocus ? "#d1dcfb" : "#ffffff"
                 Material.background: "#2C3E50"
             }
-
             ImButton {
                 text: qsTr("QUIT")
                 onClicked: {
@@ -147,3 +159,4 @@ Popup {
         msgpopupbody.forceActiveFocus()
     }
 }
+

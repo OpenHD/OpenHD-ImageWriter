@@ -60,6 +60,10 @@
 #include <QtPlatformHeaders/QEglFSFunctions>
 #endif
 
+#include <iostream>
+#include <filesystem>
+
+
 ImageWriter::ImageWriter(QObject *parent)
     : QObject(parent), _repo(QUrl(QString(OSLIST_URL))), _dlnow(0), _verifynow(0),
       _engine(nullptr), _thread(nullptr), _verifyEnabled(false), _cachingEnabled(false),
@@ -296,7 +300,6 @@ void ImageWriter::startWrite()
     connect(_thread, SIGNAL(preparationStatusUpdate(QString)), SLOT(onPreparationStatusUpdate(QString)));
     _thread->setVerifyEnabled(_verifyEnabled);
     _thread->setUserAgent(QString("Mozilla/5.0 rpi-imager/%1").arg(constantVersion()).toUtf8());
-    _thread->setImageCustomization(_config, _cmdline, _openHDAir, _openHDGround, _cloudinit, _cloudinitNetwork, _initFormat);
 
     if (!_expectedHash.isEmpty() && _cachedFileHash != _expectedHash && _cachingEnabled)
     {
@@ -1012,26 +1015,18 @@ bool ImageWriter::getBoolSetting(const QString &key)
         return _settings.value(key).toBool();
 }
 
+QString ImageWriter::getValue(const QString &key)
+{
+         return _settings.value(key).toString();
+}
+
 void ImageWriter::setSetting(const QString &key, const QVariant &value)
 {
     _settings.setValue(key, value);
     _settings.sync();
-}
+    // DEBUG
+    std::cout << "Setting changed: " << key.toStdString() << " -> " << value.toString().toStdString() << std::endl;
 
-void ImageWriter::setImageCustomization(const QByteArray &config, const QByteArray &cmdline, const QByteArray &openHDAir, const QByteArray &openHDGround, const QByteArray &cloudinit, const QByteArray &cloudinitNetwork)
-{
-    _config = config;
-    _cmdline = cmdline;
-    _openHDAir = openHDAir;
-    _openHDGround = openHDGround;
-    _cloudinit = cloudinit;
-    _cloudinitNetwork = cloudinitNetwork;
-
-    qDebug() << "Custom config.txt entries:" << config;
-    qDebug() << "Custom cmdline.txt entries:" << cmdline;
-    qDebug() << "Boot as Ground :" << openHDGround;
-    qDebug() << "Boot as Air :" << openHDAir;
-    qDebug() << "Cloudinit:" << cloudinit;
 }
 
 QString ImageWriter::crypt(const QByteArray &password)
@@ -1052,17 +1047,6 @@ QString ImageWriter::crypt(const QByteArray &password)
 QString ImageWriter::pbkdf2(const QByteArray &psk, const QByteArray &ssid)
 {
     return QPasswordDigestor::deriveKeyPbkdf2(QCryptographicHash::Sha1, psk, ssid, 4096, 32).toHex();
-}
-
-void ImageWriter::setSavedCustomizationSettings(const QVariantMap &map)
-{
-    _settings.beginGroup("imagecustomization");
-    _settings.remove("");
-    const QStringList keys = map.keys();
-    for (const QString &key : keys) {
-        _settings.setValue(key, map.value(key));
-    }
-    _settings.endGroup();
 }
 
 QVariantMap ImageWriter::getSavedCustomizationSettings()

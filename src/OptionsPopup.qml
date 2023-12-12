@@ -7,6 +7,7 @@ import QtQuick 2.9
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.0
 import QtQuick.Controls.Material 2.2
+import Qt.labs.settings 1.0
 import "qmlcomponents"
 
 Popup {
@@ -18,17 +19,26 @@ Popup {
     width: popupbody.implicitWidth+60
     height: parent.height-20
     padding: 0
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+    closePolicy: Popup.CloseOnEscape
     property bool initialized: false
-    property bool hasSavedSettings: false
-    property string config
-    property string cmdline
-    property string openHDAir
-    property string openHDGround
-    property string cloudinit
-    property string cloudinitrun
-    property string cloudinitwrite
-    property string cloudinitnetwork
+
+    // refactored settings
+    property string bootType
+    property string fileName
+    property string sbc
+    property string camera
+    property string bindPhrase
+    property bool bindPhrase_used
+    property string mode
+    property string hotSpot
+    property string beep
+    property string eject
+    property bool rock
+    property bool rpi
+    property bool useSettings:true
+
+
+
 
     // background of title
     Rectangle {
@@ -44,25 +54,6 @@ Popup {
         width: parent.width
         y: 35
         implicitHeight: 1
-    }
-
-    Text {
-        id: msgx
-        text: "X"
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.rightMargin: 25
-        anchors.topMargin: 10
-        font.family: roboto.name
-        font.bold: true
-
-        MouseArea {
-            anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                popup.close()
-            }
-        }
     }
 
     ColumnLayout {
@@ -91,104 +82,237 @@ Popup {
             clip: true
             ScrollBar.vertical.policy: ScrollBar.AlwaysOn
 
-          ColumnLayout {
-              GroupBox {
-                  title: qsTr("Save")
-
-                                  label: RowLayout {
-                                      Label {
-                                          text: parent.parent.title
-                                      }
-                                      ComboBox {
-                                          id: comboSaveSettings
-                                          model: {
-                                              [qsTr("for this session only"),
-                                               qsTr("to always use")]
-                                          }
-                                          Layout.minimumWidth: 250
-                                          Layout.maximumHeight: 40
-                                          enabled: !imageWriter.isEmbeddedMode()
-                                      }
-                                  }
-
-                  Layout.fillWidth: true
-
-                  ColumnLayout {
-                      spacing: -10
-
-                      ImCheckBox {
-                          id: setAir
-                          text: qsTr("Set SBC to AIR")
-                          onCheckedChanged: {
-                              if (checked) {
-                                  setGround.checked = false
-                                  bootAsAir();
-                              }
-                          }
-                      }
-                      ImCheckBox {
-                          id: setGround
-                          text: qsTr("Set SBC to GROUND")
-                          onCheckedChanged: {
-                              if (checked) {
-                                  setAir.checked = false
-                                  bootAsGround();
-
-                              }
-                          }
-                      }
-                  }
-              }
-              GroupBox {
-                  title: qsTr("Bind Settings")
-                  Layout.fillWidth: true
-
-                  ColumnLayout {
-                      spacing: -10
-
-                      ImCheckBox {
-                          id: bndKey
-                          text: qsTr("Set custom bind key")
-                          onCheckedChanged: {
-                              if (checked) {
-                                  autoBndKey.checked = false
-                              }
-                          }
-                      }
-                      ImCheckBox {
-                          id: autoBndKey
-                          text: qsTr("Autogenerate bind key")
-                          onCheckedChanged: {
-                              if (checked) {
-                                  bndKey.checked = false
-                              }
-                          }
-                      }
-                      TextField {
-                          id: custBndKey
-                          Layout.minimumWidth: 200
-                      }
-                  }
-              }
-
-            GroupBox {
-                title: qsTr("Imager settings")
-                Layout.fillWidth: true
-
-                ColumnLayout {
-                    spacing: -10
-
-                    ImCheckBox {
-                        id: chkBeep
-                        text: qsTr("Play sound when finished")
+            ColumnLayout {
+                GroupBox {
+                    label: RowLayout {
+                        Label {
+                            text: parent.parent.title
+                        }
                     }
-                    ImCheckBox {
-                        id: chkEject
-                        text: qsTr("Eject media when finished")
+
+                    Layout.fillWidth: true
+
+                    ColumnLayout {
+                        spacing: -10
+
+                        ImCheckBox {
+                            id: setAir
+                            text: qsTr("Set SBC to AIR")
+                            onCheckedChanged: {
+                                if (checked) {
+                                    setGround.checked = false
+                                    bootType="Air";
+                                }
+                            }
+                        }
+                        ImCheckBox {
+                            id: setGround
+                            text: qsTr("Set SBC to GROUND")
+                            onCheckedChanged: {
+                                if (checked) {
+                                    setAir.checked = false
+                                    bootType = "Ground";
+                                }
+                            }
+                        }
+                    }
+                }
+                GroupBox {
+                    title: qsTr("Camera Settings")
+                    id: cameraSettingsRock5
+                    Layout.fillWidth: true
+                    visible: rock && (bootType === "Air")
+
+
+                    ColumnLayout {
+                        spacing: -10
+                        // Add a ComboBox to select between cameras
+                        ComboBox {
+                            id: cameraSelectorRock
+                            textRole: "displayText"
+                            model: ListModel {
+                                ListElement { displayText: "NONE" }
+                                ListElement { displayText: "IMX415" }
+                                ListElement { displayText: "IMX462" }
+                                ListElement { displayText: "HDMI" }
+                            }
+                            onCurrentIndexChanged: {
+                                var selectedCamera = model.get(currentIndex).displayText;
+                                if (selectedCamera !== "NONE") {
+                                    camera = selectedCamera;
+                                }
+                            }
+                        }
+                    }
+                }
+                GroupBox {
+                    title: qsTr("Camera Settings")
+                    id: cameraSettingsRpi
+                    Layout.fillWidth: true
+                    visible:  rpi && (bootType === "Air")
+                    ColumnLayout {
+                        // Add a ComboBox to select between cameras
+                        ComboBox {
+                            id: cameraVendorSelectorRpi
+                            textRole: "displayText"
+                            model: ListModel {
+                                ListElement { displayText: "Original" }
+                                ListElement { displayText: "Arducam" }
+                                ListElement { displayText: "Veye" }
+                            }
+                            Layout.minimumWidth: 200
+                            Layout.maximumHeight: 40
+                            onCurrentIndexChanged: {
+                                var selectedCameraVendor = model.get(currentIndex).displayText;
+                                if (selectedCameraVendor !== "Original" && selectedCameraVendor !== "Veye") {
+                                    cameraSelectorArducam.visible=true
+                                    cameraSelectorVeye.visible=false
+                                }
+                                else if (selectedCameraVendor !== "Original" && selectedCameraVendor !== "Arducam") {
+                                    cameraSelectorVeye.visible=true
+                                    cameraSelectorArducam.visible=false
+                                }
+
+                            }
+                        }
+                        ComboBox {
+
+                            id: cameraSelectorArducam
+                            visible:false
+                            textRole: "displayText"
+                            model: ListModel {
+                                ListElement { displayText: "None" }
+                                ListElement { displayText: "SkyMaster HDR 708" }
+                                ListElement { displayText: "IMX462 Mini" }
+                                ListElement { displayText: "SkyVision Pro 519" }
+                                ListElement { displayText: "IMX462" }
+                                ListElement { displayText: "IMX477" }
+                                ListElement { displayText: "IMX519" }
+                                ListElement { displayText: "IMX327" }
+                                ListElement { displayText: "IMX290" }
+                                ListElement { displayText: "CUSTOM" }
+                            }
+                            Layout.minimumWidth: 200
+                            Layout.maximumHeight: 40
+                            onCurrentIndexChanged: {
+                                var selectedCamera = model.get(currentIndex).displayText;
+                                if (selectedCamera !== "None") {
+                                    // Check if it's one of the specified values
+                                    if (["SkyMaster HDR 708", "IMX462 Mini", "SkyVision Pro 519"].indexOf(selectedCamera) === -1) {
+                                        camera = selectedCamera;
+                                    } else {
+                                        // Handle the specified values differently
+                                        if (selectedCamera === "SkyMaster HDR 708") {
+                                            camera = "IMX708";
+                                        } else if (selectedCamera === "IMX462 Mini") {
+                                            camera = "ARDUCAM";
+                                        } else if (selectedCamera === "SkyVision Pro 519") {
+                                            camera = "IMX519";
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        ComboBox {
+
+                            id: cameraSelectorVeye
+                            visible:false
+                            textRole: "displayText"
+                            model: ListModel {
+                                ListElement { displayText: "None" }
+                                ListElement { displayText: "CAM2M" }
+                                ListElement { displayText: "CSIMX307" }
+                                ListElement { displayText: "CSSC137" }
+                                ListElement { displayText: "MVCAM" }
+                            }
+                            Layout.minimumWidth: 200
+                            Layout.maximumHeight: 40
+                            onCurrentIndexChanged: {
+                                var selectedCamera = model.get(currentIndex).displayText;
+                                if (selectedCamera !== "None") {
+                                    console.debug(selectedCamera)
+                                }
+                            }
+                        }
+
+                    }
+                }
+                GroupBox {
+                    title: qsTr("Bind Settings")
+                    Layout.fillWidth: true
+                    visible: true
+
+                    ColumnLayout {
+                        spacing: 0
+
+                        Text {
+                            text: qsTr("   Must match on Air and Ground!")
+                            font.pixelSize: 12
+                            color: "gray"
+                            Layout.alignment: Qt.AlignHCenter
+                        }
+
+                        ImCheckBox {
+                            id: bndKey
+                            text: qsTr("Set binding phrase")
+                            checkable: true
+                            onCheckedChanged: {
+                                if (!checked) {
+                                    bindPhrase=""
+                                    bndPhrase.visible=false;
+                                }
+                                bndPhrase.visible=true;
+                            }
+                        }
+                        TextField {
+                            id: bndPhrase
+                            visible: bindPhrase_used
+                            maximumLength:10
+                            width:10
+                            color: bndPhrase.text.length >= 4 ? "green" : "red"
+                            text: bindPhrase
+                            selectByMouse: true
+                            placeholderTextColor: "blue"
+                            placeholderText: "openhd"
+                            onTextChanged: {
+                                bindPhrase = bndPhrase.text;
+                            }
+
+                        }
+                    }
+                }
+
+                GroupBox {
+                    title: qsTr("Misc Settings")
+                    id: miscSettings
+                    Layout.fillWidth: true
+                    ColumnLayout {
+                        spacing: -10
+
+                        ImCheckBox {
+                        id: setDebug
+                        visible: true
+                        text: qsTr("Debug Mode")
+                        onCheckedChanged: {
+                            if (checked) {
+                                mode = "debug";
+                            }
+                        }
+                    }
+
+                        ImCheckBox {
+                            id: setWifiHotspot
+                            visible: false
+                            text: qsTr("WifiHotspot")
+                            onCheckedChanged: {
+                                if (checked) {
+                                    hotSpot = "wifi";
+                                }
+                            }
+                        }
                     }
                 }
             }
-          }
         }
 
         RowLayout {
@@ -200,7 +324,6 @@ Popup {
                 text: qsTr("SAVE")
                 onClicked: {
                     applySettings()
-                    saveSettings()
                     popup.close()
                 }
                 Material.foreground: activeFocus ? "#d1dcfb" : "#ffffff"
@@ -212,23 +335,65 @@ Popup {
     }
 
     function initialize() {
-        chkBeep.checked = imageWriter.getBoolSetting("beep")
-        chkEject.checked = imageWriter.getBoolSetting("eject")
         var settings = imageWriter.getSavedCustomizationSettings()
 
-        if (Object.keys(settings).length) {
-            comboSaveSettings.currentIndex = 1
-            hasSavedSettings = true
-        }       
-        var tz;
-        if (imageWriter.isEmbeddedMode()) {
-            /* For some reason there is no password mask character set by default on Embedded edition */
-            var bulletCharacter = String.fromCharCode(0x2022);
-            fieldUserPassword.passwordCharacter = bulletCharacter;
-            fieldWifiPassword.passwordCharacter = bulletCharacter;
+        // initialise settings
+        bootType = imageWriter.getValue("bootType")
+        fileName = imageWriter.srcFileName();
+        sbc = imageWriter.getValue("sbc")
+        camera= imageWriter.getValue("camera")
+        bindPhrase = imageWriter.getValue("bindPhrase")
+        mode = imageWriter.getValue("mode")
+        hotSpot = imageWriter.getValue("hotSpot")
+        beep = imageWriter.getBoolSetting("beep")
+        eject = imageWriter.getBoolSetting("eject")
+
+        // set session settings
+        if (bootType==="Air") {
+            setAir.checked=true
+            setGround.checked=false
+        }
+        else if (bootType==="Ground") {
+            setAir.checked=false
+            setGround.checked=true
+        }
+        if (bindPhrase) {
+            bndKey.checked=true
+        }
+        else{
+            bndKey.checked=false
+        }
+        if (mode) {
+            setDebug.checked=true
+        }
+        else{
+            setDebug.checked=false
+        }
+        if (hotSpot) {
+            setWifiHotspot.checked=true
+        }
+        else{
+            setWifiHotspot.checked=false
         }
 
-        initialized = true
+        //get SBC
+        imageWriter.setSetting("fileName", fileName)
+        console.log(fileName)
+        if (fileName.includes("pi")) {
+            imageWriter.setSetting("sbc", "rpi");
+            rpi=true;
+            rock=false;
+        }
+        else if (fileName.includes("rock5a")) {
+            imageWriter.setSetting("sbc", "rock-5a");
+            rpi=false;
+            rock=true;
+        }
+        else if (fileName.includes("rock5b")) {
+            imageWriter.setSetting("sbc", "rock-5b");
+            rpi=false;
+            rock=true;
+        }
     }
 
     function openPopup() {
@@ -240,89 +405,17 @@ Popup {
         popupbody.forceActiveFocus()
     }
 
-    function addCmdline(s) {
-        cmdline += " "+s
-    }
-    function addConfig(s) {
-        config += s+""
-    }
-    function bootAsGround(s) {
-        openHDGround += s+""
-    }
-    function bootAsAir(s) {
-        openHDAir += s+""
-    }
-    function escapeshellarg(arg) {
-        return "'"+arg.replace(/'/g, "\\'")+"'"
-    }
-    function addCloudInit(s) {
-        cloudinit += s+"\n"
-    }
-    function addCloudInitWriteFile(name, content, perms) {
-        cloudinitwrite += "- encoding: b64\n"
-        cloudinitwrite += "  content: "+Qt.btoa(content)+"\n"
-        cloudinitwrite += "  owner: root:root\n"
-        cloudinitwrite += "  path: "+name+"\n"
-        cloudinitwrite += "  permissions: '"+perms+"'\n"
-    }
-    function addCloudInitRun(cmd) {
-        cloudinitrun += "- "+cmd+"\n"
-    }
-
     function applySettings()
     {
-        cmdline = ""
-        config = ""
-        openHDGround = ""
-        openHDAir = ""
-        cloudinit = ""
-        cloudinitrun = ""
-        cloudinitwrite = ""
-        cloudinitnetwork = ""
 
-        if (setAir.checked) {
-            bootAsAir("applied")
-        }
-        if (setGround.checked) {
-            bootAsGround("applied")
-        }
+        imageWriter.setSetting("bootType", bootType)
+        imageWriter.setSetting("camera", camera)
+        imageWriter.setSetting("bindPhrase" , bindPhrase)
+        imageWriter.setSetting("mode", mode)
+        imageWriter.setSetting("hotSpot" , hotSpot)
+        imageWriter.setSetting("beep", beep)
+        imageWriter.setSetting("eject", eject)
+        imageWriter.setSetting("useSettings", useSettings)
 
-        if (openHDGround.length) {
-            openHDGround = ""+openHDGround
-         }
-
-        if (openHDAir.length) {
-            openHDAir = ""+openHDAir
-         }
-
-        if (cloudinitwrite !== "") {
-            addCloudInit("write_files:\n"+cloudinitwrite+"\n")
-        }
-
-        if (cloudinitrun !== "") {
-            addCloudInit("runcmd:\n"+cloudinitrun+"\n")
-        }
-
-        imageWriter.setImageCustomization(config, cmdline, openHDAir, openHDGround, cloudinit, cloudinitnetwork)
-    }
-
-    function saveSettings()
-    {
-        if (comboSaveSettings.currentIndex == 1) {
-            hasSavedSettings = true
-            var settings = { };
-            if (chkHostname.checked && fieldHostname.length) {
-                settings.hostname = fieldHostname.text
-            }
-
-            imageWriter.setSavedCustomizationSettings(settings)
-
-        } else if (hasSavedSettings) {
-            imageWriter.clearSavedCustomizationSettings()
-            hasSavedSettings = false
-        }
-
-        imageWriter.setSetting("beep", chkBeep.checked)
-        imageWriter.setSetting("eject", chkEject.checked)
     }
 }

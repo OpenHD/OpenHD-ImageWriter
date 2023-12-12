@@ -1,73 +1,63 @@
-# This is a basic workflow to help you get started with Actions
-
 name: OpenHD Image Writer Windows
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "qml" branch
   push:
-    branches: [ "qml" ]
-  pull_request:
-    branches: [ "qml" ]
+   branches:
+      - "2.5-evo"
+      - "dev-release"
+      - "release"
+   paths-ignore:
+      - '**.md'
+      - '**.asciidoc'
+      - '**.adoc'
+      - '.gitignore'
+      - 'LICENSE'
 
+env:
+  BUILD_TYPE: Release
 
-defaults:
-  run:
-    shell: cmd
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
-    runs-on: windows-2019
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        working-directory: src
 
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
-      - uses: msys2/setup-msys2@v2
-        with:
-          update: true
-          install: >-
-            p7zip
+    - uses: actions/checkout@v3
 
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v3
-        with:
-          aqtversion: '==2.1.*'
-          version: '5.15.2'
-          host: 'windows'
-          target: 'desktop'
-          arch: 'win32_mingw81'
-          tools: 'tools_ifw tools_qtcreator,qt.tools.qtcreator,'
-          setup-python: false
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        aqtversion: '==3.1.*'
+        version: '5.15.2'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win32_mingw81'
 
-      - name: Download JOM
-        uses: suisei-cn/actions-download-file@v1
-        with:
-          url:    http://download.qt.io/official_releases/jom/jom.zip
+    - name: Install dependencies
+      run: |
+        choco install -y nsis openssl.light
+        mkdir C:\files
+        xcopy "C:\Program Files\OpenSSL" C:\files /E /I /Q
+        dir "C:\files"
 
-      - name: Unzip JOM
-        run:  |
-              7z x jom.zip -ojom
-          
-      # Runs a set of commands using the runners shell
-      - name: Build
-        run: |
-          dir
-          mkdir -p build
-          cd build
-          cmake ../src
-          make 
-          cd deploy
-          cd ..
-          cd ..
-          msys2 -c '7z a -tzip -r myzip.zip *'
+    - name: Configure CMake
+      run: |
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "Unix Makefiles" -DOPENSSL_ROOT_DIR="C:\files" -DCMAKE_TOOLCHAIN_FILE="C:\Qt\${{env.QT_VERSION}}\${{env.QT_VERSION}}\mingw32\isystem.cmake"
 
-      - name: Upload to Github
-        uses: 'actions/upload-artifact@v2'
-        with:
-          name: "OpenHD Image Writer"
-          path: |
-            *.zip
-          if-no-files-found: error
+    - name: Build
+      run: |
+        cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+        cd ../build/
+        dir
+        makensis openhdimagewriter.nsi
+
+    - name: Upload to Github  
+      uses: 'actions/upload-artifact@v3'
+      with:
+        name: "OpenHD Image Writer"
+        path: |
+          *.exe
+        if-no-files-found: error

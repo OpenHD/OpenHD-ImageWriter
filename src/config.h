@@ -8,10 +8,10 @@
 
 
 /* Repository URL */
-#define OSLIST_URL                        "https://openhdfpv.org/wp-content/Downloader/os_list_imagingutility_v3.json"
+#define OSLIST_URL                        "https://github.com/OpenHD/OpenHD-ImageWriter/releases/download/Json/OpenHD-download-index.json"
 
 /* Time synchronization URL (only used on eglfs QPA platform, URL must be HTTP) */
-#define TIME_URL                          "https://openhdfpv.org/wp-content/Downloader/os_list_imagingutility_v3.json?time_synchronization"
+#define TIME_URL                          "https://github.com/OpenHD/OpenHD-ImageWriter/releases/download/Json/OpenHD-Images.json?time_synchronization"
 
 /* Phone home the name of images downloaded for image popularity ranking */
 #define TELEMETRY_URL                     "https://IhateThatfeature.de"
