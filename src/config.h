@@ -8,7 +8,7 @@
 
 
 /* Repository URL */
-#define OSLIST_URL                        "https://github.com/OpenHD/OpenHD-ImageWriter/releases/download/Json/OpenHD-Images.json"
+#define OSLIST_URL                        "https://github.com/OpenHD/OpenHD-ImageWriter/releases/download/Json/OpenHD-download-index.json"
 
 /* Time synchronization URL (only used on eglfs QPA platform, URL must be HTTP) */
 #define TIME_URL                          "https://github.com/OpenHD/OpenHD-ImageWriter/releases/download/Json/OpenHD-Images.json?time_synchronization"

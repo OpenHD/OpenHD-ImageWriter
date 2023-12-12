@@ -1,6 +1,6 @@
 {
     "imager": {
-        "latest_version": "1.9.2-OpenHD",
+        "latest_version": "2.0.0-OpenHD",
         "url": "https://openhdfpv.org/downloads/"
     },
     "os_list": [
@@ -13,11 +13,11 @@
                     "name": "OpenHD-2.5.2-beta",
                     "description": "",
                     "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
-                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-pi-bullseye-configurable-2.5-evo-2023-12-03_2216.img.xz",
-                    "extract_size": 2927120896,
-                    "extract_sha256": "0d7b04cb07255ecc4d0c160ac559c2f755bdbe542d091edee1adb17b23ea987f",
-                    "image_download_size": 841667460,
-                    "release_date": "2023-12-04",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-pi-bullseye-configurable-release-2023-12-12_1736.img.xz",
+                    "extract_size": 2866921984,
+                    "extract_sha256": "e62041cb4b1099ac2eac6a3198f3bd41038e65c89eecfdcb21b77c662d96b63c",
+                    "image_download_size": 742714992,
+                    "release_date": "2023-12-12",
                     "init_format": "systemd"
                 },
                 {
@@ -87,11 +87,11 @@
                 {
                     "name": "OpenHD-2.5.2-beta",
                     "description": "Radxa Zero 3W NO-EMMC",
-                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
-                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-radxa-zero3w--2.5-evo-2023-12-03_2217.img.xz",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/OpenHD-advanced.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-radxa-zero3w--release-2023-12-12_1736.img.xz",
                     "extract_size": 5632000000,
-                    "extract_sha256": "013849716a21bd38a9b5eb30b58378b5881029a36b26aa6e33ce6b5e9bae11d3",
-                    "image_download_size": 1373243512,
+                    "extract_sha256": "c3a40b4328b1b1f51a6886ff00efc8e7d686763286dfd8691da9acb21e70a7af",
+                    "image_download_size": 1341596632,
                     "release_date": "2023-12-04",
                     "init_format": "systemd"
                 },
@@ -99,33 +99,44 @@
                     "name": "OpenHD-2.5.2-beta",
                     "description": "Radxa Zero 3W EMMC",
                     "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/OpenHD-advanced.png",
-                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-EMMC-radxa-zero3w--2.5-evo.img.xz",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-EMMC-radxa-zero3w--release.img.xz",
                     "extract_size": 9500000256,
-                    "extract_sha256": "ec38facf9a21d9c2887d82cb11ed4a0b0c4367f1a9cad03ad338aa2274c2dbcb",
-                    "image_download_size": 3622275044,
-                    "release_date": "2023-12-04",
+                    "extract_sha256": "1e6b37af103ee90868bcbd8e4cb0dab92c26a9768d092b9b42d3eb57e46a9efa",
+                    "image_download_size": 3579883260,
+                    "release_date": "2023-12-12",
+                    "init_format": "systemd"
+                },
+                {
+                    "name": "OpenHD-2.5.2-beta",
+                    "description": "Radxa CM3",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/OpenHD-advanced.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-radxa-cm3--release-2023-12-12_1737.img.xz",
+                    "extract_size": 5999997952,
+                    "extract_sha256": "436585538dd0a0095f682c7f7e1d5e141349b2b16ad0ffdb182e9ffb96cc4052",
+                    "image_download_size": 1458197624,
+                    "release_date": "2023-12-12",
                     "init_format": "systemd"
                 },
                 {
                     "name": "OpenHD-2.5.2-beta",
                     "description": "Radxa Rock5 A",
                     "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/OpenHD-advanced.png",
-                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-rock5a-configurable-2.5-evo-2023-12-03_2216.img.xz",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-rock5a--release-2023-12-12_1736.img.xz",
                     "extract_size": 6800000000,
-                    "extract_sha256": "2f3703dff270508bbbbafd5e7b7a32c551413bde12ff540a1665444356f4d99c",
-                    "image_download_size": 1733522120,
-                    "release_date": "2023-12-04",
+                    "extract_sha256": "1add63e53aa418bffa2dbe3ae1d84cdbb6fa7a1747002b54d99ffa370532232d",
+                    "image_download_size": 1525008004,
+                    "release_date": "2023-12-12",
                     "init_format": "systemd"
                 },
                 {
                     "name": "OpenHD-2.5.2-beta",
                     "description": "Radxa Rock5 B",
                     "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/OpenHD-advanced.png",
-                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-rock5b--2.5-evo-2023-12-03_2215.img.xz",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-rock5b--release-2023-12-12_1736.img.xz",
                     "extract_size": 6800000000,
-                    "extract_sha256": "da11991d7ea755a72d29a3d617be7b542ec38167dad8309e9d7a13a60e9a8bcf",
-                    "image_download_size": 1763458708,
-                    "release_date": "2023-12-04",
+                    "extract_sha256": "c43ad90e6bc6dfade597849b8e9f37174c90de99fcc376372af38f907f513aa4",
+                    "image_download_size": 1621560708,
+                    "release_date": "2023-12-12",
                     "init_format": "systemd"
                 },
                 {
@@ -137,17 +148,6 @@
                     "extract_sha256": "399ba04a68a7f0872a9239f096fc0da8c2aacb56b5d0d028fe3e8822f971fa2d",
                     "image_download_size": 1698576940,
                     "release_date": "2023-30-06",
-                    "init_format": "systemd"
-                },
-                {
-                    "name": "DEBUG",
-                    "description": "debug image not for production",
-                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/OpenHD-advanced.png",
-                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/temp/OpenHD-image-rock5a-configurable-2.4-evo-2023-08-02_2122.img.xz",
-                    "extract_size": 6500000256,
-                    "extract_sha256": "a5fcff4338c47907d7c939ea589eefcc2c59d9c166abca5e677bcc3aea10d3f1",
-                    "image_download_size": 1522832684,
-                    "release_date": "2023-08-02",
                     "init_format": "systemd"
                 },
                 {
@@ -194,11 +194,11 @@
                     "name": "OpenHD-2.5.2-beta",
                     "description": "",
                     "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/x86-ohd.png",
-                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-x86-lunar-configurable-2.5-evo-2023-12-03_2215.img.xz",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/2.5/OpenHD-image-x86-lunar-configurable-release-2023-12-12_1736.img.xz",
                     "extract_size": 15790768128,
-                    "extract_sha256": "938995306af8a4c295686735df5ff2c37fd7b1716ab4d1fbb7908aaa41a0ae07",
-                    "image_download_size": 5063589628,
-                    "release_date": "2023-30-06",
+                    "extract_sha256": "d181c2f3646a1d3c169540dc67703e67d428356cdc9d10dd1feb0ce87c1264a5",
+                    "image_download_size": 5069594412,
+                    "release_date": "2023-12-12",
                     "init_format": "systemd"
                 },
                 {

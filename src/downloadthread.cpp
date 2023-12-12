@@ -1119,7 +1119,7 @@ bool DownloadThread::_customizeImage()
                 QTextStream stream(&sbc);
                 sbc.close();
             } else {
-                emit error(tr("Error creating sbc file on FAT partition"));
+                emit error(tr("This Image does not support settings, yet !"));
                 return false;
             }
         }
@@ -1149,7 +1149,7 @@ bool DownloadThread::_customizeImage()
                 QTextStream stream(&sbc);
                 sbc.close();
             } else {
-                emit error(tr("Error creating sbc file on FAT partition"));
+                emit error(tr("This Image does not support settings, yet !"));
                 return false;
             }
         }

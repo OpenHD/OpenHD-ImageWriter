@@ -5,9 +5,10 @@
 ############################################################################################
 
 !define APP_NAME "OpenHD ImageWriter"
+!define OLD_APP_NAME "OpenHD imager"
 !define COMP_NAME "OpenHD"
 !define VERSION "@IMAGER_VERSION_STR@"
-!define INSTALLER_NAME "imager-${VERSION}.exe"
+!define INSTALLER_NAME "OpenHD-ImageWriter-${VERSION}.exe"
 !define COPYRIGHT "OpenHD"
 !define DESCRIPTION "OpenHD ImageWriter"
 !define MAIN_APP_EXE "openhdimagewriter.exe"
@@ -590,12 +591,12 @@ SetOutPath "$INSTDIR\iconengines"
 File "deploy\iconengines\qsvgicon.dll"
 SetOutPath "$INSTDIR\bearer"
 File "deploy\bearer\qgenericbearer.dll"
+Delete "$SMPROGRAMS\OpenHD\${OLD_APP_NAME}.lnk"
 SectionEnd
 
 ######################################################################
 
 Section -Icons_Reg
-
 !ifndef INNER
 SetOutPath "$INSTDIR"
 !endif
