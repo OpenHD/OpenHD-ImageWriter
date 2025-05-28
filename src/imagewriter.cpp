@@ -308,7 +308,7 @@ void ImageWriter::startWrite()
     _settings.setValue("justUpdate", containsUpdate);
     _settings.sync();
 
-if (lowercaseurl.endsWith(".ohd"))
+if (lowercaseurl.endsWith(".zip"))
 {
     if (containsUpdate == true) 
     {
@@ -324,12 +324,18 @@ if (lowercaseurl.endsWith(".ohd"))
         if (!compressed)
             _extrLen = _downloadLen;
         else if (lowercaseurl.endsWith(".zip"))
-            emit error(tr("Please extract your Image before flashing"));
+            _parseCompressedFile();
     }
 
     if (_devLen && _extrLen > _devLen)
     {
         emit error(tr("Storage capacity is not large enough.<br>Needs to be at least %1 GB.").arg(QString::number(_extrLen/1000000000.0, 'f', 1)));
+        return;
+    }
+
+    if (_extrLen && !_multipleFilesInZip && _extrLen % 512 != 0)
+    {
+        emit error(tr("Input file is not a valid disk image.<br>File size %1 bytes is not a multiple of 512 bytes.").arg(_extrLen));
         return;
     }
 
