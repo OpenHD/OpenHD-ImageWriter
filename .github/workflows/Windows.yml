@@ -42,14 +42,14 @@ jobs:
 
       - name: Show Qt Install Info
         run: |
-          set "PATH=C:/a/OpenHD-ImageWriter/Qt/5.15.2/mingw81_32/bin;%PATH%"
-          echo Compiler path:
-          where g++
-          echo Qt bin contents:
-          dir C:/a/OpenHD-ImageWriter/Qt/5.15.2/mingw81_32/bin
-          echo CMake version:
-          cmake --version
-
+            echo Qt bin contents:
+            dir "C:\a\OpenHD-ImageWriter\Qt\5.15.2\mingw81_32\bin"
+            echo Compiler location:
+            where gcc
+            where g++
+            echo CMake version:
+            cmake --version
+    
       - name: Configure CMake
         run: |
             set PATH=C:/a/OpenHD-ImageWriter/Qt/5.15.2/mingw81_32/bin;%PATH%
