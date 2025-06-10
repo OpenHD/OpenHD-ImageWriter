@@ -6,7 +6,7 @@ on:
       - "2.5-evo"
       - "dev-release"
       - "2.0.4"
-      - "debug"
+      - "windows_2"
     paths-ignore:
       - '**.md'
       - '**.asciidoc'
@@ -54,13 +54,12 @@ jobs:
       run: |
         mkdir -p build
         cd build
-        cmake ../
+        cmake .. -DCMAKE_BUILD_TYPE=Release
         cmake --build .
-        cmake --install .
 
     - name: Upload to Github  
       uses: actions/upload-artifact@v4
       with:
         name: "OpenHD Image Writer"
-        path: '*.exe'
+        path: src/build/OpenHDImageWriter.exe
         if-no-files-found: error
