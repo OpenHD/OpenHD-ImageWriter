@@ -51,13 +51,10 @@ jobs:
 
       - name: Configure CMake
         run: |
+          echo "C:\Qt\Tools\mingw810_32\bin" >> $GITHUB_PATH
           mkdir -p build
           cd build
-          cmake .. -G "MinGW Makefiles" ^
-            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} ^
-            -DCMAKE_PREFIX_PATH="${{ env.Qt5_DIR }}" ^
-            -DCMAKE_INSTALL_PREFIX=. ^
-            -DCMAKE_VERBOSE_MAKEFILE=ON
+          cmake .. -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles"
           type src/build/CMakeCache.txt
 
 
@@ -68,8 +65,9 @@ jobs:
 
       - name: Build with Debug Output
         run: |
+          echo "C:\Qt\Tools\mingw810_32\bin" >> $GITHUB_PATH
           cd build
-          cmake --build . --config ${{ env.BUILD_TYPE }} -- -v -j2
+          cmake --build .
 
       - name: List Build Output
         run: |
