@@ -1,16 +1,14 @@
-name: OpenHD Image Writer Windows
+name: OpenHD Image Writer Windows (MinGW + Qt5.15.2)
 
 on:
   push:
     branches:
-      - "2.5-evo"
-      - "dev-release"
       - "release"
-      - "debug"
+      - "dev-release"
+
     paths-ignore:
-      - '**.md'
-      - '**.asciidoc'
-      - '**.adoc'
+      - '**/*.md'
+      - '**/*.adoc'
       - '.gitignore'
       - 'LICENSE'
 
@@ -23,44 +21,67 @@ jobs:
 
     defaults:
       run:
+        shell: cmd
         working-directory: src
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v3
-      with:
-        version: '5.15.2'
-        aqtversion: ==3.1.*
-        host: windows
-        target: desktop
-        arch: win32_mingw81
-        setup-python: true
-        tools: 'tools_cmake'
+      - name: Install Qt
+        id: qt-install
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          aqtversion: '==3.1.*'
+          host: windows
+          target: desktop
+          arch: win32_mingw81
+          setup-python: false
+          tools: tools_cmake tools_mingw81,qt.tools.win32_mingw810
 
-    - name: Install dependencies
-      run: |
-        choco install -y nsis openssl.light
-        mkdir C:\files
-        xcopy "C:\Program Files\OpenSSL" C:\files /E /I /Q
-        dir "C:\files"
+      - name: Show Qt Install Info
+        run: |
+          echo Compiler location:
+          where gcc
+          where g++
+          echo CMake version:
+          cmake --version
 
-    # - name: Configure CMake
-    #   run: |
-    #     cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "Unix Makefiles" -DOPENSSL_ROOT_DIR="C:\files" -DCMAKE_TOOLCHAIN_FILE="C:\Qt\${{env.QT_VERSION}}\${{env.QT_VERSION}}\mingw32\isystem.cmake"
+      - name: Configure CMake
+        run: |
+          set PATH=C:/a/OpenHD-ImageWriter/Qt/5.15.2/mingw81_32/bin;C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin;%PATH%
+          mkdir build
+          cd build
+          cmake .. -G "MinGW Makefiles" ^
+            -DCMAKE_BUILD_TYPE=Release ^
+            -DCMAKE_C_COMPILER="C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/gcc.exe" ^
+            -DCMAKE_CXX_COMPILER="C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/g++.exe"
 
-    - name: Build
-      run: |
-        mkdir -p build
-        cd build
-        cmake ../
-        cmake --build .
-        cmake --install .
+      - name: Check CMake Cache
+        run: |
+          dir build
+          type build\CMakeCache.txt || echo "Cache missing"
 
-    - name: Upload to Github  
-      uses: actions/upload-artifact@v4
-      with:
-        name: "OpenHD Image Writer"
-        path: '*.exe'
-        if-no-files-found: error
+      - name: Build with Debug Output
+        run: |
+          set PATH=C:/a/OpenHD-ImageWriter/Qt/5.15.2/mingw81_32/bin;C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin;%PATH%
+          cd build
+          cmake --build . --verbose
+          dir
+
+      - name: Install NSIS
+        run: choco install nsis -y
+  
+      - name: Build NSIS Installer
+        run: |
+          "C:\Program Files (x86)\NSIS\makensis.exe" openhdimagewriter.nsi
+        working-directory: src/build
+  
+
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenHDImageWriter-Build-Full
+          path: C:\a\OpenHD-ImageWriter\OpenHD-ImageWriter\src\build\OpenHD-ImageWriter*
+          if-no-files-found: error
+        

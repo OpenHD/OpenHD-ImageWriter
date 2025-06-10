@@ -36,12 +36,16 @@
 #include <QFileDialog>
 #include <QApplication>
 #endif
-#ifdef Q_OS_DARWIN
+#if defined(Q_OS_DARWIN)
 #include <QMessageBox>
 #include <security/security.h>
+#elif defined(Q_OS_LINUX)
+#include <openssl/evp.h>
+#include <openssl/sha.h>
+#elif defined(Q_OS_WIN)
+#include "sha256crypt.h"
 #else
-#include "openssl/evp.h"
-#include "openssl/sha.h"
+#error Unsupported platform
 #endif
 
 #ifdef Q_OS_WIN
