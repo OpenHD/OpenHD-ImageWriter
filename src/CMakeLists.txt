@@ -139,6 +139,7 @@ if (WIN32)
     #find_package(OpenSSL REQUIRED)
 
     # Bundled zlib
+    include_directories(${CMAKE_BINARY_DIR}/dependencies/zlib-1.2.11)
     add_subdirectory(dependencies/zlib-1.2.11)
     set(ZLIB_LIBRARY zlibstatic)
     set(ZLIB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/zlib-1.2.11)

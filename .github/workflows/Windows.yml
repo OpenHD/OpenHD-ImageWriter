@@ -39,17 +39,6 @@ jobs:
         setup-python: true
         tools: 'tools_cmake'
 
-    # - name: Install dependencies
-    #   run: |
-    #     choco install -y nsis openssl.light
-    #     mkdir C:\files
-    #     xcopy "C:\Program Files\OpenSSL" C:\files /E /I /Q
-    #     dir "C:\files"
-
-    # - name: Configure CMake
-    #   run: |
-    #     cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "Unix Makefiles" -DOPENSSL_ROOT_DIR="C:\files" -DCMAKE_TOOLCHAIN_FILE="C:\Qt\${{env.QT_VERSION}}\${{env.QT_VERSION}}\mingw32\isystem.cmake"
-
     - name: Build
       run: |
         mkdir -p build
