@@ -37,10 +37,10 @@
 
 #endif
 
-#ifdef USE_OPENSSL_SHA256
-/* When OpenSSL is available we use the SHA256-function from OpenSSL */
-#include <openssl/sha.h>
-#else
+// #ifdef USE_OPENSSL_SHA256
+// /* When OpenSSL is available we use the SHA256-function from OpenSSL */
+// #include <openssl/sha.h>
+// #else
 
 /* When no other crypto library is available we use this code segment */
 
@@ -263,5 +263,3 @@ void Curl_sha256it(unsigned char *outbuffer, /* 32 unsigned chars */
   SHA256_Update(&ctx, input, curlx_uztoui(strlen((char *)input)));
   SHA256_Final(outbuffer, &ctx);
 }
-
-#endif /* CURL_DISABLE_CRYPTO_AUTH */

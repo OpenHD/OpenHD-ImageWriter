@@ -40,8 +40,8 @@
 #include <QMessageBox>
 #include <security/security.h>
 #else
-#include "openssl/evp.h"
-#include "openssl/sha.h"
+// #include "openssl/evp.h"
+#include "sha256crypt.h"
 #endif
 
 #ifdef Q_OS_WIN

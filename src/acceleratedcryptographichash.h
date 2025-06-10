@@ -15,12 +15,35 @@
 #define SHA256_Init   CC_SHA256_Init
 #define SHA256_Update CC_SHA256_Update
 #define SHA256_Final  CC_SHA256_Final
+
 #else
-#ifdef HAVE_GNUTLS
-#include "gnutls/crypto.h"
-#else
-#include "openssl/sha.h"
-#endif
+
+// fallback sha256crypt-based implementation
+#include "sha256crypt.h"
+#include <QByteArray>
+#include <cstdio>
+
+struct SHA256_CTX {
+    QByteArray buffer;
+};
+
+static inline void SHA256_Init(SHA256_CTX* ctx) {
+    ctx->buffer.clear();
+}
+
+static inline void SHA256_Update(SHA256_CTX* ctx, const void* data, size_t len) {
+    ctx->buffer.append(reinterpret_cast<const char*>(data), len);
+}
+
+static inline void SHA256_Final(unsigned char* output, SHA256_CTX* ctx) {
+    char hex[65] = {0};
+    sha256_buffer(ctx->buffer.constData(), ctx->buffer.size(), hex);
+    for (int i = 0; i < 32; ++i)
+        std::sscanf(&hex[i * 2], "%2hhx", &output[i]);
+}
+
+#define SHA256_DIGEST_LENGTH 32
+
 #endif
 
 class AcceleratedCryptographicHash
@@ -33,11 +56,7 @@ public:
     QByteArray result();
 
 protected:
-#ifdef HAVE_GNUTLS
-    gnutls_hash_hd_t _sha256;
-#else
     SHA256_CTX _sha256;
-#endif
 };
 
 #endif // ACCELERATEDCRYPTOGRAPHICHASH_H

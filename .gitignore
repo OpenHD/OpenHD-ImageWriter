@@ -3,3 +3,13 @@ server/os_list_imagingutility_v3.json
 CMakeCache.txt
 *.tlog
 *.qml_hack
+*.json
+*.idx
+*.obj
+*.bin
+*.cmake
+*.d
+*.qm
+src/build/Desktop_Qt_5_15_12_MinGW_32_bit-Release/OpenHDImageWriter_autogen/timestamp
+*.a
+/src/build/Desktop_Qt_5_15_12_MinGW_32_bit-Release
