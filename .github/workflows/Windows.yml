@@ -69,14 +69,10 @@ jobs:
           cd build
           cmake --build . --verbose
 
-      - name: List Build Output
-        run: |
-          dir build
-          dir build\bin || echo "No bin directory found"
-
-      - name: Upload Artifact
+      - name: Upload Full Build Directory
         uses: actions/upload-artifact@v4
         with:
-          name: "OpenHDImageWriter.exe"
-          path: src/build/OpenHDImageWriter.exe
+          name: OpenHDImageWriter-Build-Full
+          path: build
           if-no-files-found: error
+        
