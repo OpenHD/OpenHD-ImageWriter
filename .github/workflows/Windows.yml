@@ -38,7 +38,7 @@ jobs:
           target: desktop
           arch: win32_mingw81
           setup-python: false
-          tools: tools_cmake
+          tools: tools_cmake tools_mingw81,qt.tools.win32_mingw810
 
       - name: Show Qt Install Info
         run: |
