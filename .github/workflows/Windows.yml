@@ -15,7 +15,7 @@ on:
 
 env:
   BUILD_TYPE: Release
-  PATH: C:\Qt\Tools\mingw810_32\bin;${{ env.PATH }}
+  PATH: C:\Qt\Tools\mingw810_32\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem
   CC: C:\Qt\Tools\mingw810_32\bin\gcc.exe
   CXX: C:\Qt\Tools\mingw810_32\bin\g++.exe
 
