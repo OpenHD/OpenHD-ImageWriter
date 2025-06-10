@@ -15,13 +15,11 @@ on:
 
 env:
   BUILD_TYPE: Release
-  PATH: C:\Qt\Tools\mingw810_32\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem
-  CC: C:\Qt\Tools\mingw810_32\bin\gcc.exe
-  CXX: C:\Qt\Tools\mingw810_32\bin\g++.exe
 
 jobs:
   build:
     runs-on: windows-latest
+
     defaults:
       run:
         shell: cmd
@@ -44,40 +42,38 @@ jobs:
 
       - name: Show Qt Install Info
         run: |
-            ls C:\Qt\Tools\mingw810_32\bin\
-            echo "C:\Qt\Tools\mingw810_32\bin" >> $GITHUB_PATH
-            echo "Qt5_DIR: %Qt5_DIR%"
-            echo "Contents of Qt5_DIR:"
-            dir "%Qt5_DIR%"
-            echo "Compiler location:"
-            where g++
-            echo "CMake version:"
-            cmake --version
+          set "PATH=C:\Qt\Tools\mingw810_32\bin;%PATH%"
+          echo Compiler path:
+          where g++
+          echo Qt bin contents:
+          dir C:\Qt\Tools\mingw810_32\bin
+          echo CMake version:
+          cmake --version
 
       - name: Configure CMake
         run: |
-          echo "C:\Qt\Tools\mingw810_32\bin" >> $GITHUB_PATH
-          set CC=C:\Qt\Tools\mingw810_32\bin\gcc.exe
-          set CXX=C:\Qt\Tools\mingw810_32\bin\g++.exe
+          set "PATH=C:\Qt\Tools\mingw810_32\bin;%PATH%"
+          set "CC=gcc"
+          set "CXX=g++"
           mkdir build
           cd build
           cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
-      
-      - name: Check CMakeFiles
+
+      - name: Check CMake Cache
         run: |
           dir build
-          type build/CMakeCache.txt || true
+          type build\CMakeCache.txt || echo "Cache missing"
 
       - name: Build with Debug Output
         run: |
-          echo "C:\Qt\Tools\mingw810_32\bin" >> $GITHUB_PATH
+          set "PATH=C:\Qt\Tools\mingw810_32\bin;%PATH%"
           cd build
-          cmake --build .
+          cmake --build . --verbose
 
       - name: List Build Output
         run: |
           dir build
-          dir build/bin || echo "No bin directory found"
+          dir build\bin || echo "No bin directory found"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
