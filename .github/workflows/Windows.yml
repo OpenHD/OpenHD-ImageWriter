@@ -54,11 +54,7 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release ^
-            -G "MinGW Makefiles" ^
-            -DCMAKE_C_COMPILER="C:/Qt/Tools/mingw810_32/bin/gcc.exe" ^
-            -DCMAKE_CXX_COMPILER="C:/Qt/Tools/mingw810_32/bin/g++.exe"
-        
+          cmake .. -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles" -DCMAKE_C_COMPILER="C:/Qt/Tools/mingw810_32/bin/gcc.exe" -DCMAKE_CXX_COMPILER="C:/Qt/Tools/mingw810_32/bin/g++.exe"    
 
       - name: Check CMakeFiles
         run: |
