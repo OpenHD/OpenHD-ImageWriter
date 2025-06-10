@@ -39,12 +39,15 @@ jobs:
           tools: tools_cmake
 
       - name: Show Qt Install Info
+        shell: cmd
         run: |
-          echo "QT_ROOT_DIR=${{ env.Qt5_DIR }}"
-          echo "Contents of Qt installation directory:"
-          dir ${{ env.Qt5_DIR }}
-          echo "Environment variables:"
-          set
+          echo "Qt5_DIR: %Qt5_DIR%"
+          echo "Contents of Qt5_DIR:"
+          dir "%Qt5_DIR%"
+          echo "Compiler location:"
+          where g++
+          echo "CMake version:"
+          cmake --version
 
       - name: Configure CMake
         run: |
@@ -55,6 +58,8 @@ jobs:
             -DCMAKE_PREFIX_PATH="${{ env.Qt5_DIR }}" ^
             -DCMAKE_INSTALL_PREFIX=. ^
             -DCMAKE_VERBOSE_MAKEFILE=ON
+          type src/build/CMakeCache.txt
+
 
       - name: Check CMakeFiles
         run: |

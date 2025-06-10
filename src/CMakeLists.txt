@@ -316,7 +316,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/sha256crypt
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    Qt5::Core Qt5::Quick Qt5::Svg
+    Qt5::Core Qt5::Quick Qt5::Svg Qt5::Widgets Qt5::Network Qt5::Gui
     ${CURL_LIBRARIES}
     ${LibArchive_LIBRARIES}
     ${ATOMIC_LIBRARY}
