@@ -52,12 +52,13 @@ jobs:
 
       - name: Configure CMake
         run: |
-          set "PATH=C:\Qt\Tools\mingw810_32\bin;%PATH%"
-          set "CC=gcc"
-          set "CXX=g++"
-          mkdir build
-          cd build
-          cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+            set PATH=C:\Qt\Tools\mingw810_32\bin;%PATH%
+            mkdir build
+            cd build
+            cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release ^
+              -DCMAKE_C_COMPILER=C:/Qt/Tools/mingw810_32/bin/gcc.exe ^
+              -DCMAKE_CXX_COMPILER=C:/Qt/Tools/mingw810_32/bin/g++.exe
+  
 
       - name: Check CMake Cache
         run: |
