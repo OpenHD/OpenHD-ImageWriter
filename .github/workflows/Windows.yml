@@ -39,12 +39,12 @@ jobs:
         setup-python: true
         tools: 'tools_cmake'
 
-    - name: Install dependencies
-      run: |
-        choco install -y nsis openssl.light
-        mkdir C:\files
-        xcopy "C:\Program Files\OpenSSL" C:\files /E /I /Q
-        dir "C:\files"
+    # - name: Install dependencies
+    #   run: |
+    #     choco install -y nsis openssl.light
+    #     mkdir C:\files
+    #     xcopy "C:\Program Files\OpenSSL" C:\files /E /I /Q
+    #     dir "C:\files"
 
     # - name: Configure CMake
     #   run: |
