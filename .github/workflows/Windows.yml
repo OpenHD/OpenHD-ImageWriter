@@ -68,6 +68,7 @@ jobs:
           set PATH=C:/a/OpenHD-ImageWriter/Qt/5.15.2/mingw81_32/bin;C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin;%PATH%
           cd build
           cmake --build . --verbose
+          dir
 
       - name: Upload Full Build Directory
         uses: actions/upload-artifact@v4
