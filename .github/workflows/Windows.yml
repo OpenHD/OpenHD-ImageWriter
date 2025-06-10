@@ -28,7 +28,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Install Qt
+    - name: Install Qt (MinGW)
       uses: jurplel/install-qt-action@v3
       with:
         version: '5.15.2'
@@ -36,15 +36,20 @@ jobs:
         host: windows
         target: desktop
         arch: win32_mingw81
-        setup-python: true
         tools: 'tools_cmake'
+
+    - name: Install MSYS2 for MinGW make
+      run: |
+        choco install -y msys2
+        echo "C:\tools\msys64\usr\bin" >> $GITHUB_PATH
+        echo "C:\tools\msys64\mingw32\bin" >> $GITHUB_PATH
 
     - name: Build
       run: |
         mkdir -p build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release
-        cmake --build .
+        cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+        mingw32-make
 
     - name: Upload to Github  
       uses: actions/upload-artifact@v4
