@@ -70,6 +70,15 @@ jobs:
           cmake --build . --verbose
           dir
 
+      - name: Install NSIS
+        run: choco install nsis -y
+  
+      - name: Build NSIS Installer
+        run: |
+          "C:\Program Files (x86)\NSIS\makensis.exe" openhdimagewriter.nsi
+        working-directory: src/build
+  
+
       - name: Upload Full Build Directory
         uses: actions/upload-artifact@v4
         with:
