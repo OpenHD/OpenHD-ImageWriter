@@ -146,10 +146,6 @@ if (WIN32)
     # Bundled libcurl
     set(CMAKE_CURL_INCLUDES)
     set(CURL_LIBRARIES cmcurl)
-    # Use native Windows Schannel TLS, not OpenSSL
-    set(CURL_USE_SCHANNEL ON CACHE BOOL "" FORCE)
-    set(CMAKE_USE_OPENSSL OFF CACHE BOOL "" FORCE)
-    set(HTTP_ONLY ON CACHE BOOL "" FORCE)
     add_subdirectory(dependencies/cmcurl)
     set(CURL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/cmcurl/include)
 
@@ -204,16 +200,23 @@ if (WIN32)
 
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/bin/libssl-1_1.dll" "${CMAKE_BINARY_DIR}/deploy"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/bin/libssl-1_1.dll" "${CMAKE_BINARY_DIR}"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/bin/libcrypto-1_1.dll" "${CMAKE_BINARY_DIR}"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/bin/libcrypto-1_1.dll" "${CMAKE_BINARY_DIR}/deploy")    
-        
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "${Qt5_DIR}/../../../bin/libcrypto-3.dll" "${Qt5_DIR}/../../../bin/libcrypto-3.dll"
+            "${CMAKE_BINARY_DIR}/deploy")
+        add_custom_command(TARGET ${PROJECT_NAME}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_CURRENT_SOURCE_DIR}/windows/libssl-1_1.dll" "${CMAKE_BINARY_DIR}/deploy")
+        add_custom_command(TARGET ${PROJECT_NAME}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_CURRENT_SOURCE_DIR}/windows/libcrypto-1_1.dll" "${CMAKE_BINARY_DIR}/deploy")
+        add_custom_command(TARGET ${PROJECT_NAME}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_CURRENT_SOURCE_DIR}/windows/libcrypto.dll" "${CMAKE_BINARY_DIR}/deploy")
+
+
     configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/windows/openhdimagewriter.nsi.in"
         "${CMAKE_CURRENT_BINARY_DIR}/openhdimagewriter.nsi"
@@ -309,15 +312,5 @@ if(${QT_TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
     qt5_import_plugins(${PROJECT_NAME} INCLUDE Qt5::QSvgPlugin)
 endif()
 
-include_directories(
-    ${CURL_INCLUDE_DIR}
-    ${LibArchive_INCLUDE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/sha256crypt
-)
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    Qt5::Core Qt5::Quick Qt5::Svg
-    ${CURL_LIBRARIES}
-    ${LibArchive_LIBRARIES}
-    ${ATOMIC_LIBRARY}
-    ${EXTRALIBS}
-    crypt32 secur32 bcrypt)  # Required for Schannel
+include_directories(${CURL_INCLUDE_DIR} ${LibArchive_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Core Qt5::Quick Qt5::Svg ${CURL_LIBRARIES} ${LibArchive_LIBRARIES} ${OPENSSL_LIBRARIES} ${ATOMIC_LIBRARY} ${EXTRALIBS})
