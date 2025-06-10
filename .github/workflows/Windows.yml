@@ -44,6 +44,9 @@ jobs:
         run: |
             echo Qt bin contents:
             dir "C:\a\OpenHD-ImageWriter\Qt\5.15.2\mingw81_32\bin"
+            echo Qt tools contents:
+            dir "C:\a\OpenHD-ImageWriter\Qt\Tools\mingw810_32\bin"
+
             echo Compiler location:
             where gcc
             where g++
