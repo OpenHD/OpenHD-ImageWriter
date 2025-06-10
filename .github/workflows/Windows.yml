@@ -56,8 +56,6 @@ jobs:
           mkdir -p build
           cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles"
-          type src/build/CMakeCache.txt
-
 
       - name: Check CMakeFiles
         run: |
