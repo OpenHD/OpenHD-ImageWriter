@@ -10,13 +10,6 @@
 #include <string.h>
 #include <sys/param.h>
 #include <sys/types.h>
-#include "sha256crypt.h"
-
-struct sha256_ctx;
-
-static void sha256_init_ctx(struct sha256_ctx *ctx);
-static void sha256_process_bytes(const void *buffer, size_t len, struct sha256_ctx *ctx);
-static void *sha256_finish_ctx(struct sha256_ctx *ctx, void *resbuf);
 
 #ifdef __APPLE__
 #include <machine/endian.h>
@@ -188,13 +181,6 @@ sha256_process_block (const void *buffer, size_t len, struct sha256_ctx *ctx)
   ctx->H[7] = h;
 }
 
-void sha256_buffer(const void *buffer, size_t len, void *output32bytes)
-{
-    struct sha256_ctx ctx;
-    sha256_init_ctx(&ctx);
-    sha256_process_bytes(buffer, len, &ctx);
-    sha256_finish_ctx(&ctx, output32bytes);
-}
 
 /* Initialize structure containing state of computation.
    (FIPS 180-2:5.3.2)  */
