@@ -21,6 +21,7 @@ jobs:
     runs-on: windows-latest
     defaults:
       run:
+        shell: cmd
         working-directory: src
 
     steps:
@@ -38,8 +39,16 @@ jobs:
           setup-python: false
           tools: tools_cmake
 
+      - name: Configure CMake
+        run: |
+          echo "C:\Qt\Tools\mingw810_32\bin" >> $GITHUB_PATH
+          set CC=C:\Qt\Tools\mingw810_32\bin\gcc.exe
+          set CXX=C:\Qt\Tools\mingw810_32\bin\g++.exe
+          mkdir build
+          cd build
+          cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+      
       - name: Show Qt Install Info
-        shell: cmd
         run: |
           echo "C:\Qt\Tools\mingw810_32\bin" >> $GITHUB_PATH
           echo "Qt5_DIR: %Qt5_DIR%"
@@ -49,12 +58,6 @@ jobs:
           where g++
           echo "CMake version:"
           cmake --version
-
-      - name: Configure CMake
-        run: |
-          mkdir -p build
-          cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles" -DCMAKE_C_COMPILER="C:/Qt/Tools/mingw810_32/bin/gcc.exe" -DCMAKE_CXX_COMPILER="C:/Qt/Tools/mingw810_32/bin/g++.exe"    
 
       - name: Check CMakeFiles
         run: |
