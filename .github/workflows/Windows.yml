@@ -41,6 +41,7 @@ jobs:
       - name: Show Qt Install Info
         shell: cmd
         run: |
+          echo "C:\Qt\Tools\mingw810_32\bin" >> $GITHUB_PATH
           echo "Qt5_DIR: %Qt5_DIR%"
           echo "Contents of Qt5_DIR:"
           dir "%Qt5_DIR%"
