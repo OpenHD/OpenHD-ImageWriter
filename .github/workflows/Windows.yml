@@ -37,21 +37,16 @@ jobs:
         target: desktop
         arch: win32_mingw81
         tools: 'tools_cmake'
+        setup-python: true
 
-    - name: Install MSYS2 for MinGW make
+    - name: Configure and Build (MinGW)
       run: |
-        choco install -y msys2
-        echo "C:\tools\msys64\usr\bin" >> $GITHUB_PATH
-        echo "C:\tools\msys64\mingw32\bin" >> $GITHUB_PATH
-
-    - name: Build
-      run: |
-        mkdir -p build
+        mkdir build
         cd build
-        cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
-        mingw32-make
+        cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="%Qt5_DIR%"
+        mingw32-make -j4
 
-    - name: Upload to Github  
+    - name: Upload executable to GitHub
       uses: actions/upload-artifact@v4
       with:
         name: "OpenHD Image Writer"
