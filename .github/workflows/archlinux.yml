@@ -1,0 +1,52 @@
+name: OpenHD Image Writer Arch
+
+on:
+  push:
+    branches:
+      - "debug"
+      - "dev-release"
+      - "release"
+      - "2.0.4"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: Initialise environment
+        run: |
+          echo "DT=$(date +'%Y-%m-%d_%H%M')" >> $GITHUB_ENV
+          echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm base-devel git sudo
+
+      - uses: actions/checkout@v3
+        with:
+            fetch-depth: 0
+
+      - name: Set up build user (non-root for makepkg)
+        run: |
+          useradd -m builder
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+          chown -R builder:builder .
+          # Required for makepkg to run without prompt
+          echo 'PACKAGER="OpenHD Builder <builder@openhdfpv.org>"' >> /etc/makepkg.conf
+          echo 'MAKEFLAGS="-j$(nproc)"' >> /etc/makepkg.conf
+
+      - name: Build package
+        run: |
+          sudo -u builder bash -c "
+            cd ${GITHUB_WORKSPACE}
+            makepkg -sfc --noconfirm
+          "
+
+      - name: Upload Arch package
+        uses: actions/upload-artifact@v4
+        with:
+          name: "OpenHD Image Writer Arch"
+          path: |
+            *.pkg.tar.zst
+          if-no-files-found: error
