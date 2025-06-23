@@ -6,7 +6,7 @@ on:
       - "2.5-evo"
       - "dev-release"
       - "release"
-      - "debug-older"
+      - "debug_older"
     paths-ignore:
       - '**.md'
       - '**.asciidoc'
