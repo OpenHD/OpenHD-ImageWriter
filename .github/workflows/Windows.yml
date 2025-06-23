@@ -6,7 +6,7 @@ on:
       - "2.5-evo"
       - "dev-release"
       - "release"
-      - "debug"
+      - "debug-older"
     paths-ignore:
       - '**.md'
       - '**.asciidoc'
@@ -29,15 +29,15 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
         version: '5.15.2'
         aqtversion: ==3.1.*
         host: windows
         target: desktop
         arch: win32_mingw81
-        setup-python: true
-        tools: 'tools_cmake'
+        setup-python: false
+        tools: tools_cmake tools_mingw81,qt.tools.win32_mingw810
 
     - name: Install dependencies
       run: |
