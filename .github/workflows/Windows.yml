@@ -43,9 +43,9 @@ jobs:
     - name: Install dependencies
       run: |
         choco install -y nsis openssl.light
-        mkdir D:\files
-        xcopy "D:\Program Files\OpenSSL" D:\files /E /I /Q
-        dir "D:\files"
+        mkdir C:\files
+        xcopy "C:\Program Files\OpenSSL" C:\files /E /I /Q
+        dir "C:\files"
 
 
     - name: Show Qt Install Info
@@ -62,8 +62,8 @@ jobs:
         cd build
         cmake .. -G "MinGW Makefiles" ^
           -DCMAKE_BUILD_TYPE=Release ^
-          -DCMAKE_C_COMPILER="D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/gcc.exe" ^
-          -DCMAKE_CXX_COMPILER="D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/g++.exe"
+          -DCMAKE_C_COMPILER="C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/gcc.exe" ^
+          -DCMAKE_CXX_COMPILER="C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/g++.exe"
 
     - name: Check CMake Cache
       run: |
@@ -82,7 +82,7 @@ jobs:
 
     - name: Build NSIS Installer
       run: |
-        "D:\Program Files (x86)\NSIS\makensis.exe" openhdimagewriter.nsi
+        "C:\Program Files (x86)\NSIS\makensis.exe" openhdimagewriter.nsi
       working-directory: src/build
 
 
@@ -90,6 +90,6 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: OpenHDImageWriter-Build-Full
-        path: D:\a\OpenHD-ImageWriter\OpenHD-ImageWriter\src\build\OpenHD-ImageWriter*
+        path: C:\a\OpenHD-ImageWriter\OpenHD-ImageWriter\src\build\OpenHD-ImageWriter*
         if-no-files-found: error
       
