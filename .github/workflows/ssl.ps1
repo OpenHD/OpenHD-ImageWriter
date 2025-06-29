@@ -1,11 +1,11 @@
-# Install OpenSSL 32-bit from Shining Light Productions
-$version = "3.1.4"
-$installerName = "Win32OpenSSL-$version.exe"
+# Installs 32-bit OpenSSL 3.5.0 (Light) from Shining Light Productions
+$version = "3_5_0"
+$installerName = "Win32OpenSSL_Light-$version.exe"
 $installerUrl = "https://slproweb.com/download/$installerName"
 $installerPath = "$env:TEMP\$installerName"
 $installDir = "C:\OpenSSL32"
 
-Write-Host "Downloading OpenSSL installer..."
+Write-Host "Downloading OpenSSL installer from $installerUrl"
 Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
 
 Write-Host "Installing OpenSSL to $installDir..."
@@ -15,4 +15,4 @@ Start-Process -FilePath $installerPath -ArgumentList $args -Wait
 # Add to PATH for current session
 $env:Path = "$installDir\bin;$env:Path"
 
-Write-Host "OpenSSL installed successfully to $installDir"
+Write-Host "OpenSSL 3.5.0 (Light) installed successfully to $installDir"
