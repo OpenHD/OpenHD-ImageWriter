@@ -317,6 +317,10 @@ if(${QT_TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
     qt5_import_plugins(${PROJECT_NAME} INCLUDE Qt5::QSvgPlugin)
 endif()
 
-include_directories(${CURL_INCLUDE_DIR} ${LibArchive_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CURL_INCLUDE_DIR}
+    ${LibArchive_INCLUDE_DIR}
+    "C:/msys64/mingw32/include"
+)
 target_include_directories(${PROJECT_NAME} PRIVATE ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Core Qt5::Quick Qt5::Svg ${CURL_LIBRARIES} ${LibArchive_LIBRARIES} ${OPENSSL_LIBRARIES} ${ATOMIC_LIBRARY} ${EXTRALIBS})
