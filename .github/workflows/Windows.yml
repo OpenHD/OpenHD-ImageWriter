@@ -40,70 +40,11 @@ jobs:
         setup-python: false
         tools: tools_cmake tools_mingw81,qt.tools.win32_mingw810
     
-    - name: Install OpenSSL 32-bit (Verified from SLP)
+    - name: Install OpenSSL from local script
       shell: pwsh
       run: |
-          $script = @"
-          ################################################################################
-          ##  File:  Install-OpenSSL.ps1
-          ##  Desc:  Install win32-openssl with checksum verification
-          ################################################################################
-          
-          $arch = 'INTEL'
-          $bits = '32'
-          $light = $false
-          $installer = "exe"
-          $version = '3.1.4'
-          $installDir = "$Env:ProgramFiles\OpenSSL"
-          
-          $jsonUrl = 'https://raw.githubusercontent.com/slproweb/opensslhashes/master/win32_openssl_hashes.json'
-          $installersAvailable = (Invoke-RestMethod $jsonUrl).files
-          
-          $distributor_file_hash = $null
-          $installerUrl = $null
-          $installerName = $null
-          
-          $installersAvailable | Get-Member -MemberType NoteProperty | ForEach-Object {
-            $key = $_.Name
-            $entry = $installersAvailable.$key
-            if(($entry.light -eq $light) -and ($entry.arch -eq $arch) -and ($entry.bits -eq $bits) -and ($entry.installer -eq $installer) -and ($entry.basever -eq $version)) {
-              $installerUrl = $entry.url
-              $installerName = $key
-              $distributor_file_hash = $entry.sha512
-            }
-          }
-          
-          if (-not $installerUrl) {
-            Write-Host "❌ Failed to locate a matching OpenSSL installer"
-            exit 1
-          }
-          
-          $installerPath = "$env:TEMP\$installerName"
-          Invoke-WebRequest -Uri "$installerUrl" -OutFile "$installerPath"
-          
-          Write-Host "🔐 Verifying SHA512 checksum..."
-          $local_file_hash = (Get-FileHash -Path "$installerPath" -Algorithm SHA512).Hash
-          
-          if ($local_file_hash -ne $distributor_file_hash) {
-            Write-Host "Expected: $distributor_file_hash"
-            Write-Host "Actual:   $local_file_hash"
-            throw '❌ Checksum verification failed!'
-          }
-          
-          Write-Host "✅ Checksum OK. Installing OpenSSL..."
-          $installerArgs = '/silent', '/sp-', '/suppressmsgboxes', "/DIR=`"$installDir`""
-          Start-Process -FilePath "$installerPath" -ArgumentList $installerArgs -Wait
-          
-          # Update PATH
-          $env:Path = "$installDir\bin;$env:Path"
-          
-          Write-Host "✅ OpenSSL installed to $installDir"
-          "@
-          
-              # Write and execute the script
-              $script | Out-File -FilePath install-openssl.ps1 -Encoding ascii
-              .\install-openssl.ps1
-          
+          . "$env:GITHUB_WORKSPACE/.github/workflows/ssl.ps1"
+      
     - name: Install dependencies
       run: |
         choco install nsis --x86 --force -y
