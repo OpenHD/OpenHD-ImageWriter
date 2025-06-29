@@ -58,6 +58,7 @@ jobs:
         where g++
         echo CMake version:
         cmake --version
+        dir "D:/a/OpenHD-ImageWriter/OpenHD-ImageWriter"
 
     - name: Configure CMake
       shell: cmd
