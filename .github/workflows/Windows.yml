@@ -61,6 +61,7 @@ jobs:
       shell: cmd
       run: |
           dir "C:/OpenSSL32"
+          dir "C:\OpenSSL32\lib" /s
           mkdir build
           cd build
           cmake .. -G "MinGW Makefiles" ^
