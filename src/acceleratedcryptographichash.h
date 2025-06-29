@@ -73,5 +73,3 @@ protected:
     SHA256_CTX _sha256;
 #endif
 };
-
-#endif // ACCELERATEDCRYPTOGRAPHICHASH_H
