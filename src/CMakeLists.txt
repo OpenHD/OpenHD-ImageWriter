@@ -137,13 +137,13 @@ if (WIN32)
     add_definitions(-DWINVER=0x0601 -D_WIN32_WINNT=0x0601)
 
     
-    set(OPENSSL_ROOT_DIR "C:/OpenSSL32")
+    set(OPENSSL_ROOT_DIR "C:/tools/msys64/mingw32")
     set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include")
     set(OPENSSL_CRYPTO_LIBRARY "${OPENSSL_ROOT_DIR}/lib/MinGW/x86/libcrypto.dll.a")
     set(OPENSSL_SSL_LIBRARY "${OPENSSL_ROOT_DIR}/lib/MinGW/x86/libssl.dll.a")
     set(OPENSSL_LIBRARIES "${OPENSSL_SSL_LIBRARY};${OPENSSL_CRYPTO_LIBRARY}")
     include_directories(${OPENSSL_INCLUDE_DIR})
-    
+
     #find_package(OpenSSL REQUIRED)
 
     # Bundled zlib
