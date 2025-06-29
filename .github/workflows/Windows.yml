@@ -44,6 +44,10 @@ jobs:
       run: |
         choco install openssl.light --x86 --force -y
         choco install nsis --x86 --force -y
+        dir C:/Program Files (x86)/
+        mkdir C:\files
+        xcopy "C:\Program Files\OpenSSL" C:\files /E /I /Q
+        dir "C:\files
 
     - name: Show Qt Install Info
       run: |
@@ -61,9 +65,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release ^
             -DCMAKE_C_COMPILER="C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/gcc.exe" ^
             -DCMAKE_CXX_COMPILER="C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/g++.exe" ^
-            -DOPENSSL_ROOT_DIR="C:/Program Files (x86)/OpenSSL" ^
-            -DOPENSSL_INCLUDE_DIR="C:/Program Files (x86)/OpenSSL/include"
-      
+
     - name: Check CMake Cache
       run: |
         dir build
