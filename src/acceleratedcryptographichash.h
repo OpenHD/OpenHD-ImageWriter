@@ -26,9 +26,9 @@
 #else
 
 // --- Fallback: use OpenSSL if available ---
-#ifdef USE_OPENSSL
-#include <openssl/sha.h>
-#else
+// #ifdef USE_OPENSSL
+// #include <openssl/sha.h>
+// #else
 // --- Final fallback: sha256crypt.h ---
 #include "sha256crypt.h"
 #include <QByteArray>
