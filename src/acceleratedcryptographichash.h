@@ -7,31 +7,29 @@
  */
 
 #include <QCryptographicHash>
+#include <QByteArray>
+
+// --- Platform-specific includes and definitions ---
 
 #if defined(Q_OS_DARWIN)
 
 // --- macOS: use CommonCrypto ---
 #include <CommonCrypto/CommonDigest.h>
-#define SHA256_CTX         CC_SHA256_CTX
-#define SHA256_DIGEST_LENGTH CC_SHA256_DIGEST_LENGTH
-#define SHA256_Init        CC_SHA256_Init
-#define SHA256_Update      CC_SHA256_Update
-#define SHA256_Final       CC_SHA256_Final
+#define SHA256_CTX            CC_SHA256_CTX
+#define SHA256_DIGEST_LENGTH  CC_SHA256_DIGEST_LENGTH
+#define SHA256_Init           CC_SHA256_Init
+#define SHA256_Update         CC_SHA256_Update
+#define SHA256_Final          CC_SHA256_Final
 
 #elif defined(HAVE_GNUTLS)
 
-// --- Optional: GnuTLS ---
+// --- GnuTLS: use GnuTLS crypto API ---
 #include <gnutls/crypto.h>
 
 #else
 
-// --- Fallback: use OpenSSL if available ---
-// #ifdef USE_OPENSSL
-// #include <openssl/sha.h>
-// #else
-// --- Final fallback: sha256crypt.h ---
+// --- Fallback: simple SHA256 using sha256crypt.h ---
 #include "sha256crypt.h"
-#include <QByteArray>
 #include <cstdio>
 
 struct SHA256_CTX {
@@ -43,7 +41,7 @@ static inline void SHA256_Init(SHA256_CTX* ctx) {
 }
 
 static inline void SHA256_Update(SHA256_CTX* ctx, const void* data, size_t len) {
-    ctx->buffer.append(reinterpret_cast<const char*>(data), len);
+    ctx->buffer.append(reinterpret_cast<const char*>(data), static_cast<int>(len));
 }
 
 static inline void SHA256_Final(unsigned char* output, SHA256_CTX* ctx) {
@@ -54,14 +52,17 @@ static inline void SHA256_Final(unsigned char* output, SHA256_CTX* ctx) {
 }
 
 #define SHA256_DIGEST_LENGTH 32
-#endif // USE_OPENSSL
-#endif // Platform checks
+
+#endif // Platform fallback
+
+// --- Main class interface ---
 
 class AcceleratedCryptographicHash
 {
 public:
     explicit AcceleratedCryptographicHash(QCryptographicHash::Algorithm method);
     virtual ~AcceleratedCryptographicHash();
+
     void addData(const char *data, int length);
     void addData(const QByteArray &data);
     QByteArray result();
@@ -73,3 +74,5 @@ protected:
     SHA256_CTX _sha256;
 #endif
 };
+
+#endif // ACCELERATEDCRYPTOGRAPHICHASH_H
