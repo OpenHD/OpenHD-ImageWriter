@@ -136,8 +136,14 @@ if (WIN32)
     # Target Windows 7 (needed for drivelist module)
     add_definitions(-DWINVER=0x0601 -D_WIN32_WINNT=0x0601)
 
+    set(OPENSSL_ROOT_DIR "C:/OpenSSL32")
+    set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include")
+    set(OPENSSL_CRYPTO_LIBRARY "${OPENSSL_ROOT_DIR}/lib/MinGW/x86/libcrypto.dll.a")
+    set(OPENSSL_SSL_LIBRARY "${OPENSSL_ROOT_DIR}/lib/MinGW/x86/libssl.dll.a")
+    set(OPENSSL_LIBRARIES "${OPENSSL_SSL_LIBRARY};${OPENSSL_CRYPTO_LIBRARY}")
+    set(OPENSSL_FOUND TRUE)
+    
     find_package(OpenSSL REQUIRED)
-
     # Bundled zlib
     add_subdirectory(dependencies/zlib-1.2.11)
     set(ZLIB_LIBRARY zlibstatic)
