@@ -77,7 +77,7 @@ jobs:
             -DOPENSSL_CRYPTO_LIBRARY="C:/msys64/mingw32/lib/libcrypto.dll.a" ^
             -DOPENSSL_SSL_LIBRARY="C:/msys64/mingw32/lib/libssl.dll.a"
     
-            - name: Check CMake Cache
+    - name: Check CMake Cache
       run: |
         dir build
         type build\CMakeCache.txt || echo "Cache missing"
