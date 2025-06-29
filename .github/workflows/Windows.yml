@@ -44,9 +44,13 @@ jobs:
       shell: pwsh
       run: |
           choco install msys2 -y
-          & "C:\tools\msys64\usr\bin\bash.exe" -lc "pacman -Sy --noconfirm mingw-w64-i686-openssl"
-      
-      
+            Write-Host "Installing OpenSSL headers and libs with pacman..."
+            & "C:\tools\msys64\usr\bin\bash.exe" -lc "pacman -Sy --noconfirm mingw-w64-i686-openssl"
+            # Sanity check
+            if (!(Test-Path "C:\tools\msys64\mingw32\include\openssl\sha.h")) {
+              throw "OpenSSL headers not found after pacman install!"
+            }     
+              
     - name: Install dependencies
       run: |
         choco install nsis --x86 --force -y
