@@ -60,16 +60,16 @@ jobs:
     - name: Configure CMake
       shell: cmd
       run: |
-          dir "C:/OpenSSL32"
-          dir "C:\OpenSSL32\lib" /s
           mkdir build
           cd build
           cmake .. -G "MinGW Makefiles" ^
             -DCMAKE_BUILD_TYPE=Release ^
-            -DCMAKE_C_COMPILER="D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/gcc.exe" ^
-            -DCMAKE_CXX_COMPILER="D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/g++.exe" ^
+            -DCMAKE_C_COMPILER="C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/gcc.exe" ^
+            -DCMAKE_CXX_COMPILER="C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/g++.exe" ^
             -DOPENSSL_ROOT_DIR="C:/OpenSSL32" ^
-            -DOPENSSL_INCLUDE_DIR="C:/OpenSSL32/include"
+            -DOPENSSL_INCLUDE_DIR="C:/OpenSSL32/include" ^
+            -DOPENSSL_CRYPTO_LIBRARY="C:/OpenSSL32/lib/VC/x86/MD/libcrypto.lib" ^
+            -DOPENSSL_SSL_LIBRARY="C:/OpenSSL32/lib/VC/x86/MD/libssl.lib"
       
     - name: Check CMake Cache
       run: |
