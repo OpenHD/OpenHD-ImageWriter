@@ -42,7 +42,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        choco install openssl.light --x86 --force -y
+        choco install openssl --x86 --force -y
         choco install nsis --x86 --force -y
         mkdir C:\files
         xcopy "C:\Program Files\OpenSSL" C:\files /E /I /Q
