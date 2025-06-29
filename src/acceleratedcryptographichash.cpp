@@ -12,7 +12,7 @@ AcceleratedCryptographicHash::AcceleratedCryptographicHash(QCryptographicHash::A
     if (method != QCryptographicHash::Sha256)
         throw std::runtime_error("Only sha256 implemented");
 
-    SHA256_Init(&_sha256);
+    SHA25f6_Init(&_sha256);
 }
 
 AcceleratedCryptographicHash::~AcceleratedCryptographicHash()
