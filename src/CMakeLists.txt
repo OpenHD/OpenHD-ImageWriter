@@ -141,6 +141,7 @@ if (WIN32)
     set(OPENSSL_CRYPTO_LIBRARY "${OPENSSL_ROOT_DIR}/lib/MinGW/x86/libcrypto.dll.a")
     set(OPENSSL_SSL_LIBRARY "${OPENSSL_ROOT_DIR}/lib/MinGW/x86/libssl.dll.a")
     set(OPENSSL_LIBRARIES "${OPENSSL_SSL_LIBRARY};${OPENSSL_CRYPTO_LIBRARY}")
+    include_directories(${OPENSSL_INCLUDE_DIR})
     
     # Bundled zlib
     add_subdirectory(dependencies/zlib-1.2.11)
