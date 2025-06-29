@@ -84,7 +84,7 @@ jobs:
 
     - name: Build with Debug Output
       run: |
-        set PATH=D:/a/OpenHD-ImageWriter/Qt/5.15.2/mingw81_32/bin;C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin;%PATH%
+        set PATH=D:/a/OpenHD-ImageWriter/Qt/5.15.2/mingw81_32/bin;D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin;%PATH%
         cd build
         cmake --build . --verbose
         dir
