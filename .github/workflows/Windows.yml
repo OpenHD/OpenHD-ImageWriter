@@ -69,7 +69,7 @@ jobs:
         dir "C:\tools\msys64\"
         dir "C:\tools\msys64\mingw32\"
         dir "C:\tools\msys64\mingw32\lib\"
-        dir "C:\tools\msys64\mingw32\include\"
+        dir "C:\tools\msys64\mingw32\include\openssl\"
       
     - name: Configure CMake
       shell: cmd
@@ -78,10 +78,13 @@ jobs:
           mkdir build
           cd build
           cmake .. -G "MinGW Makefiles" ^
-            -DOPENSSL_ROOT_DIR="C:/msys64/mingw32" ^
-            -DOPENSSL_INCLUDE_DIR="C:/msys64/mingw32/include" ^
-            -DOPENSSL_CRYPTO_LIBRARY="C:/msys64/mingw32/lib/libcrypto.dll.a" ^
-            -DOPENSSL_SSL_LIBRARY="C:/msys64/mingw32/lib/libssl.dll.a"
+            -DCMAKE_BUILD_TYPE=Release ^
+            -DCMAKE_C_COMPILER="D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/gcc.exe" ^
+            -DCMAKE_CXX_COMPILER="D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/g++.exe" ^
+            -DOPENSSL_ROOT_DIR="C:/tools/msys64/mingw32" ^
+            -DOPENSSL_INCLUDE_DIR="C:/tools/msys64/mingw32/include" ^
+            -DOPENSSL_CRYPTO_LIBRARY="C:/tools/msys64/mingw32/lib/libcrypto.dll.a" ^
+            -DOPENSSL_SSL_LIBRARY="C:/tools/msys64/mingw32/lib/libssl.dll.a"
     
     - name: Check CMake Cache
       run: |
