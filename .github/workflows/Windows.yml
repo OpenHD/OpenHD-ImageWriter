@@ -62,9 +62,6 @@ jobs:
         dir C:\OpenSSL32\lib\MinGW\x86
         xcopy /E /Y /Q C:\OpenSSL32\include D:\a\OpenHD-ImageWriter\Qt\Tools\mingw810_32\include
         xcopy /E /Y /Q C:\OpenSSL32\lib\MinGW\x86\*.dll.a D:\a\OpenHD-ImageWriter\Qt\Tools\mingw810_32\lib
-    
-    - name: Enable CMake debug mode
-      run: set CMAKE_FIND_DEBUG_MODE=ON
 
     - name: Configure CMake
       shell: cmd
@@ -87,7 +84,7 @@ jobs:
 
     - name: Build with Debug Output
       run: |
-        set PATH=C:/a/OpenHD-ImageWriter/Qt/5.15.2/mingw81_32/bin;C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin;%PATH%
+        set PATH=D:/a/OpenHD-ImageWriter/Qt/5.15.2/mingw81_32/bin;C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin;%PATH%
         cd build
         cmake --build . --verbose
         dir
