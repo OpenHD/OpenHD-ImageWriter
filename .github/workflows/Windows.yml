@@ -40,10 +40,12 @@ jobs:
         setup-python: false
         tools: tools_cmake tools_mingw81,qt.tools.win32_mingw810
     
-    - name: Install OpenSSL from local script
+    - name: Install OpenSSL via MSYS2
       shell: pwsh
       run: |
-          . "$env:GITHUB_WORKSPACE/.github/workflows/ssl.ps1"
+          choco install msys2 -y
+          ridk install 
+          pacman -Sy --noconfirm mingw-w64-i686-openssl
       
     - name: Install dependencies
       run: |
@@ -60,16 +62,11 @@ jobs:
     - name: Configure CMake
       shell: cmd
       run: |
-        mkdir build
-        cd build
         cmake .. -G "MinGW Makefiles" ^
-          -DCMAKE_BUILD_TYPE=Release ^
-          -DCMAKE_C_COMPILER="D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/gcc.exe" ^
-          -DCMAKE_CXX_COMPILER="D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/g++.exe" ^
-          -DOPENSSL_ROOT_DIR="C:/OpenSSL32" ^
-          -DOPENSSL_INCLUDE_DIR="C:/OpenSSL32/include" ^
-          -DOPENSSL_CRYPTO_LIBRARY="C:/OpenSSL32/lib/libcrypto.dll.a" ^
-          -DOPENSSL_SSL_LIBRARY="C:/OpenSSL32/lib/libssl.dll.a"
+          -DOPENSSL_ROOT_DIR="C:/msys64/mingw32" ^
+          -DOPENSSL_INCLUDE_DIR="C:/msys64/mingw32/include" ^
+          -DOPENSSL_CRYPTO_LIBRARY="C:/msys64/mingw32/lib/libcrypto.dll.a" ^
+          -DOPENSSL_SSL_LIBRARY="C:/msys64/mingw32/lib/libssl.dll.a"
 
     - name: Check CMake Cache
       run: |
