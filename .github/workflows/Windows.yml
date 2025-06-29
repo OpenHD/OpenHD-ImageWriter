@@ -69,7 +69,7 @@ jobs:
         dir "C:\tools\msys64\"
         dir "C:\tools\msys64\mingw32\"
         dir "C:\tools\msys64\mingw32\lib\"
-        dir "C:\tools\msys64\mingw32\include
+        dir "C:\tools\msys64\mingw32\include\"
       
     - name: Configure CMake
       shell: cmd
