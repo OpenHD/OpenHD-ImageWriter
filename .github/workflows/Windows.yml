@@ -66,8 +66,9 @@ jobs:
 
     - name: Check for OpenSSL headers
       run: |
-        dir "C:\msys64\include\openssl"
-        type "C:\msys64\include\openssl\sha.h"
+        dir "C:\tools\msys64\"
+        dir "C:\tools\msys64\mingw32\"
+        dir "C:\tools\msys64\mingw32\lib\"
       
     - name: Configure CMake
       shell: cmd
