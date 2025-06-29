@@ -47,7 +47,7 @@ jobs:
         dir C:/Program Files (x86)/
         mkdir C:\files
         xcopy "C:\Program Files\OpenSSL" C:\files /E /I /Q
-        dir "C:\files
+        dir "C:\files"
 
     - name: Show Qt Install Info
       run: |
