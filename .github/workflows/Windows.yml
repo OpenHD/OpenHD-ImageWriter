@@ -48,8 +48,6 @@ jobs:
     - name: Install dependencies
       run: |
         choco install nsis --x86 --force -y
-        mkdir C:\files
-        xcopy "C:\Program Files\OpenSSL" C:\files /E /I /Q
         dir "C:\files"
 
     - name: Show Qt Install Info
@@ -69,9 +67,18 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release ^
             -DCMAKE_C_COMPILER="C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/gcc.exe" ^
             -DCMAKE_CXX_COMPILER="C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/g++.exe" ^
-            -DOPENSSL_ROOT_DIR="C:/files" ^
-            -DOPENSSL_INCLUDE_DIR="C:/files/include" ^
-            -DOPENSSL_LIBRARIES="C:/files/lib/libcrypto.lib;C:/files/lib/libssl.lib"
+            - name: Configure CMake
+            shell: cmd
+            run: |
+              mkdir build
+              cd build
+              cmake .. -G "MinGW Makefiles" ^
+                -DCMAKE_BUILD_TYPE=Release ^
+                -DCMAKE_C_COMPILER="C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/gcc.exe" ^
+                -DCMAKE_CXX_COMPILER="C:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/g++.exe" ^
+                -DOPENSSL_ROOT_DIR="C:/OpenSSL32" ^
+                -DOPENSSL_INCLUDE_DIR="C:/OpenSSL32/include"
+          
 
     - name: Check CMake Cache
       run: |
