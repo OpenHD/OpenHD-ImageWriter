@@ -48,7 +48,6 @@ jobs:
     - name: Install dependencies
       run: |
         choco install nsis --x86 --force -y
-        dir "C:\files"
 
     - name: Show Qt Install Info
       run: |
@@ -60,7 +59,6 @@ jobs:
 
     - name: Configure CMake
       run: |
-          dir "C:\files"
           mkdir build
           cd build
           cmake .. -G "MinGW Makefiles" ^
