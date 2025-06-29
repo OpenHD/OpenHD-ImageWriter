@@ -60,6 +60,11 @@ jobs:
         cmake --version
         dir "D:/a/OpenHD-ImageWriter/OpenHD-ImageWriter"
 
+    - name: Check for OpenSSL headers
+      run: |
+        dir "C:\msys64\mingw32\include\openssl"
+        type "C:\msys64\mingw32\include\openssl\sha.h"
+      
     - name: Configure CMake
       shell: cmd
       working-directory: src
@@ -71,7 +76,8 @@ jobs:
             -DOPENSSL_INCLUDE_DIR="C:/msys64/mingw32/include" ^
             -DOPENSSL_CRYPTO_LIBRARY="C:/msys64/mingw32/lib/libcrypto.dll.a" ^
             -DOPENSSL_SSL_LIBRARY="C:/msys64/mingw32/lib/libssl.dll.a"
-    - name: Check CMake Cache
+    
+            - name: Check CMake Cache
       run: |
         dir build
         type build\CMakeCache.txt || echo "Cache missing"
