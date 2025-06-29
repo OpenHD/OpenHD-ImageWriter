@@ -320,7 +320,7 @@ endif()
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CURL_INCLUDE_DIR}
     ${LibArchive_INCLUDE_DIR}
-    "C:/msys64/mingw32/include"
+    "C:/msys64/include"
 )
 target_include_directories(${PROJECT_NAME} PRIVATE ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Core Qt5::Quick Qt5::Svg ${CURL_LIBRARIES} ${LibArchive_LIBRARIES} ${OPENSSL_LIBRARIES} ${ATOMIC_LIBRARY} ${EXTRALIBS})
