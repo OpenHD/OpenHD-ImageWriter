@@ -57,6 +57,11 @@ jobs:
         echo CMake version:
         cmake --version
 
+    - name: Confirm OpenSSL .dll.a files exist
+      run: |
+        dir C:\OpenSSL32\lib\MinGW\x86
+      
+
     - name: Configure CMake
       shell: cmd
       run: |
@@ -66,10 +71,11 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release ^
             -DCMAKE_C_COMPILER="D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/gcc.exe" ^
             -DCMAKE_CXX_COMPILER="D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/g++.exe" ^
+            -DCMAKE_PREFIX_PATH="C:/OpenSSL32" ^
             -DOPENSSL_ROOT_DIR="C:/OpenSSL32" ^
             -DOPENSSL_INCLUDE_DIR="C:/OpenSSL32/include" ^
-            -DOPENSSL_CRYPTO_LIBRARY="C:/OpenSSL32/lib/MinGW/x86/libcrypto.dll.a" ^
-            -DOPENSSL_SSL_LIBRARY="C:/OpenSSL32/lib/MinGW/x86/libssl.dll.a"
+            -DOPENSSL_SSL_LIBRARY="C:/OpenSSL32/lib/MinGW/x86/libssl.dll.a" ^
+            -DOPENSSL_CRYPTO_LIBRARY="C:/OpenSSL32/lib/MinGW/x86/libcrypto.dll.a"
       
       
     - name: Check CMake Cache
