@@ -82,12 +82,13 @@ jobs:
         dir build
         type build\CMakeCache.txt || echo "Cache missing"
 
-    - name: Build with Debug Output
+    - name: Build
+      shell: pwsh
       run: |
-        set PATH=D:/a/OpenHD-ImageWriter/Qt/5.15.2/mingw81_32/bin;D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin;%PATH%
-        cd build
-        cmake --build . --verbose
-        dir
+          $env:PATH = "D:/a/OpenHD-ImageWriter/Qt/5.15.2/mingw81_32/bin;D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin;" + $env:PATH
+          cd build
+          cmake --build . --verbose
+          dir
 
     - name: Install NSIS
       run: choco install nsis -y
