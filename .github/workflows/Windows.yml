@@ -60,6 +60,7 @@ jobs:
     - name: Configure CMake
       shell: cmd
       run: |
+          dir "C:/OpenSSL32"
           mkdir build
           cd build
           cmake .. -G "MinGW Makefiles" ^
