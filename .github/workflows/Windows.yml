@@ -40,17 +40,25 @@ jobs:
         setup-python: false
         tools: tools_cmake tools_mingw81,qt.tools.win32_mingw810
     
-    - name: Install OpenSSL via MSYS2
+    # - name: Install OpenSSL via MSYS2
+    #   shell: pwsh
+    #   run: |
+    #       choco install msys2 -y
+    #         Write-Host "Installing OpenSSL headers and libs with pacman..."
+    #         & "C:\tools\msys64\usr\bin\bash.exe" -lc "pacman -Sy --noconfirm mingw-w64-i686-openssl"
+    #         # Sanity check
+    #         if (!(Test-Path "C:\tools\msys64\mingw32\include\openssl\sha.h")) {
+    #           throw "OpenSSL headers not found after pacman install!"
+    #         }
+
+    - name: Download OpenSSL 1.1.1 (FireDaemon)
       shell: pwsh
       run: |
-          choco install msys2 -y
-            Write-Host "Installing OpenSSL headers and libs with pacman..."
-            & "C:\tools\msys64\usr\bin\bash.exe" -lc "pacman -Sy --noconfirm mingw-w64-i686-openssl"
-            # Sanity check
-            if (!(Test-Path "C:\tools\msys64\mingw32\include\openssl\sha.h")) {
-              throw "OpenSSL headers not found after pacman install!"
-            }     
-              
+        Invoke-WebRequest `
+          -Uri "https://download.firedaemon.com/FireDaemon-OpenSSL/openssl-1.1.1w.zip" `
+          -OutFile openssl111.zip
+        Expand-Archive openssl111.zip -DestinationPath .\openssl111
+  
     - name: Install dependencies
       run: |
         choco install nsis --x86 --force -y
