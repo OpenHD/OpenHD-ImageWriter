@@ -103,8 +103,9 @@ jobs:
       run: choco install nsis -y
 
     - name: Build NSIS Installer
+      shell: pwsh
       run: |
-        "C:\Program Files (x86)\NSIS\makensis.exe" openhdimagewriter.nsi
+        & "C:\Program Files (x86)\NSIS\makensis.exe" "openhdimagewriter.nsi"
       working-directory: src/build
 
 
