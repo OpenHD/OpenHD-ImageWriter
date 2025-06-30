@@ -58,18 +58,19 @@ jobs:
           -Uri "https://download.firedaemon.com/FireDaemon-OpenSSL/openssl-1.1.1w.zip" `
           -OutFile openssl111.zip
         Expand-Archive openssl111.zip -DestinationPath .\openssl111
+        dir .\openssl111
 
-    - name: Show OpenSSL 1.1.1 layout
-      shell: pwsh
-      run: |
-        echo BIN:
-        dir "D:\tools\msys64\mingw32\bin\libcrypto*.dll"
-        dir "D:\tools\msys64\mingw32\bin\libssl*.dll"
-        echo LIB:
-        dir "D:\tools\msys64\mingw32\lib\libcrypto*.a"
-        dir "D:\tools\msys64\mingw32\lib\libssl*.a"
-        echo INCLUDE:
-        dir "D:\tools\msys64\mingw32\include\openssl" | Select-Object -First 10
+    # - name: Show OpenSSL 1.1.1 layout
+    #   shell: pwsh
+    #   run: |
+    #     echo BIN:
+    #     dir "D:\tools\msys64\mingw32\bin\libcrypto*.dll"
+    #     dir "D:\tools\msys64\mingw32\bin\libssl*.dll"
+    #     echo LIB:
+    #     dir "D:\tools\msys64\mingw32\lib\libcrypto*.a"
+    #     dir "D:\tools\msys64\mingw32\lib\libssl*.a"
+    #     echo INCLUDE:
+    #     dir "D:\tools\msys64\mingw32\include\openssl" | Select-Object -First 10
   
     - name: Install dependencies
       run: |
