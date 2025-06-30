@@ -72,12 +72,12 @@ jobs:
         cmake --version
         dir "D:/a/OpenHD-ImageWriter/OpenHD-ImageWriter"
 
-    - name: Check for OpenSSL headers
-      run: |
-        dir "C:\tools\msys64\"
-        dir "C:\tools\msys64\mingw32\"
-        dir "C:\tools\msys64\mingw32\lib\"
-        dir "C:\tools\msys64\mingw32\include\openssl\"
+    # - name: Check for OpenSSL headers
+    #   run: |
+    #     dir "C:\tools\msys64\"
+    #     dir "C:\tools\msys64\mingw32\"
+    #     dir "C:\tools\msys64\mingw32\lib\"
+    #     dir "C:\tools\msys64\mingw32\include\openssl\"
       
     - name: Configure CMake
       shell: cmd
