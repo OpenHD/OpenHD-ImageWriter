@@ -51,14 +51,24 @@ jobs:
     #           throw "OpenSSL headers not found after pacman install!"
     #         }
 
-    - name: Download OpenSSL 1.1.1 (FireDaemon)
+    - name: Download OpenSSL 1.1.1 ZIP
       shell: pwsh
       run: |
         Invoke-WebRequest `
-          -Uri "https://download.firedaemon.com/FireDaemon-OpenSSL/openssl-1.1.1w.zip" `
+          -Uri "https://firedaemon.com/downloads/openssl/Win32_OpenSSL-1.1.1w.zip" `
           -OutFile openssl111.zip
-        Expand-Archive openssl111.zip -DestinationPath .\openssl111
-        dir .\openssl111
+        Expand-Archive openssl111.zip -DestinationPath openssl111
+
+    - name: Copy 32‑bit DLLs & libs
+      shell: pwsh
+      run: |
+        Copy-Item "openssl111\x86\bin\libcrypto-1_1.dll"    "C:\tools\msys64\mingw32\bin\" -Force
+        Copy-Item "openssl111\x86\bin\libssl-1_1.dll"       "C:\tools\msys64\mingw32\bin\" -Force
+        Copy-Item "openssl111\x86\lib\libcrypto.dll.a"      "C:\tools\msys64\mingw32\lib\" -Force
+        Copy-Item "openssl111\x86\lib\libssl.dll.a"         "C:\tools\msys64\mingw32\lib\" -Force
+        Copy-Item "openssl111\x86\include\openssl\*.h"      "C:\tools\msys64\mingw32\include\openssl\" -Force
+        dir "C:\tools\msys64\mingw32\*"
+
 
     # - name: Show OpenSSL 1.1.1 layout
     #   shell: pwsh
