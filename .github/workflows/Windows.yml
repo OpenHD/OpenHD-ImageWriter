@@ -99,6 +99,12 @@ jobs:
           cmake --build . --verbose
           dir
 
+    - name: Copy OpenSSL DLLs to build folder
+      shell: pwsh
+      run: |
+        Copy-Item "C:\tools\msys64\mingw32\bin\libssl-1_1.dll" -Destination "src/build/"
+        Copy-Item "C:\tools\msys64\mingw32\bin\libcrypto-1_1.dll" -Destination "src/build/"
+
     - name: Install NSIS
       run: choco install nsis -y
 
