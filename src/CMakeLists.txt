@@ -221,7 +221,7 @@ if (WIN32)
             "C:/tools/msys64/mingw32/bin/libcrypto-1_1.dll" "${CMAKE_BINARY_DIR}"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "C:/tools/msys64/mingw32/bin/libcrypto-1_1.dll" "${CMAKE_BINARY_DIR}/deploy"
-
+        )
     configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/windows/openhdimagewriter.nsi.in"
         "${CMAKE_CURRENT_BINARY_DIR}/openhdimagewriter.nsi"
