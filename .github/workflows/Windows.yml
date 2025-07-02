@@ -96,7 +96,7 @@ jobs:
       shell: pwsh
       run: |
         $env:PATH = "$Env:GITHUB_WORKSPACE\..\Qt\5.15.2\mingw81_32\bin;$Env:GITHUB_WORKSPACE\..\Qt\Tools\mingw810_32\bin;$env:PATH"
-        cd src\build
+        cd build
         cmake --build . --verbose
 
     - name: Copy OpenSSL DLLs to build folder
