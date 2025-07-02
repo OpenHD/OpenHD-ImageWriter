@@ -29,7 +29,6 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Install Qt
-      id: qt-install
       uses: jurplel/install-qt-action@v4
       with:
         version: '5.15.2'
@@ -39,80 +38,46 @@ jobs:
         arch: win32_mingw81
         setup-python: false
         tools: tools_cmake tools_mingw81,qt.tools.win32_mingw810
-    
-    # - name: Install OpenSSL via MSYS2
-    #   shell: pwsh
-    #   run: |
-    #       choco install msys2 -y
-    #         Write-Host "Installing OpenSSL headers and libs with pacman..."
-    #         & "C:\tools\msys64\usr\bin\bash.exe" -lc "pacman -Sy --noconfirm mingw-w64-i686-openssl"
-    #         # Sanity check
-    #         if (!(Test-Path "C:\tools\msys64\mingw32\include\openssl\sha.h")) {
-    #           throw "OpenSSL headers not found after pacman install!"
-    #         }
 
     - name: Download OpenSSL 1.1.1 ZIP
       shell: pwsh
       run: |
         Invoke-WebRequest `
           -Uri "https://download.firedaemon.com/FireDaemon-OpenSSL/openssl-1.1.1w.zip" `
-          -OutFile openssl-1.1.1w.zip
-        Expand-Archive openssl-1.1.1w.zip -DestinationPath openssl111
+          -OutFile "src/openssl-1.1.1w.zip"
+        Expand-Archive "src/openssl-1.1.1w.zip" -DestinationPath "src/openssl111"
 
     - name: Copy 32‑bit DLLs & libs
       shell: pwsh
       run: |
-        Copy-Item "openssl111\x86\bin\libcrypto-1_1.dll"    "D:\tools\msys64\mingw32\bin\" -Force
-        Copy-Item "openssl111\x86\bin\libssl-1_1.dll"       "D:\tools\msys64\mingw32\bin\" -Force
-        Copy-Item "openssl111\x86\lib\libcrypto.dll.a"      "D:\tools\msys64\mingw32\lib\" -Force
-        Copy-Item "openssl111\x86\lib\libssl.dll.a"         "D:\tools\msys64\mingw32\lib\" -Force
-        Copy-Item "openssl111\x86\include\openssl\*.h"      "D:\tools\msys64\mingw32\include\openssl\" -Force
-        dir "D:\tools\msys64\mingw32\*"
+        $opensslPath = "${{ github.workspace }}\src\openssl111\x86"
+        $mingwPath = "C:\tools\msys64\mingw32"
+        Copy-Item "$opensslPath\bin\libcrypto-1_1.dll" "$mingwPath\bin\" -Force
+        Copy-Item "$opensslPath\bin\libssl-1_1.dll"    "$mingwPath\bin\" -Force
+        Copy-Item "$opensslPath\lib\libcrypto.dll.a"   "$mingwPath\lib\" -Force
+        Copy-Item "$opensslPath\lib\libssl.dll.a"      "$mingwPath\lib\" -Force
+        Copy-Item "$opensslPath\include\openssl\*.h"   "$mingwPath\include\openssl\" -Force
 
-
-    # - name: Show OpenSSL 1.1.1 layout
-    #   shell: pwsh
-    #   run: |
-    #     echo BIN:
-    #     dir "D:\tools\msys64\mingw32\bin\libcrypto*.dll"
-    #     dir "D:\tools\msys64\mingw32\bin\libssl*.dll"
-    #     echo LIB:
-    #     dir "D:\tools\msys64\mingw32\lib\libcrypto*.a"
-    #     dir "D:\tools\msys64\mingw32\lib\libssl*.a"
-    #     echo INCLUDE:
-    #     dir "D:\tools\msys64\mingw32\include\openssl" | Select-Object -First 10
-  
     - name: Install dependencies
-      run: |
-        choco install nsis --x86 --force -y
+      run: choco install nsis --x86 --force -y
 
     - name: Show Qt Install Info
       run: |
-        echo Compiler location:
         where gcc
         where g++
-        echo CMake version:
         cmake --version
-        dir "D:/a/OpenHD-ImageWriter/OpenHD-ImageWriter"
 
-    # - name: Check for OpenSSL headers
-    #   run: |
-    #     dir "C:\tools\msys64\"
-    #     dir "C:\tools\msys64\mingw32\"
-    #     dir "C:\tools\msys64\mingw32\lib\"
-    #     dir "C:\tools\msys64\mingw32\include\openssl\"
-      
     - name: Configure CMake
       shell: cmd
       working-directory: src
       run: |
-          mkdir build
-          cd build
-          cmake .. -G "MinGW Makefiles" ^
-            -DCMAKE_BUILD_TYPE=Release ^
-            -DCMAKE_C_COMPILER="D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/gcc.exe" ^
-            -DCMAKE_CXX_COMPILER="D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin/g++.exe" 
-    
+        mkdir build
+        cd build
+        cmake .. -G "MinGW Makefiles" ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DCMAKE_C_COMPILER="${{ github.workspace }}\Qt\Tools\mingw810_32\bin\gcc.exe" ^
+          -DCMAKE_CXX_COMPILER="${{ github.workspace }}\Qt\Tools\mingw810_32\bin\g++.exe"
+
     - name: Check CMake Cache
       run: |
         dir build
@@ -121,30 +86,26 @@ jobs:
     - name: Build
       shell: pwsh
       run: |
-          $env:PATH = "D:/a/OpenHD-ImageWriter/Qt/5.15.2/mingw81_32/bin;D:/a/OpenHD-ImageWriter/Qt/Tools/mingw810_32/bin;" + $env:PATH
-          cd build
-          cmake --build . --verbose
-          dir
+        $env:PATH = "${{ github.workspace }}\Qt\5.15.2\mingw81_32\bin;${{ github.workspace }}\Qt\Tools\mingw810_32\bin;" + $env:PATH
+        cd build
+        cmake --build . --verbose
 
     - name: Copy OpenSSL DLLs to build folder
       shell: pwsh
       run: |
-        Copy-Item "D:\tools\msys64\mingw32\bin\libssl-1_1.dll" -Destination "src/build/"
-        Copy-Item "D:\tools\msys64\mingw32\bin\libcrypto-1_1.dll" -Destination "src/build/"
-
-    - name: Install NSIS
-      run: choco install nsis -y
+        $opensslPath = "${{ github.workspace }}\src\openssl111\x86\bin"
+        Copy-Item "$opensslPath\libssl-1_1.dll" -Destination "${{ github.workspace }}\src\build\"
+        Copy-Item "$opensslPath\libcrypto-1_1.dll" -Destination "${{ github.workspace }}\src\build\"
 
     - name: Build NSIS Installer
       shell: pwsh
-      run: |
-        & "C:\Program Files (x86)\NSIS\makensis.exe" "openhdimagewriter.nsi"
       working-directory: src/build
-
+      run: |
+        & "${env:ProgramFiles(x86)}\NSIS\makensis.exe" "openhdimagewriter.nsi"
 
     - name: Upload Installer
       uses: actions/upload-artifact@v4
       with:
         name: OpenHDImageWriter-Build-Full
-        path: D:\a\OpenHD-ImageWriter\OpenHD-ImageWriter\src\build\OpenHD-ImageWriter-*
+        path: src/build/OpenHD-ImageWriter-*
         if-no-files-found: error
