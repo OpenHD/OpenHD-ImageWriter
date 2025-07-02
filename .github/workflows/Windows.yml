@@ -56,13 +56,13 @@ jobs:
         dir ${{ github.workspace }}\..\Qt\
         dir ${{ github.workspace }}\..\Qt\Tools\
         dir ${{ github.workspace }}\..\Qt\Tools\mingw810_32\
-        $openssl = "${{ github.workspace }}\openssl111\openssl-1.1\x86"
+        $openssl = Get-ChildItem -Directory -Path "${{ github.workspace }}\openssl111" | Where-Object { $_.Name -like "openssl-*" } | Select-Object -First 1 | ForEach-Object { "$($_.FullName)\x86" }
         $mingwRoot = "${{ github.workspace }}\..\Qt\Tools\mingw810_32"
 
         Copy-Item "$openssl\bin\libcrypto-1_1.dll" "$mingwRoot\bin\" -Force
         Copy-Item "$openssl\bin\libssl-1_1.dll"    "$mingwRoot\bin\" -Force
         Copy-Item "$openssl\lib\libcrypto.lib"     "$mingwRoot\lib\" -Force
-        Copy-Item "$openssl\lib\libssl.lib"        "$mingwRoot\lib\" -Force
+        Copy-Item "$openssl\lib\libssl.lib"        "$mingwRoot\lib\" -Forcea
         New-Item -ItemType Directory -Force -Path "$mingwRoot\include\openssl"
         Copy-Item "$openssl\include\openssl\*" "$mingwRoot\include\openssl\" -Recurse -Force
 
