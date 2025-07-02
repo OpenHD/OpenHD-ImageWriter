@@ -57,17 +57,17 @@ jobs:
         Get-ChildItem -Recurse -Path openssl111 | ForEach-Object {
           Write-Host $_.FullName
         }
-          
+
     - name: Copy 32-bit DLLs & libs
       shell: pwsh
       run: |
-        $openssl = "${{ github.workspace }}/openssl111/x86"
+        $openssl = "${{ github.workspace }}/openssl111/openssl-1.1/x86"
         $msysRoot = "$Env:USERPROFILE\\msys64\\mingw32"
 
         Copy-Item "$openssl/bin/libcrypto-1_1.dll" "$msysRoot/bin/" -Force
         Copy-Item "$openssl/bin/libssl-1_1.dll"    "$msysRoot/bin/" -Force
-        Copy-Item "$openssl/lib/libcrypto.dll.a"   "$msysRoot/lib/" -Force
-        Copy-Item "$openssl/lib/libssl.dll.a"      "$msysRoot/lib/" -Force
+        Copy-Item "$openssl/lib/libcrypto.lib"     "$msysRoot/lib/" -Force
+        Copy-Item "$openssl/lib/libssl.lib"        "$msysRoot/lib/" -Force
         Copy-Item "$openssl/include/openssl/*.h"   "$msysRoot/include/openssl/" -Force
 
     - name: Install dependencies
