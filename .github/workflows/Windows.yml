@@ -75,6 +75,18 @@ jobs:
         where g++
         cmake --version
 
+    - name: Debug OpenSSL include headers
+      shell: pwsh
+      working-directory: ${{ github.workspace }}
+      run: |
+        $opensslInclude = "$Env:GITHUB_WORKSPACE\..\Qt\Tools\mingw810_32\include\openssl"
+        Write-Host "Looking in: $opensslInclude"
+        if (Test-Path $opensslInclude) {
+          Get-ChildItem $opensslInclude | Select-Object -First 20
+        } else {
+          Write-Error "OpenSSL include directory not found!"
+        }
+
     - name: Configure CMake
       shell: cmd
       working-directory: src
