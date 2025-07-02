@@ -64,7 +64,7 @@ jobs:
         Copy-Item "$openssl\lib\libcrypto.lib"     "$mingwRoot\lib\" -Force
         Copy-Item "$openssl\lib\libssl.lib"        "$mingwRoot\lib\" -Force
         New-Item -ItemType Directory -Force -Path "$mingwRoot\include\openssl"
-        Copy-Item "$openssl\include\openssl\*.h"   "$mingwRoot\include\openssl\" -Force
+        Copy-Item "$openssl\include\openssl\*" "$mingwRoot\include\openssl\" -Recurse -Force
 
     - name: Install NSIS
       run: choco install nsis --x86 --force -y
