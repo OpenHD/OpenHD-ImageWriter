@@ -113,4 +113,3 @@ jobs:
         name: OpenHDImageWriter-Build-Full
         path: src/build/OpenHD-ImageWriter-*
         if-no-files-found: error
-s
