@@ -57,7 +57,7 @@ jobs:
         dir ${{ github.workspace }}\..\Qt\Tools\
         dir ${{ github.workspace }}\..\Qt\Tools\mingw810_32\
         $openssl = "${{ github.workspace }}\openssl111\openssl-1.1\x86"
-        $mingwRoot = "${{ github.workspace }}\OpenHD-ImageWriter\Qt\Tools\mingw810_32"
+        $mingwRoot = "${{ github.workspace }}\..\Qt\Tools\mingw810_32"
 
         Copy-Item "$openssl\bin\libcrypto-1_1.dll" "$mingwRoot\bin\" -Force
         Copy-Item "$openssl\bin\libssl-1_1.dll"    "$mingwRoot\bin\" -Force
