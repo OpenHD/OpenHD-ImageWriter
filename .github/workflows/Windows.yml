@@ -49,13 +49,13 @@ jobs:
           -OutFile openssl-1.1.1w.zip
         Expand-Archive openssl-1.1.1w.zip -DestinationPath openssl111
       
+    - name: Copy OpenSSL to Qt MinGW path
+      shell: pwsh
+      working-directory: ${{ github.workspace }}
+      run: |
         dir ${{ github.workspace }}\Qt\
         dir ${{ github.workspace }}\Qt\Tools\
         dir ${{ github.workspace }}\Qt\Tools\mingw810_32\
-
-    - name: Copy OpenSSL to Qt MinGW path
-      shell: pwsh
-      run: |
         $openssl = "${{ github.workspace }}\openssl111\openssl-1.1\x86"
         $mingwRoot = "${{ github.workspace }}\OpenHD-ImageWriter\Qt\Tools\mingw810_32"
 
