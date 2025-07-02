@@ -49,6 +49,15 @@ jobs:
           -OutFile openssl-1.1.1w.zip
         Expand-Archive openssl-1.1.1w.zip -DestinationPath openssl111
 
+    - name: Debug OpenSSL ZIP Contents
+      shell: pwsh
+      working-directory: ${{ github.workspace }}
+      run: |
+        Write-Host "Root contents:"
+        Get-ChildItem -Recurse -Path openssl111 | ForEach-Object {
+          Write-Host $_.FullName
+        }
+          
     - name: Copy 32-bit DLLs & libs
       shell: pwsh
       run: |
