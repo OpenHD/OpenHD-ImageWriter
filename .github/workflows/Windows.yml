@@ -106,13 +106,16 @@ jobs:
       shell: cmd
       working-directory: src
       run: |
+        dir "%GITHUB_WORKSPACE%\openssl111\openssl-1.1\x86\include"
         mkdir build
         cd build
         cmake .. -G "MinGW Makefiles" ^
-          -DCMAKE_BUILD_TYPE=Release ^
-          -DCMAKE_C_COMPILER="%GITHUB_WORKSPACE%\..\Qt\Tools\mingw810_32\bin\gcc.exe" ^
-          -DCMAKE_CXX_COMPILER="%GITHUB_WORKSPACE%\..\Qt\Tools\mingw810_32\bin\g++.exe"
-          :: Optional: -DOPENSSL_ROOT_DIR="%GITHUB_WORKSPACE%\..\openssl111\openssl-1.1\x86"
+        -DCMAKE_BUILD_TYPE=Release ^
+        -DCMAKE_C_COMPILER="%GITHUB_WORKSPACE%\..\Qt\Tools\mingw810_32\bin\gcc.exe" ^
+        -DCMAKE_CXX_COMPILER="%GITHUB_WORKSPACE%\..\Qt\Tools\mingw810_32\bin\g++.exe" ^
+        -DOPENSSL_INCLUDE_DIR="%GITHUB_WORKSPACE%\openssl111\openssl-1.1\x86\include" ^
+        -DOPENSSL_LIBRARIES="%GITHUB_WORKSPACE%\openssl111\openssl-1.1\x86\lib"
+
 
     - name: Check CMake Cache
       run: |
