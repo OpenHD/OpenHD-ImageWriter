@@ -73,7 +73,7 @@ jobs:
           Copy-Item "$openssl\lib\libssl.lib"        "$mingwRoot\lib\" -Force
           New-Item -ItemType Directory -Force -Path "$mingwRoot\include\openssl"
           Write-Host "Copying OpenSSL headers from: $openssl\include\openssl\."
-          Copy-Item "$openssl\include\openssl\." "$mingwRoot\include\openssl\" -Recurse -Force -Verbose
+          Copy-Item "$openssl\include\openssl\." "$mingwRoot\include\" -Recurse -Force -Verbose
           dir "$mingwRoot\include\openssl\"
 
     - name: Install NSIS
