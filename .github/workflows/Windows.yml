@@ -49,15 +49,15 @@ jobs:
           -OutFile openssl-1.1.1w.zip
         Expand-Archive openssl-1.1.1w.zip -DestinationPath openssl111
       
-        dir ${{ github.workspace }}/Qt/
-        dir ${{ github.workspace }}/Qt/Tools/
-        dir ${{ github.workspace }}/Qt/Tools/mingw810_32/
+        dir ${{ github.workspace }}/OpenHD-ImageWriter/Qt/
+        dir ${{ github.workspace }}/OpenHD-ImageWriter/Qt/Tools/
+        dir ${{ github.workspace }}/OpenHD-ImageWriter/Qt/Tools/mingw810_32/
 
     - name: Copy OpenSSL to Qt MinGW path
       shell: pwsh
       run: |
         $openssl = "${{ github.workspace }}/openssl111/openssl-1.1/x86"
-        $mingwRoot = "${{ github.workspace }}/Qt/Tools/mingw810_32"
+        $mingwRoot = "${{ github.workspace }}/OpenHD-ImageWriter/Qt/Tools/mingw810_32"
 
         Copy-Item "$openssl/bin/libcrypto-1_1.dll" "$mingwRoot/bin/" -Force
         Copy-Item "$openssl/bin/libssl-1_1.dll"    "$mingwRoot/bin/" -Force
