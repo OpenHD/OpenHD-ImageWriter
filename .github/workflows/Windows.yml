@@ -48,6 +48,7 @@ jobs:
           -Uri "https://download.firedaemon.com/FireDaemon-OpenSSL/openssl-1.1.1w.zip" `
           -OutFile openssl-1.1.1w.zip
         Expand-Archive openssl-1.1.1w.zip -DestinationPath openssl111
+        choco install msys2 --force -y
 
     - name: Debug OpenSSL ZIP Contents
       shell: pwsh
