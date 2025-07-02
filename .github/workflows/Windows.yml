@@ -49,22 +49,22 @@ jobs:
           -OutFile openssl-1.1.1w.zip
         Expand-Archive openssl-1.1.1w.zip -DestinationPath openssl111
       
-        dir ${{ github.workspace }}/OpenHD-ImageWriter/Qt/
-        dir ${{ github.workspace }}/OpenHD-ImageWriter/Qt/Tools/
-        dir ${{ github.workspace }}/OpenHD-ImageWriter/Qt/Tools/mingw810_32/
+        dir ${{ github.workspace }}\OpenHD-ImageWriter\Qt\
+        dir ${{ github.workspace }}\OpenHD-ImageWriter\Qt\Tools\
+        dir ${{ github.workspace }}\OpenHD-ImageWriter\Qt\Tools\mingw810_32\
 
     - name: Copy OpenSSL to Qt MinGW path
       shell: pwsh
       run: |
-        $openssl = "${{ github.workspace }}/openssl111/openssl-1.1/x86"
-        $mingwRoot = "${{ github.workspace }}/OpenHD-ImageWriter/Qt/Tools/mingw810_32"
+        $openssl = "${{ github.workspace }}\openssl111\openssl-1.1\x86"
+        $mingwRoot = "${{ github.workspace }}\OpenHD-ImageWriter\Qt\Tools\mingw810_32"
 
-        Copy-Item "$openssl/bin/libcrypto-1_1.dll" "$mingwRoot/bin/" -Force
-        Copy-Item "$openssl/bin/libssl-1_1.dll"    "$mingwRoot/bin/" -Force
-        Copy-Item "$openssl/lib/libcrypto.lib"     "$mingwRoot/lib/" -Force
-        Copy-Item "$openssl/lib/libssl.lib"        "$mingwRoot/lib/" -Force
-        New-Item -ItemType Directory -Force -Path "$mingwRoot/include/openssl"
-        Copy-Item "$openssl/include/openssl/*.h"   "$mingwRoot/include/openssl/" -Force
+        Copy-Item "$openssl\bin\libcrypto-1_1.dll" "$mingwRoot\bin\" -Force
+        Copy-Item "$openssl\bin\libssl-1_1.dll"    "$mingwRoot\bin\" -Force
+        Copy-Item "$openssl\lib\libcrypto.lib"     "$mingwRoot\lib\" -Force
+        Copy-Item "$openssl\lib\libssl.lib"        "$mingwRoot\lib\" -Force
+        New-Item -ItemType Directory -Force -Path "$mingwRoot\include\openssl"
+        Copy-Item "$openssl\include\openssl\*.h"   "$mingwRoot\include\openssl\" -Force
 
     - name: Install NSIS
       run: choco install nsis --x86 --force -y
@@ -95,19 +95,19 @@ jobs:
     - name: Build
       shell: pwsh
       run: |
-        $env:PATH = "$Env:GITHUB_WORKSPACE/Qt/5.15.2/mingw81_32/bin;$Env:GITHUB_WORKSPACE/Qt/Tools/mingw810_32/bin;$env:PATH"
-        cd src/build
+        $env:PATH = "$Env:GITHUB_WORKSPACE\Qt\5.15.2\mingw81_32\bin;$Env:GITHUB_WORKSPACE\Qt\Tools\mingw810_32\bin;$env:PATH"
+        cd src\build
         cmake --build . --verbose
 
     - name: Copy OpenSSL DLLs to build folder
       shell: pwsh
       run: |
-        Copy-Item "$Env:GITHUB_WORKSPACE/Qt/Tools/mingw810_32/bin/libssl-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE/src/build/"
-        Copy-Item "$Env:GITHUB_WORKSPACE/Qt/Tools/mingw810_32/bin/libcrypto-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE/src/build/"
+        Copy-Item "$Env:GITHUB_WORKSPACE\Qt\Tools\mingw810_32\bin\libssl-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE\src\build\"
+        Copy-Item "$Env:GITHUB_WORKSPACE\Qt\Tools\mingw810_32\bin\libcrypto-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE\src\build\"
 
     - name: Build NSIS Installer
       shell: pwsh
-      working-directory: src/build
+      working-directory: src\build
       run: |
         & "${Env:ProgramFiles(x86)}\NSIS\makensis.exe" "openhdimagewriter.nsi"
 
