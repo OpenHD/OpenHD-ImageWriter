@@ -99,6 +99,8 @@ jobs:
           Write-Error "OpenSSL include directory not found!"
         }
         
+        dir "$openssl\include\openssl\"
+        
 
     - name: Configure CMake
       shell: cmd
