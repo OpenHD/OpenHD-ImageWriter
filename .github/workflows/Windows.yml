@@ -83,9 +83,9 @@ jobs:
         cd build
         cmake .. -G "MinGW Makefiles" ^
           -DCMAKE_BUILD_TYPE=Release ^
-          -DCMAKE_C_COMPILER="%GITHUB_WORKSPACE%\Qt\Tools\mingw810_32\bin\gcc.exe" ^
-          -DCMAKE_CXX_COMPILER="%GITHUB_WORKSPACE%\Qt\Tools\mingw810_32\bin\g++.exe"
-          :: Optional: -DOPENSSL_ROOT_DIR="%GITHUB_WORKSPACE%\openssl111\openssl-1.1\x86"
+          -DCMAKE_C_COMPILER="%GITHUB_WORKSPACE%\..\Qt\Tools\mingw810_32\bin\gcc.exe" ^
+          -DCMAKE_CXX_COMPILER="%GITHUB_WORKSPACE%\..\Qt\Tools\mingw810_32\bin\g++.exe"
+          :: Optional: -DOPENSSL_ROOT_DIR="%GITHUB_WORKSPACE%\..\openssl111\openssl-1.1\x86"
 
     - name: Check CMake Cache
       run: |
@@ -95,15 +95,15 @@ jobs:
     - name: Build
       shell: pwsh
       run: |
-        $env:PATH = "$Env:GITHUB_WORKSPACE\Qt\5.15.2\mingw81_32\bin;$Env:GITHUB_WORKSPACE\Qt\Tools\mingw810_32\bin;$env:PATH"
+        $env:PATH = "$Env:GITHUB_WORKSPACE\..\Qt\5.15.2\mingw81_32\bin;$Env:GITHUB_WORKSPACE\..\Qt\Tools\mingw810_32\bin;$env:PATH"
         cd src\build
         cmake --build . --verbose
 
     - name: Copy OpenSSL DLLs to build folder
       shell: pwsh
       run: |
-        Copy-Item "$Env:GITHUB_WORKSPACE\Qt\Tools\mingw810_32\bin\libssl-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE\src\build\"
-        Copy-Item "$Env:GITHUB_WORKSPACE\Qt\Tools\mingw810_32\bin\libcrypto-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE\src\build\"
+        Copy-Item "$Env:GITHUB_WORKSPACE\..\Qt\Tools\mingw810_32\bin\libssl-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE\src\build\"
+        Copy-Item "$Env:GITHUB_WORKSPACE\..\Qt\Tools\mingw810_32\bin\libcrypto-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE\src\build\"
 
     - name: Build NSIS Installer
       shell: pwsh
