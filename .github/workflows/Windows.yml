@@ -29,6 +29,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Install Qt
+      id: qt-install
       uses: jurplel/install-qt-action@v4
       with:
         version: '5.15.2'
@@ -41,25 +42,28 @@ jobs:
 
     - name: Download OpenSSL 1.1.1 ZIP
       shell: pwsh
+      working-directory: ${{ github.workspace }}
       run: |
         Invoke-WebRequest `
           -Uri "https://download.firedaemon.com/FireDaemon-OpenSSL/openssl-1.1.1w.zip" `
-          -OutFile "src/openssl-1.1.1w.zip"
-        Expand-Archive "src/openssl-1.1.1w.zip" -DestinationPath "src/openssl111"
+          -OutFile openssl-1.1.1w.zip
+        Expand-Archive openssl-1.1.1w.zip -DestinationPath openssl111
 
-    - name: Copy 32‑bit DLLs & libs
+    - name: Copy 32-bit DLLs & libs
       shell: pwsh
       run: |
-        $opensslPath = "${{ github.workspace }}\src\openssl111\x86"
-        $mingwPath = "C:\tools\msys64\mingw32"
-        Copy-Item "$opensslPath\bin\libcrypto-1_1.dll" "$mingwPath\bin\" -Force
-        Copy-Item "$opensslPath\bin\libssl-1_1.dll"    "$mingwPath\bin\" -Force
-        Copy-Item "$opensslPath\lib\libcrypto.dll.a"   "$mingwPath\lib\" -Force
-        Copy-Item "$opensslPath\lib\libssl.dll.a"      "$mingwPath\lib\" -Force
-        Copy-Item "$opensslPath\include\openssl\*.h"   "$mingwPath\include\openssl\" -Force
+        $openssl = "${{ github.workspace }}/openssl111/x86"
+        $msysRoot = "$Env:USERPROFILE\\msys64\\mingw32"
+
+        Copy-Item "$openssl/bin/libcrypto-1_1.dll" "$msysRoot/bin/" -Force
+        Copy-Item "$openssl/bin/libssl-1_1.dll"    "$msysRoot/bin/" -Force
+        Copy-Item "$openssl/lib/libcrypto.dll.a"   "$msysRoot/lib/" -Force
+        Copy-Item "$openssl/lib/libssl.dll.a"      "$msysRoot/lib/" -Force
+        Copy-Item "$openssl/include/openssl/*.h"   "$msysRoot/include/openssl/" -Force
 
     - name: Install dependencies
-      run: choco install nsis --x86 --force -y
+      run: |
+        choco install nsis --x86 --force -y
 
     - name: Show Qt Install Info
       run: |
@@ -75,8 +79,10 @@ jobs:
         cd build
         cmake .. -G "MinGW Makefiles" ^
           -DCMAKE_BUILD_TYPE=Release ^
-          -DCMAKE_C_COMPILER="${{ github.workspace }}\Qt\Tools\mingw810_32\bin\gcc.exe" ^
-          -DCMAKE_CXX_COMPILER="${{ github.workspace }}\Qt\Tools\mingw810_32\bin\g++.exe"
+          -DCMAKE_C_COMPILER="%GITHUB_WORKSPACE%\Qt\Tools\mingw810_32\bin\gcc.exe" ^
+          -DCMAKE_CXX_COMPILER="%GITHUB_WORKSPACE%\Qt\Tools\mingw810_32\bin\g++.exe"
+          :: Optional:
+          :: -DOPENSSL_ROOT_DIR="%GITHUB_WORKSPACE%\openssl111\x86"
 
     - name: Check CMake Cache
       run: |
@@ -86,22 +92,22 @@ jobs:
     - name: Build
       shell: pwsh
       run: |
-        $env:PATH = "${{ github.workspace }}\Qt\5.15.2\mingw81_32\bin;${{ github.workspace }}\Qt\Tools\mingw810_32\bin;" + $env:PATH
-        cd build
+        $env:PATH = "$Env:GITHUB_WORKSPACE/Qt/5.15.2/mingw81_32/bin;$Env:GITHUB_WORKSPACE/Qt/Tools/mingw810_32/bin;$env:PATH"
+        cd src/build
         cmake --build . --verbose
+        dir
 
     - name: Copy OpenSSL DLLs to build folder
       shell: pwsh
       run: |
-        $opensslPath = "${{ github.workspace }}\src\openssl111\x86\bin"
-        Copy-Item "$opensslPath\libssl-1_1.dll" -Destination "${{ github.workspace }}\src\build\"
-        Copy-Item "$opensslPath\libcrypto-1_1.dll" -Destination "${{ github.workspace }}\src\build\"
+        Copy-Item "$Env:USERPROFILE\msys64\mingw32\bin\libssl-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE/src/build/"
+        Copy-Item "$Env:USERPROFILE\msys64\mingw32\bin\libcrypto-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE/src/build/"
 
     - name: Build NSIS Installer
       shell: pwsh
       working-directory: src/build
       run: |
-        & "${env:ProgramFiles(x86)}\NSIS\makensis.exe" "openhdimagewriter.nsi"
+        & "${Env:ProgramFiles(x86)}\NSIS\makensis.exe" "openhdimagewriter.nsi"
 
     - name: Upload Installer
       uses: actions/upload-artifact@v4
