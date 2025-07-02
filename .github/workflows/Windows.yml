@@ -53,18 +53,27 @@ jobs:
       shell: pwsh
       working-directory: ${{ github.workspace }}
       run: |
-        dir ${{ github.workspace }}\..\Qt\
-        dir ${{ github.workspace }}\..\Qt\Tools\
-        dir ${{ github.workspace }}\..\Qt\Tools\mingw810_32\
-        $openssl = Get-ChildItem -Directory -Path "${{ github.workspace }}\openssl111" | Where-Object { $_.Name -like "openssl-*" } | Select-Object -First 1 | ForEach-Object { "$($_.FullName)\x86" }
-        $mingwRoot = "${{ github.workspace }}\..\Qt\Tools\mingw810_32"
-
-        Copy-Item "$openssl\bin\libcrypto-1_1.dll" "$mingwRoot\bin\" -Force
-        Copy-Item "$openssl\bin\libssl-1_1.dll"    "$mingwRoot\bin\" -Force
-        Copy-Item "$openssl\lib\libcrypto.lib"     "$mingwRoot\lib\" -Force
-        Copy-Item "$openssl\lib\libssl.lib"        "$mingwRoot\lib\" -Force
-        New-Item -ItemType Directory -Force -Path "$mingwRoot\include\openssl"
-        Copy-Item "$openssl\include\openssl\*" "$mingwRoot\include\openssl\" -Recurse -Force
+          dir ${{ github.workspace }}\..\Qt\
+          dir ${{ github.workspace }}\..\Qt\Tools\
+          dir ${{ github.workspace }}\..\Qt\Tools\mingw810_32\
+      
+          $openssl = (Get-ChildItem -Directory -Path "${{ github.workspace }}\openssl111" | Where-Object { $_.Name -like "openssl-*" } | Select-Object -First 1).FullName + "\x86"
+          $mingwRoot = "${{ github.workspace }}\..\Qt\Tools\mingw810_32"
+      
+          Write-Host "Resolved OpenSSL path: $openssl"
+          if (Test-Path $openssl) {
+            Get-ChildItem -Recurse "$openssl" | ForEach-Object { Write-Host $_.FullName }
+          } else {
+            Write-Error "OpenSSL path not found: $openssl"
+          }
+      
+          Copy-Item "$openssl\bin\libcrypto-1_1.dll" "$mingwRoot\bin\" -Force
+          Copy-Item "$openssl\bin\libssl-1_1.dll"    "$mingwRoot\bin\" -Force
+          Copy-Item "$openssl\lib\libcrypto.lib"     "$mingwRoot\lib\" -Force
+          Copy-Item "$openssl\lib\libssl.lib"        "$mingwRoot\lib\" -Force
+          New-Item -ItemType Directory -Force -Path "$mingwRoot\include\openssl"
+          Copy-Item "$openssl\include\openssl\*" "$mingwRoot\include\openssl\" -Recurse -Force     
+          dir "$mingwRoot\include\openssl\"
 
     - name: Install NSIS
       run: choco install nsis --x86 --force -y
