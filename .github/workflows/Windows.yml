@@ -62,12 +62,12 @@ jobs:
     - name: Copy 32‑bit DLLs & libs
       shell: pwsh
       run: |
-        Copy-Item "openssl111\x86\bin\libcrypto-1_1.dll"    "C:\tools\msys64\mingw32\bin\" -Force
-        Copy-Item "openssl111\x86\bin\libssl-1_1.dll"       "C:\tools\msys64\mingw32\bin\" -Force
-        Copy-Item "openssl111\x86\lib\libcrypto.dll.a"      "C:\tools\msys64\mingw32\lib\" -Force
-        Copy-Item "openssl111\x86\lib\libssl.dll.a"         "C:\tools\msys64\mingw32\lib\" -Force
-        Copy-Item "openssl111\x86\include\openssl\*.h"      "C:\tools\msys64\mingw32\include\openssl\" -Force
-        dir "C:\tools\msys64\mingw32\*"
+        Copy-Item "openssl111\x86\bin\libcrypto-1_1.dll"    "D:\tools\msys64\mingw32\bin\" -Force
+        Copy-Item "openssl111\x86\bin\libssl-1_1.dll"       "D:\tools\msys64\mingw32\bin\" -Force
+        Copy-Item "openssl111\x86\lib\libcrypto.dll.a"      "D:\tools\msys64\mingw32\lib\" -Force
+        Copy-Item "openssl111\x86\lib\libssl.dll.a"         "D:\tools\msys64\mingw32\lib\" -Force
+        Copy-Item "openssl111\x86\include\openssl\*.h"      "D:\tools\msys64\mingw32\include\openssl\" -Force
+        dir "D:\tools\msys64\mingw32\*"
 
 
     # - name: Show OpenSSL 1.1.1 layout
@@ -129,8 +129,8 @@ jobs:
     - name: Copy OpenSSL DLLs to build folder
       shell: pwsh
       run: |
-        Copy-Item "C:\tools\msys64\mingw32\bin\libssl-1_1.dll" -Destination "src/build/"
-        Copy-Item "C:\tools\msys64\mingw32\bin\libcrypto-1_1.dll" -Destination "src/build/"
+        Copy-Item "D:\tools\msys64\mingw32\bin\libssl-1_1.dll" -Destination "src/build/"
+        Copy-Item "D:\tools\msys64\mingw32\bin\libcrypto-1_1.dll" -Destination "src/build/"
 
     - name: Install NSIS
       run: choco install nsis -y
