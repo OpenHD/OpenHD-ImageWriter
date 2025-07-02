@@ -62,7 +62,7 @@ jobs:
         Copy-Item "$openssl\bin\libcrypto-1_1.dll" "$mingwRoot\bin\" -Force
         Copy-Item "$openssl\bin\libssl-1_1.dll"    "$mingwRoot\bin\" -Force
         Copy-Item "$openssl\lib\libcrypto.lib"     "$mingwRoot\lib\" -Force
-        Copy-Item "$openssl\lib\libssl.lib"        "$mingwRoot\lib\" -Forcea
+        Copy-Item "$openssl\lib\libssl.lib"        "$mingwRoot\lib\" -Force
         New-Item -ItemType Directory -Force -Path "$mingwRoot\include\openssl"
         Copy-Item "$openssl\include\openssl\*" "$mingwRoot\include\openssl\" -Recurse -Force
 
