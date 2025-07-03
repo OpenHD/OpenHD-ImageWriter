@@ -222,7 +222,7 @@ if (WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${OPENSSL_ROOT_DIR}/bin/libcrypto-1_1.dll" "${CMAKE_BINARY_DIR}/deploy"
     )
-    
+
     configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/windows/openhdimagewriter.nsi.in"
         "${CMAKE_CURRENT_BINARY_DIR}/openhdimagewriter.nsi"

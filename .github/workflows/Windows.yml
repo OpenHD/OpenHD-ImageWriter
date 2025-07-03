@@ -1,16 +1,14 @@
-name: OpenHD Image Writer Windows
+name: OpenHD Image Writer Windows (MinGW + Qt5.15.2)
 
 on:
   push:
     branches:
-      - "2.5-evo"
-      - "dev-release"
       - "release"
-      - "debug_older2"
+      - "dev-release"
+
     paths-ignore:
-      - '**.md'
-      - '**.asciidoc'
-      - '**.adoc'
+      - '**/*.md'
+      - '**/*.adoc'
       - '.gitignore'
       - 'LICENSE'
 
@@ -23,10 +21,31 @@ jobs:
 
     defaults:
       run:
+        shell: cmd
         working-directory: src
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+
+      - name: Install Qt
+        id: qt-install
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          aqtversion: '==3.1.*'
+          host: windows
+          target: desktop
+          arch: win32_mingw81
+          setup-python: false
+          tools: tools_cmake tools_mingw81,qt.tools.win32_mingw810
+
+      - name: Show Qt Install Info
+        run: |
+          echo Compiler location:
+          where gcc
+          where g++
+          echo CMake version:
+          cmake --version
 
     - name: Install Qt
       id: qt-install
@@ -147,3 +166,4 @@ jobs:
         name: OpenHDImageWriter-Build-Full
         path: src/build/OpenHD-ImageWriter-*
         if-no-files-found: error
+

@@ -1,0 +1,76 @@
+name: OpenHD Image Writer (multi-distro)
+
+on:
+  push:
+    branches:
+      - "master"
+      - "dev-release"
+      - "release"
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    strategy:
+      matrix:
+        distro:
+          - { name: noble, container: 'ubuntu:noble' }
+          - { name: lunar, container: 'ubuntu:lunar' }
+          - { name: jammy, container: '' }
+
+    container: ${{ matrix.distro.container }}
+    
+    steps:
+      - name: Init env
+        run: |
+          echo "DT=$(date +'%Y-%m-%d_%H%M')" >> $GITHUB_ENV
+          echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
+          if [ "${{ matrix.distro.name }}" = "lunar" ]; then
+            sed -i 's|http://archive.ubuntu.com/ubuntu|http://old-releases.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+            sed -i 's|http://security.ubuntu.com/ubuntu|http://old-releases.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+          fi
+          if [ "${{ matrix.distro.name }}" != "jammy" ]; then
+          apt update
+          apt install -y git sudo
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: Build .deb
+        run: |
+          sudo apt update
+          sudo apt upgrade -y
+          sudo apt install -y --no-install-recommends \
+            libgnutls28-dev build-essential devscripts debhelper cmake git libarchive-dev libcurl4-openssl-dev \
+            qtbase5-dev qtbase5-dev-tools qtdeclarative5-dev libqt5svg5-dev qttools5-dev libssl-dev \
+            qml-module-qtquick2 qml-module-qtquick-controls2 qml-module-qtquick-layouts \
+            qml-module-qtquick-templates2 qml-module-qtquick-window2 qml-module-qtgraphicaleffects
+          
+          mkdir build
+          mv `ls -A | grep -v "build"` build
+          cd build
+          debuild -uc -us
+          cd ..
+
+      - name: Upload to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: "OpenHD Image Writer (${{ matrix.distro.name }})"
+          path: |
+            *.deb
+          if-no-files-found: error
+
+      - name: Push to Cloudsmith
+        if: github.ref_name == 'release' || github.ref_name == 'dev-release'
+        id: push
+        uses: cloudsmith-io/action@master
+        with:
+          api-key: ${{ secrets.CLOUDSMITH_API_KEY }}
+          command: "push"
+          format: "deb"
+          owner: "openhd"
+          repo: ${{ github.ref_name }}
+          distro: "ubuntu"
+          release: "${{ matrix.distro.name }}"
+          republish: "true"
+          file: "*.deb"
