@@ -211,17 +211,18 @@ if (WIN32)
             "${CMAKE_SOURCE_DIR}/../license.txt" "${CMAKE_SOURCE_DIR}/windows/openhdimagewriter.cmd"
             "${CMAKE_BINARY_DIR}/deploy")
 
-        add_custom_command(TARGET ${PROJECT_NAME}
+    add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "C:/tools/msys64/mingw32/bin/libssl-1_1.dll" "${CMAKE_BINARY_DIR}"
+            "${OPENSSL_ROOT_DIR}/bin/libssl-1_1.dll" "${CMAKE_BINARY_DIR}"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "C:/tools/msys64/mingw32/bin/libssl-1_1.dll" "${CMAKE_BINARY_DIR}/deploy"
+            "${OPENSSL_ROOT_DIR}/bin/libssl-1_1.dll" "${CMAKE_BINARY_DIR}/deploy"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "C:/tools/msys64/mingw32/bin/libcrypto-1_1.dll" "${CMAKE_BINARY_DIR}"
+            "${OPENSSL_ROOT_DIR}/bin/libcrypto-1_1.dll" "${CMAKE_BINARY_DIR}"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "C:/tools/msys64/mingw32/bin/libcrypto-1_1.dll" "${CMAKE_BINARY_DIR}/deploy"
-        )
+            "${OPENSSL_ROOT_DIR}/bin/libcrypto-1_1.dll" "${CMAKE_BINARY_DIR}/deploy"
+    )
+    
     configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/windows/openhdimagewriter.nsi.in"
         "${CMAKE_CURRENT_BINARY_DIR}/openhdimagewriter.nsi"
