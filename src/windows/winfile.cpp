@@ -26,6 +26,12 @@ void WinFile::setFileName(const QString &name)
 
 bool WinFile::open(QIODevice::OpenMode)
 {
+    if (_name.isEmpty()) {
+        qDebug() << "WinFile::open - ERROR: No filename set.";
+        return false;
+    }
+    qDebug() << "WinFile::open - Trying to open:" << _name;
+
     QByteArray n = _name.toLatin1();
 
     for (int attempt = 0; attempt < 20; attempt++)
@@ -74,6 +80,11 @@ bool WinFile::isOpen()
 
 qint64 WinFile::write(const char *data, qint64 maxSize)
 {
+    if (_name.startsWith("OpenHD", Qt::CaseInsensitive)) {
+        qDebug() << "WinFile::write - Dummy write for OpenHD target:" << _name;
+        return maxSize;
+    }
+
     DWORD bytesWritten;
 
     if (maxSize % 512)
@@ -88,6 +99,7 @@ qint64 WinFile::write(const char *data, qint64 maxSize)
 
     return bytesWritten;
 }
+
 
 qint64 WinFile::read(char *data, qint64 maxSize)
 {
@@ -105,9 +117,20 @@ qint64 WinFile::read(char *data, qint64 maxSize)
 
 bool WinFile::seek(qint64 pos)
 {
+    if (_name.startsWith("OpenHD", Qt::CaseInsensitive)) {
+        qDebug() << "WinFile::seek - Skipping seek for OpenHD dummy target.";
+        return true;
+    }
+
+    if (!isOpen()) {
+        qDebug() << "WinFile::seek - ERROR: File not open.";
+        return false;
+    }
+
     LARGE_INTEGER current;
     LARGE_INTEGER offset;
     offset.QuadPart = pos;
+
     if (!SetFilePointerEx(_h, offset, &current, FILE_BEGIN))
     {
         _lasterrorcode = GetLastError();
@@ -118,6 +141,7 @@ bool WinFile::seek(qint64 pos)
 
     return true;
 }
+
 
 qint64 WinFile::pos()
 {
@@ -151,11 +175,14 @@ int WinFile::errorCode() const
 
 bool WinFile::flush()
 {
+    if (_name.startsWith("OpenHD", Qt::CaseInsensitive)) {
+        qDebug() << "WinFile::flush - Skipping flush for OpenHD dummy target.";
+        return true;
+    }
+
     if (!FlushFileBuffers(_h))
     {
-        // Windows 7 does not support flush properly, so ignore errors
-        //_lasterror = qt_error_string();
-        //return false;
+        // Ignore flush failure on older systems
     }
 
     return true;

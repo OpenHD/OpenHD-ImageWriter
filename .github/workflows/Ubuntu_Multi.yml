@@ -3,7 +3,7 @@ name: OpenHD Image Writer (multi-distro)
 on:
   push:
     branches:
-      - "master"
+      - "NEXT"
       - "dev-release"
       - "release"
 

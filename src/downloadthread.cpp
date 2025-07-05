@@ -116,6 +116,12 @@ bool DownloadThread::_openAndPrepareDevice()
 {
     QSettings settings_;
     std::cout << "_____________________________-DEBUG-_______________________________________" << std::endl;
+    
+    if (_filename.startsWith("OpenHD"))
+    {
+    std::cout << "Device will not be flashed but updated!" << std::endl;
+    std::cout << "Using Network Mode" << std::endl;
+    }
 
     if (settings_.value("justUpdate").toBool())
     {

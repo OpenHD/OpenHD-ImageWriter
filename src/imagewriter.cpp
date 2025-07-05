@@ -290,13 +290,19 @@ bool ImageWriter::readyToWrite()
 /* Start writing */
 void ImageWriter::startWrite()
 {
-    qDebug() << "Write function executed.";
+    qDebug() << "startWrite() called";
 
-    if (!readyToWrite())
+    if (!readyToWrite()) {
+        qDebug() << "Aborting: Not ready to write.";
         return;
+    }
+
+    qDebug() << "Source:" << _src.toString();
+    qDebug() << "Destination:" << _dst;
 
     if (_src.toString() == "internal://format")
     {
+        qDebug() << "Special internal format requested. Starting DriveFormatThread.";
         DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), this);
         connect(dft, SIGNAL(success()), SLOT(onSuccess()));
         connect(dft, SIGNAL(error(QString)), SLOT(onError(QString)));
@@ -304,60 +310,78 @@ void ImageWriter::startWrite()
         return;
     }
 
-   QByteArray urlstr = _src.toString(_src.FullyEncoded).toLatin1();
-   QString lowercaseurl = urlstr.toLower();
-   bool containsUpdate = lowercaseurl.contains("update");
-   bool compressed = lowercaseurl.endsWith(".zip") || lowercaseurl.endsWith(".xz") || lowercaseurl.endsWith(".bz2") || lowercaseurl.endsWith(".gz") || lowercaseurl.endsWith(".7z") || lowercaseurl.endsWith(".zst") || lowercaseurl.endsWith(".cache");
+    QByteArray urlstr = _src.toString(_src.FullyEncoded).toLatin1();
+    QString lowercaseurl = urlstr.toLower();
+    bool containsUpdate = lowercaseurl.contains("update");
+    bool compressed = lowercaseurl.endsWith(".zip") || lowercaseurl.endsWith(".xz") || lowercaseurl.endsWith(".bz2") || lowercaseurl.endsWith(".gz") || lowercaseurl.endsWith(".7z") || lowercaseurl.endsWith(".zst") || lowercaseurl.endsWith(".cache");
+
+    qDebug() << "URL:" << urlstr;
+    qDebug() << "Is update:" << containsUpdate;
+    qDebug() << "Is compressed:" << compressed;
 
     _settings.setValue("justUpdate", containsUpdate);
     _settings.sync();
 
-if (lowercaseurl.endsWith(".zip"))
-{
-    if (containsUpdate == true) 
+    if (lowercaseurl.endsWith(".zip"))
     {
-        qDebug() << "This is an OpenHD UpdateFile";
+        if (containsUpdate)
+        {
+            qDebug() << "ZIP file detected and it's an update package.";
+        }
+        else
+        {
+            qDebug() << "ZIP file is not an update package. Emitting error.";
+            emit error(tr("Please extract your Image before flashing"));
+        }
     }
-    else 
-    {
-        emit error(tr("Please extract your Image before flashing"));
-    }
-}
+
     if (!_extrLen && _src.isLocalFile())
     {
+        qDebug() << "No extraction length yet, but source is local.";
         if (!compressed)
+        {
             _extrLen = _downloadLen;
+            qDebug() << "Not compressed. Using download length as extraction length:" << _extrLen;
+        }
         else if (lowercaseurl.endsWith(".zip"))
+        {
+            qDebug() << "Compressed ZIP file found. Parsing compressed file.";
             _parseCompressedFile();
+        }
     }
 
     if (_devLen && _extrLen > _devLen)
     {
-        emit error(tr("Storage capacity is not large enough.<br>Needs to be at least %1 GB.").arg(QString::number(_extrLen/1000000000.0, 'f', 1)));
+        qDebug() << "Insufficient storage space. Needed:" << _extrLen << ", Available:" << _devLen;
+        emit error(tr("Storage capacity is not large enough.<br>Needs to be at least %1 GB.").arg(QString::number(_extrLen / 1000000000.0, 'f', 1)));
         return;
     }
 
     if (_extrLen && !_multipleFilesInZip && _extrLen % 512 != 0)
     {
+        qDebug() << "Invalid disk image size. Not a multiple of 512 bytes:" << _extrLen;
         emit error(tr("Input file is not a valid disk image.<br>File size %1 bytes is not a multiple of 512 bytes.").arg(_extrLen));
         return;
     }
 
     if (!_expectedHash.isEmpty() && _cachedFileHash == _expectedHash)
     {
-        // Use cached file
+        qDebug() << "Cached file hash matches expected. Reusing cached file.";
         urlstr = QUrl::fromLocalFile(_cacheFileName).toString(_src.FullyEncoded).toLatin1();
     }
 
     if (QUrl(urlstr).isLocalFile())
     {
+        qDebug() << "Using LocalFileExtractThread";
         _thread = new LocalFileExtractThread(urlstr, _dst.toLatin1(), _expectedHash, this);
     }
     else if (compressed)
     {
+        qDebug() << "Compressed remote file. Using DownloadExtractThread";
         _thread = new DownloadExtractThread(urlstr, _dst.toLatin1(), _expectedHash, this);
         if (_repo.toString() == OSLIST_URL)
         {
+            qDebug() << "OSLIST repo detected. Sending telemetry.";
             DownloadStatsTelemetry *tele = new DownloadStatsTelemetry(urlstr, _parentCategory.toLatin1(), _osName.toLatin1(), _embeddedMode, _currentLangcode, this);
             connect(tele, SIGNAL(finished()), tele, SLOT(deleteLater()));
             tele->start();
@@ -365,6 +389,7 @@ if (lowercaseurl.endsWith(".zip"))
     }
     else
     {
+        qDebug() << "Uncompressed remote file. Using DownloadThread";
         _thread = new DownloadThread(urlstr, _dst.toLatin1(), _expectedHash, this);
         _thread->setInputBufferSize(IMAGEWRITER_UNCOMPRESSED_BLOCKSIZE);
     }
@@ -373,22 +398,26 @@ if (lowercaseurl.endsWith(".zip"))
     connect(_thread, SIGNAL(error(QString)), SLOT(onError(QString)));
     connect(_thread, SIGNAL(finalizing()), SLOT(onFinalizing()));
     connect(_thread, SIGNAL(preparationStatusUpdate(QString)), SLOT(onPreparationStatusUpdate(QString)));
+
     _thread->setVerifyEnabled(_verifyEnabled);
     _thread->setUserAgent(QString("Mozilla/5.0 rpi-imager/%1").arg(constantVersion()).toUtf8());
 
     if (!_expectedHash.isEmpty() && _cachedFileHash != _expectedHash && _cachingEnabled)
     {
+        qDebug() << "Caching enabled and hashes differ. Preparing cache file.";
+
         if (!_cachedFileHash.isEmpty())
         {
             if (_settings.isWritable() && QFile::remove(_cacheFileName))
             {
+                qDebug() << "Old cache file removed.";
                 _settings.remove("caching/lastDownloadSHA256");
                 _settings.sync();
                 _cachedFileHash.clear();
             }
             else
             {
-                qDebug() << "Error removing old cache file. Disabling caching";
+                qDebug() << "Error removing cache file. Disabling caching.";
                 _cachingEnabled = false;
             }
         }
@@ -397,14 +426,15 @@ if (lowercaseurl.endsWith(".zip"))
         {
             QStorageInfo si(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
             qint64 avail = si.bytesAvailable();
-            qDebug() << "Available disk space for caching:" << avail/1024/1024/1024 << "GB";
+            qDebug() << "Available disk space for caching:" << avail / 1024 / 1024 << "MB";
 
-            if (avail-_downloadLen < IMAGEWRITER_MINIMAL_SPACE_FOR_CACHING)
+            if (avail - _downloadLen < IMAGEWRITER_MINIMAL_SPACE_FOR_CACHING)
             {
-                qDebug() << "Low disk space. Not caching files to disk.";
+                qDebug() << "Not enough space for caching.";
             }
             else
             {
+                qDebug() << "Enough space. Enabling cache file write.";
                 _thread->setCacheFile(_cacheFileName, _downloadLen);
                 connect(_thread, SIGNAL(cacheFileUpdated(QByteArray)), SLOT(onCacheFileUpdated(QByteArray)));
             }
@@ -413,6 +443,7 @@ if (lowercaseurl.endsWith(".zip"))
 
     if (_multipleFilesInZip)
     {
+        qDebug() << "Multiple files in zip. Formatting drive before extract.";
         static_cast<DownloadExtractThread *>(_thread)->enableMultipleFileExtraction();
         DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), this);
         connect(dft, SIGNAL(success()), _thread, SLOT(start()));
@@ -421,9 +452,11 @@ if (lowercaseurl.endsWith(".zip"))
     }
     else
     {
+        qDebug() << "Starting thread directly.";
         _thread->start();
     }
 
+    qDebug() << "Starting progress polling.";
     startProgressPolling();
 }
 
