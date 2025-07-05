@@ -25,7 +25,7 @@ public:
     void stopPolling();
 
     enum driveListRoles {
-        deviceRole = Qt::UserRole + 1, descriptionRole, sizeRole, isUsbRole, isScsiRole, isReadOnlyRole, mountpointsRole
+        deviceRole = Qt::UserRole + 1, descriptionRole, sizeRole, isNetRole, isUsbRole, isScsiRole, isReadOnlyRole, mountpointsRole
     };
 
 public slots:

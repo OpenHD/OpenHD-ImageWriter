@@ -119,6 +119,16 @@ bool IsUSBDevice(std::string enumeratorName) {
   return false;
 }
 
+bool IsNetDevice(std::string enumeratorName) {
+  for (std::string driverName : USB_STORAGE_DRIVERS) {
+    if (enumeratorName == driverName) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 bool IsRemovableDevice(HDEVINFO hDeviceInfo, SP_DEVINFO_DATA deviceInfoData) {
   DWORD result = 0;
 
@@ -651,6 +661,7 @@ std::vector<DeviceDescriptor> ListStorageDevices() {
     device.isVirtual = IsVirtualHardDrive(hDeviceInfo, deviceInfoData);
     device.isSCSI = IsSCSIDevice(enumeratorName);
     device.isUSB = IsUSBDevice(enumeratorName);
+    device.isNET = IsNetDevice(enumeratorName);
     device.isCard = device.enumerator == "SD";
     device.isSystem = !device.isRemovable &&
       (device.enumerator == "SCSI" || device.enumerator == "IDE");

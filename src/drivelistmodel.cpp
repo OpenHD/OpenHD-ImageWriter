@@ -27,6 +27,7 @@
                 {deviceRole, "device"},
                 {descriptionRole, "description"},
                 {sizeRole, "size"},
+                {isNetRole, "isNet"},
                 {isUsbRole, "isUsb"},
                 {isScsiRole, "isScsi"},
                 {isReadOnlyRole, "isReadOnly"},
@@ -149,6 +150,7 @@
                         d.device = el.firstChildElement("device").text().toStdString();
                         d.description = el.firstChildElement("description").text().toStdString();
                         d.size = el.firstChildElement("size").text().toULongLong();
+                        d.isNET = el.firstChildElement("isNET").text() == "true";
                         d.isUSB = el.firstChildElement("isUSB").text() == "true";
                         d.isSCSI = el.firstChildElement("isSCSI").text() == "true";
                         d.isReadOnly = el.firstChildElement("isReadOnly").text() == "true";
@@ -217,7 +219,7 @@
                         changes = true;
                     }
 
-                    _drivelist[deviceNamePlusSize] = new DriveListItem(QString::fromStdString(i.device), QString::fromStdString(i.description), i.size, i.isUSB, i.isSCSI, i.isReadOnly, mountpoints, this);
+                    _drivelist[deviceNamePlusSize] = new DriveListItem(QString::fromStdString(i.device), QString::fromStdString(i.description), i.size, i.isNET, i.isUSB, i.isSCSI, i.isReadOnly, mountpoints, this);
                 }
             }
 

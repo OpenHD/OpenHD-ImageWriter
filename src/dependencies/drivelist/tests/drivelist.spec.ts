@@ -78,6 +78,10 @@ describe('Drivelist', () => {
 					`Invalid isUSB flag: ${device.isUSB}`,
 				);
 				ok(
+					device.isNET === null || typeof device.isNET === 'boolean',
+					`Invalid isNET flag: ${device.isNET}`,
+				);
+				ok(
 					device.isUAS === null || typeof device.isUAS === 'boolean',
 					`Invalid isUAS flag: ${device.isUAS}`,
 				);

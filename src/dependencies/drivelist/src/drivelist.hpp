@@ -50,6 +50,7 @@ struct DeviceDescriptor {
   bool isRemovable;  // Device is removable from the running system
   bool isCard;  // Device is an SD-card
   bool isSCSI;  // Connected via the Small Computer System Interface (SCSI)
+  bool isNET;  // Connected via Network
   bool isUSB;  // Connected via Universal Serial Bus (USB)
   bool isUAS;  // Connected via the USB Attached SCSI (UAS)
   bool isUASNull;

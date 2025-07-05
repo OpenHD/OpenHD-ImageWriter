@@ -93,6 +93,7 @@ namespace Drivelist {
     NSArray *scsiTypes = [NSArray arrayWithObjects:@"SATA", @"SCSI", @"ATA", @"IDE", @"PCI", nil];
     device.isSCSI = ((deviceProtocol != nil) && [scsiTypes containsObject:deviceProtocol]);
     device.isUSB = ((deviceProtocol != nil) && [deviceProtocol isEqualToString:@"USB"]);
+    device.isNET = ((deviceProtocol != nil) && [deviceProtocol isEqualToString:@"NET"]);
     device.isUAS = false;
     device.isUASNull = true;
 

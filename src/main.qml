@@ -1066,7 +1066,7 @@ ApplicationWindow {
                     width: 64
 
                     Image {
-                        source: isUsb ? "icons/ic_usb_40px.svg" : isScsi ? "icons/ic_storage_40px.svg" : "icons/ic_sd_storage_40px.svg"
+                        source: isNet ? "icons/ic_net_40px.svg" : isUsb ? "icons/ic_usb_40px.svg" : isScsi ? "icons/ic_storage_40px.svg" : "icons/ic_sd_storage_40px.svg"
                         verticalAlignment: Image.AlignVCenter
                         height: parent.parent.parent.height
                         fillMode: Image.Pad

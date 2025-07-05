@@ -95,6 +95,7 @@ namespace Drivelist
             }
             d.isSystem   = !d.isRemovable && !d.isVirtual;
             d.isUSB      = subsystems.contains("usb");
+            d.isNET      = subsystems.contains("NET");
             d.isSCSI     = subsystems.contains("scsi") && !d.isUSB;
             d.blockSize  = bdev["phy-sec"].toInt();
             d.logicalBlockSize = bdev["log-sec"].toInt();

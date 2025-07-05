@@ -135,6 +135,10 @@ v8::Local<v8::Object> PackDriveDescriptor(const DeviceDescriptor *instance) {
     New<Boolean>(instance->isSCSI));
 
   Nan::Set(object,
+    New<String>("isNET").ToLocalChecked(),
+    New<Boolean>(instance->isNET));
+
+  Nan::Set(object,
     New<String>("isUSB").ToLocalChecked(),
     New<Boolean>(instance->isUSB));
 

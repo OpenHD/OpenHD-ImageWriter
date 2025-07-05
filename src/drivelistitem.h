@@ -13,13 +13,14 @@ class DriveListItem : public QObject
 {
     Q_OBJECT
 public:
-    explicit DriveListItem(QString device, QString description, quint64 size, bool isUsb = false, bool isScsi = false, bool readOnly = false, QStringList mountpoints = QStringList(), QObject *parent = nullptr);
+    explicit DriveListItem(QString device, QString description, quint64 size, bool isNet = false, bool isUsb = false, bool isScsi = false, bool readOnly = false, QStringList mountpoints = QStringList(), QObject *parent = nullptr);
 
     Q_PROPERTY(QString device MEMBER _device CONSTANT)
     Q_PROPERTY(QString description MEMBER _description CONSTANT)
     Q_PROPERTY(quint64 size MEMBER _size CONSTANT)
     Q_PROPERTY(QStringList mountpoints MEMBER _mountpoints CONSTANT)
     Q_PROPERTY(bool isUsb MEMBER _isUsb CONSTANT)
+    Q_PROPERTY(bool isNet MEMBER _isNet CONSTANT)
     Q_PROPERTY(bool isScsi MEMBER _isScsi CONSTANT)
     Q_PROPERTY(bool isReadOnly MEMBER _isReadOnly CONSTANT)
     Q_INVOKABLE int sizeInGb();
@@ -33,6 +34,7 @@ protected:
     QString _description;
     QStringList _mountpoints;
     quint64 _size;
+    bool _isNet;
     bool _isUsb;
     bool _isScsi;
     bool _isReadOnly;
