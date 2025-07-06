@@ -22,7 +22,19 @@ GroupBox {
             return false;
         }
     })
-    
+
+    function updateModelOptions() {
+        if (!isNested || brandCombo.currentIndex < 0) return;
+        modelCombo.model = optionsList[brandCombo.currentIndex].models;
+
+        // optional: set default
+        modelCombo.currentIndex = 0;
+        imageWriter.setSetting(settingKey, modelCombo.currentText);
+        if (popup && popup.hasOwnProperty(settingKey)) {
+            popup[settingKey] = modelCombo.currentText;
+        }
+    }
+
     ColumnLayout {
         spacing: 10
 
@@ -74,21 +86,9 @@ GroupBox {
                 }
             }
         }
+    }
 
-        function updateModelOptions() {
-            if (!isNested || brandCombo.currentIndex < 0) return;
-            modelCombo.model = optionsList[brandCombo.currentIndex].models;
-
-            // optional: set default
-            modelCombo.currentIndex = 0;
-            imageWriter.setSetting(settingKey, modelCombo.currentText);
-            if (popup && popup.hasOwnProperty(settingKey)) {
-                popup[settingKey] = modelCombo.currentText;
-            }
-        }
-
-        Component.onCompleted: {
-            if (isNested) updateModelOptions();
-        }
+    Component.onCompleted: {
+        if (isNested) updateModelOptions();
     }
 }
