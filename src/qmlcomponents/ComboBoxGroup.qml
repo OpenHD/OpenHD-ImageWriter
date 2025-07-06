@@ -21,10 +21,17 @@ GroupBox {
             model: optionsList
             Layout.minimumWidth: 200
             Layout.maximumHeight: 40
-            onCurrentTextChanged: {
-                imageWriter.setSetting(settingKey, currentText);
-                popup[settingKey] = currentText;
+            onCurrentIndexChanged: {
+            var selected = currentText;
+            imageWriter.setSetting(settingKey, selected);
+
+            if (popup && popup.hasOwnProperty(settingKey)) {
+                popup[settingKey] = selected;
+            } else {
+                console.warn("popup missing property:", settingKey);
             }
+        }
+
         }
     }
 }
