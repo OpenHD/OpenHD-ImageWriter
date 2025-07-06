@@ -302,7 +302,7 @@ Popup {
                                 groupObject.parent = dynamicSettingsColumn;
                                 console.log("Attached to dynamicSettingsColumn");
                             } else {
-                                 console.log(">> ComboBoxGroup creation FAILED for:", groupTitle);
+                                console.log(">> ComboBoxGroup creation FAILED for:", groupTitle);
                             }
                         }
                     }
@@ -364,12 +364,12 @@ Popup {
         }
 
         return component.createObject(dynamicSettingsColumn, {
-            groupTitle: title,
-            visibleIf: visibleIfExpr,
-            settingKey: key,
-            optionsList: options,
-            popup: popup
-        });
+                                          groupTitle: title,
+                                          visibleIf: visibleIfExpr,
+                                          settingKey: key,
+                                          optionsList: options,
+                                          popup: popup
+                                      });
     }
 
 

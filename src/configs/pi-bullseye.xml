@@ -1,22 +1,24 @@
-<Group title="Camera Settings" visibleIf="bootType == 'Air'">
-    <ComboBox key="camera">
-        <Brand name="Raspberry">
-            <Option text="OV5647"/>
-            <Option text="IMX219"/>
-            <Option text="IMX477"/>
-        </Brand>
-        <Brand name="Arducam">
-            <Option text="SkyMasterHDR708"/>
-            <Option text="SkyVisionPro519"/>
-            <Option text="IMX462MINI"/>
-        </Brand>
-        <Brand name="Veye">
-            <Option text="2MPCAMERAS"/>
-            <Option text="CSIMX307"/>
-        </Brand>
-        <Brand name="Advanced">
-            <Option text="USB"/>
-            <Option text="FILESRC"/>
-        </Brand>
-    </ComboBox>
-</Group>
+<Settings>
+    <Group title="Camera Settings" visibleIf="popup.bootType == 'Air'">
+        <ComboBox key="camera">
+            <Brand name="Raspberry">
+                <Option text="OV5647"/>
+                <Option text="IMX219"/>
+                <Option text="IMX477"/>
+            </Brand>
+            <Brand name="Arducam">
+                <Option text="SkyMasterHDR708"/>
+                <Option text="SkyVisionPro519"/>
+                <Option text="IMX462MINI"/>
+            </Brand>
+            <Brand name="Veye">
+                <Option text="2MPCAMERAS"/>
+                <Option text="CSIMX307"/>
+            </Brand>
+            <Brand name="Advanced">
+                <Option text="USB"/>
+                <Option text="FILESRC"/>
+            </Brand>
+        </ComboBox>
+    </Group>
+</Settings>
