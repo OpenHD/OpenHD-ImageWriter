@@ -1,22 +1,22 @@
-<SBCConfig name="rpi">
-    <Property key="sbc" value="rpi"/>
-    <Property key="rock5" value="false"/>
-    <Property key="rock3" value="false"/>
-    <Property key="rpi" value="true"/>
-
-    <Settings>
-        <Group title="Camera Settings" visibleIf="bootType == 'Air'">
-            <ComboBox key="camera">
-                <Option text="NONE"/>
-                <Option text="SkyMasterHDR708"/>
-                <Option text="SkyVisionPro519"/>
-                <Option text="IMX462MINI"/>
-                <Option text="IMX477"/>
-                <Option text="IMX477m"/>
-                <Option text="IMX462"/>
-                <Option text="IMX327"/>
-                <Option text="IMX290"/>
-            </ComboBox>
-        </Group>
-    </Settings>
-</SBCConfig>
+<Group title="Camera Settings" visibleIf="bootType == 'Air'">
+    <ComboBox key="camera">
+        <Brand name="Raspberry">
+            <Option text="OV5647"/>
+            <Option text="IMX219"/>
+            <Option text="IMX477"/>
+        </Brand>
+        <Brand name="Arducam">
+            <Option text="SkyMasterHDR708"/>
+            <Option text="SkyVisionPro519"/>
+            <Option text="IMX462MINI"/>
+        </Brand>
+        <Brand name="Veye">
+            <Option text="2MPCAMERAS"/>
+            <Option text="CSIMX307"/>
+        </Brand>
+        <Brand name="Advanced">
+            <Option text="USB"/>
+            <Option text="FILESRC"/>
+        </Brand>
+    </ComboBox>
+</Group>

@@ -120,208 +120,6 @@ Popup {
                         }
                     }
                 }
-                // GroupBox {
-                //     title: qsTr("Camera Settings")
-                //     id: cameraSettingsRock5
-                //     Layout.fillWidth: true
-                //     visible: rock5 && (bootType === "Air")
-
-                //     ColumnLayout {
-                //         spacing: -10
-                //         // Add a ComboBox to select between cameras
-                //         ComboBox {
-                //             id: cameraSelectorRock5
-                //             textRole: "displayText"
-                //             model: ListModel {
-                //                 ListElement { displayText: "NONE" }
-                //                 ListElement { displayText: "HDMI" }
-                //                 ListElement { displayText: "OV5647" }
-                //                 ListElement { displayText: "IMX219" }
-                //                 ListElement { displayText: "IMX415" }
-                //                 ListElement { displayText: "IMX462" }
-                //                 ListElement { displayText: "IMX708" }
-                //             // ListElement { displayText: "OHD-JAGUAR" }
-                //             }
-                //             onCurrentIndexChanged: {
-                //                 var selectedCamera = model.get(currentIndex).displayText;
-                //                 if (selectedCamera !== "NONE") {
-                //                     camera = selectedCamera;
-                //                 }
-                //             }
-                //         }
-                //     }
-                // }
-                // GroupBox {
-                //     title: qsTr("Camera Settings")
-                //     id: cameraSettingsRock3
-                //     Layout.fillWidth: true
-                //     visible: rock3 && (bootType === "Air")
-
-
-                //     ColumnLayout {
-                //         spacing: -10
-                //         ComboBox {
-                //             id: cameraSelectorRock3
-                //             textRole: "displayText"
-                //             model: ListModel {
-                //                 ListElement { displayText: "NONE" }
-                //                 ListElement { displayText: "IMX462" }
-                //                 //ListElement { displayText: "IMX519" }
-                //                 ListElement { displayText: "HDMI" }
-                //                 ListElement { displayText: "IMX219" }
-                //                 ListElement { displayText: "VEYE" }
-                //                 ListElement { displayText: "OV5647" }
-                //                 //ListElement { displayText: "IMX708" }
-                //                 // ListElement { displayText: "OHD-JAGUAR" }
-                //             }
-                //             onCurrentIndexChanged: {
-                //                 var selectedCamera = model.get(currentIndex).displayText;
-                //                 if (selectedCamera !== "NONE") {
-                //                     camera = selectedCamera;
-                //                 }
-                //             }
-                //         }
-                //     }
-                // }
-                // GroupBox {
-                //     title: qsTr("Camera Settings")
-                //     id: cameraSettingsRpi
-                //     Layout.fillWidth: true
-                //     visible: rpi && (bootType === "Air")
-                //     ColumnLayout {
-                //         // Add a ComboBox to select between cameras
-                //         ComboBox {
-                //             id: cameraVendorSelectorRpi
-                //             textRole: "displayText"
-                //             model: ListModel {
-                //                 ListElement { displayText: "Raspberry" }
-                //                 ListElement { displayText: "Arducam" }
-                //                 ListElement { displayText: "Veye" }
-                //                 ListElement { displayText: "Advanced" }
-                //             }
-                //             Layout.minimumWidth: 200
-                //             Layout.maximumHeight: 40
-                //             onCurrentIndexChanged: {
-                //                 var selectedCameraVendor = model.get(currentIndex).displayText;
-                //                 if (selectedCameraVendor !== "Raspberry" && selectedCameraVendor !== "Veye" && selectedCameraVendor !== "Advanced") {
-                //                     cameraSelectorArducam.visible=true
-                //                     cameraSelectorVeye.visible=false
-                //                     cameraSelectorAdvanced.visible=false
-                //                     cameraSelectorRpiOriginal.visible=false
-                //                 }
-                //                 else if (selectedCameraVendor !== "Raspberry" && selectedCameraVendor !== "Arducam" && selectedCameraVendor !== "Advanced") {
-                //                     cameraSelectorVeye.visible=true
-                //                     cameraSelectorArducam.visible=false
-                //                     cameraSelectorAdvanced.visible=false
-                //                     cameraSelectorRpiOriginal.visible=false
-                //                 }
-                //                 else if (selectedCameraVendor !== "Raspberry" && selectedCameraVendor !== "Arducam"&& selectedCameraVendor !== "Veye") {
-                //                     cameraSelectorVeye.visible=false
-                //                     cameraSelectorArducam.visible=false
-                //                     cameraSelectorAdvanced.visible=true
-                //                     cameraSelectorRpiOriginal.visible=false
-                //                 }
-                //                 else if (selectedCameraVendor !== "Advanced" && selectedCameraVendor !== "Arducam"&& selectedCameraVendor !== "Veye") {
-                //                     cameraSelectorVeye.visible=false
-                //                     cameraSelectorArducam.visible=false
-                //                     cameraSelectorAdvanced.visible=false
-                //                     cameraSelectorRpiOriginal.visible=true
-                //                 }
-                //             }
-                //         }
-                //         ComboBox {
-                //             id: cameraSelectorAdvanced
-                //             visible:false
-                //             textRole: "displayText"
-                //             model: ListModel {
-                //                 ListElement { displayText: "None" }
-                //                 ListElement { displayText: "USB" }
-                //                 ListElement { displayText: "FILESRC" }
-                //                 ListElement { displayText: "IP-CAMERA" }
-                //                 ListElement { displayText: "EXTERNAL" }
-                //                 ListElement { displayText: "TESTPATTERN" }
-                //             }
-                //             Layout.minimumWidth: 200
-                //             Layout.maximumHeight: 40
-                //             onCurrentIndexChanged: {
-                //                 var selectedCamera = model.get(currentIndex).displayText;
-                //                 if (selectedCamera !== "None") {
-                //                 camera = selectedCamera;
-                //                 }
-                //             }
-                //         }
-                //         ComboBox {
-
-                //             id: cameraSelectorRpiOriginal
-                //             visible:false
-                //             textRole: "displayText"
-                //             model: ListModel {
-                //                 ListElement { displayText: "None" }
-                //                 ListElement { displayText: "HDMI" }
-                //                 ListElement { displayText: "OV5647" }
-                //                 ListElement { displayText: "IMX219" }
-                //                 ListElement { displayText: "IMX477" }
-                //                 ListElement { displayText: "IMX708" }
-
-                //             }
-                //             Layout.minimumWidth: 200
-                //             Layout.maximumHeight: 40
-                //             onCurrentIndexChanged: {
-                //                 var selectedCamera = model.get(currentIndex).displayText;
-                //                 if (selectedCamera !== "None") {
-                //                     camera = selectedCamera;
-                //                 }
-                //             }
-                //         }
-                //         ComboBox {
-
-                //             id: cameraSelectorArducam
-                //             visible:false
-                //             textRole: "displayText"
-                //             model: ListModel {
-                //                 ListElement { displayText: "None" }
-                //                 ListElement { displayText: "SkyMasterHDR708" }
-                //                 ListElement { displayText: "SkyVisionPro519" }
-                //                 ListElement { displayText: "IMX462MINI" }
-                //                 ListElement { displayText: "IMX477" }
-                //                 ListElement { displayText: "IMX477m" }
-                //                 ListElement { displayText: "IMX462" }
-                //                 ListElement { displayText: "IMX327" }
-                //                 ListElement { displayText: "IMX290" }
-                //             }
-                //             Layout.minimumWidth: 200
-                //             Layout.maximumHeight: 40
-                //             onCurrentIndexChanged: {
-                //                 var selectedCamera = model.get(currentIndex).displayText;
-                //                 if (selectedCamera !== "None") {
-                //                     camera = selectedCamera;
-                //                 }
-                //             }
-                //         }
-                //         ComboBox {
-
-                //             id: cameraSelectorVeye
-                //             visible:false
-                //             textRole: "displayText"
-                //             model: ListModel {
-                //                 ListElement { displayText: "None" }
-                //                 ListElement { displayText: "2MPCAMERAS" }
-                //                 ListElement { displayText: "CSIMX307" }
-                //                 ListElement { displayText: "CSSC137" }
-                //                 ListElement { displayText: "MVCAM" }
-                //             }
-                //             Layout.minimumWidth: 200
-                //             Layout.maximumHeight: 40
-                //             onCurrentIndexChanged: {
-                //                 var selectedCamera = model.get(currentIndex).displayText;
-                //                 if (selectedCamera !== "None") {
-                //                     camera = selectedCamera;
-                //                 }
-                //             }
-                //         }
-
-                //     }
-                // }
                 GroupBox {
                     title: qsTr("Bind Settings")
                     Layout.fillWidth: true
@@ -511,12 +309,40 @@ Popup {
         var key = comboMatch[1];
         var optionsXml = comboMatch[2];
 
-        var optionRegex = /<Option[^>]*text="([^"]+)"[^>]*\/>/g;
         var options = [];
-        var optionMatch;
 
-        while ((optionMatch = optionRegex.exec(optionsXml)) !== null) {
-            options.push(optionMatch[1]);
+        // Detect if <Brand> tags are used
+        var hasBrands = optionsXml.includes("<Brand");
+
+        if (hasBrands) {
+            // Parse <Brand name="..."> with nested <Option text="..."/>
+            var brandRegex = /<Brand\s+name="([^"]+)"[^>]*>([\s\S]*?)<\/Brand>/g;
+            var brandMatch;
+            while ((brandMatch = brandRegex.exec(optionsXml)) !== null) {
+                var brandName = brandMatch[1];
+                var brandOptionsXml = brandMatch[2];
+
+                var brandOptions = [];
+                var optionRegex = /<Option[^>]*text="([^"]+)"[^>]*\/>/g;
+                var optionMatch;
+
+                while ((optionMatch = optionRegex.exec(brandOptionsXml)) !== null) {
+                    brandOptions.push(optionMatch[1]);
+                }
+
+                options.push({
+                                 brand: brandName,
+                                 models: brandOptions
+                             });
+            }
+        } else {
+            // Fallback: flat <Option text="..."/>
+            var optionRegex = /<Option[^>]*text="([^"]+)"[^>]*\/>/g;
+            var optionMatch;
+
+            while ((optionMatch = optionRegex.exec(optionsXml)) !== null) {
+                options.push(optionMatch[1]);
+            }
         }
 
         var component = Qt.createComponent("qmlcomponents/ComboBoxGroup.qml");
@@ -533,6 +359,7 @@ Popup {
                                           popup: popup
                                       });
     }
+
 
 
 
