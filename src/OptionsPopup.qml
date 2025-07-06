@@ -98,26 +98,28 @@ Popup {
                     ColumnLayout {
                         spacing: -10
 
-                        ImCheckBox {
-                            id: setAir
-                            text: qsTr("Set SBC to AIR")
-                            onCheckedChanged: {
-                                if (checked) {
-                                    setGround.checked = false;
-                                    bootType = "Air";
+                       ImCheckBox {
+                        id: setAir
+                        text: qsTr("Set SBC to AIR")
+                        onCheckedChanged: {
+                            if (checked) {
+                                setGround.checked = false;
+                                bootType = "Air";
 
-                                    Qt.callLater(function() {
-                                    while (dynamicSettingsColumn.children.length > 0) {
-                                    dynamicSettingsColumn.children[0].destroy();
-                                    }
+                                Qt.callLater(function() {
+                                    const currentFileName = imageWriter.srcFileName(); // safer than relying on property
+                                    const configXml = findSbcXmlConfig(currentFileName);
 
-                                        let configXml = findSbcXmlConfig(fileName);
-                                        console.log("Re-loading XML for bootType = Air:", configXml);
-                                        loadXmlSettings(configXml);
-                                    })
-                                }
+                                    console.log("Re-loading XML for bootType = Air:", configXml);
+
+                                    // Destroy safely
+                                    [...dynamicSettingsColumn.children].forEach(child => child.destroy());
+
+                                    loadXmlSettings(configXml);
+                                });
                             }
                         }
+                    }
                         ImCheckBox {
                             id: setGround
                             text: qsTr("Set SBC to GROUND")
@@ -400,14 +402,15 @@ Popup {
         eject = imageWriter.getBoolSetting("eject")
 
         // set session settings
-        if (bootType==="Air") {
-            setAir.checked=true
-            setGround.checked=false
-        }
-        else if (bootType==="Ground") {
-            setAir.checked=false
-            setGround.checked=true
-        }
+       Qt.callLater(function() {
+            if (bootType === "Air") {
+                setAir.checked = true;
+                setGround.checked = false;
+            } else if (bootType === "Ground") {
+                setAir.checked = false;
+                setGround.checked = true;
+            }
+        });
         if (bindPhrase) {
             bndKey.checked=true
         }

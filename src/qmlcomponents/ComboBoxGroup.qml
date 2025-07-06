@@ -16,17 +16,16 @@ GroupBox {
     Layout.fillWidth: true
 
     visible: Qt.binding(function() {
-        // Only evaluate when popup is ready
-        if (!popup || popup.bootType === undefined) {
-            console.log(">> ComboBoxGroup hidden (popup or bootType undefined)");
-            return false;
-        }
         try {
+            if (!popup || typeof popup.bootType === 'undefined') {
+                console.log(">> ComboBoxGroup hidden (popup or bootType undefined)");
+                return false;
+            }
             const result = (new Function("popup", "return (" + visibleIf + ")"))(popup);
             console.log(">> ComboBoxGroup visibility for", groupTitle, "=", result);
             return result;
         } catch (e) {
-            console.warn("Failed to evaluate visibleIf:", visibleIf, e);
+            console.warn(">> ComboBoxGroup visibility evaluation failed:", visibleIf, e);
             return false;
         }
     })
@@ -61,7 +60,7 @@ GroupBox {
         ComboBox {
             id: brandCombo
             visible: isNested
-            model: optionsList.map(b => b.brand)
+            model: optionsList.map(b => String(b.brand || "")).filter(b => b.length > 0)
             Layout.minimumWidth: 200
             Layout.maximumHeight: 40
 
@@ -99,7 +98,7 @@ GroupBox {
         }
 
         const models = optionsList[brandCombo.currentIndex].models;
-        modelCombo.model = models;
+        modelCombo.model = models ? models.map(m => String(m)) : [];
 
         // Select previously saved value, if available
         var saved = imageWriter.getValue(settingKey);
