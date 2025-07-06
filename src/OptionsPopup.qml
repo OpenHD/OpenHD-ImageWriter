@@ -103,8 +103,16 @@ Popup {
                             text: qsTr("Set SBC to AIR")
                             onCheckedChanged: {
                                 if (checked) {
-                                    setGround.checked = false
-                                    bootType="Air";
+                                    setGround.checked = false;
+                                    bootType = "Air";
+
+                                    while (dynamicSettingsColumn.children.length > 0) {
+                                        dynamicSettingsColumn.children[0].destroy();
+                                    }
+
+                                    let configXml = findSbcXmlConfig(fileName)
+                                    console.log("Re-loading XML for bootType = Air:", configXml)
+                                    loadXmlSettings(configXml)
                                 }
                             }
                         }
@@ -303,7 +311,7 @@ Popup {
 
     function createComboBoxGroup(title, visibleIfExpr, innerXml) {
         var comboMatch = innerXml.match(/<ComboBox[^>]*key="([^"]+)"[^>]*>([\s\S]*?)<\/ComboBox>/);
-        
+
         if (!comboMatch) {
             console.log("No <ComboBox> tag matched inside group:", title);
             return null;
@@ -311,7 +319,6 @@ Popup {
 
         var key = comboMatch[1];
         var optionsXml = comboMatch[2];
-
         var options = [];
 
         // Detect if <Brand> tags are used
@@ -319,7 +326,6 @@ Popup {
 
         if (hasBrands) {
             // Parse <Brand name="..."> with nested <Option text="..."/>
-            var options = [];
             var brandRegex = /<Brand[^>]*name="([^"]+)"[^>]*>([\s\S]*?)<\/Brand>/g;
             var brandMatch;
 
@@ -332,20 +338,21 @@ Popup {
 
                 while ((optionMatch = optionRegex.exec(brandContent)) !== null) {
                     let label = optionMatch[1];
-                    // You could prefix brand if desired: `${brandName}: ${label}`
+                    // Optional: add brand prefix -> `${brandName}: ${label}`
                     options.push(label);
                 }
             }
-        }
-    } else {
-    // Fallback: flat <Option text="..."/>
-    var optionRegex = /<Option[^>]*text="([^"]+)"[^>]*\/>/g;
-    var optionMatch;
+        } else {
+            // Fallback: flat <Option text="..."/>
+            var optionRegex = /<Option[^>]*text="([^"]+)"[^>]*\/>/g;
+            var optionMatch;
 
-    while ((optionMatch = optionRegex.exec(optionsXml)) !== null) {
-        options.push(optionMatch[1]);
-    }
-    }
+            while ((optionMatch = optionRegex.exec(optionsXml)) !== null) {
+                options.push(optionMatch[1]);
+            }
+        }
+
+        console.log("Parsed options for key:", key, options);
 
         var component = Qt.createComponent("qmlcomponents/ComboBoxGroup.qml");
         if (component.status !== Component.Ready) {
@@ -353,104 +360,102 @@ Popup {
             return null;
         }
 
-            return component.createObject(dynamicSettingsColumn, {
-                groupTitle: title,
-                visibleIf: visibleIfExpr,
-                settingKey: key,
-                optionsList: options,
-                popup: popup
-            });
-        }
-
-
-
-
-        function initialize() {
-            var settings = imageWriter.getSavedCustomizationSettings()
-
-            // initialise settings
-            bootType = imageWriter.getValue("bootType")
-            fileName = imageWriter.srcFileName();
-            sbc = imageWriter.getValue("sbc")
-            camera= imageWriter.getValue("camera")
-            bindPhrase = imageWriter.getValue("bindPhrase")
-            mode = imageWriter.getValue("mode")
-            hotSpot = imageWriter.getValue("hotSpot")
-            beep = imageWriter.getBoolSetting("beep")
-            eject = imageWriter.getBoolSetting("eject")
-
-            // set session settings
-            if (bootType==="Air") {
-                setAir.checked=true
-                setGround.checked=false
-            }
-            else if (bootType==="Ground") {
-                setAir.checked=false
-                setGround.checked=true
-            }
-            if (bindPhrase) {
-                bndKey.checked=true
-            }
-            else{
-                bndKey.checked=false
-            }
-            if (mode) {
-                setDebug.checked=true
-            }
-            else{
-                setDebug.checked=false
-            }
-            if (hotSpot) {
-                setWifiHotspot.checked=true
-            }
-            else{
-                setWifiHotspot.checked=false
-            }
-
-            // Get SBC by matching known XML config names
-            imageWriter.setSetting("fileName", fileName)
-            console.log("File name is:", fileName)
-
-            function findSbcXmlConfig(fileName) {
-                const candidates = ["pi-bullseye", "rock-5a", "rock-5b", "zero3w"]
-                for (let i = 0; i < candidates.length; i++) {
-                    if (fileName.includes(candidates[i])) {
-                        return candidates[i] + ".xml"
-                    }
-                }
-                return "unknown.xml"
-            }
-
-            let configXml = findSbcXmlConfig(fileName)
-            console.log("Matched SBC config:", configXml)
-
-            // Load *after bindings have settled*
-            Qt.callLater(function() {
-                loadXmlSettings(configXml)
-            })
-
-        }
-
-        function openPopup() {
-            if (!initialized) {
-                initialize()
-            }
-
-            open()
-            popupbody.forceActiveFocus()
-        }
-
-        function applySettings()
-        {
-
-            imageWriter.setSetting("bootType", bootType)
-            imageWriter.setSetting("camera", camera)
-            imageWriter.setSetting("bindPhrase" , bindPhrase)
-            imageWriter.setSetting("mode", mode)
-            imageWriter.setSetting("hotSpot" , hotSpot)
-            imageWriter.setSetting("beep", beep)
-            imageWriter.setSetting("eject", eject)
-            imageWriter.setSetting("useSettings", useSettings)
-
-        }
+        return component.createObject(dynamicSettingsColumn, {
+                                          groupTitle: title,
+                                          visibleIf: visibleIfExpr,
+                                          settingKey: key,
+                                          optionsList: options,
+                                          popup: popup
+                                      });
     }
+
+
+    function findSbcXmlConfig(fileName) {
+        const candidates = ["pi-bullseye", "rock-5a", "rock-5b", "zero3w"]
+        for (let i = 0; i < candidates.length; i++) {
+            if (fileName.includes(candidates[i])) {
+                return candidates[i] + ".xml"
+            }
+        }
+        return "unknown.xml"
+    }
+
+    function initialize() {
+        var settings = imageWriter.getSavedCustomizationSettings()
+
+        // initialise settings
+        bootType = imageWriter.getValue("bootType")
+        fileName = imageWriter.srcFileName();
+        sbc = imageWriter.getValue("sbc")
+        camera= imageWriter.getValue("camera")
+        bindPhrase = imageWriter.getValue("bindPhrase")
+        mode = imageWriter.getValue("mode")
+        hotSpot = imageWriter.getValue("hotSpot")
+        beep = imageWriter.getBoolSetting("beep")
+        eject = imageWriter.getBoolSetting("eject")
+
+        // set session settings
+        if (bootType==="Air") {
+            setAir.checked=true
+            setGround.checked=false
+        }
+        else if (bootType==="Ground") {
+            setAir.checked=false
+            setGround.checked=true
+        }
+        if (bindPhrase) {
+            bndKey.checked=true
+        }
+        else{
+            bndKey.checked=false
+        }
+        if (mode) {
+            setDebug.checked=true
+        }
+        else{
+            setDebug.checked=false
+        }
+        if (hotSpot) {
+            setWifiHotspot.checked=true
+        }
+        else{
+            setWifiHotspot.checked=false
+        }
+
+        // Get SBC by matching known XML config names
+        imageWriter.setSetting("fileName", fileName)
+        console.log("File name is:", fileName)
+
+        let configXml = findSbcXmlConfig(fileName)
+        console.log("Matched SBC config:", configXml)
+
+        // Load *after bindings have settled*
+        Qt.callLater(function() {
+            loadXmlSettings(configXml)
+        })
+
+    }
+
+    function openPopup() {
+        if (!initialized) {
+            initialize()
+        }
+
+        open()
+        popupbody.forceActiveFocus()
+    }
+
+    function applySettings()
+    {
+
+        imageWriter.setSetting("bootType", bootType)
+        imageWriter.setSetting("camera", camera)
+        imageWriter.setSetting("bindPhrase" , bindPhrase)
+        imageWriter.setSetting("mode", mode)
+        imageWriter.setSetting("hotSpot" , hotSpot)
+        imageWriter.setSetting("beep", beep)
+        imageWriter.setSetting("eject", eject)
+        imageWriter.setSetting("useSettings", useSettings)
+
+    }
+}

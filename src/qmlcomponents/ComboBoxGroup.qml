@@ -14,8 +14,15 @@ GroupBox {
 
     title: groupTitle
     Layout.fillWidth: true
-    visible: Qt.binding(function() { return eval(visibleIf); })
-
+    visible: Qt.binding(function() {
+        try {
+            return (new Function("popup", "return (" + visibleIf + ")"))(popup);
+        } catch (e) {
+            console.warn("Failed to evaluate visibleIf:", visibleIf, e);
+            return false;
+        }
+    })
+    
     ColumnLayout {
         spacing: 10
 
