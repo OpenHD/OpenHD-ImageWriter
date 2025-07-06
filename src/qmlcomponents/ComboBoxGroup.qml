@@ -15,6 +15,9 @@ GroupBox {
     title: groupTitle
     Layout.fillWidth: true
     visible: Qt.binding(function() {
+        if (!popup || popup.bootType === undefined) {
+            return false;
+        }
         try {
             return (new Function("popup", "return (" + visibleIf + ")"))(popup);
         } catch (e) {
@@ -22,6 +25,7 @@ GroupBox {
             return false;
         }
     })
+
 
     function updateModelOptions() {
         if (!isNested || brandCombo.currentIndex < 0) return;

@@ -106,13 +106,15 @@ Popup {
                                     setGround.checked = false;
                                     bootType = "Air";
 
+                                    Qt.callLater(function() {
                                     while (dynamicSettingsColumn.children.length > 0) {
-                                        dynamicSettingsColumn.children[0].destroy();
+                                    dynamicSettingsColumn.children[0].destroy();
                                     }
 
-                                    let configXml = findSbcXmlConfig(fileName)
-                                    console.log("Re-loading XML for bootType = Air:", configXml)
-                                    loadXmlSettings(configXml)
+                                        let configXml = findSbcXmlConfig(fileName);
+                                        console.log("Re-loading XML for bootType = Air:", configXml);
+                                        loadXmlSettings(configXml);
+                                    })
                                 }
                             }
                         }
