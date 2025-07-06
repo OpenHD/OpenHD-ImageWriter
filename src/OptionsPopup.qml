@@ -296,8 +296,13 @@ Popup {
 
                             console.log("Creating Group:", groupTitle, "Visible if:", visibleIf);
                             var groupObject = createComboBoxGroup(groupTitle, visibleIf, groupContent);
+                            console.log("Group object created:", groupObject);
                             if (groupObject) {
+                                console.log(">> ComboBoxGroup created with title:", groupTitle);
                                 groupObject.parent = dynamicSettingsColumn;
+                                console.log("Attached to dynamicSettingsColumn");
+                            } else {
+                                 console.log(">> ComboBoxGroup creation FAILED for:", groupTitle);
                             }
                         }
                     }
@@ -321,11 +326,9 @@ Popup {
         var optionsXml = comboMatch[2];
         var options = [];
 
-        // Detect if <Brand> tags are used
         var hasBrands = optionsXml.includes("<Brand");
 
         if (hasBrands) {
-            // Parse <Brand name="..."> with nested <Option text="..."/>
             var brandRegex = /<Brand[^>]*name="([^"]+)"[^>]*>([\s\S]*?)<\/Brand>/g;
             var brandMatch;
 
@@ -333,17 +336,17 @@ Popup {
                 var brandName = brandMatch[1];
                 var brandContent = brandMatch[2];
 
+                var modelList = [];
                 var optionRegex = /<Option[^>]*text="([^"]+)"[^>]*\/>/g;
                 var optionMatch;
 
                 while ((optionMatch = optionRegex.exec(brandContent)) !== null) {
-                    let label = optionMatch[1];
-                    // Optional: add brand prefix -> `${brandName}: ${label}`
-                    options.push(label);
+                    modelList.push(optionMatch[1]);
                 }
+
+                options.push({ brand: brandName, models: modelList });
             }
         } else {
-            // Fallback: flat <Option text="..."/>
             var optionRegex = /<Option[^>]*text="([^"]+)"[^>]*\/>/g;
             var optionMatch;
 
@@ -352,7 +355,7 @@ Popup {
             }
         }
 
-        console.log("Parsed options for key:", key, options);
+        console.log("Parsed options for key:", key, JSON.stringify(options, null, 2));
 
         var component = Qt.createComponent("qmlcomponents/ComboBoxGroup.qml");
         if (component.status !== Component.Ready) {
@@ -361,12 +364,12 @@ Popup {
         }
 
         return component.createObject(dynamicSettingsColumn, {
-                                          groupTitle: title,
-                                          visibleIf: visibleIfExpr,
-                                          settingKey: key,
-                                          optionsList: options,
-                                          popup: popup
-                                      });
+            groupTitle: title,
+            visibleIf: visibleIfExpr,
+            settingKey: key,
+            optionsList: options,
+            popup: popup
+        });
     }
 
 
