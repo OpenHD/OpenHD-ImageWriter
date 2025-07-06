@@ -1,0 +1,20 @@
+<SBCConfig name="rock-5b">
+    <Property key="sbc" value="rock-5b"/>
+    <Property key="rock5" value="true"/>
+    <Property key="rock3" value="false"/>
+    <Property key="rpi" value="false"/>
+
+    <Settings>
+        <Group title="Camera Settings" visibleIf="bootType == 'Air'">
+            <ComboBox key="camera">
+                <Option text="NONE"/>
+                <Option text="HDMI"/>
+                <Option text="OV5647"/>
+                <Option text="IMX219"/>
+                <Option text="IMX415"/>
+                <Option text="IMX462"/>
+                <Option text="IMX708"/>
+            </ComboBox>
+        </Group>
+    </Settings>
+</SBCConfig>

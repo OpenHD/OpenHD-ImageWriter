@@ -35,10 +35,14 @@
         <file>qmlcomponents/ImButton.qml</file>
         <file>qmlcomponents/ImCheckBox.qml</file>
         <file>qmlcomponents/ImRadioButton.qml</file>
+        <file>qmlcomponents/ComboBoxGroup.qml</file>
         <file>OptionsPopup.qml</file>
         <file>icons/OpenHD-advanced.webp</file>
         <file>icons/OpenHD-old.webp</file>
         <file>icons/donate.svg</file>
         <file>icons/dev.svg</file>
+        <file>configs/rock-5a.xml</file>
+        <file>configs/pi-bullseye.xml</file>
+        <file>configs/zero3w.xml</file>
     </qresource>
 </RCC>

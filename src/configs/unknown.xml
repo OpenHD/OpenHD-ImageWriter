@@ -1,0 +1,10 @@
+<SBCConfig name="unknown">
+    <Property key="sbc" value="unknown"/>
+    <Property key="rock5" value="false"/>
+    <Property key="rock3" value="false"/>
+    <Property key="rpi" value="false"/>
+
+    <Settings>
+        <!-- No camera options for unknown SBC -->
+    </Settings>
+</SBCConfig>
