@@ -228,9 +228,11 @@ set(ARCHIVE_BUILD_STATIC_LIBS ON CACHE BOOL "")
 set(ARCHIVE_BUILD_EXAMPLES OFF CACHE BOOL "")
 set(ENABLE_ZSTD ON CACHE BOOL "")
 set(ENABLE_LZMA ON CACHE BOOL "")
-# Point libarchive to our bundled LZMA
-set(LIBLZMA_INCLUDE_DIR ${xz_SOURCE_DIR}/src/liblzma/api CACHE PATH "LZMA include for libarchive")
-set(LIBLZMA_LIBRARY liblzma CACHE STRING "LZMA library for libarchive")
+# Point libarchive to our bundled LZMA - prevent finding system LZMA
+set(LIBLZMA_FOUND true CACHE BOOL "Force LibArchive to use our bundled LZMA" FORCE)
+set(LIBLZMA_INCLUDE_DIR ${xz_SOURCE_DIR}/src/liblzma/api CACHE PATH "LZMA include for libarchive" FORCE)
+set(LIBLZMA_LIBRARY liblzma CACHE STRING "LZMA library for libarchive" FORCE)
+set(LIBLZMA_LIBRARIES liblzma CACHE STRING "LZMA libraries for libarchive" FORCE)
 set(POSIX_REGEX_LIB "libc" CACHE STRING "Regex library for libarchive")
 set(LIBARCHIVE_VERSION "3.8.1")
 
@@ -246,9 +248,12 @@ if(TARGET archive_static AND NOT TARGET LibArchive::archive_static)
     add_library(LibArchive::archive_static ALIAS archive_static)
 endif()
 
-# Ensure libarchive is built after zlib
+# Ensure libarchive is built after its dependencies
 if (TARGET archive_static AND TARGET ZLIB::ZLIB)
     add_dependencies(archive_static ZLIB::ZLIB)
+endif()
+if (TARGET archive_static AND TARGET liblzma)
+    add_dependencies(archive_static liblzma)
 endif()
 
 unset(POSIX_REGEX_LIB)
