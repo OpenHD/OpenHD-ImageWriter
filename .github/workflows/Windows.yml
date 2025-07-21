@@ -20,6 +20,20 @@ env:
 jobs:
   build:
     runs-on: windows-2022
+    strategy:
+      matrix:
+        build_type: [Release, Debug]
+        include:
+          - build_type: Release
+            artifact_name: OpenHDImageWriter-Windows-Portable
+            build_dir: build
+            standalone_dir: standalone
+            create_bat: false
+          - build_type: Debug
+            artifact_name: OpenHDImageWriter-Windows-Debug
+            build_dir: build-debug
+            standalone_dir: standalone-debug
+            create_bat: true
 
     defaults:
       run:
@@ -169,12 +183,12 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
-          src/build/_deps
-        key: ${{ runner.os }}-mingw64-deps-v4-${{ hashFiles('src/CMakeLists.txt') }}-${{ hashFiles('.github/workflows/Windows.yml') }}
+          src/${{ matrix.build_dir }}/_deps
+        key: ${{ runner.os }}-mingw64-deps-${{ matrix.build_type }}-v4-${{ hashFiles('src/CMakeLists.txt') }}-${{ hashFiles('.github/workflows/Windows.yml') }}
         restore-keys: |
-          ${{ runner.os }}-mingw64-deps-v4-${{ hashFiles('src/CMakeLists.txt') }}-
-          ${{ runner.os }}-mingw64-deps-v4-
-          ${{ runner.os }}-mingw64-deps-
+          ${{ runner.os }}-mingw64-deps-${{ matrix.build_type }}-v4-${{ hashFiles('src/CMakeLists.txt') }}-
+          ${{ runner.os }}-mingw64-deps-${{ matrix.build_type }}-v4-
+          ${{ runner.os }}-mingw64-deps-${{ matrix.build_type }}-
 
     - name: Show Qt & CMake Info
       shell: msys2 {0}
@@ -195,19 +209,20 @@ jobs:
         echo "Checking for Qt6 components..."
         cmake --find-package -DNAME=Qt6 -DCOMPILER_ID=GNU -DLANGUAGE=CXX -DMODE=EXIST 2>/dev/null && echo "Qt6 found by cmake" || echo "Qt6 not found by cmake"
 
-    - name: Configure CMake
+    - name: Configure CMake (${{ matrix.build_type }})
       shell: msys2 {0}
       working-directory: src
       run: |
         # Clean any existing build directory to avoid cache issues
-        if [ -d "build" ]; then
+        if [ -d "${{ matrix.build_dir }}" ]; then
           echo "Removing existing build directory..."
-          rm -rf build
+          rm -rf ${{ matrix.build_dir }}
         fi
-        mkdir -p build
-        cd build
+        mkdir -p ${{ matrix.build_dir }}
+        cd ${{ matrix.build_dir }}
         
         echo "=== CMake Configuration Debug ==="
+        echo "Build Type: ${{ matrix.build_type }}"
         echo "QT_ROOT_DIR: '$QT_ROOT_DIR'"
         echo "QT_ROOT_DIR_MSYS: '$QT_ROOT_DIR_MSYS'"
         echo "Qt6_DIR: '$Qt6_DIR'"
@@ -239,7 +254,7 @@ jobs:
         # Use CMAKE_*_COMPILER_LAUNCHER which is the correct way for Qt/MOC compatibility
         # ccache handles response files properly, so no need to disable them
         cmake .. -G "MinGW Makefiles" \
-        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
         -DQt6_ROOT="$QT_ROOT_DIR_MSYS" \
         -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR_MSYS" \
         -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
@@ -249,22 +264,22 @@ jobs:
         echo "=== CMake Configuration Result ==="
         echo "CMake exit code: $?"
 
-    - name: Check CMake Cache
+    - name: Check CMake Cache (${{ matrix.build_type }})
       shell: msys2 {0}
       working-directory: src
       run: |
         echo "=== CMake Cache Verification ==="
         echo "Current directory: $(pwd)"
         echo "Build directory contents:"
-        ls -la build/
+        ls -la ${{ matrix.build_dir }}/
         echo "=== CMake Cache Contents ==="
-        cat build/CMakeCache.txt || echo "Cache file missing"
+        cat ${{ matrix.build_dir }}/CMakeCache.txt || echo "Cache file missing"
 
-    - name: Build
+    - name: Build (${{ matrix.build_type }})
       shell: msys2 {0}
       working-directory: src
       run: |
-        cd build
+        cd ${{ matrix.build_dir }}
         
         echo "=== Build Environment Debug ==="
         # ccache is automatically configured by the action
@@ -317,20 +332,20 @@ jobs:
           echo "❌ ccache not available" >> $GITHUB_STEP_SUMMARY
         fi
 
-    - name: Create Standalone Deployment
+    - name: Create Standalone Deployment (${{ matrix.build_type }})
       shell: msys2 {0}
       working-directory: src
       run: |
-        cd build
+        cd ${{ matrix.build_dir }}
         
         echo "=== Creating Standalone Windows Build ==="
         
         # Create clean deployment directory
-        rm -rf standalone
-        mkdir -p standalone
+        rm -rf ${{ matrix.standalone_dir }}
+        mkdir -p ${{ matrix.standalone_dir }}
         
         # Copy main executable
-        cp OpenHDImageWriter.exe standalone/
+        cp OpenHDImageWriter.exe ${{ matrix.standalone_dir }}/
         
         echo "Executable size: $(stat -c%s ./OpenHDImageWriter.exe) bytes"
         echo "Checking dependencies before deployment:"
@@ -343,7 +358,7 @@ jobs:
           --compiler-runtime \
           --force \
           --verbose 2 \
-          "./standalone/OpenHDImageWriter.exe"
+          "./${{ matrix.standalone_dir }}/OpenHDImageWriter.exe"
         
         echo "=== Adding MinGW Runtime and curl Dependencies ==="
         # Copy ALL missing DLLs that windeployqt doesn't handle
@@ -355,7 +370,7 @@ jobs:
           for dll in libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll; do
             if [ -f "$MINGW_BIN/$dll" ]; then
               echo "Copying MinGW runtime: $dll"
-              cp "$MINGW_BIN/$dll" standalone/
+              cp "$MINGW_BIN/$dll" ${{ matrix.standalone_dir }}/
             else
               echo "Warning: MinGW runtime $dll not found"
             fi
@@ -365,7 +380,7 @@ jobs:
           for dll in libbrotlidec.dll libidn2-0.dll libnghttp2-14.dll; do
             if [ -f "$MINGW_BIN/$dll" ]; then
               echo "Copying curl dependency: $dll"
-              cp "$MINGW_BIN/$dll" standalone/
+              cp "$MINGW_BIN/$dll" ${{ matrix.standalone_dir }}/
             else
               echo "Warning: curl dependency $dll not found"
             fi
@@ -375,7 +390,7 @@ jobs:
           for dll in libunistring-5.dll libbrotlicommon.dll libbrotlienc.dll libcares-2.dll libpsl-5.dll libssh2-1.dll; do
             if [ -f "$MINGW_BIN/$dll" ]; then
               echo "Copying additional curl dependency: $dll"
-              cp "$MINGW_BIN/$dll" standalone/
+              cp "$MINGW_BIN/$dll" ${{ matrix.standalone_dir }}/
             else
               echo "Note: Optional curl dependency $dll not found (might not be needed)"
             fi
@@ -385,7 +400,7 @@ jobs:
           for dll in libiconv-2.dll libintl-8.dll zlib1.dll; do
             if [ -f "$MINGW_BIN/$dll" ]; then
               echo "Copying system library: $dll"
-              cp "$MINGW_BIN/$dll" standalone/
+              cp "$MINGW_BIN/$dll" ${{ matrix.standalone_dir }}/
             fi
           done
         else
@@ -396,17 +411,17 @@ jobs:
         # Use objdump to find missing dependencies and copy them automatically
         if command -v objdump >/dev/null 2>&1; then
           echo "Scanning executable for missing dependencies..."
-          missing_dlls=$(objdump -p standalone/OpenHDImageWriter.exe | grep "DLL Name" | sed 's/.*DLL Name: //' | tr -d '\r')
+          missing_dlls=$(objdump -p ${{ matrix.standalone_dir }}/OpenHDImageWriter.exe | grep "DLL Name" | sed 's/.*DLL Name: //' | tr -d '\r')
           for dll in $missing_dlls; do
-            if [ ! -f "standalone/$dll" ] && [ -f "$MINGW_BIN/$dll" ]; then
+            if [ ! -f "${{ matrix.standalone_dir }}/$dll" ] && [ -f "$MINGW_BIN/$dll" ]; then
               echo "Auto-copying missing dependency: $dll"
-              cp "$MINGW_BIN/$dll" standalone/
+              cp "$MINGW_BIN/$dll" ${{ matrix.standalone_dir }}/
             fi
           done
         fi
         
         echo "=== Final Deployment Analysis ==="
-        cd standalone
+        cd ${{ matrix.standalone_dir }}
         echo "Standalone directory contents:"
         ls -la
         echo "Total deployment size: $(du -sh . | cut -f1)"
@@ -436,75 +451,13 @@ jobs:
         
         cd ..
 
-    - name: Build Debug Version with Console
+    - name: Create Debug Launcher Script
+      if: matrix.create_bat == true
       shell: msys2 {0}
       working-directory: src
       run: |
-        echo "=== Building Debug Version with Console Output ==="
-        
-        # Create separate debug build directory
-        rm -rf build-debug
-        mkdir -p build-debug
-        cd build-debug
-        
-        echo "=== Configuring Debug Build ==="
-        cmake .. -G "MinGW Makefiles" \
-        -DCMAKE_BUILD_TYPE=Debug \
-        -DQt6_ROOT="$QT_ROOT_DIR_MSYS" \
-        -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR_MSYS" \
-        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        
-        echo "=== Building Debug Version ==="
-        cmake --build . --parallel $(nproc) -- VERBOSE=1
-        
-        echo "=== Creating Debug Standalone Deployment ==="
-        rm -rf standalone-debug
-        mkdir -p standalone-debug
-        
-        # Copy debug executable
-        cp OpenHDImageWriter.exe standalone-debug/
-        
-        echo "=== Running windeployqt for Debug Build ==="
-        "$QT_ROOT_DIR_MSYS/bin/windeployqt.exe" \
-          --debug \
-          --qmldir "../" \
-          --compiler-runtime \
-          --force \
-          --verbose 2 \
-          "./standalone-debug/OpenHDImageWriter.exe"
-        
-        echo "=== Adding MinGW Runtime for Debug Build ==="
-        MINGW_BIN="/d/a/_temp/msys64/mingw64/bin"
-        if [ -d "$MINGW_BIN" ]; then
-          # Essential MinGW Runtime DLLs
-          for dll in libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll; do
-            if [ -f "$MINGW_BIN/$dll" ]; then
-              echo "Copying MinGW runtime: $dll"
-              cp "$MINGW_BIN/$dll" standalone-debug/
-            fi
-          done
-          
-          # curl Dependencies 
-          for dll in libbrotlidec.dll libidn2-0.dll libnghttp2-14.dll libunistring-5.dll libbrotlicommon.dll libbrotlienc.dll libcares-2.dll libpsl-5.dll libssh2-1.dll; do
-            if [ -f "$MINGW_BIN/$dll" ]; then
-              echo "Copying curl dependency: $dll"
-              cp "$MINGW_BIN/$dll" standalone-debug/
-            fi
-          done
-          
-          # System libraries
-          for dll in libiconv-2.dll libintl-8.dll zlib1.dll; do
-            if [ -f "$MINGW_BIN/$dll" ]; then
-              echo "Copying system library: $dll"
-              cp "$MINGW_BIN/$dll" standalone-debug/
-            fi
-          done
-        fi
-        
         echo "=== Creating Debug Launcher Script ==="
-        cat > standalone-debug/OpenHDImageWriter-Debug.bat << 'EOF'
+        cat > ${{ matrix.build_dir }}/${{ matrix.standalone_dir }}/OpenHDImageWriter-Debug.bat << 'EOF'
         @echo off
         echo ========================================
         echo OpenHD ImageWriter - Debug Version
@@ -519,16 +472,9 @@ jobs:
         echo Application closed. Press any key to exit.
         pause
         EOF
-        
-        echo "=== Debug Build Summary ==="
-        cd standalone-debug
-        echo "Debug directory contents:"
-        ls -la
-        echo "Total debug deployment size: $(du -sh . | cut -f1)"
-        
-        cd ..
 
     - name: Build NSIS Installer
+      if: matrix.build_type == 'Release'
       shell: pwsh
       working-directory: src\build
       run: |
@@ -569,21 +515,15 @@ jobs:
           }
         }
 
-    - name: Upload Portable Build
+    - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: OpenHDImageWriter-Windows-Portable
-        path: src/build/standalone/
-        if-no-files-found: warn
-
-    - name: Upload Debug Build with Console
-      uses: actions/upload-artifact@v4
-      with:
-        name: OpenHDImageWriter-Windows-Debug
-        path: src/build-debug/standalone-debug/
+        name: ${{ matrix.artifact_name }}
+        path: src/${{ matrix.build_dir }}/${{ matrix.standalone_dir }}/
         if-no-files-found: warn
         
     - name: Upload Windows Installer
+      if: matrix.build_type == 'Release'
       uses: actions/upload-artifact@v4
       with:
         name: OpenHDImageWriter-Windows-Installer
