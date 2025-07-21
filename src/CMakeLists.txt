@@ -66,31 +66,62 @@ set(BUILD_SHARED_LIBS OFF)
 
 include(FetchContent)
 
-# LZMA Dependencies - Raspberry Pi Imager approach with vendored dependencies
-# Try system LZMA first, fallback to bundled stable version
-find_package(LibLZMA)
-
-if(NOT LIBLZMA_FOUND OR NOT APPLE)
-    # Use bundled cmliblzma - proven stable implementation like Raspberry Pi Imager
-    message(STATUS "Using bundled LZMA library (cmliblzma)")
-    add_subdirectory(dependencies/cmliblzma)
+# LZMA Dependencies - TRUE Raspberry Pi Imager approach with FetchContent xz
+if(WIN32)
+    # Windows: Use FetchContent xz exactly like real Raspberry Pi Imager
+    message(STATUS "Using FetchContent XZ/LZMA library on Windows (Raspberry Pi Imager style)")
+    set(LIBLZMA_VERSION "5.4.6")
+    FetchContent_Declare(xz
+        GIT_REPOSITORY https://github.com/tukaani-project/xz.git
+        GIT_TAG v${LIBLZMA_VERSION}
+        ${USE_OVERRIDE_FIND_PACKAGE}
+    )
+    set(XZ_MICROLZMA_DECODER OFF CACHE BOOL "" FORCE)
+    set(XZ_MICROLZMA_ENCODER OFF CACHE BOOL "" FORCE)
+    set(XZ_LZIP_DECODER OFF CACHE BOOL "" FORCE)
+    set(XZ_ENABLE_SANDBOX OFF CACHE BOOL "" FORCE)
+    set(XZ_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    set(XZ_ENABLE_DOXYGEN OFF CACHE BOOL "" FORCE)
+    set(XZ_DECODERS lzma1 lzma2 delta)
+    set(XZ_ENCODERS lzma1 lzma2 delta)
+    set(CREATE_LZMA_SYMLINKS OFF CACHE BOOL "" FORCE)
+    set(CREATE_XZ_SYMLINKS OFF CACHE BOOL "" FORCE)
     
-    # Set up LZMA variables for our bundled version
-    set(LIBLZMA_HAS_AUTO_DECODER 1)
-    set(LIBLZMA_HAS_EASY_ENCODER 1) 
-    set(LIBLZMA_HAS_LZMA_PRESET 1)
-    set(LIBLZMA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/cmliblzma/liblzma/api)
-    set(LIBLZMA_LIBRARY cmliblzma)
-    set(LIBLZMA_LIBRARIES cmliblzma)
+    FetchContent_GetProperties(xz)
+    if(NOT xz_POPULATED)
+        FetchContent_Populate(xz)
+        add_subdirectory(${xz_SOURCE_DIR} ${xz_BINARY_DIR} EXCLUDE_FROM_ALL)
+    endif()
     
-    # Create namespace target for consistency
-    if(TARGET cmliblzma AND NOT TARGET LibLZMA::LibLZMA)
-        add_library(LibLZMA::LibLZMA ALIAS cmliblzma)
+    # Clean up cache variables
+    unset(XZ_MICROLZMA_DECODER)
+    unset(XZ_MICROLZMA_ENCODER)
+    unset(XZ_LZIP_DECODER)
+    unset(XZ_ENABLE_SANDBOX)
+    unset(XZ_BUILD_SHARED_LIBS)
+    unset(XZ_ENABLE_DOXYGEN)
+    unset(CREATE_LZMA_SYMLINKS)
+    unset(CREATE_XZ_SYMLINKS)
+    
+    # Set LZMA variables exactly like Raspberry Pi Imager
+    set(LIBLZMA_FOUND true CACHE BOOL "" FORCE)
+    set(LIBLZMA_INCLUDE_DIR ${xz_SOURCE_DIR}/src/liblzma/api CACHE PATH "" FORCE)
+    set(LIBLZMA_INCLUDE_DIRS ${xz_SOURCE_DIR}/src/liblzma/api CACHE PATH "" FORCE)
+    set(LIBLZMA_LIBRARY liblzma CACHE FILEPATH "" FORCE)
+    set(LIBLZMA_LIBRARIES ${xz_BINARY_DIR}/liblzma.a CACHE FILEPATH "" FORCE)
+    set(LIBLZMA_HAS_AUTO_DECODER true CACHE BOOL "" FORCE)
+    set(LIBLZMA_HAS_EASY_ENCODER true CACHE BOOL "" FORCE)
+    set(LIBLZMA_HAS_LZMA_PRESET true CACHE BOOL "" FORCE)
+    
+    # Create namespace target
+    if(TARGET liblzma AND NOT TARGET LibLZMA::LibLZMA)
+        add_library(LibLZMA::LibLZMA ALIAS liblzma)
     endif()
 else()
-    # System LZMA found and we're on macOS - use it
+    # macOS/Linux: Use system LZMA
     message(STATUS "Using system LZMA library")
-    if(TARGET LibLZMA::LibLZMA)
+    find_package(LibLZMA REQUIRED)
+    if(LIBLZMA_FOUND AND TARGET LibLZMA::LibLZMA)
         set(EXTRALIBS ${EXTRALIBS} LibLZMA::LibLZMA)
     endif()
 endif()
@@ -208,11 +239,7 @@ set(ARCHIVE_BUILD_STATIC_LIBS ON CACHE BOOL "")
 set(ARCHIVE_BUILD_EXAMPLES OFF CACHE BOOL "")
 set(ENABLE_ZSTD ON CACHE BOOL "")
 set(ENABLE_LZMA ON CACHE BOOL "")
-# Point libarchive to our bundled LZMA (cmliblzma)
-set(LIBLZMA_FOUND true CACHE BOOL "Force LibArchive to use our bundled LZMA" FORCE)
-set(LIBLZMA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/cmliblzma/liblzma/api CACHE PATH "LZMA include for libarchive" FORCE)
-set(LIBLZMA_LIBRARY cmliblzma CACHE STRING "LZMA library for libarchive" FORCE)  
-set(LIBLZMA_LIBRARIES cmliblzma CACHE STRING "LZMA libraries for libarchive" FORCE)
+# libarchive will find our LZMA via the variables set above
 set(POSIX_REGEX_LIB "libc" CACHE STRING "Regex library for libarchive")
 set(LIBARCHIVE_VERSION "3.8.1")
 
@@ -331,6 +358,9 @@ if (WIN32)
     # Disable features that might pull in additional DLL dependencies
     set(CURL_USE_LIBPSL OFF CACHE BOOL "" FORCE)
     set(CURL_USE_LIBIDN2 OFF CACHE BOOL "" FORCE)
+    # Use our bundled zlib and explicitly disable LZMA for curl
+    set(CURL_ZLIB ON CACHE BOOL "" FORCE)
+    set(CURL_USE_LZMA OFF CACHE BOOL "" FORCE)
 elseif (APPLE)
     # Use OpenSSL on macOS since it's available via Homebrew and widely supported
     set(CURL_USE_OPENSSL ON CACHE BOOL "" FORCE)
@@ -344,9 +374,13 @@ elseif (APPLE)
     set(CURL_USE_LIBIDN2 OFF CACHE BOOL "" FORCE)
     # Use system zlib on macOS to avoid target conflicts
     set(CURL_ZLIB OFF CACHE BOOL "" FORCE)
+    # Explicitly disable LZMA for curl on macOS too
+    set(CURL_USE_LZMA OFF CACHE BOOL "" FORCE)
 else()
     set(CURL_USE_GNUTLS ON CACHE BOOL "" FORCE)
     set(CURL_DEFAULT_SSL_BACKEND "gnutls")
+    # Explicitly disable LZMA for curl on Linux too
+    set(CURL_USE_LZMA OFF CACHE BOOL "" FORCE)
 endif()
 
 FetchContent_MakeAvailable(curl)
