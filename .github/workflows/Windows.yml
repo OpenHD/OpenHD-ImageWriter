@@ -436,6 +436,98 @@ jobs:
         
         cd ..
 
+    - name: Build Debug Version with Console
+      shell: msys2 {0}
+      working-directory: src
+      run: |
+        echo "=== Building Debug Version with Console Output ==="
+        
+        # Create separate debug build directory
+        rm -rf build-debug
+        mkdir -p build-debug
+        cd build-debug
+        
+        echo "=== Configuring Debug Build ==="
+        cmake .. -G "MinGW Makefiles" \
+        -DCMAKE_BUILD_TYPE=Debug \
+        -DQt6_ROOT="$QT_ROOT_DIR_MSYS" \
+        -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR_MSYS" \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        
+        echo "=== Building Debug Version ==="
+        cmake --build . --parallel $(nproc) -- VERBOSE=1
+        
+        echo "=== Creating Debug Standalone Deployment ==="
+        rm -rf standalone-debug
+        mkdir -p standalone-debug
+        
+        # Copy debug executable
+        cp OpenHDImageWriter.exe standalone-debug/
+        
+        echo "=== Running windeployqt for Debug Build ==="
+        "$QT_ROOT_DIR_MSYS/bin/windeployqt.exe" \
+          --debug \
+          --qmldir "../" \
+          --compiler-runtime \
+          --force \
+          --verbose 2 \
+          "./standalone-debug/OpenHDImageWriter.exe"
+        
+        echo "=== Adding MinGW Runtime for Debug Build ==="
+        MINGW_BIN="/d/a/_temp/msys64/mingw64/bin"
+        if [ -d "$MINGW_BIN" ]; then
+          # Essential MinGW Runtime DLLs
+          for dll in libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll; do
+            if [ -f "$MINGW_BIN/$dll" ]; then
+              echo "Copying MinGW runtime: $dll"
+              cp "$MINGW_BIN/$dll" standalone-debug/
+            fi
+          done
+          
+          # curl Dependencies 
+          for dll in libbrotlidec.dll libidn2-0.dll libnghttp2-14.dll libunistring-5.dll libbrotlicommon.dll libbrotlienc.dll libcares-2.dll libpsl-5.dll libssh2-1.dll; do
+            if [ -f "$MINGW_BIN/$dll" ]; then
+              echo "Copying curl dependency: $dll"
+              cp "$MINGW_BIN/$dll" standalone-debug/
+            fi
+          done
+          
+          # System libraries
+          for dll in libiconv-2.dll libintl-8.dll zlib1.dll; do
+            if [ -f "$MINGW_BIN/$dll" ]; then
+              echo "Copying system library: $dll"
+              cp "$MINGW_BIN/$dll" standalone-debug/
+            fi
+          done
+        fi
+        
+        echo "=== Creating Debug Launcher Script ==="
+        cat > standalone-debug/OpenHDImageWriter-Debug.bat << 'EOF'
+        @echo off
+        echo ========================================
+        echo OpenHD ImageWriter - Debug Version
+        echo ========================================
+        echo This version shows debug output in console
+        echo Close this window to exit the application
+        echo ========================================
+        echo.
+        OpenHDImageWriter.exe --debug
+        echo.
+        echo ========================================
+        echo Application closed. Press any key to exit.
+        pause
+        EOF
+        
+        echo "=== Debug Build Summary ==="
+        cd standalone-debug
+        echo "Debug directory contents:"
+        ls -la
+        echo "Total debug deployment size: $(du -sh . | cut -f1)"
+        
+        cd ..
+
     - name: Build NSIS Installer
       shell: pwsh
       working-directory: src\build
@@ -482,6 +574,13 @@ jobs:
       with:
         name: OpenHDImageWriter-Windows-Portable
         path: src/build/standalone/
+        if-no-files-found: warn
+
+    - name: Upload Debug Build with Console
+      uses: actions/upload-artifact@v4
+      with:
+        name: OpenHDImageWriter-Windows-Debug
+        path: src/build-debug/standalone-debug/
         if-no-files-found: warn
         
     - name: Upload Windows Installer
