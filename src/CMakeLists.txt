@@ -67,8 +67,8 @@ set(BUILD_SHARED_LIBS OFF)
 
 include(FetchContent)
 
-# Bundled liblzma
-set(LIBLZMA_VERSION "5.8.1")
+# Bundled liblzma - use stable version to avoid "Corrupted input data" errors
+set(LIBLZMA_VERSION "5.4.6")
 FetchContent_Declare(xz
     GIT_REPOSITORY https://github.com/tukaani-project/xz.git
     GIT_TAG v${LIBLZMA_VERSION}
