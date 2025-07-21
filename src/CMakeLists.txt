@@ -91,6 +91,12 @@ set(XZ_ENCODERS
 set(CREATE_LZMA_SYMLINKS OFF CACHE BOOL "" FORCE)
 set(CREATE_XZ_SYMLINKS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(xz)
+
+# Create modern namespace target for liblzma
+if(TARGET liblzma AND NOT TARGET LibLZMA::liblzma)
+    add_library(LibLZMA::liblzma ALIAS liblzma)
+endif()
+
 unset(XZ_MICROLZMA_DECODER)
 unset(XZ_MICROLZMA_ENCODER)
 unset(XZ_LZIP_DECODER)
@@ -775,7 +781,7 @@ if(WIN32)
         CURL::libcurl_static 
         LibArchive::archive_static 
         zstd::libzstd_static 
-        liblzma 
+        LibLZMA::liblzma 
         ${ZLIB_LINK_TARGET} 
         ${ATOMIC_LIBRARY} 
         ${EXTRALIBS} 
@@ -790,7 +796,7 @@ else()
             CURL::libcurl_static 
             LibArchive::archive_static 
             zstd::libzstd_static 
-            liblzma 
+            LibLZMA::liblzma 
             ${ZLIB_LINK_TARGET} 
             ${ATOMIC_LIBRARY} 
             ${EXTRALIBS}
@@ -802,7 +808,7 @@ else()
             CURL::libcurl_static 
             LibArchive::archive_static 
             zstd::libzstd_static 
-            liblzma 
+            LibLZMA::liblzma 
             ${ZLIB_LINK_TARGET} 
             ${ATOMIC_LIBRARY} 
             ${EXTRALIBS}
