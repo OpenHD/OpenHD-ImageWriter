@@ -29,8 +29,7 @@ endif()
 
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Which macOS architectures to build for")
 
-# Disable system LZMA detection globally - we use only bundled LZMA
-set(CMAKE_DISABLE_FIND_PACKAGE_LibLZMA ON CACHE BOOL "Disable system LZMA detection" FORCE)
+# We use bundled LZMA on Windows/Linux, system LZMA on macOS
 
 project(OpenHDImageWriter LANGUAGES CXX C)
 set(IMAGER_VERSION_MAJOR 2)
@@ -67,56 +66,34 @@ set(BUILD_SHARED_LIBS OFF)
 
 include(FetchContent)
 
-# Bundled liblzma - use stable version to avoid "Corrupted input data" errors
-set(LIBLZMA_VERSION "5.4.6")
-FetchContent_Declare(xz
-    GIT_REPOSITORY https://github.com/tukaani-project/xz.git
-    GIT_TAG v${LIBLZMA_VERSION}
-    ${USE_OVERRIDE_FIND_PACKAGE}
-)
-set(XZ_MICROLZMA_DECODER OFF CACHE BOOL "" FORCE)
-set(XZ_MICROLZMA_ENCODER OFF CACHE BOOL "" FORCE)
-set(XZ_LZIP_DECODER OFF CACHE BOOL "" FORCE)
-set(XZ_ENABLE_SANDBOX OFF CACHE BOOL "" FORCE)
-set(XZ_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-set(XZ_ENABLE_DOXYGEN OFF CACHE BOOL "" FORCE)
-set(XZ_NLS OFF CACHE BOOL "" FORCE)
-set(XZ_DECODERS
-    lzma1
-    lzma2
-    delta
-)
-set(XZ_ENCODERS
-    lzma1
-    lzma2
-    delta
-)
-set(CREATE_LZMA_SYMLINKS OFF CACHE BOOL "" FORCE)
-set(CREATE_XZ_SYMLINKS OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(xz)
+# LZMA Dependencies - Raspberry Pi Imager approach with vendored dependencies
+# Try system LZMA first, fallback to bundled stable version
+find_package(LibLZMA)
 
-# Create modern namespace target for liblzma
-if(TARGET liblzma AND NOT TARGET LibLZMA::liblzma)
-    add_library(LibLZMA::liblzma ALIAS liblzma)
+if(NOT LIBLZMA_FOUND OR NOT APPLE)
+    # Use bundled cmliblzma - proven stable implementation like Raspberry Pi Imager
+    message(STATUS "Using bundled LZMA library (cmliblzma)")
+    add_subdirectory(dependencies/cmliblzma)
+    
+    # Set up LZMA variables for our bundled version
+    set(LIBLZMA_HAS_AUTO_DECODER 1)
+    set(LIBLZMA_HAS_EASY_ENCODER 1) 
+    set(LIBLZMA_HAS_LZMA_PRESET 1)
+    set(LIBLZMA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/cmliblzma/liblzma/api)
+    set(LIBLZMA_LIBRARY cmliblzma)
+    set(LIBLZMA_LIBRARIES cmliblzma)
+    
+    # Create namespace target for consistency
+    if(TARGET cmliblzma AND NOT TARGET LibLZMA::LibLZMA)
+        add_library(LibLZMA::LibLZMA ALIAS cmliblzma)
+    endif()
+else()
+    # System LZMA found and we're on macOS - use it
+    message(STATUS "Using system LZMA library")
+    if(TARGET LibLZMA::LibLZMA)
+        set(EXTRALIBS ${EXTRALIBS} LibLZMA::LibLZMA)
+    endif()
 endif()
-
-unset(XZ_MICROLZMA_DECODER)
-unset(XZ_MICROLZMA_ENCODER)
-unset(XZ_LZIP_DECODER)
-unset(XZ_ENABLE_SANDBOX)
-unset(XZ_BUILD_SHARED_LIBS)
-unset(XZ_ENABLE_DOXYGEN)
-unset(CREATE_LZMA_SYMLINKS)
-unset(CREATE_XZ_SYMLINKS)
-# Set LZMA variables for compatibility (avoid FORCE unless necessary)
-set(LIBLZMA_FOUND true CACHE BOOL "LZMA library found")
-set(LIBLZMA_INCLUDE_DIR ${xz_SOURCE_DIR}/src/liblzma/api CACHE PATH "LZMA include directory")
-set(LIBLZMA_INCLUDE_DIRS ${xz_SOURCE_DIR}/src/liblzma/api CACHE PATH "LZMA include directories")
-set(LIBLZMA_LIBRARY liblzma CACHE STRING "LZMA library target")
-set(LIBLZMA_LIBRARIES liblzma CACHE STRING "LZMA libraries")
-set(LIBLZMA_HAS_AUTO_DECODER true CACHE BOOL "LZMA has auto decoder")
-set(LIBLZMA_HAS_EASY_ENCODER true CACHE BOOL "LZMA has easy encoder")
-set(LIBLZMA_HAS_LZMA_PRESET true CACHE BOOL "LZMA has preset")
 
 # Bundled zstd
 set(ZSTD_VERSION "1.5.7")
@@ -231,14 +208,11 @@ set(ARCHIVE_BUILD_STATIC_LIBS ON CACHE BOOL "")
 set(ARCHIVE_BUILD_EXAMPLES OFF CACHE BOOL "")
 set(ENABLE_ZSTD ON CACHE BOOL "")
 set(ENABLE_LZMA ON CACHE BOOL "")
-# Point libarchive to our bundled LZMA - prevent finding system LZMA
-# Disable all external LZMA detection to force use of our bundled version
-set(CMAKE_DISABLE_FIND_PACKAGE_LibLZMA ON CACHE BOOL "Disable system LZMA detection" FORCE)
+# Point libarchive to our bundled LZMA (cmliblzma)
 set(LIBLZMA_FOUND true CACHE BOOL "Force LibArchive to use our bundled LZMA" FORCE)
-set(LIBLZMA_INCLUDE_DIR ${xz_SOURCE_DIR}/src/liblzma/api CACHE PATH "LZMA include for libarchive" FORCE)
-set(LIBLZMA_LIBRARY liblzma CACHE STRING "LZMA library for libarchive" FORCE)
-set(LIBLZMA_LIBRARIES liblzma CACHE STRING "LZMA libraries for libarchive" FORCE)
-set(PC_LIBLZMA_FOUND false CACHE BOOL "Disable pkg-config LZMA" FORCE)
+set(LIBLZMA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/cmliblzma/liblzma/api CACHE PATH "LZMA include for libarchive" FORCE)
+set(LIBLZMA_LIBRARY cmliblzma CACHE STRING "LZMA library for libarchive" FORCE)  
+set(LIBLZMA_LIBRARIES cmliblzma CACHE STRING "LZMA libraries for libarchive" FORCE)
 set(POSIX_REGEX_LIB "libc" CACHE STRING "Regex library for libarchive")
 set(LIBARCHIVE_VERSION "3.8.1")
 
@@ -258,8 +232,8 @@ endif()
 if (TARGET archive_static AND TARGET ZLIB::ZLIB)
     add_dependencies(archive_static ZLIB::ZLIB)
 endif()
-if (TARGET archive_static AND TARGET liblzma)
-    add_dependencies(archive_static liblzma)
+if (TARGET archive_static AND TARGET cmliblzma)
+    add_dependencies(archive_static cmliblzma)
 endif()
 
 unset(POSIX_REGEX_LIB)
@@ -792,7 +766,7 @@ if(WIN32)
         CURL::libcurl_static 
         LibArchive::archive_static 
         zstd::libzstd_static 
-        LibLZMA::liblzma 
+        LibLZMA::LibLZMA 
         ${ZLIB_LINK_TARGET} 
         ${ATOMIC_LIBRARY} 
         ${EXTRALIBS} 
@@ -807,7 +781,7 @@ else()
             CURL::libcurl_static 
             LibArchive::archive_static 
             zstd::libzstd_static 
-            LibLZMA::liblzma 
+            LibLZMA::LibLZMA 
             ${ZLIB_LINK_TARGET} 
             ${ATOMIC_LIBRARY} 
             ${EXTRALIBS}
@@ -819,7 +793,7 @@ else()
             CURL::libcurl_static 
             LibArchive::archive_static 
             zstd::libzstd_static 
-            LibLZMA::liblzma 
+            LibLZMA::LibLZMA 
             ${ZLIB_LINK_TARGET} 
             ${ATOMIC_LIBRARY} 
             ${EXTRALIBS}
