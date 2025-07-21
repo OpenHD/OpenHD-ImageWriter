@@ -29,6 +29,9 @@ endif()
 
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Which macOS architectures to build for")
 
+# Disable system LZMA detection globally - we use only bundled LZMA
+set(CMAKE_DISABLE_FIND_PACKAGE_LibLZMA ON CACHE BOOL "Disable system LZMA detection" FORCE)
+
 project(OpenHDImageWriter LANGUAGES CXX C)
 set(IMAGER_VERSION_MAJOR 2)
 set(IMAGER_VERSION_MINOR 0)
@@ -229,10 +232,13 @@ set(ARCHIVE_BUILD_EXAMPLES OFF CACHE BOOL "")
 set(ENABLE_ZSTD ON CACHE BOOL "")
 set(ENABLE_LZMA ON CACHE BOOL "")
 # Point libarchive to our bundled LZMA - prevent finding system LZMA
+# Disable all external LZMA detection to force use of our bundled version
+set(CMAKE_DISABLE_FIND_PACKAGE_LibLZMA ON CACHE BOOL "Disable system LZMA detection" FORCE)
 set(LIBLZMA_FOUND true CACHE BOOL "Force LibArchive to use our bundled LZMA" FORCE)
 set(LIBLZMA_INCLUDE_DIR ${xz_SOURCE_DIR}/src/liblzma/api CACHE PATH "LZMA include for libarchive" FORCE)
 set(LIBLZMA_LIBRARY liblzma CACHE STRING "LZMA library for libarchive" FORCE)
 set(LIBLZMA_LIBRARIES liblzma CACHE STRING "LZMA libraries for libarchive" FORCE)
+set(PC_LIBLZMA_FOUND false CACHE BOOL "Disable pkg-config LZMA" FORCE)
 set(POSIX_REGEX_LIB "libc" CACHE STRING "Regex library for libarchive")
 set(LIBARCHIVE_VERSION "3.8.1")
 
