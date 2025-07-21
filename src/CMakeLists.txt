@@ -520,7 +520,7 @@ set(SOURCES ${PLATFORM_SOURCES} "main.cpp" "networkaccessmanagerfactory.cpp"
     "drivelistitem.cpp" "drivelistmodel.cpp" "drivelistmodelpollthread.cpp" "downloadthread.cpp" "downloadextractthread.cpp"
      "driveformatthread.cpp" "localfileextractthread.cpp" "powersaveblocker.cpp" "downloadstatstelemetry.cpp" "qml.qrc" "dependencies/sha256crypt/sha256crypt.c" "cli.cpp")
 
-find_package(Qt6 6.5 QUIET COMPONENTS Core Quick LinguistTools Svg OPTIONAL_COMPONENTS Widgets DBus)
+find_package(Qt6 6.5 QUIET COMPONENTS Core Quick LinguistTools Svg Xml OPTIONAL_COMPONENTS Widgets DBus)
 if (Qt6_FOUND)
     set(QT Qt6)
 else()
@@ -771,7 +771,7 @@ if(WIN32)
         set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".lib" ".dll.a")
     endif()
     target_link_libraries(${PROJECT_NAME} PRIVATE 
-        ${QT}::Core ${QT}::Quick ${QT}::Svg 
+        ${QT}::Core ${QT}::Quick ${QT}::Svg ${QT}::Xml 
         CURL::libcurl_static 
         LibArchive::archive_static 
         zstd::libzstd_static 
@@ -786,7 +786,7 @@ else()
     if(APPLE)
         # Use target-based linking for better dependency management on macOS
         target_link_libraries(${PROJECT_NAME} PRIVATE 
-            ${QT}::Core ${QT}::Quick ${QT}::Svg 
+            ${QT}::Core ${QT}::Quick ${QT}::Svg ${QT}::Xml 
             CURL::libcurl_static 
             LibArchive::archive_static 
             zstd::libzstd_static 
@@ -798,7 +798,7 @@ else()
     else()
         # Use consistent target-based linking for Linux too
         target_link_libraries(${PROJECT_NAME} PRIVATE 
-            ${QT}::Core ${QT}::Quick ${QT}::Svg 
+            ${QT}::Core ${QT}::Quick ${QT}::Svg ${QT}::Xml 
             CURL::libcurl_static 
             LibArchive::archive_static 
             zstd::libzstd_static 
