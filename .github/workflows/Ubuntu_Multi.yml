@@ -4,60 +4,114 @@ on:
   push:
     branches:
       - "NEXT"
+      - "2.5-evo"
+      - "master"
       - "dev-release"
       - "release"
+      - "debug_older2"
+      - "fix_workflows"
+      - "new_qt"
+    paths:
+      - 'src/**'
+      - 'debian/**'
+      - '.github/workflows/Ubuntu_Multi.yml'
 
 jobs:
   build:
     runs-on: ubuntu-22.04
 
-    strategy:
-      matrix:
-        distro:
-          - { name: noble, container: 'ubuntu:noble' }
-          - { name: lunar, container: 'ubuntu:lunar' }
-          - { name: jammy, container: '' }
-
-    container: ${{ matrix.distro.container }}
-    
     steps:
-      - name: Init env
-        run: |
-          echo "DT=$(date +'%Y-%m-%d_%H%M')" >> $GITHUB_ENV
-          echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
-          if [ "${{ matrix.distro.name }}" = "lunar" ]; then
-            sed -i 's|http://archive.ubuntu.com/ubuntu|http://old-releases.ubuntu.com/ubuntu|g' /etc/apt/sources.list
-            sed -i 's|http://security.ubuntu.com/ubuntu|http://old-releases.ubuntu.com/ubuntu|g' /etc/apt/sources.list
-          fi
-          if [ "${{ matrix.distro.name }}" != "jammy" ]; then
-          apt update
-          apt install -y git sudo
-          fi
-
       - uses: actions/checkout@v4
 
-      - name: Build .deb
+      - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt upgrade -y
-          sudo apt install -y --no-install-recommends \
-            libgnutls28-dev build-essential devscripts debhelper cmake git libarchive-dev libcurl4-openssl-dev \
-            qtbase5-dev qtbase5-dev-tools qtdeclarative5-dev libqt5svg5-dev qttools5-dev libssl-dev \
-            qml-module-qtquick2 qml-module-qtquick-controls2 qml-module-qtquick-layouts \
-            qml-module-qtquick-templates2 qml-module-qtquick-window2 qml-module-qtgraphicaleffects
-          
-          mkdir build
-          mv `ls -A | grep -v "build"` build
-          cd build
-          debuild -uc -us
-          cd ..
+          sudo apt install -y \
+            build-essential cmake git libarchive-dev libcurl4-openssl-dev libgnutls28-dev libssl-dev \
+            libfuse2 file wget ccache \
+            libxcb-xinerama0 libxcb-cursor0 libxkbcommon-x11-0
 
-      - name: Upload to GitHub
+      - name: Install Qt 6.5.0
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.5.0'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'gcc_64'
+          archives: 'qtbase qtdeclarative qtsvg qttools icu'
+          cache: true
+          install-deps: true
+
+      - name: Debug Qt environment
+        run: |
+          echo "QT_ROOT_DIR: $QT_ROOT_DIR"
+          echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+          ls -la "$QT_ROOT_DIR/lib" | grep icu || echo "No ICU libraries found in Qt lib directory"
+
+      - name: Fix ICU library compatibility for Qt tools
+        run: |
+          # Ensure Qt's bundled ICU libraries are prioritized
+          echo "LD_LIBRARY_PATH=$QT_ROOT_DIR/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          
+          # Debug: Check what ICU libraries Qt has
+          echo "Qt ICU libraries:"
+          find "$QT_ROOT_DIR" -name "*icu*" -type f 2>/dev/null || echo "No ICU files found in Qt installation"
+          
+          # Debug: Check system ICU libraries
+          echo "System ICU libraries:"
+          ls -la /usr/lib/x86_64-linux-gnu/libicu* 2>/dev/null || echo "No system ICU libraries found"
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ubuntu-22.04-qt6.5.0
+          max-size: 500M
+
+      - name: Cache FetchContent dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            src/build/_deps
+            ~/.cache/cmake
+          key: ${{ runner.os }}-cmake-deps-${{ hashFiles('src/CMakeLists.txt', 'src/dependencies/**') }}
+          restore-keys: |
+            ${{ runner.os }}-cmake-deps-
+
+      - name: Build application
+        run: |
+          cd src
+          mkdir -p build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          make -j$(nproc)
+
+      - name: Install to AppDir
+        run: |
+          cd src/build
+          make install DESTDIR=AppDir
+
+      - name: Download linuxdeploy and Qt plugin
+        run: |
+          cd src/build
+          wget -c -nv "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+          wget -c -nv "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage"
+          chmod +x linuxdeploy*.AppImage
+
+      - name: Create AppImage
+        run: |
+          cd src/build
+          export QML_SOURCES_PATHS=../
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
+          mv OpenHD*.AppImage ../../OpenHDImageWriter-x86_64.AppImage
+
+      - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: "OpenHD Image Writer (${{ matrix.distro.name }})"
+          name: "OpenHD Image Writer AppImage"
           path: |
-            *.deb
+            OpenHDImageWriter-x86_64.AppImage
           if-no-files-found: error
 
       - name: Push to Cloudsmith
@@ -67,10 +121,8 @@ jobs:
         with:
           api-key: ${{ secrets.CLOUDSMITH_API_KEY }}
           command: "push"
-          format: "deb"
+          format: "raw"
           owner: "openhd"
           repo: ${{ github.ref_name }}
-          distro: "ubuntu"
-          release: "${{ matrix.distro.name }}"
           republish: "true"
-          file: "*.deb"
+          file: "OpenHDImageWriter-x86_64.AppImage"

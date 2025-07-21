@@ -39,6 +39,9 @@
 #ifdef Q_OS_DARWIN
 #include <QMessageBox>
 #include <security/security.h>
+#elif defined(HAVE_WINCRYPT)
+#include <windows.h>
+#include <wincrypt.h>
 #else
 #include "openssl/evp.h"
 #include "openssl/sha.h"
@@ -52,8 +55,10 @@
 #define WLAN_PROFILE_GET_PLAINTEXT_KEY 4
 #endif
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QWinTaskbarButton>
 #include <QWinTaskbarProgress>
+#endif
 #endif
 
 #ifdef QT_NO_WIDGETS
@@ -120,7 +125,9 @@ ImageWriter::ImageWriter(QObject *parent)
     }
 
 #ifdef Q_OS_WIN
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     _taskbarButton = nullptr;
+#endif
 #endif
 
     if (!_settings.isWritable() && !_settings.fileName().isEmpty())
@@ -215,7 +222,7 @@ void ImageWriter::makeDeveloper()
     QFile f(devFilePath);
     if (!f.exists()) {
         if (f.open(QIODevice::WriteOnly)) {
-            qDebug() << "You are now a Developer!" << f;
+            qDebug() << "You are now a Developer!" << devFilePath;
             f.close();
             QCoreApplication::exit(-1);
             QProcess::startDetached(qApp->arguments()[0]);
@@ -257,7 +264,7 @@ void ImageWriter::setSrc(const QUrl &url, quint64 downloadLen, quint64 extrLen, 
     _multipleFilesInZip = multifilesinzip;
     _parentCategory = parentcategory;
     _osName = osname;
-    _initFormat = (initFormat == "none") ? "" : initFormat;
+    _initFormat = (initFormat == "none") ? QByteArray("") : initFormat;
 
     if (!_downloadLen && url.isLocalFile())
     {
@@ -552,6 +559,7 @@ void ImageWriter::startProgressPolling()
 {
     _powersave.applyBlock(tr("Downloading and writing image"));
 #ifdef Q_OS_WIN
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     if (!_taskbarButton && _engine)
     {
         QWindow* window = qobject_cast<QWindow*>( _engine->rootObjects().at(0) );
@@ -564,6 +572,7 @@ void ImageWriter::startProgressPolling()
         }
     }
 #endif
+#endif
     _dlnow = 0; _verifynow = 0;
     _polltimer.start(PROGRESS_UPDATE_INTERVAL);
 }
@@ -573,12 +582,14 @@ void ImageWriter::stopProgressPolling()
     _polltimer.stop();
     pollProgress();
 #ifdef Q_OS_WIN
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     if (_taskbarButton)
     {
         _taskbarButton->progress()->setVisible(false);
         _taskbarButton->deleteLater();
         _taskbarButton = nullptr;
     }
+#endif
 #endif
     _powersave.removeBlock();
 }
@@ -604,11 +615,13 @@ void ImageWriter::pollProgress()
     {
         _dlnow = newDlNow;
 #ifdef Q_OS_WIN
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         if (_taskbarButton)
         {
             _taskbarButton->progress()->setMaximum(dlTotal/1048576);
             _taskbarButton->progress()->setValue(newDlNow/1048576);
         }
+#endif
 #endif
         emit downloadProgress(newDlNow, dlTotal);
     }
@@ -620,11 +633,13 @@ void ImageWriter::pollProgress()
         _verifynow = newVerifyNow;
         quint64 verifyTotal = _thread->verifyTotal();
 #ifdef Q_OS_WIN
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         if (_taskbarButton)
         {
             _taskbarButton->progress()->setMaximum(verifyTotal/1048576);
             _taskbarButton->progress()->setValue(newVerifyNow/1048576);
         }
+#endif
 #endif
         emit verifyProgress(newVerifyNow, verifyTotal);
     }
@@ -1078,24 +1093,41 @@ QString ImageWriter::getPSK(const QString &ssid)
 
 #else
 #ifdef Q_OS_DARWIN
-    SecKeychainRef keychainRef;
     QString psk;
     QByteArray ssidAscii = ssid.toLatin1();
 
     if (QMessageBox::question(nullptr, "",
                           tr("Would you like to prefill the wifi password from the system keychain?")) == QMessageBox::Yes)
     {
-        if (SecKeychainOpen("/Library/Keychains/System.keychain", &keychainRef) == errSecSuccess)
-        {
-            UInt32 resultLen;
-            void *result;
-            if (SecKeychainFindGenericPassword(keychainRef, 0, NULL, ssidAscii.length(), ssidAscii.constData(), &resultLen, &result, NULL) == errSecSuccess)
-            {
-                psk = QByteArray((char *) result, resultLen);
-                SecKeychainItemFreeContent(NULL, result);
+        // Use modern Security framework APIs instead of deprecated SecKeychain
+        CFStringRef serviceName = CFStringCreateWithCString(kCFAllocatorDefault, "AirPort network password", kCFStringEncodingUTF8);
+        CFStringRef accountName = CFStringCreateWithCString(kCFAllocatorDefault, ssidAscii.constData(), kCFStringEncodingUTF8);
+        
+        if (serviceName && accountName) {
+            // Query for keychain item using modern API
+            CFMutableDictionaryRef query = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+            
+            CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword);
+            CFDictionarySetValue(query, kSecAttrService, serviceName);
+            CFDictionarySetValue(query, kSecAttrAccount, accountName);
+            CFDictionarySetValue(query, kSecReturnData, kCFBooleanTrue);
+            CFDictionarySetValue(query, kSecMatchLimit, kSecMatchLimitOne);
+            
+            CFDataRef passwordData = nullptr;
+            OSStatus status = SecItemCopyMatching(query, (CFTypeRef*)&passwordData);
+            
+            if (status == errSecSuccess && passwordData) {
+                CFIndex dataLength = CFDataGetLength(passwordData);
+                const UInt8* bytes = CFDataGetBytePtr(passwordData);
+                psk = QString::fromUtf8(reinterpret_cast<const char*>(bytes), static_cast<int>(dataLength));
+                CFRelease(passwordData);
             }
-            CFRelease(keychainRef);
+            
+            CFRelease(query);
         }
+        
+        if (serviceName) CFRelease(serviceName);
+        if (accountName) CFRelease(accountName);
     }
 
     return psk;

@@ -5,13 +5,13 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>English</string>
   <key>CFBundleExecutable</key>
-  <string>openhdimagewriter</string>
+  <string>OpenHDImageWriter</string>
   <key>CFBundleGetInfoString</key>
   <string></string>
   <key>CFBundleIconFile</key>
   <string>openhdimagewriter.icns</string>
   <key>CFBundleIdentifier</key>
-  <string>org.raspberrypi.imagingutility</string>
+  <string>org.openhd.imagewriter</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleLongVersionString</key>

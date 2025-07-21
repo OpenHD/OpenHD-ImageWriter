@@ -16,7 +16,10 @@
 #define SHA256_Update CC_SHA256_Update
 #define SHA256_Final  CC_SHA256_Final
 #else
-#ifdef HAVE_GNUTLS
+#ifdef HAVE_WINCRYPT
+#include <windows.h>
+#include <wincrypt.h>
+#elif defined(HAVE_GNUTLS)
 #include "gnutls/crypto.h"
 #else
 #include "openssl/sha.h"
@@ -33,7 +36,10 @@ public:
     QByteArray result();
 
 protected:
-#ifdef HAVE_GNUTLS
+#ifdef HAVE_WINCRYPT
+    HCRYPTPROV _hCryptProv;
+    HCRYPTHASH _hHash;
+#elif defined(HAVE_GNUTLS)
     gnutls_hash_hd_t _sha256;
 #else
     SHA256_CTX _sha256;

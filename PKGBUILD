@@ -7,16 +7,16 @@ arch=('x86_64' 'aarch64')
 url="https://www.openhdfpv.org/"
 license=('Apache' 'LGPL3' 'MIT' 'BSD' 'ZLIB' 'custom:PublicDomain' 'custom:libcurl')
 depends=(
-  'qt5-base'
-  'qt5-declarative'
-  'qt5-svg'
-  'qt5-tools'
-  'qt5-quickcontrols2'
-  'qt5-graphicaleffects'
+  'qt6-base'
+  'qt6-declarative'
+  'qt6-svg'
+  'qt6-tools'
+  'qt6-quickcontrols2'
+  'qt6-quickeffects'
   'dosfstools'
   'util-linux'
 )
-makedepends=('cmake' 'git' 'libarchive' 'curl' 'qt5-base' 'qt5-tools')
+makedepends=('cmake' 'git' 'libarchive' 'curl' 'qt6-base' 'qt6-tools')
 optdepends=('udisks2: for device management support')
 
 pkgver() {
@@ -24,10 +24,12 @@ pkgver() {
 }
 
 build() {
-  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr .
+  cd src
+  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .
   make
 }
 
 package() {
+  cd src
   make DESTDIR="$pkgdir" install
 }

@@ -8,6 +8,13 @@
 
 #include "downloadextractthread.h"
 #include <QFile>
+#ifdef _WIN32
+// Modern MinGW64 (GCC 15+) already defines ssize_t properly, so we don't need to define it
+// This manual typedef was only needed for very old MinGW versions
+#if defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR) && (_WIN32_WINNT < 0x0600)
+typedef long ssize_t;
+#endif
+#endif
 
 class LocalFileExtractThread : public DownloadExtractThread
 {

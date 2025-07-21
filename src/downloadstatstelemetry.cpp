@@ -21,7 +21,7 @@ DownloadStatsTelemetry::DownloadStatsTelemetry(const QByteArray &url, const QByt
             +"&os="+QUrl::toPercentEncoding(parentcategory)
             +"&image="+QUrl::toPercentEncoding(osname)
             +"&imagerVersion=" IMAGER_VERSION_STR
-            +"&imagerOsType="+(embedded ? "embedded" : QUrl::toPercentEncoding(QSysInfo::productType()))
+            +"&imagerOsType="+(embedded ? QByteArray("embedded") : QUrl::toPercentEncoding(QSysInfo::productType()))
             +"&imagerOsVersion="+QUrl::toPercentEncoding(QSysInfo::productVersion())
             +"&imagerOsArch="+QUrl::toPercentEncoding(QSysInfo::currentCpuArchitecture())
             +"&imagerLocale="+QUrl::toPercentEncoding(embedded ? imagerLang : locale.name());

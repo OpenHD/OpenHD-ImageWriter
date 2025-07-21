@@ -10,8 +10,14 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#ifdef _WIN32
+#include <sys/utime.h>
+#include <io.h>
+#include <windows.h>
+#else
 #include <utime.h>
 #include <unistd.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -427,7 +433,11 @@ void DownloadThread::run()
         if (t - _lastFailureTime < 5)
         {
             qDebug() << "Sleeping 5 seconds";
+#ifdef _WIN32
+            Sleep(5000);
+#else
             ::sleep(5);
+#endif
         }
         _lastFailureTime = t;
 

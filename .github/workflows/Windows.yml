@@ -1,5 +1,4 @@
 name: OpenHD Image Writer Windows
-
 on:
   push:
     branches:
@@ -7,143 +6,491 @@ on:
       - "dev-release"
       - "release"
       - "NEXT"
-    paths-ignore:
-      - '**.md'
-      - '**.asciidoc'
-      - '**.adoc'
-      - '.gitignore'
-      - 'LICENSE'
+      - "debug_older2"
+      - "fix_workflows"
+      - "new_qt"
+      - "master"
+    paths:
+      - 'src/**'
+      - '.github/workflows/Windows.yml'
 
 env:
   BUILD_TYPE: Release
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     defaults:
       run:
         working-directory: src
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+
+    - name: Setup MinGW-w64
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        cache: true  # Enable MSYS2 built-in caching
+        install: >-
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-ninja
+          mingw-w64-x86_64-make
+          mingw-w64-x86_64-ccache
+          zip
+          unzip
+
+    - name: Cache Qt Installation
+      uses: actions/cache@v4
+      id: cache-qt
+      with:
+        path: D:\a\OpenHD-ImageWriter\Qt
+        key: qt-6.5.0-win64-mingw-${{ runner.os }}-v2
+        restore-keys: |
+          qt-6.5.0-win64-mingw-${{ runner.os }}-
+          qt-6.5.0-win64-mingw-
 
     - name: Install Qt
-      id: qt-install
+      if: steps.cache-qt.outputs.cache-hit != 'true'
       uses: jurplel/install-qt-action@v4
       with:
-        version: '5.15.2'
-        aqtversion: '==3.1.*'
-        host: windows
-        target: desktop
-        arch: win32_mingw81
+        version: '6.5.0'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_mingw'
+        archives: 'qtbase qtdeclarative qtsvg qttools'
+        cache: false  # Use our manual cache instead
         setup-python: false
-        tools: tools_cmake tools_mingw81,qt.tools.win32_mingw810
-
-    - name: Download and Extract OpenSSL
-      shell: pwsh
-      working-directory: ${{ github.workspace }}
+        aqtversion: '==3.1.*'
+        
+    - name: Set Qt Path (for cached installation)
+      if: steps.cache-qt.outputs.cache-hit == 'true'
+      shell: bash
       run: |
-        Invoke-WebRequest `
-          -Uri "https://download.firedaemon.com/FireDaemon-OpenSSL/openssl-1.1.1w.zip" `
-          -OutFile openssl-1.1.1w.zip
-        Expand-Archive openssl-1.1.1w.zip -DestinationPath openssl111
-      
-    - name: Copy OpenSSL to Qt MinGW path
-      shell: pwsh
-      working-directory: ${{ github.workspace }}
+        echo "QT_ROOT_DIR=D:/a/OpenHD-ImageWriter/Qt/6.5.0/mingw_64" >> $GITHUB_ENV
+        echo "Qt6_DIR=D:/a/OpenHD-ImageWriter/Qt/6.5.0/mingw_64" >> $GITHUB_ENV
+        echo "QML2_IMPORT_PATH=D:/a/OpenHD-ImageWriter/Qt/6.5.0/mingw_64/qml" >> $GITHUB_ENV
+        
+    - name: Set Qt Environment
+      shell: msys2 {0}
       run: |
-          dir ${{ github.workspace }}\..\Qt\
-          dir ${{ github.workspace }}\..\Qt\Tools\
-          dir ${{ github.workspace }}\..\Qt\Tools\mingw810_32\
-      
-          $openssl = (Get-ChildItem -Directory -Path "${{ github.workspace }}\openssl111" | Where-Object { $_.Name -like "openssl-*" } | Select-Object -First 1).FullName + "\x86"
-          $mingwRoot = "${{ github.workspace }}\..\Qt\Tools\mingw810_32"
-      
-          Write-Host "Resolved OpenSSL path: $openssl"
-          if (Test-Path $openssl) {
-            Get-ChildItem -Recurse "$openssl" | ForEach-Object { Write-Host $_.FullName }
-          } else {
-            Write-Error "OpenSSL path not found: $openssl"
-          }
-      
-          Copy-Item "$openssl\bin\libcrypto-1_1.dll" "$mingwRoot\bin\" -Force
-          Copy-Item "$openssl\bin\libssl-1_1.dll"    "$mingwRoot\bin\" -Force
-          Copy-Item "$openssl\lib\libcrypto.lib"     "$mingwRoot\lib\" -Force
-          Copy-Item "$openssl\lib\libssl.lib"        "$mingwRoot\lib\" -Force
-          New-Item -ItemType Directory -Force -Path "$mingwRoot\include\openssl"
-          Write-Host "Copying OpenSSL headers from: $openssl\include\openssl\."
-          Copy-Item "$openssl\include\openssl\." "$mingwRoot\include\" -Recurse -Force -Verbose
-          dir "$mingwRoot\include\openssl\"
+        # Debug all environment variables that might contain Qt paths
+        echo "=== Environment Variables ==="
+        echo "QT_ROOT_DIR: '$QT_ROOT_DIR'"
+        echo "Qt6_DIR: '$Qt6_DIR'"
+        echo "QT_PLUGIN_PATH: '$QT_PLUGIN_PATH'"
+        echo "QT_QML_PATH: '$QT_QML_PATH'"
+        echo "PATH (Qt parts): $(echo $PATH | tr ':' '\n' | grep -i qt || echo 'No Qt in PATH')"
+        
+        # Check typical Qt installation locations
+        echo "=== Checking Qt Installation Locations ==="
+        echo "Checking D:/a/OpenHD-ImageWriter/Qt/:"
+        ls -la "D:/a/OpenHD-ImageWriter/Qt/" 2>/dev/null || echo "Not found"
+        echo "Checking /d/a/OpenHD-ImageWriter/Qt/:"
+        ls -la "/d/a/OpenHD-ImageWriter/Qt/" 2>/dev/null || echo "Not found"
+        
+        # Look for Qt installations more broadly
+        echo "=== Searching for Qt installations ==="
+        find /d/a -name "*Qt*" -type d 2>/dev/null | head -10 || echo "No Qt directories found"
+        find /d/a -name "qmake*" -type f 2>/dev/null | head -5 || echo "No qmake found"
+        find /d/a -name "*Qt6Config.cmake" -type f 2>/dev/null | head -5 || echo "No Qt6Config.cmake found"
+        
+        # Try to determine Qt path from the action's standard locations
+        QT_PATH=""
+        if [ -n "$QT_ROOT_DIR" ] && [ -d "$QT_ROOT_DIR" ]; then
+          QT_PATH="$QT_ROOT_DIR"
+        elif [ -d "/d/a/OpenHD-ImageWriter/Qt/6.5.0/mingw_64" ]; then
+          QT_PATH="/d/a/OpenHD-ImageWriter/Qt/6.5.0/mingw_64"
+        elif [ -d "D:/a/OpenHD-ImageWriter/Qt/6.5.0/mingw_64" ]; then
+          QT_PATH="D:/a/OpenHD-ImageWriter/Qt/6.5.0/mingw_64"
+        fi
+        
+        if [ -n "$QT_PATH" ]; then
+          # Convert to MSYS2 format if it's a Windows path
+          if [[ "$QT_PATH" =~ ^[A-Z]: ]]; then
+            QT_PATH_MSYS=$(cygpath -u "$QT_PATH" 2>/dev/null || echo "$QT_PATH")
+          else
+            QT_PATH_MSYS="$QT_PATH"
+          fi
+          
+          echo "=== Final Qt Configuration ==="
+          echo "Original Qt path: $QT_PATH"
+          echo "MSYS2 Qt path: $QT_PATH_MSYS"
+          echo "QT_ROOT_DIR_MSYS=$QT_PATH_MSYS" >> $GITHUB_ENV
+          echo "Qt6_DIR=$QT_PATH_MSYS" >> $GITHUB_ENV
+          
+          echo "Verifying Qt installation:"
+          ls -la "$QT_PATH_MSYS" || echo "Qt directory not accessible"
+          ls -la "$QT_PATH_MSYS/bin" || echo "Qt bin directory not found"
+          ls -la "$QT_PATH_MSYS/lib/cmake" || echo "Qt cmake directory not found"
+        else
+          echo "ERROR: Could not determine Qt installation path!"
+          exit 1
+        fi
 
     - name: Install NSIS
       run: choco install nsis --x86 --force -y
 
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: D:/a/_temp/ccache
+        key: ${{ runner.os }}-mingw64-ccache-${{ hashFiles('src/**/*.cpp', 'src/**/*.c', 'src/**/*.h') }}
+        restore-keys: |
+          ${{ runner.os }}-mingw64-ccache-
+
+    - name: Setup ccache
+      shell: msys2 {0}
+      run: |
+        echo "=== ccache Setup ==="
+        ccache --version
+        
+        # Ensure cache directory exists and use Windows-compatible path
+        export CCACHE_DIR="/d/a/_temp/ccache"
+        mkdir -p "$CCACHE_DIR"
+        
+        ccache --zero-stats
+        ccache --set-config=max_size=2G
+        ccache --set-config=cache_dir="$CCACHE_DIR"
+        ccache --set-config=compression=true
+        
+        echo "CCACHE_DIR=$CCACHE_DIR" >> $GITHUB_ENV
+        
+        echo "=== ccache Configuration ==="
+        ccache --show-config
+        echo "Cache directory: $CCACHE_DIR"
+        ls -la "$CCACHE_DIR" || echo "Cache directory not accessible"
+
+
+    - name: Cache FetchContent dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          src/build/_deps
+        key: ${{ runner.os }}-mingw64-deps-v4-${{ hashFiles('src/CMakeLists.txt') }}-${{ hashFiles('.github/workflows/Windows.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-mingw64-deps-v4-${{ hashFiles('src/CMakeLists.txt') }}-
+          ${{ runner.os }}-mingw64-deps-v4-
+          ${{ runner.os }}-mingw64-deps-
+
     - name: Show Qt & CMake Info
+      shell: msys2 {0}
       run: |
-        where gcc
-        where g++
+        which gcc
+        gcc --version
         cmake --version
-
-    - name: Debug OpenSSL include headers
-      shell: pwsh
-      working-directory: ${{ github.workspace }}
-      run: |
-        $opensslInclude = "$Env:GITHUB_WORKSPACE\..\Qt\Tools\mingw810_32\include\openssl"
-        $openssl = (Get-ChildItem -Directory -Path "${{ github.workspace }}\openssl111" | Where-Object { $_.Name -like "openssl-*" } | Select-Object -First 1).FullName + "\x86"
-
-        Write-Host "Looking in: $opensslInclude"
-        if (Test-Path $opensslInclude) {
-          Get-ChildItem $opensslInclude | Select-Object -First 20
-        } else {
-          Write-Error "OpenSSL include directory not found!"
-        }
-        
-        dir "$openssl\include\openssl\"
-        
+        echo "Qt directory: ${{ steps.qt-install.outputs.qt-dir }}"
+        echo "Qt version: ${{ steps.qt-install.outputs.qt-version }}"
+        echo "Qt bin dir: ${{ steps.qt-install.outputs.qt-bin-dir }}"
+        echo "QT_ROOT_DIR env var: $QT_ROOT_DIR"
+        ls -la "${{ steps.qt-install.outputs.qt-dir }}" || echo "Qt directory not found"
+        find "${{ steps.qt-install.outputs.qt-dir }}" -name "Qt*Config.cmake" -o -name "qt*config.cmake" 2>/dev/null || echo "No Qt config files found"
+        # Check if Qt is in default location
+        ls -la "/d/a/OpenHD-ImageWriter/Qt" || echo "Qt default location not found"
+        find "/d/a/OpenHD-ImageWriter/Qt" -name "Qt*Config.cmake" -o -name "qt*config.cmake" 2>/dev/null || echo "No Qt config files in default location"
+        # Check what Qt we can find with pkg-config or cmake
+        echo "Checking for Qt6 components..."
+        cmake --find-package -DNAME=Qt6 -DCOMPILER_ID=GNU -DLANGUAGE=CXX -DMODE=EXIST 2>/dev/null && echo "Qt6 found by cmake" || echo "Qt6 not found by cmake"
 
     - name: Configure CMake
-      shell: cmd
+      shell: msys2 {0}
       working-directory: src
       run: |
-        dir "%GITHUB_WORKSPACE%\openssl111\openssl-1.1\x86\include"
-        mkdir build
+        # Clean any existing build directory to avoid cache issues
+        if [ -d "build" ]; then
+          echo "Removing existing build directory..."
+          rm -rf build
+        fi
+        mkdir -p build
         cd build
-        cmake .. -G "MinGW Makefiles" ^
-        -DCMAKE_BUILD_TYPE=Release ^
-        -DCMAKE_C_COMPILER="%GITHUB_WORKSPACE%\..\Qt\Tools\mingw810_32\bin\gcc.exe" ^
-        -DCMAKE_CXX_COMPILER="%GITHUB_WORKSPACE%\..\Qt\Tools\mingw810_32\bin\g++.exe" ^
-        -DOPENSSL_INCLUDE_DIR="%GITHUB_WORKSPACE%\openssl111\openssl-1.1\x86\include" ^
-        -DOPENSSL_LIBRARIES="%GITHUB_WORKSPACE%\openssl111\openssl-1.1\x86\lib"
-
+        
+        echo "=== CMake Configuration Debug ==="
+        echo "QT_ROOT_DIR: '$QT_ROOT_DIR'"
+        echo "QT_ROOT_DIR_MSYS: '$QT_ROOT_DIR_MSYS'"
+        echo "Qt6_DIR: '$Qt6_DIR'"
+        
+        # ccache is configured manually for MSYS2 compatibility
+        echo "=== ccache Setup Debug ==="
+        echo "ccache available: $(which ccache || echo 'not found')"
+        if command -v ccache >/dev/null 2>&1; then
+          echo "ccache version: $(ccache --version | head -1)"
+          echo "ccache config: $(ccache --show-config | grep -E '(cache_dir|max_size)')"
+        fi
+        
+        # Validate Qt path before proceeding
+        if [ -z "$QT_ROOT_DIR_MSYS" ]; then
+          echo "ERROR: QT_ROOT_DIR_MSYS is not set!"
+          exit 1
+        fi
+        
+        if [ ! -d "$QT_ROOT_DIR_MSYS" ]; then
+          echo "ERROR: Qt directory '$QT_ROOT_DIR_MSYS' does not exist!"
+          exit 1
+        fi
+        
+        echo "Using Qt directory: $QT_ROOT_DIR_MSYS"
+        echo "Qt directory contents:"
+        ls -la "$QT_ROOT_DIR_MSYS"
+        
+        echo "=== Running CMake ==="
+        # Use CMAKE_*_COMPILER_LAUNCHER which is the correct way for Qt/MOC compatibility
+        # ccache handles response files properly, so no need to disable them
+        cmake .. -G "MinGW Makefiles" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DQt6_ROOT="$QT_ROOT_DIR_MSYS" \
+        -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR_MSYS" \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        
+        echo "=== CMake Configuration Result ==="
+        echo "CMake exit code: $?"
 
     - name: Check CMake Cache
+      shell: msys2 {0}
+      working-directory: src
       run: |
-        dir build
-        type build\CMakeCache.txt || echo "Cache missing"
+        echo "=== CMake Cache Verification ==="
+        echo "Current directory: $(pwd)"
+        echo "Build directory contents:"
+        ls -la build/
+        echo "=== CMake Cache Contents ==="
+        cat build/CMakeCache.txt || echo "Cache file missing"
 
     - name: Build
-      shell: pwsh
+      shell: msys2 {0}
+      working-directory: src
       run: |
-        $env:PATH = "$Env:GITHUB_WORKSPACE\..\Qt\5.15.2\mingw81_32\bin;$Env:GITHUB_WORKSPACE\..\Qt\Tools\mingw810_32\bin;$env:PATH"
         cd build
-        cmake --build . --verbose
+        
+        echo "=== Build Environment Debug ==="
+        # ccache is automatically configured by the action
+        export CC="gcc"
+        export CXX="g++"
+        
+        echo "Set compiler environment for build step (ccache via launcher)"
+        echo "CC=$CC, CXX=$CXX"
+        
+        echo "ccache available: $(which ccache || echo 'not found')"
+        if command -v ccache >/dev/null 2>&1; then
+          echo "ccache stats before build:"
+          ccache --show-stats || echo "ccache stats unavailable"
+        fi
+        
+        echo "=== Starting Build ==="
+        
+        # Build with proper dependency handling using CMake target system
+        echo "Building project with automatic dependency resolution..."
+        echo "Available CPU cores: $(nproc)"
+        
+        # Use mingw32-make for MinGW builds (make is not available in MSYS2)
+        echo "=== Using mingw32-make for MinGW builds ==="
+        echo "Available make commands:"
+        which mingw32-make || echo "mingw32-make not found"
+        which make || echo "make not found" 
+        
+        # Use cmake --build which works reliably with MinGW
+        echo "=== Using cmake --build for reliable MinGW compatibility ==="
+        cmake --build . --parallel $(nproc) -- VERBOSE=1
+        
+        echo "=== Build Complete ==="
+        if command -v ccache >/dev/null 2>&1; then
+          echo "=== Final ccache Statistics ==="
+          ccache --show-stats
+        fi
 
-    - name: Copy OpenSSL DLLs to build folder
-      shell: pwsh
+    - name: Generate ccache Statistics Summary
+      shell: msys2 {0}
       run: |
-        Copy-Item "$Env:GITHUB_WORKSPACE\..\Qt\Tools\mingw810_32\bin\libssl-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE\src\build\"
-        Copy-Item "$Env:GITHUB_WORKSPACE\..\Qt\Tools\mingw810_32\bin\libcrypto-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE\src\build\"
+        echo "## 🔧 ccache Build Statistics" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if command -v ccache >/dev/null 2>&1; then
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          ccache --show-stats >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **ccache is working and statistics are shown above**" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ ccache not available" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Create Standalone Deployment
+      shell: msys2 {0}
+      working-directory: src
+      run: |
+        cd build
+        
+        echo "=== Creating Standalone Windows Build ==="
+        
+        # Create clean deployment directory
+        rm -rf standalone
+        mkdir -p standalone
+        
+        # Copy main executable
+        cp OpenHDImageWriter.exe standalone/
+        
+        echo "Executable size: $(stat -c%s ./OpenHDImageWriter.exe) bytes"
+        echo "Checking dependencies before deployment:"
+        objdump -p ./OpenHDImageWriter.exe | grep "DLL Name" || echo "Could not check dependencies"
+        
+        echo "=== Running windeployqt ==="
+        "$QT_ROOT_DIR_MSYS/bin/windeployqt.exe" \
+          --debug \
+          --qmldir "../" \
+          --compiler-runtime \
+          --force \
+          --verbose 2 \
+          "./standalone/OpenHDImageWriter.exe"
+        
+        echo "=== Adding MinGW Runtime and curl Dependencies ==="
+        # Copy ALL missing DLLs that windeployqt doesn't handle
+        MINGW_BIN="/d/a/_temp/msys64/mingw64/bin"
+        if [ -d "$MINGW_BIN" ]; then
+          echo "Copying MinGW and curl dependencies from: $MINGW_BIN"
+          
+          # Essential MinGW Runtime DLLs
+          for dll in libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll; do
+            if [ -f "$MINGW_BIN/$dll" ]; then
+              echo "Copying MinGW runtime: $dll"
+              cp "$MINGW_BIN/$dll" standalone/
+            else
+              echo "Warning: MinGW runtime $dll not found"
+            fi
+          done
+          
+          # curl Dependencies (the missing ones you reported)
+          for dll in libbrotlidec.dll libidn2-0.dll libnghttp2-14.dll; do
+            if [ -f "$MINGW_BIN/$dll" ]; then
+              echo "Copying curl dependency: $dll"
+              cp "$MINGW_BIN/$dll" standalone/
+            else
+              echo "Warning: curl dependency $dll not found"
+            fi
+          done
+          
+          # Additional curl-related dependencies
+          for dll in libunistring-5.dll libbrotlicommon.dll libbrotlienc.dll libcares-2.dll libpsl-5.dll libssh2-1.dll; do
+            if [ -f "$MINGW_BIN/$dll" ]; then
+              echo "Copying additional curl dependency: $dll"
+              cp "$MINGW_BIN/$dll" standalone/
+            else
+              echo "Note: Optional curl dependency $dll not found (might not be needed)"
+            fi
+          done
+          
+          # System libraries that might be needed
+          for dll in libiconv-2.dll libintl-8.dll zlib1.dll; do
+            if [ -f "$MINGW_BIN/$dll" ]; then
+              echo "Copying system library: $dll"
+              cp "$MINGW_BIN/$dll" standalone/
+            fi
+          done
+        else
+          echo "ERROR: MinGW bin directory not found at $MINGW_BIN"
+        fi
+        
+        echo "=== Smart Dependency Detection ==="
+        # Use objdump to find missing dependencies and copy them automatically
+        if command -v objdump >/dev/null 2>&1; then
+          echo "Scanning executable for missing dependencies..."
+          missing_dlls=$(objdump -p standalone/OpenHDImageWriter.exe | grep "DLL Name" | sed 's/.*DLL Name: //' | tr -d '\r')
+          for dll in $missing_dlls; do
+            if [ ! -f "standalone/$dll" ] && [ -f "$MINGW_BIN/$dll" ]; then
+              echo "Auto-copying missing dependency: $dll"
+              cp "$MINGW_BIN/$dll" standalone/
+            fi
+          done
+        fi
+        
+        echo "=== Final Deployment Analysis ==="
+        cd standalone
+        echo "Standalone directory contents:"
+        ls -la
+        echo "Total deployment size: $(du -sh . | cut -f1)"
+        echo "Main executable size: $(stat -c%s ./OpenHDImageWriter.exe) bytes"
+        echo "DLL count: $(find . -name "*.dll" | wc -l)"
+        echo "Qt DLLs found:"
+        find . -name "Qt*.dll" | head -5
+        echo "All DLL files:"
+        find . -name "*.dll" | sort
+        
+        # Final dependency verification
+        echo "=== Final Dependency Check ==="
+        if command -v objdump >/dev/null 2>&1; then
+          echo "Checking for any remaining missing dependencies:"
+          missing_after=$(objdump -p ./OpenHDImageWriter.exe | grep "DLL Name" | sed 's/.*DLL Name: //' | tr -d '\r')
+          all_satisfied=true
+          for dll in $missing_after; do
+            if [ ! -f "./$dll" ]; then
+              echo "❌ Still missing: $dll"
+              all_satisfied=false
+            fi
+          done
+          if [ "$all_satisfied" = true ]; then
+            echo "✅ All dependencies satisfied!"
+          fi
+        fi
+        
+        cd ..
 
     - name: Build NSIS Installer
       shell: pwsh
       working-directory: src\build
       run: |
-        & "${Env:ProgramFiles(x86)}\NSIS\makensis.exe" "openhdimagewriter.nsi"
+        Write-Host "=== NSIS Installer Build Debug ==="
+        Write-Host "Current directory: $(Get-Location)"
+        Write-Host "Directory contents:"
+        Get-ChildItem | Format-Table Name, Length -AutoSize
+        
+        Write-Host "Looking for NSIS script files..."
+        Get-ChildItem -Filter "*.nsi*" -Recurse | Format-Table FullName, Length -AutoSize
+        
+        if (Test-Path "openhdimagewriter.nsi") {
+          Write-Host "✅ Found openhdimagewriter.nsi - building installer..."
+          & "${Env:ProgramFiles(x86)}\NSIS\makensis.exe" "openhdimagewriter.nsi"
+          
+          Write-Host "=== Installer Build Result ==="
+          Write-Host "All .exe files after build:"
+          Get-ChildItem -Filter "*.exe" | Format-Table Name, Length, LastWriteTime -AutoSize
+          
+          Write-Host "Looking for installer files specifically:"
+          $installerFiles = Get-ChildItem -Filter "*.exe" | Where-Object { 
+            $_.Name -like "*Setup*" -or 
+            $_.Name -like "*Installer*" -or 
+            $_.Name -like "*Install*" -or
+            $_.Name -like "OpenHD-ImageWriter*" 
+          }
+          if ($installerFiles) {
+            $installerFiles | Format-Table Name, Length -AutoSize
+          } else {
+            Write-Host "❌ No installer files found with expected naming pattern"
+          }
+        } else {
+          Write-Host "❌ openhdimagewriter.nsi not found"
+          Write-Host "Checking if template exists..."
+          if (Test-Path "../windows/openhdimagewriter.nsi.in") {
+            Write-Host "Found template at ../windows/openhdimagewriter.nsi.in"
+            Write-Host "CMake should have processed this template. Checking if CMake was configured correctly..."
+          }
+        }
 
-    - name: Upload Installer
+    - name: Upload Portable Build
       uses: actions/upload-artifact@v4
       with:
-        name: OpenHDImageWriter-Build-Full
-        path: src/build/OpenHD-ImageWriter-*
-        if-no-files-found: error
+        name: OpenHDImageWriter-Windows-Portable
+        path: src/build/standalone/
+        if-no-files-found: warn
+        
+    - name: Upload Windows Installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: OpenHDImageWriter-Windows-Installer
+        path: |
+          src/build/*Setup*.exe
+          src/build/*Installer*.exe
+          src/build/*Install*.exe
+          src/build/OpenHD-ImageWriter*.exe
+        if-no-files-found: ignore

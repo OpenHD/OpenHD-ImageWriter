@@ -6,3 +6,65 @@ CMakeCache.txt
 *.qml_hack
 /src/build
 /openssl111
+/buildlogs
+
+# Claude Code related files
+CLAUDE.md
+claude.md
+.claude/
+.claude-*
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.o
+*.obj
+*.lib
+*.a
+*.so
+*.dll
+*.exe
+*.app
+*.dmg
+*.deb
+*.rpm
+*.pkg
+*.msi
+
+# CMake build directories
+build/
+Build/
+BUILD/
+cmake-build-*/
+_build/
+
+# Qt specific
+*.qmlc
+*.jsc
+*.pro.user
+*.pro.user.*
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+*.user
+
+# Platform specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+rpi-imager_reference/
+.vscode/
+.qtcreator/
+.claude/

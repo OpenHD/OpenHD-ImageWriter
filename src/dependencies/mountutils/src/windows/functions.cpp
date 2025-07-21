@@ -40,7 +40,11 @@ HANDLE CreateVolumeHandleFromDevicePath(LPCTSTR devicePath, DWORD flags) {
 
 HANDLE CreateVolumeHandleFromDriveLetter(TCHAR driveLetter, DWORD flags) {
   TCHAR devicePath[8];
+#ifdef UNICODE
+  swprintf_s(devicePath, L"\\\\.\\%c:", driveLetter);
+#else
   sprintf_s(devicePath, "\\\\.\\%c:", driveLetter);
+#endif
   return CreateVolumeHandleFromDevicePath(devicePath, flags);
 }
 
@@ -65,7 +69,11 @@ ULONG GetDeviceNumberFromVolumeHandle(HANDLE volume) {
 
 BOOL IsDriveFixed(TCHAR driveLetter) {
   TCHAR rootName[5];
+#ifdef UNICODE
+  swprintf_s(rootName, L"%c:\\", driveLetter);
+#else
   sprintf_s(rootName, "%c:\\", driveLetter);
+#endif
   return GetDriveType(rootName) == DRIVE_FIXED;
 }
 
@@ -262,7 +270,11 @@ MOUNTUTILS_RESULT EjectFixedDriveByDeviceNumber(ULONG deviceNumber) {
 
   CONFIGRET status;
   PNP_VETO_TYPE vetoType = PNP_VetoTypeUnknown;
+#ifdef UNICODE
+  WCHAR vetoName[MAX_PATH];
+#else
   char vetoName[MAX_PATH];
+#endif
 
   // It's often seen that the removal fails on the first
   // attempt but works on the second attempt.
@@ -407,7 +419,11 @@ MOUNTUTILS_RESULT EjectDriveLetter(TCHAR driveLetter) {
 
 BOOL IsDriveEjectable(TCHAR driveLetter) {
   TCHAR devicePath[8];
+#ifdef UNICODE
+  swprintf_s(devicePath, L"%c:\\", driveLetter);
+#else
   sprintf_s(devicePath, "%c:\\", driveLetter);
+#endif
 
   MountUtilsLog("Checking whether drive is ejectable: "
       + std::string(1, driveLetter));

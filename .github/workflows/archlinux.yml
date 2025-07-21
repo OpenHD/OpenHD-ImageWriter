@@ -3,10 +3,17 @@ name: OpenHD Image Writer Arch
 on:
   push:
     branches:
-      - "debug"
+      - "2.5-evo"
+      - "master"
       - "dev-release"
       - "release"
-      - "2.0.4"
+      - "debug_older2"
+      - "fix_workflows"
+      - "new_qt"
+    paths:
+      - 'src/**'
+      - 'PKGBUILD'
+      - '.github/workflows/archlinux.yml'
 
 jobs:
   build:

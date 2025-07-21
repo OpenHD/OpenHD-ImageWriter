@@ -53,11 +53,11 @@ int main(int argc, char *argv[])
         {
             /* CLI mode */
             Cli cli(argc, argv);
-            return cli.main();
+            return cli.run();
         }
     }
 
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    // Qt6 handles high DPI scaling automatically
 #ifdef Q_OS_WIN
     // prefer ANGLE (DirectX) over desktop OpenGL
     QCoreApplication::setAttribute(Qt::AA_UseOpenGLES);

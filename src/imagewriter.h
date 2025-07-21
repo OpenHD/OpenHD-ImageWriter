@@ -11,6 +11,8 @@
 #include <QUrl>
 #include <QSettings>
 #include <QVariant>
+#include <QQmlEngine>
+#include <QNetworkReply>
 #include "config.h"
 #include "powersaveblocker.h"
 #include "drivelistmodel.h"
@@ -18,12 +20,17 @@
 class QQmlApplicationEngine;
 class DownloadThread;
 class QNetworkReply;
-class QWinTaskbarButton;
 class QTranslator;
+#ifdef Q_OS_WIN
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+class QWinTaskbarButton;
+#endif
+#endif
 
 class ImageWriter : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
 public:
     explicit ImageWriter(QObject *parent = nullptr);
     virtual ~ImageWriter();
@@ -170,7 +177,9 @@ protected:
     QMap<QString,QString> _translations;
     QTranslator *_trans;
 #ifdef Q_OS_WIN
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QWinTaskbarButton *_taskbarButton;
+#endif
 #endif
 
     void _parseCompressedFile();

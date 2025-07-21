@@ -15,6 +15,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#ifdef _WIN32
+#include <io.h>
+// Modern MinGW64 (GCC 15+) already defines ssize_t properly, so we don't need to define it
+// This manual typedef was only needed for very old MinGW versions
+#if defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR) && (_WIN32_WINNT < 0x0600)
+typedef long ssize_t;
+#endif
+#endif
 #include <QDir>
 #include <QProcess>
 #include <QTemporaryDir>
@@ -407,7 +415,7 @@ void DownloadExtractThread::extractMultiFileRun()
 
 ssize_t DownloadExtractThread::_on_read(struct archive *, const void **buff)
 {
-    _buf = _popQueue();
+    QByteArray _buf = _popQueue();
     *buff = _buf.data();
     return _buf.size();
 }
@@ -474,4 +482,10 @@ void DownloadExtractThread::_pushQueue(const char *data, size_t len)
         lock.unlock();
         _cv.notify_one();
     }
+}
+
+bool DownloadExtractThread::_verify()
+{
+    // Simple verification - delegate to parent class
+    return DownloadThread::_verify();
 }
