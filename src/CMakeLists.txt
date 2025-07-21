@@ -66,64 +66,56 @@ set(BUILD_SHARED_LIBS OFF)
 
 include(FetchContent)
 
-# LZMA Dependencies - TRUE Raspberry Pi Imager approach with FetchContent xz
-if(WIN32)
-    # Windows: Use FetchContent xz exactly like real Raspberry Pi Imager
-    message(STATUS "Using FetchContent XZ/LZMA library on Windows (Raspberry Pi Imager style)")
-    set(LIBLZMA_VERSION "5.4.6")
-    FetchContent_Declare(xz
-        GIT_REPOSITORY https://github.com/tukaani-project/xz.git
-        GIT_TAG v${LIBLZMA_VERSION}
-        ${USE_OVERRIDE_FIND_PACKAGE}
-    )
-    set(XZ_MICROLZMA_DECODER OFF CACHE BOOL "" FORCE)
-    set(XZ_MICROLZMA_ENCODER OFF CACHE BOOL "" FORCE)
-    set(XZ_LZIP_DECODER OFF CACHE BOOL "" FORCE)
-    set(XZ_ENABLE_SANDBOX OFF CACHE BOOL "" FORCE)
-    set(XZ_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-    set(XZ_ENABLE_DOXYGEN OFF CACHE BOOL "" FORCE)
-    set(XZ_DECODERS lzma1 lzma2 delta)
-    set(XZ_ENCODERS lzma1 lzma2 delta)
-    set(CREATE_LZMA_SYMLINKS OFF CACHE BOOL "" FORCE)
-    set(CREATE_XZ_SYMLINKS OFF CACHE BOOL "" FORCE)
-    
-    FetchContent_GetProperties(xz)
-    if(NOT xz_POPULATED)
-        FetchContent_Populate(xz)
-        add_subdirectory(${xz_SOURCE_DIR} ${xz_BINARY_DIR} EXCLUDE_FROM_ALL)
-    endif()
-    
-    # Clean up cache variables
-    unset(XZ_MICROLZMA_DECODER)
-    unset(XZ_MICROLZMA_ENCODER)
-    unset(XZ_LZIP_DECODER)
-    unset(XZ_ENABLE_SANDBOX)
-    unset(XZ_BUILD_SHARED_LIBS)
-    unset(XZ_ENABLE_DOXYGEN)
-    unset(CREATE_LZMA_SYMLINKS)
-    unset(CREATE_XZ_SYMLINKS)
-    
-    # Set LZMA variables exactly like Raspberry Pi Imager
-    set(LIBLZMA_FOUND true CACHE BOOL "" FORCE)
-    set(LIBLZMA_INCLUDE_DIR ${xz_SOURCE_DIR}/src/liblzma/api CACHE PATH "" FORCE)
-    set(LIBLZMA_INCLUDE_DIRS ${xz_SOURCE_DIR}/src/liblzma/api CACHE PATH "" FORCE)
-    set(LIBLZMA_LIBRARY liblzma CACHE FILEPATH "" FORCE)
-    set(LIBLZMA_LIBRARIES ${xz_BINARY_DIR}/liblzma.a CACHE FILEPATH "" FORCE)
-    set(LIBLZMA_HAS_AUTO_DECODER true CACHE BOOL "" FORCE)
-    set(LIBLZMA_HAS_EASY_ENCODER true CACHE BOOL "" FORCE)
-    set(LIBLZMA_HAS_LZMA_PRESET true CACHE BOOL "" FORCE)
-    
-    # Create namespace target
-    if(TARGET liblzma AND NOT TARGET LibLZMA::LibLZMA)
-        add_library(LibLZMA::LibLZMA ALIAS liblzma)
-    endif()
-else()
-    # macOS/Linux: Use system LZMA
-    message(STATUS "Using system LZMA library")
-    find_package(LibLZMA REQUIRED)
-    if(LIBLZMA_FOUND AND TARGET LibLZMA::LibLZMA)
-        set(EXTRALIBS ${EXTRALIBS} LibLZMA::LibLZMA)
-    endif()
+# Bundled liblzma - EXACT Raspberry Pi Imager approach
+set(LIBLZMA_VERSION "5.8.1")
+FetchContent_Declare(xz
+    GIT_REPOSITORY https://github.com/tukaani-project/xz.git
+    GIT_TAG v${LIBLZMA_VERSION}
+    ${USE_OVERRIDE_FIND_PACKAGE}
+)
+set(XZ_MICROLZMA_DECODER OFF CACHE BOOL "" FORCE)
+set(XZ_MICROLZMA_ENCODER OFF CACHE BOOL "" FORCE)
+set(XZ_LZIP_DECODER OFF CACHE BOOL "" FORCE)
+set(XZ_ENABLE_SANDBOX OFF CACHE BOOL "" FORCE)
+set(XZ_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(XZ_ENABLE_DOXYGEN OFF CACHE BOOL "" FORCE)
+set(XZ_DECODERS
+    lzma1
+    lzma2
+    delta
+)
+set(XZ_ENCODERS
+    lzma1
+    lzma2
+    delta
+)
+set(CREATE_LZMA_SYMLINKS OFF CACHE BOOL "" FORCE)
+set(CREATE_XZ_SYMLINKS OFF CACHE BOOL "" FORCE)
+FetchContent_GetProperties(xz)
+if(NOT xz_POPULATED)
+    FetchContent_Populate(xz)
+    add_subdirectory(${xz_SOURCE_DIR} ${xz_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+unset(XZ_MICROLZMA_DECODER)
+unset(XZ_MICROLZMA_ENCODER)
+unset(XZ_LZIP_DECODER)
+unset(XZ_ENABLE_SANDBOX)
+unset(XZ_BUILD_SHARED_LIBS)
+unset(XZ_ENABLE_DOXYGEN)
+unset(CREATE_LZMA_SYMLINKS)
+unset(CREATE_XZ_SYMLINKS)
+set(LIBLZMA_FOUND true CACHE BOOL "" FORCE)
+set(LIBLZMA_INCLUDE_DIR ${xz_SOURCE_DIR}/src/liblzma/api CACHE PATH "" FORCE)
+set(LIBLZMA_INCLUDE_DIRS ${xz_SOURCE_DIR}/src/liblzma/api CACHE PATH "" FORCE)
+set(LIBLZMA_LIBRARY liblzma CACHE FILEPATH "" FORCE)
+set(LIBLZMA_LIBRARIES ${xz_BINARY_DIR}/liblzma.a CACHE FILEPATH "" FORCE)
+set(LIBLZMA_HAS_AUTO_DECODER true CACHE BOOL "" FORCE)
+set(LIBLZMA_HAS_EASY_ENCODER true CACHE BOOL "" FORCE)
+set(LIBLZMA_HAS_LZMA_PRESET true CACHE BOOL "" FORCE)
+
+# Create namespace target for modern CMake compatibility
+if(TARGET liblzma AND NOT TARGET LibLZMA::LibLZMA)
+    add_library(LibLZMA::LibLZMA ALIAS liblzma)
 endif()
 
 # Bundled zstd
@@ -239,7 +231,7 @@ set(ARCHIVE_BUILD_STATIC_LIBS ON CACHE BOOL "")
 set(ARCHIVE_BUILD_EXAMPLES OFF CACHE BOOL "")
 set(ENABLE_ZSTD ON CACHE BOOL "")
 set(ENABLE_LZMA ON CACHE BOOL "")
-# libarchive will find our LZMA via the variables set above
+# Enable LZMA for libarchive - variables are set above with FORCE
 set(POSIX_REGEX_LIB "libc" CACHE STRING "Regex library for libarchive")
 set(LIBARCHIVE_VERSION "3.8.1")
 
@@ -259,8 +251,9 @@ endif()
 if (TARGET archive_static AND TARGET ZLIB::ZLIB)
     add_dependencies(archive_static ZLIB::ZLIB)
 endif()
-if (TARGET archive_static AND TARGET cmliblzma)
-    add_dependencies(archive_static cmliblzma)
+# Ensure libarchive is built after liblzma
+if (TARGET archive_static AND TARGET liblzma)
+    add_dependencies(archive_static liblzma)
 endif()
 
 unset(POSIX_REGEX_LIB)

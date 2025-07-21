@@ -199,6 +199,10 @@ ELSEIF(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND
        CMAKE_C_COMPILER_VERSION VERSION_LESS 3.4)
   # Disable the old GNU compiler optimizer.
   SET_PROPERTY(TARGET cmliblzma PROPERTY COMPILE_FLAGS "-O0")
+ELSEIF(CMAKE_BUILD_TYPE STREQUAL "Debug" AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+  # For Debug builds with modern compilers, use conservative optimization
+  # to avoid potential LZMA decoding issues
+  SET_PROPERTY(TARGET cmliblzma PROPERTY COMPILE_FLAGS "-O1 -fno-omit-frame-pointer")
 ENDIF()
 
 INSTALL(FILES COPYING DESTINATION ${CMAKE_DOC_DIR}/cmliblzma)
