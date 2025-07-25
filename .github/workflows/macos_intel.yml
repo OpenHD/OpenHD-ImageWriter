@@ -1,0 +1,98 @@
+name: Build MacOS Intel
+
+on:
+  push:
+    branches:
+      - "2.5-evo"
+      - "dev-release"
+      - "release"
+      - "debug_older2"
+      - "fix_workflows"
+      - "new_qt"
+      - "master"
+    paths:
+      - 'src/**'
+      - '.github/workflows/macOS.yml'
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: macos-13
+
+    defaults:
+      run:
+        working-directory: src
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.5.0'
+        host: 'mac'
+        target: 'desktop'
+        arch: 'clang_64' # clang_64 corresponds to x86_64 on Intel Macs
+        archives: 'qtbase qtdeclarative qtsvg qttools'
+        cache: true
+        install-deps: true
+
+    - name: Install create-dmg
+      run: brew install create-dmg
+
+    - name: Set Architecture Environment
+      run: |
+        echo "ARCHFLAGS=-arch x86_64" >> $GITHUB_ENV
+
+    - name: Cache FetchContent dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          src/build/_deps
+          ~/.cache/cmake
+        key: ${{ runner.os }}-cmake-deps-${{ hashFiles('src/CMakeLists.txt', 'src/dependencies/**') }}
+        restore-keys: |
+          ${{ runner.os }}-cmake-deps-
+
+    - name: Configure CMake
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=/usr \
+          -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+          -DCMAKE_POLICY_DEFAULT_CMP0074=NEW
+
+    - name: Build
+      run: |
+        cd build
+        make -j$(sysctl -n hw.logicalcpu)
+
+    - name: Create DMG
+      run: |
+        cd build
+        echo "=== macOS Build Contents ==="
+        ls -la
+        echo "=== App Bundle Contents ==="
+        ls -la OpenHDImageWriter.app || true
+        echo "=== Creating DMG ==="
+        create-dmg \
+          --volname "OpenHD ImageWriter" \
+          --volicon "../icons/openhdimagewriter.icns" \
+          --window-pos 200 120 \
+          --window-size 600 300 \
+          --icon-size 100 \
+          --icon "OpenHDImageWriter.app" 175 120 \
+          --hide-extension "OpenHDImageWriter.app" \
+          --app-drop-link 425 120 \
+          "OpenHDImageWriter-macOS.dmg" \
+          "OpenHDImageWriter.app"
+
+    - name: Upload DMG
+      uses: actions/upload-artifact@v4
+      with:
+        name: "OpenHD Image Writer macOS"
+        path: src/build/OpenHDImageWriter-macOS.dmg
+        if-no-files-found: error
