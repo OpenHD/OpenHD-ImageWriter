@@ -2,24 +2,14 @@ name: Build MacOS
 
 on:
   push:
-    branches:
-      - "2.5-evo"
-      - "dev-release"
-      - "release"
-      - "debug_older2"
-      - "fix_workflows"
-      - "new_qt"
-      - "master"
-    paths:
-      - 'src/**'
-      - '.github/workflows/macOS.yml'
+
 
 env:
   BUILD_TYPE: Release
 
 jobs:
   build:
-    runs-on: macos-14  # Use Apple Silicon runner for better performance
+    runs-on:  macos-13
 
     defaults:
       run:
