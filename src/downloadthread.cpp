@@ -927,36 +927,68 @@ bool DownloadThread::_customizeImage()
     {
         /* Manually mount folder */
         manualmount = true;
-        QByteArray fatpartition = _filename;
-        if (isdigit(fatpartition.at(fatpartition.length()-1)))
-            fatpartition += "p1";
-        else
-            fatpartition += "1";
+        auto makePartitionPath = [&](const QString &base, int n) -> QString {
+            const QByteArray b = base.toLatin1();
+            if (!b.isEmpty() && isdigit(static_cast<unsigned char>(b.at(b.size()-1))))
+                return base + "p" + QString::number(n);
+            return base + QString::number(n);
+        };
 
-        if (::access(devlower.constData(), W_OK) != 0)
+        auto hasConfigTxt = [&](const QString &mp) -> bool {
+            return QFileInfo::exists(mp + "/config.txt");
+        };
+
+        const bool isRoot = (::access(devlower.constData(), W_OK) == 0);
+        bool found = false;
+
+        // Assume no target have >128 partitions
+        for (int part = 1; part <= 128 && !found; ++part)
         {
-            /* Not running as root, try to outsource mounting to udisks2 */
+            const QString fatpartition = makePartitionPath(_filename, part);
+            if (!QFileInfo::exists(fatpartition))
+                continue;
+
+            if (!isRoot) {
 #ifndef QT_NO_DBUS
-            UDisks2Api udisks2;
-            QString mp = udisks2.mountDevice(fatpartition);
-            if (!mp.isEmpty())
-                mountpoints.push_back(mp.toStdString());
-#endif
-        }
-        else
-        {
-            /* Running as root, attempt running mount directly */
-            QTemporaryDir td;
-            QStringList args;
-            mountpoints.push_back(td.path().toStdString());
-            args << "-t" << "vfat" << fatpartition << td.path();
+                UDisks2Api udisks2;
+                QString mp = udisks2.mountDevice(fatpartition);
+                if (mp.isEmpty())
+                    continue; // not all partitions are made to be mounted
 
-            if (QProcess::execute("mount", args) != 0)
-            {
-                emit error(tr("Error mounting FAT32 partition"));
-                return false;
+                if (hasConfigTxt(mp)) {
+                    mountpoints.push_back(mp.toStdString());
+                    found = true; // yay
+                } else {
+                    // not a config
+                    QProcess::execute("udisksctl", QStringList() << "unmount" << "-b" << fatpartition);
+                }
+#else
+                Q_UNUSED(fatpartition);
+#endif
+            } else {
+                // Running as root: mount directly to a temp dir
+                QTemporaryDir td;
+                QString mp = td.path();
+                QStringList args;
+                args << "-t" << "vfat" << fatpartition << mp;
+
+                if (QProcess::execute("mount", args) != 0)
+                    continue; // not all partitions are made to be mounted
+
+                if (hasConfigTxt(mp)) {
+                    mountpoints.push_back(mp.toStdString());
+                    td.setAutoRemove(false);
+                    found = true; //yay
+                } else {
+                    QProcess::execute("umount", QStringList() << mp);
+                }
             }
-            td.setAutoRemove(false);
+        }
+
+        if (!found)
+        {
+            emit error(tr("Error mounting FAT32 partition or config.txt not found"));
+            return false;
         }
     }
 #endif
