@@ -34,7 +34,7 @@ jobs:
           apt install -y git sudo
           fi
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Build .deb
         run: |
