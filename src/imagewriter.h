@@ -20,7 +20,6 @@ class DownloadThread;
 class QNetworkReply;
 class QWinTaskbarButton;
 class QTranslator;
-class UpdateUploadThread;
 
 class ImageWriter : public QObject
 {
@@ -108,8 +107,6 @@ public:
     Q_INVOKABLE bool getBoolSetting(const QString &key);
     Q_INVOKABLE QString getValue(const QString &key);
     Q_INVOKABLE void setSetting(const QString &key, const QVariant &value);
-    Q_INVOKABLE QVariantList listOpenHdTargets();
-    Q_INVOKABLE void startUpdateUpload(const QUrl &zipPath, const QString &mountpoint);
     Q_INVOKABLE QVariantMap getSavedCustomizationSettings();
     Q_INVOKABLE void clearSavedCustomizationSettings();
     Q_INVOKABLE bool hasSavedCustomizationSettings();
@@ -141,10 +138,6 @@ signals:
     void finalizing();
     void networkOnline();
     void preparationStatusUpdate(QVariant msg);
-    void uploadProgress(qreal percentage);
-    void uploadStatusUpdate(const QString &status);
-    void uploadSuccess();
-    void uploadError(const QString &message);
 
 protected slots:
 
@@ -172,7 +165,6 @@ protected:
     QTimer _polltimer, _networkchecktimer;
     PowerSaveBlocker _powersave;
     DownloadThread *_thread;
-    UpdateUploadThread *_uploadThread;
     bool _verifyEnabled, _multipleFilesInZip, _cachingEnabled, _embeddedMode, _online;
     QSettings _settings;
     QMap<QString,QString> _translations;

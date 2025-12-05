@@ -11,7 +11,6 @@
 #include "driveformatthread.h"
 #include "localfileextractthread.h"
 #include "downloadstatstelemetry.h"
-#include "updateuploadthread.h"
 #include <archive.h>
 #include <archive_entry.h>
 #include <random>
@@ -25,7 +24,6 @@
 #include <QTimeZone>
 #include <QWindow>
 #include <QGuiApplication>
-#include <QDir>
 #include <QNetworkInterface>
 #include <QHostAddress>
 #include <QNetworkAccessManager>
@@ -67,7 +65,7 @@
 
 ImageWriter::ImageWriter(QObject *parent)
     : QObject(parent), _repo(QUrl(QString(OSLIST_URL))), _dlnow(0), _verifynow(0),
-      _engine(nullptr), _thread(nullptr), _uploadThread(nullptr), _verifyEnabled(false), _cachingEnabled(false),
+      _engine(nullptr), _thread(nullptr), _verifyEnabled(false), _cachingEnabled(false),
       _embeddedMode(false), _online(false), _trans(nullptr)
 {
     connect(&_polltimer, SIGNAL(timeout()), SLOT(pollProgress()));
@@ -1100,85 +1098,6 @@ void ImageWriter::setSetting(const QString &key, const QVariant &value)
     // DEBUG
     std::cout << "Setting changed: " << key.toStdString() << " -> " << value.toString().toStdString() << std::endl;
 
-}
-
-QVariantList ImageWriter::listOpenHdTargets()
-{
-    QVariantList result;
-    auto devices = Drivelist::ListStorageDevices();
-
-    for (auto &device : devices)
-    {
-        QString mountpoint;
-        for (auto &mp : device.mountpoints)
-        {
-            QString mount = QString::fromStdString(mp);
-            if (mount.endsWith("/") || mount.endsWith("\\"))
-                mount.chop(1);
-
-            if (QFileInfo::exists(mount + "/openhd") || QFileInfo::exists(mount + "/config.txt"))
-            {
-                mountpoint = mount;
-                break;
-            }
-        }
-
-        if (!mountpoint.isEmpty())
-        {
-            QVariantMap entry;
-            entry.insert("description", QString::fromStdString(device.description));
-            entry.insert("device", QString::fromStdString(device.device));
-            entry.insert("mountpoint", mountpoint);
-            entry.insert("size", QVariant::fromValue<qulonglong>(device.size));
-            entry.insert("mountpoints", QStringList({mountpoint}));
-            entry.insert("isUsb", device.isUSB);
-            entry.insert("isScsi", device.isSCSI);
-            entry.insert("isReadOnly", device.isReadOnly);
-            result.append(entry);
-        }
-    }
-
-    return result;
-}
-
-void ImageWriter::startUpdateUpload(const QUrl &zipPath, const QString &mountpoint)
-{
-    if (_uploadThread)
-    {
-        emit uploadError(tr("An update upload is already in progress."));
-        return;
-    }
-
-    if (!zipPath.isLocalFile())
-    {
-        emit uploadError(tr("Select a local upload.zip file."));
-        return;
-    }
-
-    const QString localFile = zipPath.toLocalFile();
-    if (!QFileInfo::exists(localFile))
-    {
-        emit uploadError(tr("Selected update file is missing."));
-        return;
-    }
-
-    if (!QFileInfo(mountpoint).isDir())
-    {
-        emit uploadError(tr("Select a valid OpenHD storage target."));
-        return;
-    }
-
-    _uploadThread = new UpdateUploadThread(localFile, mountpoint, this);
-    connect(_uploadThread, &UpdateUploadThread::progress, this, &ImageWriter::uploadProgress);
-    connect(_uploadThread, &UpdateUploadThread::status, this, &ImageWriter::uploadStatusUpdate);
-    connect(_uploadThread, &UpdateUploadThread::success, this, &ImageWriter::uploadSuccess);
-    connect(_uploadThread, &UpdateUploadThread::error, this, &ImageWriter::uploadError);
-    connect(_uploadThread, &QThread::finished, this, [this]() {
-        _uploadThread->deleteLater();
-        _uploadThread = nullptr;
-    });
-
-    _uploadThread->start();
 }
 
 QString ImageWriter::crypt(const QByteArray &password)
