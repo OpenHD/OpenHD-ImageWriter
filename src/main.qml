@@ -31,10 +31,95 @@ ApplicationWindow {
     FontLoader {id: robotoLight; source: "fonts/Roboto-Light.ttf"}
     FontLoader {id: robotoBold;  source: "fonts/Roboto-Bold.ttf"}
 
+    property bool modeSelectionActive: true
+
     onClosing: {
         if (progressBar.visible) {
             close.accepted = false
             quitpopup.openPopup()
+        }
+    }
+
+    Popup {
+        id: configurePopup
+        x: 75
+        y: (parent.height - height) / 2
+        width: parent.width - 150
+        height: 300
+        padding: 0
+        modal: true
+
+        Rectangle {
+            color: "#f5f5f5"
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: 35
+            width: parent.width
+        }
+        Rectangle {
+            color: "#afafaf"
+            width: parent.width
+            y: 35
+            implicitHeight: 1
+        }
+
+        Text {
+            text: "X"
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.rightMargin: 25
+            anchors.topMargin: 10
+            font.family: roboto.name
+            font.bold: true
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: configurePopup.close()
+            }
+        }
+
+        ColumnLayout {
+            spacing: 10
+            anchors.fill: parent
+
+            Text {
+                text: qsTr("Example configuration")
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                Layout.fillWidth: true
+                Layout.topMargin: 10
+                font.family: roboto.name
+                font.bold: true
+            }
+
+            ColumnLayout {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.fillWidth: true
+                Layout.leftMargin: 30
+                Layout.rightMargin: 30
+
+                Label {
+                    text: qsTr("• Set SBC role to Air or Ground under advanced options")
+                    wrapMode: Text.WordWrap
+                }
+                Label {
+                    text: qsTr("• Choose cameras such as HDMI, IMX219 or OV5647 when the board is Air")
+                    wrapMode: Text.WordWrap
+                }
+                Label {
+                    text: qsTr("• Provide a bind phrase to pair your devices")
+                    wrapMode: Text.WordWrap
+                }
+                Label {
+                    text: qsTr("• Enable hotspot, beeps or safe eject once flashing finishes")
+                    wrapMode: Text.WordWrap
+                }
+                Label {
+                    text: qsTr("These options mirror what you will find in the full configuration menu.")
+                    wrapMode: Text.WordWrap
+                }
+            }
         }
     }
 
@@ -285,332 +370,404 @@ ApplicationWindow {
             color: "#2C3E50"
             implicitWidth: window.width
             implicitHeight: window.height/2
-
-            GridLayout {
-                id: gridLayout
-                rowSpacing: 25
-
+            Loader {
                 anchors.fill: parent
-                anchors.topMargin: 25
-                anchors.rightMargin: 50
-                anchors.leftMargin: 50
+                active: modeSelectionActive
+                sourceComponent: modeSelector
+            }
 
-                rows: 6
-                columns: 3
-                columnSpacing: 25
+            Loader {
+                anchors.fill: parent
+                active: !modeSelectionActive
+                sourceComponent: gridSelector
+            }
 
-                ColumnLayout {
-                    id: columnLayout
-                    spacing: 0
-                    Layout.fillWidth: true
+            Component {
+                id: modeSelector
 
-                    Text {
-                        id: text1
-                        color: "#ffffff"
-                        text: qsTr("Operating System")
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 17
-                        Layout.preferredWidth: 100
-                        font.pixelSize: 12
-                        font.family: robotoBold.name
-                        font.bold: true
-                        horizontalAlignment: Text.AlignHCenter
+                Item {
+                    anchors.fill: parent
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 50
+                        anchors.rightMargin: 50
+                        anchors.topMargin: 25
+                        anchors.bottomMargin: 25
+                        spacing: 20
+                        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+                        Text {
+                            text: qsTr("Choose what you want to do")
+                            color: "white"
+                            font.pixelSize: 18
+                            font.family: robotoBold.name
+                            horizontalAlignment: Text.AlignHCenter
+                            Layout.fillWidth: true
+                        }
+
+                        RowLayout {
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.fillWidth: true
+                            spacing: 20
+
+                            ImButton {
+                                id: flashButton
+                                text: qsTr("FLASH")
+                                Layout.minimumHeight: 50
+                                Layout.fillWidth: true
+                                onClicked: modeSelectionActive = false
+                            }
+
+                            ImButton {
+                                id: updateButton
+                                text: qsTr("UPDATE")
+                                Layout.minimumHeight: 50
+                                Layout.fillWidth: true
+                                onClicked: modeSelectionActive = false
+                            }
+
+                            ImButton {
+                                id: configureButton
+                                text: qsTr("CONFIGURE")
+                                Layout.minimumHeight: 50
+                                Layout.fillWidth: true
+                                onClicked: configurePopup.open()
+                            }
+                        }
                     }
+                }
+            }
 
-                    ImButton {
-                        id: osbutton
-                        text: imageWriter.srcFileName() === "" ? qsTr("CHOOSE OS") : imageWriter.srcFileName()
+            Component {
+                id: gridSelector
+
+                GridLayout {
+                    id: gridLayout
+                    rowSpacing: 25
+
+                    anchors.fill: parent
+                    anchors.topMargin: 25
+                    anchors.rightMargin: 50
+                    anchors.leftMargin: 50
+
+                    rows: 6
+                    columns: 3
+                    columnSpacing: 25
+
+                    ColumnLayout {
+                        id: columnLayout
                         spacing: 0
-                        padding: 0
-                        bottomPadding: 0
-                        topPadding: 0
-                        Layout.minimumHeight: 40
                         Layout.fillWidth: true
-                        onClicked: {
-                            ospopup.open()
-                            osswipeview.currentItem.forceActiveFocus()
-                            customizebutton.visible=true
-                            // reset all saved settings but the bindPhrase
-                            imageWriter.setSetting("sbc", "")
-                            imageWriter.setSetting("bootType", "")
-                            imageWriter.setSetting("fileName", "")
-                            imageWriter.setSetting("camera", "")
-                            imageWriter.setSetting("mode", "")
-                            imageWriter.setSetting("hotSpot" , "")
-                            imageWriter.setSetting("beep", "")
-                            imageWriter.setSetting("eject", "")
+
+                        Text {
+                            id: text1
+                            color: "#ffffff"
+                            text: qsTr("Operating System")
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 17
+                            Layout.preferredWidth: 100
+                            font.pixelSize: 12
+                            font.family: robotoBold.name
+                            font.bold: true
+                            horizontalAlignment: Text.AlignHCenter
                         }
-                        Accessible.ignored: ospopup.visible || dstpopup.visible
-                        Accessible.description: qsTr("Select this button to change the operating system")
-                    }
-                }
 
-                ColumnLayout {
-                    id: columnLayout2
-                    spacing: 0
-                    Layout.fillWidth: true
-
-                    Text {
-                        id: text2
-                        text: qsTr("Storage")
-                        color: "#fff"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 17
-                        Layout.preferredWidth: 100
-                        font.pixelSize: 12
-                        font.family: robotoBold.name
-                        font.bold: true
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-
-                    ImButton {
-                        id: dstbutton
-                        text: qsTr("CHOOSE STORAGE")
-                        Layout.minimumHeight: 40
-                        Layout.preferredWidth: 100
-                        Layout.fillWidth: true
-                        onClicked: {
-                            imageWriter.startDriveListPolling()
-                            dstpopup.open()
-                            dstlist.forceActiveFocus()
-                        }
-                        Accessible.ignored: ospopup.visible || dstpopup.visible
-                        Accessible.description: qsTr("Select this button to change the destination storage device")
-                    }
-                }
-
-                ColumnLayout {
-                    spacing: 0
-                    Layout.fillWidth: true
-
-                    Text {
-                        text: " "
-                        Layout.preferredHeight: 17
-                        Layout.preferredWidth: 100
-                    }
-
-                    ImButton {
-                        id: writebutton
-                        visible: !updateButton.visible
-                        property var image_name
-                        property var use_settings
-                        property var bootType
-                        property string camera:""
-                        text: qsTr("WRITE")
-                        Layout.minimumHeight: 40
-                        Layout.fillWidth: true
-                        Accessible.ignored: ospopup.visible || dstpopup.visible
-                        Accessible.description: qsTr("Select this button to start writing the image")
-                        enabled: false
-                        onClicked: {
-                            if (!imageWriter.readyToWrite()) {
-                                return
+                        ImButton {
+                            id: osbutton
+                            text: imageWriter.srcFileName() === "" ? qsTr("CHOOSE OS") : imageWriter.srcFileName()
+                            spacing: 0
+                            padding: 0
+                            bottomPadding: 0
+                            topPadding: 0
+                            Layout.minimumHeight: 40
+                            Layout.fillWidth: true
+                            onClicked: {
+                                ospopup.open()
+                                osswipeview.currentItem.forceActiveFocus()
+                                customizebutton.visible=true
+                                // reset all saved settings but the bindPhrase
+                                imageWriter.setSetting("sbc", "")
+                                imageWriter.setSetting("bootType", "")
+                                imageWriter.setSetting("fileName", "")
+                                imageWriter.setSetting("camera", "")
+                                imageWriter.setSetting("mode", "")
+                                imageWriter.setSetting("hotSpot" , "")
+                                imageWriter.setSetting("beep", "")
+                                imageWriter.setSetting("eject", "")
                             }
-                            image_name=imageWriter.srcFileName();
-                            bootType=imageWriter.getValue("bootType");
-                            camera=imageWriter.getValue("camera");
-                            if(image_name.includes("configurable")){
-                                if(bootType!=="Air" && bootType!=="Ground" ){
-                                    console.log("Cannot write yet, air or ground not set yet");
-                                    onError("Cannot write yet, air or ground not set yet - please open settings and select air or ground")
-                                    return;
+                            Accessible.ignored: ospopup.visible || dstpopup.visible
+                            Accessible.description: qsTr("Select this button to change the operating system")
+                        }
+                    }
+
+                    ColumnLayout {
+                        id: columnLayout2
+                        spacing: 0
+                        Layout.fillWidth: true
+
+                        Text {
+                            id: text2
+                            text: qsTr("Storage")
+                            color: "#fff"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 17
+                            Layout.preferredWidth: 100
+                            font.pixelSize: 12
+                            font.family: robotoBold.name
+                            font.bold: true
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+
+                        ImButton {
+                            id: dstbutton
+                            text: qsTr("CHOOSE STORAGE")
+                            Layout.minimumHeight: 40
+                            Layout.preferredWidth: 100
+                            Layout.fillWidth: true
+                            onClicked: {
+                                imageWriter.startDriveListPolling()
+                                dstpopup.open()
+                                dstlist.forceActiveFocus()
+                            }
+                            Accessible.ignored: ospopup.visible || dstpopup.visible
+                            Accessible.description: qsTr("Select this button to change the destination storage device")
+                        }
+                    }
+
+                    ColumnLayout {
+                        spacing: 0
+                        Layout.fillWidth: true
+
+                        Text {
+                            text: " "
+                            Layout.preferredHeight: 17
+                            Layout.preferredWidth: 100
+                        }
+
+                        ImButton {
+                            id: writebutton
+                            visible: !updateButton.visible
+                            property var image_name
+                            property var use_settings
+                            property var bootType
+                            property string camera:""
+                            text: qsTr("WRITE")
+                            Layout.minimumHeight: 40
+                            Layout.fillWidth: true
+                            Accessible.ignored: ospopup.visible || dstpopup.visible
+                            Accessible.description: qsTr("Select this button to start writing the image")
+                            enabled: false
+                            onClicked: {
+                                if (!imageWriter.readyToWrite()) {
+                                    return
+                                }
+                                image_name=imageWriter.srcFileName();
+                                bootType=imageWriter.getValue("bootType");
+                                camera=imageWriter.getValue("camera");
+                                if(image_name.includes("configurable")){
+                                    if(bootType!=="Air" && bootType!=="Ground" ){
+                                        console.log("Cannot write yet, air or ground not set yet");
+                                        onError("Cannot write yet, air or ground not set yet - please open settings and select air or ground")
+                                        return;
+                                    }
+                                }
+                                use_settings=imageWriter.getValue("useSettings")
+                                if (!optionspopup.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
+                                    usesavedsettingspopup.openPopup()
+                                } else {
+                                    confirmwritepopup.askForConfirmation()
                                 }
                             }
-                            use_settings=imageWriter.getValue("useSettings")
-                            if (!optionspopup.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
-                                usesavedsettingspopup.openPopup()
-                            } else {
-                                confirmwritepopup.askForConfirmation()
-                            }
                         }
-                    }
-                    ImButton {
-                        id: updateButton
-                        visible:ospopup.visible
-                        property var image_name
-                        property var use_settings
-                        property var bootType
-                        property string camera:""
+                        ImButton {
+                            id: updateButton
+                            visible:ospopup.visible
+                            property var image_name
+                            property var use_settings
+                            property var bootType
+                            property string camera:""
 
-                        text: qsTr("UPDATE")
-                        Layout.minimumHeight: 40
-                        Layout.fillWidth: true
-                        Accessible.ignored: ospopup.visible || dstpopup.visible
-                        Accessible.description: qsTr("Select this button to start writing the image")
-                        enabled: false
-                        onClicked: {
-                            if (!imageWriter.readyToWrite()) {
-                                return
-                            }
-                            image_name=imageWriter.srcFileName();
-                            bootType=imageWriter.getValue("bootType");
-                            camera=imageWriter.getValue("camera");
-                            if(image_name.includes("configurable")){
-                                if(bootType!=="Air" && bootType!=="Ground" ){
-                                    console.log("Cannot write yet, air or ground not set yet");
-                                    onError("Cannot write yet, air or ground not set yet - please open settings and select air or ground")
-                                    return;
+                            text: qsTr("UPDATE")
+                            Layout.minimumHeight: 40
+                            Layout.fillWidth: true
+                            Accessible.ignored: ospopup.visible || dstpopup.visible
+                            Accessible.description: qsTr("Select this button to start writing the image")
+                            enabled: false
+                            onClicked: {
+                                if (!imageWriter.readyToWrite()) {
+                                    return
+                                }
+                                image_name=imageWriter.srcFileName();
+                                bootType=imageWriter.getValue("bootType");
+                                camera=imageWriter.getValue("camera");
+                                if(image_name.includes("configurable")){
+                                    if(bootType!=="Air" && bootType!=="Ground" ){
+                                        console.log("Cannot write yet, air or ground not set yet");
+                                        onError("Cannot write yet, air or ground not set yet - please open settings and select air or ground")
+                                        return;
+                                    }
+                                }
+                                use_settings=imageWriter.getValue("useSettings")
+                                if (!optionspopup.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
+                                    usesavedsettingspopup.openPopup()
+                                } else {
+                                    confirmwritepopup.askForConfirmation()
                                 }
                             }
-                            use_settings=imageWriter.getValue("useSettings")
-                            if (!optionspopup.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
-                                usesavedsettingspopup.openPopup()
-                            } else {
-                                confirmwritepopup.askForConfirmation()
+                        }
+
+                    }
+
+                    ColumnLayout {
+                        id: columnLayout3
+                        Layout.columnSpan: 3
+                        Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+
+                        Text {
+                            id: progressText
+                            font.pointSize: 10
+                            color: "white"
+                            font.family: robotoBold.name
+                            font.bold: true
+                            visible: false
+                            horizontalAlignment: Text.AlignHCenter
+                            Layout.fillWidth: true
+                        }
+
+                        ProgressBar {
+                            id: progressBar
+                            Layout.fillWidth: true
+                            visible: false
+                            Material.background: "#00b3f7"
+                        }
+
+                        ImButton {
+                            id: cancelwritebutton
+                            text: qsTr("CANCEL WRITE")
+                            onClicked: {
+                                enabled = false
+                                progressText.text = qsTr("Cancelling...")
+                                imageWriter.cancelWrite()
+                            }
+                            Layout.alignment: Qt.AlignRight
+                            visible: false
+                        }
+                        ImButton {
+                            id: cancelverifybutton
+                            text: qsTr("CANCEL VERIFY")
+                            onClicked: {
+                                enabled = false
+                                progressText.text = qsTr("Finalizing...")
+                                imageWriter.setVerifyEnabled(false)
+                            }
+                            Layout.alignment: Qt.AlignRight
+                            visible: false
+                        }
+                        ImButton {
+                            Layout.bottomMargin: 55
+                            padding: 5
+                            id: customizebutton
+                            onClicked: {
+                                optionspopup.openPopup()
+                            }
+                            visible: false
+                            Accessible.description: qsTr("Select this button to configure Settings")
+                            contentItem: Image {
+                                source: "icons/ic_cog_red.svg"
+                                fillMode: Image.PreserveAspectFit
                             }
                         }
-                    }
 
-                }
-
-                ColumnLayout {
-                    id: columnLayout3
-                    Layout.columnSpan: 3
-                    Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-
-                    Text {
-                        id: progressText
-                        font.pointSize: 10
-                        color: "white"
-                        font.family: robotoBold.name
-                        font.bold: true
-                        visible: false
-                        horizontalAlignment: Text.AlignHCenter
-                        Layout.fillWidth: true
-                    }
-
-                    ProgressBar {
-                        id: progressBar
-                        Layout.fillWidth: true
-                        visible: false
-                        Material.background: "#00b3f7"
-                    }
-
-                    ImButton {
-                        id: cancelwritebutton
-                        text: qsTr("CANCEL WRITE")
-                        onClicked: {
-                            enabled = false
-                            progressText.text = qsTr("Cancelling...")
-                            imageWriter.cancelWrite()
-                        }
-                        Layout.alignment: Qt.AlignRight
-                        visible: false
-                    }
-                    ImButton {
-                        id: cancelverifybutton
-                        text: qsTr("CANCEL VERIFY")
-                        onClicked: {
-                            enabled = false
-                            progressText.text = qsTr("Finalizing...")
-                            imageWriter.setVerifyEnabled(false)
-                        }
-                        Layout.alignment: Qt.AlignRight
-                        visible: false
-                    }
-                    ImButton {
-                        Layout.bottomMargin: 55
-                        padding: 5
-                        id: customizebutton
-                        onClicked: {
-                            optionspopup.openPopup()
-                        }
-                        visible: false
-                        Accessible.description: qsTr("Select this button to configure Settings")
-                        contentItem: Image {
-                            source: "icons/ic_cog_red.svg"
-                            fillMode: Image.PreserveAspectFit
-                        }
-                    }
-
-                }
-
-                Text {
-                    Layout.columnSpan: 3
-                    color: "#ffffff"
-                    font.pixelSize: 18
-                    font.family: roboto.name
-                    visible: imageWriter.isEmbeddedMode() && imageWriter.customRepo()
-                    text: qsTr("Using custom repository: %1").arg(imageWriter.constantOsListUrl())
-                }
-
-                Text {
-                    Layout.columnSpan: 3
-                    color: "#ffffff"
-                    font.pixelSize: 18
-                    font.family: roboto.name
-                    visible: !imageWriter.hasMouse()
-                    text: qsTr("Keyboard navigation: <tab> navigate to next button <space> press button/select item <arrow up/down> go up/down in lists")
-                }
-
-                RowLayout {
-                    id: langbar
-                    Layout.columnSpan: 3
-                    Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
-                    Layout.bottomMargin: 5
-                    spacing: 10
-                    visible: imageWriter.isEmbeddedMode()
-
-                    Rectangle {
-                        color: "#ffffe3"
-                        radius: 5
                     }
 
                     Text {
-                        font.pixelSize: 12
+                        Layout.columnSpan: 3
+                        color: "#ffffff"
+                        font.pixelSize: 18
                         font.family: roboto.name
-                        text: qsTr("Language: ")
-                        Layout.leftMargin: 30
-                        Layout.topMargin: 10
-                        Layout.bottomMargin: 10
+                        visible: imageWriter.isEmbeddedMode() && imageWriter.customRepo()
+                        text: qsTr("Using custom repository: %1").arg(imageWriter.constantOsListUrl())
                     }
-                    ComboBox {
-                        font.pixelSize: 12
+
+                    Text {
+                        Layout.columnSpan: 3
+                        color: "#ffffff"
+                        font.pixelSize: 18
                         font.family: roboto.name
-                        model: imageWriter.getTranslations()
-                        Layout.preferredWidth: 200
-                        currentIndex: -1
-                        Component.onCompleted: {
-                            currentIndex = find(imageWriter.getCurrentLanguage())
+                        visible: !imageWriter.hasMouse()
+                        text: qsTr("Keyboard navigation: <tab> navigate to next button <space> press button/select item <arrow up/down> go up/down in lists")
+                    }
+
+                    RowLayout {
+                        id: langbar
+                        Layout.columnSpan: 3
+                        Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
+                        Layout.bottomMargin: 5
+                        spacing: 10
+                        visible: imageWriter.isEmbeddedMode()
+
+                        Rectangle {
+                            color: "#ffffe3"
+                            radius: 5
                         }
+
+                        Text {
+                            font.pixelSize: 12
+                            font.family: roboto.name
+                            text: qsTr("Language: ")
+                            Layout.leftMargin: 30
+                            Layout.topMargin: 10
+                            Layout.bottomMargin: 10
+                        }
+                        ComboBox {
+                            font.pixelSize: 12
+                            font.family: roboto.name
+                            model: imageWriter.getTranslations()
+                            Layout.preferredWidth: 200
+                            currentIndex: -1
+                            Component.onCompleted: {
+                                currentIndex = find(imageWriter.getCurrentLanguage())
+                            }
+                            onActivated: {
+                                imageWriter.changeLanguage(editText)
+                            }
+                            Layout.topMargin: 10
+                            Layout.bottomMargin: 10
+                        }
+                        Text {
+                            font.pixelSize: 12
+                            font.family: roboto.name
+                            text: qsTr("Keyboard: ")
+                            Layout.topMargin: 10
+                            Layout.bottomMargin: 10
+                        }
+                        ComboBox {
+                            enabled: imageWriter.isEmbeddedMode()
+                            font.pixelSize: 12
+                            font.family: roboto.name
+                            model: imageWriter.getKeymapLayoutList()
+                            currentIndex: -1
+                            Component.onCompleted: {
+                                currentIndex = find(imageWriter.getCurrentKeyboard())
+                            }
+                            onActivated: {
+                                imageWriter.changeKeyboard(editText)
+                            }
+                            Layout.topMargin: 10
+                            Layout.bottomMargin: 10
+                            Layout.rightMargin: 30
+                        }
+                    }
+
+                    /* Language/keyboard bar is normally only visible in embedded mode.
+                       To test translations also show it when shift+ctrl+L is pressed. */
+                    Shortcut {
+                        sequences: ["Shift+Ctrl+L", "Shift+Meta+L"]
+                        context: Qt.ApplicationShortcut
                         onActivated: {
-                            imageWriter.changeLanguage(editText)
+                            langbar.visible = true
                         }
-                        Layout.topMargin: 10
-                        Layout.bottomMargin: 10
-                    }
-                    Text {
-                        font.pixelSize: 12
-                        font.family: roboto.name
-                        text: qsTr("Keyboard: ")
-                        Layout.topMargin: 10
-                        Layout.bottomMargin: 10
-                    }
-                    ComboBox {
-                        enabled: imageWriter.isEmbeddedMode()
-                        font.pixelSize: 12
-                        font.family: roboto.name
-                        model: imageWriter.getKeymapLayoutList()
-                        currentIndex: -1
-                        Component.onCompleted: {
-                            currentIndex = find(imageWriter.getCurrentKeyboard())
-                        }
-                        onActivated: {
-                            imageWriter.changeKeyboard(editText)
-                        }
-                        Layout.topMargin: 10
-                        Layout.bottomMargin: 10
-                        Layout.rightMargin: 30
-                    }
-                }
-
-                /* Language/keyboard bar is normally only visible in embedded mode.
-                   To test translations also show it when shift+ctrl+L is pressed. */
-                Shortcut {
-                    sequences: ["Shift+Ctrl+L", "Shift+Meta+L"]
-                    context: Qt.ApplicationShortcut
-                    onActivated: {
-                        langbar.visible = true
                     }
                 }
             }
