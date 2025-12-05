@@ -1,0 +1,115 @@
+{
+    "imager": {
+        "latest_version": "2.0.1-OpenHD",
+        "url": "https://openhdfpv.org/#downloads",
+        "type": "update_manifest"
+    },
+    "os_list": [
+        {
+            "name": "OpenHD Evo Raspberry",
+            "description": "Update package for Raspberry-Pi SBC's",
+            "icon": "https://upload.wikimedia.org/wikipedia/de/thumb/c/cb/Raspberry_Pi_Logo.svg/570px-Raspberry_Pi_Logo.svg.png",
+            "subitems": [
+                {
+                    "name": "OpenHD-evo-update-raspberry",
+                    "description": "Update existing OpenHD Evo Raspberry installations to latest version",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/updates/OpenHD-evo-update-raspberry-latest.zip",
+                    "extract_size": 2147483648,
+                    "extract_sha256": "0971a6f1f86ec597bc222c6f0335590ac58ad8443b66de6b4e2a6976e78ae345",
+                    "image_download_size": 754974720,
+                    "release_date": "2024-01-08",
+                    "init_format": "systemd"
+                }
+            ]
+        },
+        {
+            "name": "OpenHD Evo Radxa",
+            "description": "Update package for Radxa SBC's",
+            "icon": "https://forum.radxa.com/uploads/default/original/1X/afb83a5d13f03ccc5f26a0c5800a02e320b06468.png",
+            "subitems": [
+                {
+                    "name": "OpenHD-evo-update-radxa",
+                    "description": "Update existing OpenHD Evo Radxa installations to latest version",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/OpenHD-advanced.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/updates/OpenHD-evo-update-radxa-latest.zip",
+                    "extract_size": 2684354560,
+                    "extract_sha256": "1caaedad4718b39b95ba2cceb96c889b91277a92304818f2080ee6cee7b6b019",
+                    "image_download_size": 838860800,
+                    "release_date": "2023-12-12",
+                    "init_format": "systemd"
+                }
+            ]
+        },
+        {
+            "name": "OpenHD Evo X86",
+            "description": "Update package for normal Computers",
+            "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/x86.png",
+            "subitems": [
+                {
+                    "name": "OpenHD-evo-update-x86",
+                    "description": "Update existing OpenHD Evo x86 installations to latest version",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/x86-ohd.png",
+                    "url": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/updates/OpenHD-evo-update-x86-latest.zip",
+                    "extract_size": 3221225472,
+                    "extract_sha256": "53955d0df362fd0af87dc2d1f99761b86412e14fb4303759dc35152268676385",
+                    "image_download_size": 943718400,
+                    "release_date": "2023-06-30",
+                    "init_format": "systemd"
+                }
+            ]
+        },
+        {
+            "name": "OpenHD 2.0",
+            "description": "OpenHD 2.0 update package",
+            "icon": "https://openhd-images.fra1.cdn.digitaloceanspaces.com/Downloader/OpenHD-old.png",
+            "subitems": [
+                {
+                    "name": "OpenHD-2.0-update-rpi",
+                    "description": "Update OpenHD 2.0 Raspberry Pi installations to latest 2.0 release",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
+                    "url": "https://openhd-images.fra1.cdn.digitaloceanspaces.com/Downloader/updates/OpenHD-2.0-update-rpi-latest.zip",
+                    "extract_size": 1879048192,
+                    "extract_sha256": "c98642a1db21f791a50c491aaba13c85c2377294c628cd8d56d6dff7952edfbb",
+                    "image_download_size": 629145600,
+                    "release_date": "2021-09-23"
+                }
+            ]
+        },
+        {
+            "name": "Mirrors in case of Downtime",
+            "description": "Emergency backup of the latest update packages",
+            "icon": "https://www.nicepng.com/png/detail/58-589511_emergency-alert-icon.png",
+            "subitems": [
+                {
+                    "name": "OpenHD-evo-update-raspberry-mirror",
+                    "description": "Mirror: latest OpenHD Evo Raspberry update package",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/release/ImageWriter/rpi-ohd.png",
+                    "url": "https://github.com/OpenHD/OpenHD-ImageBuilder/releases/download/updates/OpenHD-evo-update-raspberry-latest.zip",
+                    "extract_size": 2147483648,
+                    "extract_sha256": "ae61057077c04a6dafa40cdeff45ccc189d9e650f473afc3375d821c36c9f859",
+                    "image_download_size": 754974720,
+                    "release_date": "2023-06-30",
+                    "init_format": "systemd"
+                }
+            ]
+        },
+        {
+            "name": "OpenHD Evo Deprecated",
+            "description": "Update package for deprecated SBC's",
+            "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/OpenHD-advanced.png",
+            "subitems": [
+                {
+                    "name": "OpenHD-evo-update-jetson",
+                    "description": "Update OpenHD Evo Jetson Nano installations to latest supported Evo version",
+                    "icon": "https://fra1.digitaloceanspaces.com/openhd-images/Downloader/OpenHD-advanced.png",
+                    "url": "https://openhd-images.fra1.cdn.digitaloceanspaces.com/Downloader/updates/OpenHD-evo-update-jetson-latest.zip",
+                    "extract_size": 2415919104,
+                    "extract_sha256": "51e68ace5713f5e6364ec3dbe0b4a35d2a1b17a690dd461ba79b7b9c2850bcb8",
+                    "image_download_size": 805306368,
+                    "release_date": "2023-03-10"
+                }
+            ]
+        }
+    ]
+}

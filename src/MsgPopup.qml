@@ -25,8 +25,11 @@ Popup {
     property bool quitButton: false
     property bool yesButton: false
     property bool noButton: false
+    property bool configureButton: false
+    property bool closeButton: false
     signal yes()
     signal no()
+    signal configure()
 
     // background of title
     Rectangle {
@@ -135,6 +138,25 @@ Popup {
                     msgpopup.close()
                 }
                 visible: msgpopup.continueButton
+                Material.foreground: activeFocus ? "#d1dcfb" : "#ffffff"
+                Material.background: "#2C3E50"
+            }
+            ImButton {
+                text: qsTr("CONFIGURE")
+                onClicked: {
+                    msgpopup.close()
+                    msgpopup.configure()
+                }
+                visible: msgpopup.configureButton
+                Material.foreground: activeFocus ? "#d1dcfb" : "#ffffff"
+                Material.background: "#2C3E50"
+            }
+            ImButton {
+                text: qsTr("CLOSE")
+                onClicked: {
+                    Qt.quit()
+                }
+                visible: msgpopup.closeButton
                 Material.foreground: activeFocus ? "#d1dcfb" : "#ffffff"
                 Material.background: "#2C3E50"
             }

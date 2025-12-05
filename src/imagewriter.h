@@ -17,6 +17,7 @@
 
 class QQmlApplicationEngine;
 class DownloadThread;
+class UpdateUploadThread;
 class QNetworkReply;
 class QWinTaskbarButton;
 class QTranslator;
@@ -104,6 +105,17 @@ public:
     Q_INVOKABLE QString getSSID();
     Q_INVOKABLE QString getPSK(const QString &ssid);
 
+    Q_INVOKABLE void startUpdateUpload(const QString &sourceFile, const QString &device);
+    Q_INVOKABLE QString getDestination() const;
+
+    /* Helpers for reading and writing configuration files on target devices */
+    Q_INVOKABLE QVariantList listTextFilesOnDevice(const QString &device) const;
+    Q_INVOKABLE QString readTextFile(const QString &filePath) const;
+    Q_INVOKABLE bool writeTextFile(const QString &filePath, const QString &content) const;
+    Q_INVOKABLE bool fileExists(const QString &filePath) const;
+    Q_INVOKABLE bool copyFile(const QString &sourcePath, const QString &destinationPath) const;
+    Q_INVOKABLE bool removeFile(const QString &filePath) const;
+
     Q_INVOKABLE bool getBoolSetting(const QString &key);
     Q_INVOKABLE QString getValue(const QString &key);
     Q_INVOKABLE void setSetting(const QString &key, const QVariant &value);
@@ -130,6 +142,7 @@ signals:
     /* We are emiting signals with QVariant as parameters because QML likes it that way */
 
     void downloadProgress(QVariant dlnow, QVariant dltotal);
+    void writeProgress(QVariant now, QVariant total);
     void verifyProgress(QVariant now, QVariant total);
     void error(QVariant msg);
     void success();
@@ -138,6 +151,10 @@ signals:
     void finalizing();
     void networkOnline();
     void preparationStatusUpdate(QVariant msg);
+    void updateUploadProgress(QVariant percentage);
+    void updateUploadStatus(QVariant msg);
+    void updateUploadError(QVariant msg);
+    void updateUploadSuccess();
 
 protected slots:
 
@@ -154,17 +171,22 @@ protected slots:
     void onFinalizing();
     void onTimeSyncReply(QNetworkReply *reply);
     void onPreparationStatusUpdate(QString msg);
+    void onUpdateUploadProgress(qreal progress);
+    void onUpdateUploadStatus(const QString &msg);
+    void onUpdateUploadError(const QString &msg);
+    void onUpdateUploadSuccess();
 
 protected:
     QUrl _src, _repo;
     QString _dst, _cacheFileName, _parentCategory, _osName, _currentLang, _currentLangcode, _currentKeyboard;
     QByteArray _expectedHash, _cachedFileHash, _cmdline, _config, _initFormat;
-    quint64 _downloadLen, _extrLen, _devLen, _dlnow, _verifynow;
+    quint64 _downloadLen, _extrLen, _devLen, _dlnow, _writenow, _verifynow;
     DriveListModel _drivelist;
     QQmlApplicationEngine *_engine;
     QTimer _polltimer, _networkchecktimer;
     PowerSaveBlocker _powersave;
     DownloadThread *_thread;
+    UpdateUploadThread *_updateThread;
     bool _verifyEnabled, _multipleFilesInZip, _cachingEnabled, _embeddedMode, _online;
     QSettings _settings;
     QMap<QString,QString> _translations;

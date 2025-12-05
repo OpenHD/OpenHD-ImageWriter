@@ -10,10 +10,11 @@ OPTION (ENABLE_CHECK_VERSION "Check for version updates" ON)
 OPTION (ENABLE_TELEMETRY "Enable sending telemetry" ON)
 
 project(OpenHDImageWriter LANGUAGES CXX C)
-set(IMAGER_VERSION_MAJOR 2)
+set(IMAGER_VERSION_MAJOR 3)
 set(IMAGER_VERSION_MINOR 0)
-set(IMAGER_VERSION_STR "${IMAGER_VERSION_MAJOR}.${IMAGER_VERSION_MINOR}.5")
-set(IMAGER_VERSION_CSV "${IMAGER_VERSION_MAJOR},${IMAGER_VERSION_MINOR},5,0")
+set(IMAGER_VERSION_PATCH 0)
+set(IMAGER_VERSION_STR "${IMAGER_VERSION_MAJOR}.${IMAGER_VERSION_MINOR}.${IMAGER_VERSION_PATCH}")
+set(IMAGER_VERSION_CSV "${IMAGER_VERSION_MAJOR},${IMAGER_VERSION_MINOR},${IMAGER_VERSION_PATCH},0")
 add_definitions(-DIMAGER_VERSION_STR="${IMAGER_VERSION_STR}")
 add_definitions(-DIMAGER_VERSION_CSV=${IMAGER_VERSION_CSV})
 
@@ -23,7 +24,7 @@ set(CMAKE_AUTORCC ON)
 
 # Adding headers explicity so they are displayed in Qt Creator
 set(HEADERS config.h imagewriter.h networkaccessmanagerfactory.h nan.h drivelistitem.h drivelistmodel.h drivelistmodelpollthread.h driveformatthread.h powersaveblocker.h cli.h
-    downloadthread.h downloadextractthread.h localfileextractthread.h downloadstatstelemetry.h dependencies/mountutils/src/mountutils.hpp dependencies/sha256crypt/sha256crypt.h)
+    downloadthread.h downloadextractthread.h localfileextractthread.h downloadstatstelemetry.h updateuploadthread.h dependencies/mountutils/src/mountutils.hpp dependencies/sha256crypt/sha256crypt.h)
 
 # Add dependencies
 if (APPLE)
@@ -89,7 +90,7 @@ endif()
 
 set(SOURCES "main.cpp" "imagewriter.cpp" "networkaccessmanagerfactory.cpp"
     "drivelistitem.cpp" "drivelistmodel.cpp" "drivelistmodelpollthread.cpp" "downloadthread.cpp" "downloadextractthread.cpp"
-     "driveformatthread.cpp" "localfileextractthread.cpp" "powersaveblocker.cpp" "downloadstatstelemetry.cpp" "qml.qrc" "dependencies/sha256crypt/sha256crypt.c" "cli.cpp")
+     "driveformatthread.cpp" "localfileextractthread.cpp" "powersaveblocker.cpp" "downloadstatstelemetry.cpp" "updateuploadthread.cpp" "qml.qrc" "dependencies/sha256crypt/sha256crypt.c" "cli.cpp")
 
 find_package(Qt5 COMPONENTS Core Quick LinguistTools Svg OPTIONAL_COMPONENTS Widgets)
 if (Qt5Widgets_FOUND)
@@ -223,14 +224,79 @@ if (WIN32)
             "${OPENSSL_ROOT_DIR}/bin/libcrypto-1_1.dll" "${CMAKE_BINARY_DIR}/deploy"
     )
 
+    add_custom_command(TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND "${WINDEPLOYQT}" --no-translations --no-webkit2 --no-opengl-sw --angle --qmldir "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/deploy/OpenHDImageWriter.exe")
+
+    # Manually copy the Qt.labs.settings QML module. We import Qt.labs.settings
+    # from flash/configure/update QML files, but windeployqt sometimes misses
+    # the module. Explicitly staging it avoids "Could not open <file>.qml"
+    # errors on Windows installations.
+    add_custom_command(TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${Qt5_DIR}/../../../qml/Qt/labs/settings" "${CMAKE_BINARY_DIR}/deploy/Qt/labs/settings")
+
+    # Ensure Qt Quick Controls 1/Dialogs are always staged. The Dialogs module
+    # depends on QtQuick.Controls 1.2, but windeployqt can miss it. Copy the
+    # QML modules explicitly so the NSIS script can bundle them and fail loudly
+    # if they are missing so we never ship an installer without the required
+    # FileDialog backend.
+    set(QT_QUICKCONTROLS_QML_DIR "${Qt5_DIR}/../../../qml/QtQuick/Controls")
+    set(QT_QUICKCONTROLS_PLUGIN "${QT_QUICKCONTROLS_QML_DIR}/qtquickcontrolsplugin.dll")
+    if(IS_DIRECTORY "${QT_QUICKCONTROLS_QML_DIR}" AND EXISTS "${QT_QUICKCONTROLS_PLUGIN}")
+        add_custom_command(TARGET ${PROJECT_NAME}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${QT_QUICKCONTROLS_QML_DIR}" "${CMAKE_BINARY_DIR}/deploy/QtQuick/Controls")
+    else()
+        message(FATAL_ERROR "Qt Quick Controls 1 QML directory not found at ${QT_QUICKCONTROLS_QML_DIR} or missing qtquickcontrolsplugin.dll; install the Qt Quick Controls component to bundle FileDialog dependencies")
+    endif()
+
+    set(QT_QUICKDIALOGS_QML_DIR "${Qt5_DIR}/../../../qml/QtQuick/Dialogs")
+    if(IS_DIRECTORY "${QT_QUICKDIALOGS_QML_DIR}")
+        add_custom_command(TARGET ${PROJECT_NAME}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${QT_QUICKDIALOGS_QML_DIR}" "${CMAKE_BINARY_DIR}/deploy/QtQuick/Dialogs")
+    else()
+        message(FATAL_ERROR "Qt Quick Dialogs QML directory not found at ${QT_QUICKDIALOGS_QML_DIR}; install the Qt Quick Dialogs component to bundle FileDialog dependencies")
+    endif()
+
     configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/windows/openhdimagewriter.nsi.in"
         "${CMAKE_CURRENT_BINARY_DIR}/openhdimagewriter.nsi"
         @ONLY)
 
+    set(OPENHD_SETTINGS_MAP_JSON "${CMAKE_CURRENT_LIST_DIR}/../doc/openhd_settings_map.json")
+    if (NOT EXISTS "${OPENHD_SETTINGS_MAP_JSON}")
+        message(FATAL_ERROR "Unable to find openhd_settings_map.json at ${OPENHD_SETTINGS_MAP_JSON}")
+    endif()
+
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
-        COMMAND "${WINDEPLOYQT}" --no-translations --no-webkit2 --no-opengl-sw --angle --qmldir "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/deploy/OpenHDImageWriter.exe")
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/main.qml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/flash.qml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/configure.qml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/update.qml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/MsgPopup.qml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/OptionsPopup.qml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/UseSavedSettingsPopup.qml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/qtquickcontrols2.conf"
+            "${CMAKE_CURRENT_SOURCE_DIR}/countries.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/timezones.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/keymap-layouts.txt"
+            "${CMAKE_BINARY_DIR}/deploy"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/doc"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${OPENHD_SETTINGS_MAP_JSON}" "${CMAKE_BINARY_DIR}/deploy/doc"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/icons" "${CMAKE_BINARY_DIR}/deploy/icons"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/fonts" "${CMAKE_BINARY_DIR}/deploy/fonts"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/qmlcomponents" "${CMAKE_BINARY_DIR}/deploy/qmlcomponents")
 
     # Remove excess files
     add_custom_command(TARGET ${PROJECT_NAME}
@@ -312,7 +378,13 @@ else()
 endif()
 
 get_target_property(QT_TARGET_TYPE Qt5::Core TYPE)
-if(${QT_TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
+if(WIN32)
+    # Statically link the QML plugins used by our bundled QML so that
+    # imports like Qt.labs.settings are always available at runtime,
+    # even if windeployqt misses them.
+    find_package(Qt5QmlImportScanner REQUIRED)
+    qt5_import_qml_plugins(${PROJECT_NAME})
+elseif(${QT_TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
     find_package(Qt5QmlImportScanner REQUIRED)
     qt5_import_qml_plugins(${PROJECT_NAME})
     qt5_import_plugins(${PROJECT_NAME} INCLUDE Qt5::QSvgPlugin)
@@ -322,12 +394,14 @@ if(WIN32)
 include_directories(
     ${CURL_INCLUDE_DIR}
     ${LibArchive_INCLUDE_DIR}
+    ${OPENSSL_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/sha256crypt
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt5::Core Qt5::Quick Qt5::Svg Qt5::Widgets Qt5::Network Qt5::Gui
     ${CURL_LIBRARIES}
     ${LibArchive_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
     ${ATOMIC_LIBRARY}
     ${EXTRALIBS}
     crypt32 secur32 bcrypt)  # Required for Schannel

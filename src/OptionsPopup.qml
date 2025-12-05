@@ -8,6 +8,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.0
 import QtQuick.Controls.Material 2.2
 import Qt.labs.settings 1.0
+import QtQuick.Dialogs 1.3
 import "qmlcomponents"
 
 Popup {
@@ -22,13 +23,14 @@ Popup {
     closePolicy: Popup.CloseOnEscape
     property bool initialized: false
 
+    property var settingsMap: ({})
+    property bool settingsMapLoaded: false
+
     // refactored settings
     property string bootType
     property string fileName
     property string sbc
     property string camera
-    property string bindPhrase
-    property bool bindPhrase_used
     property string mode
     property string hotSpot
     property string beep
@@ -37,6 +39,7 @@ Popup {
     property bool rock5
     property bool rpi
     property bool useSettings:true
+    property string qopenhdConfPath: ""
 
     // background of title
     Rectangle {
@@ -93,23 +96,17 @@ Popup {
                     ColumnLayout {
                         spacing: -10
 
-                        ImCheckBox {
-                            id: setAir
-                            text: qsTr("Set SBC to AIR")
-                            onCheckedChanged: {
-                                if (checked) {
-                                    setGround.checked = false
-                                    bootType="Air";
-                                }
-                            }
-                        }
-                        ImCheckBox {
-                            id: setGround
-                            text: qsTr("Set SBC to GROUND")
-                            onCheckedChanged: {
-                                if (checked) {
-                                    setAir.checked = false
-                                    bootType = "Ground";
+                        Repeater {
+                            id: bootRepeater
+                            model: settingsMap.bootType && settingsMap.bootType.options ? settingsMap.bootType.options.filter(function(option) { return option.id && option.id.length > 0 }) : []
+                            delegate: ImCheckBox {
+                                property var option: modelData
+                                text: qsTr("Set SBC to %1").arg(option ? option.id : "")
+                                checked: bootType === (option ? option.id : "")
+                                onClicked: {
+                                    if (option) {
+                                        bootType = option.id
+                                    }
                                 }
                             }
                         }
@@ -117,251 +114,130 @@ Popup {
                 }
                 GroupBox {
                     title: qsTr("Camera Settings")
-                    id: cameraSettingsRock5
+                    id: cameraSettings
                     Layout.fillWidth: true
-                    visible: rock5 && (bootType === "Air")
 
                     ColumnLayout {
                         spacing: -10
-                        // Add a ComboBox to select between cameras
-                        ComboBox {
-                            id: cameraSelectorRock5
-                            textRole: "displayText"
-                            model: ListModel {
-                                ListElement { displayText: "NONE" }
-                                ListElement { displayText: "HDMI" }
-                                ListElement { displayText: "OV5647" }
-                                ListElement { displayText: "IMX219" }
-                                ListElement { displayText: "IMX415" }
-                                ListElement { displayText: "IMX462" }
-                                ListElement { displayText: "IMX708" }
-                               // ListElement { displayText: "OHD-JAGUAR" }
-                            }
-                            onCurrentIndexChanged: {
-                                var selectedCamera = model.get(currentIndex).displayText;
-                                if (selectedCamera !== "NONE") {
-                                    camera = selectedCamera;
+                        Repeater {
+                            id: cameraGroupRepeater
+                            model: settingsMap.camera && settingsMap.camera.sbcGroups ? settingsMap.camera.sbcGroups : []
+                            delegate: GroupBox {
+                                property var groupData: modelData
+                                title: qsTr("Camera Settings")
+                                Layout.fillWidth: true
+                                visible: groupData && groupData.sbc && groupData.sbc.indexOf(sbc) !== -1 && bootType === groupData.bootTypeRequired
+
+                                ColumnLayout {
+                                    id: cameraGroup
+                                    spacing: -10
+
+                                    property var vendorList: groupData && groupData.vendors ? groupData.vendors : []
+                                    property var selectedVendor: vendorList.length > 0 ? vendorList[0] : null
+
+                                    ListModel {
+                                        id: vendorModel
+                                    }
+
+                                    ComboBox {
+                                        id: vendorSelector
+                                        visible: vendorModel.count > 1
+                                        textRole: "displayName"
+                                        model: vendorModel
+                                        Layout.minimumWidth: 200
+                                        Layout.maximumHeight: 40
+                                        onCurrentIndexChanged: {
+                                            if (vendorModel.count > 0) {
+                                                var modelVendor = vendorModel.get(currentIndex)
+                                                if (modelVendor && modelVendor.vendorIndex >= 0 && modelVendor.vendorIndex < cameraGroup.vendorList.length) {
+                                                    cameraGroup.selectedVendor = cameraGroup.vendorList[modelVendor.vendorIndex]
+                                                    cameraGroup.rebuildCameraOptions()
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    ListModel {
+                                        id: cameraOptionsModel
+                                    }
+
+                                    ComboBox {
+                                        id: cameraSelector
+                                        textRole: "displayText"
+                                        model: cameraOptionsModel
+                                        Layout.minimumWidth: 200
+                                        Layout.maximumHeight: 40
+                                        onCurrentIndexChanged: {
+                                            if (cameraOptionsModel.count > 0) {
+                                                var selectedCamera = cameraOptionsModel.get(currentIndex).displayText
+                                                if (selectedCamera !== "NONE") {
+                                                    camera = selectedCamera
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    function rebuildCameraOptions() {
+                                        cameraOptionsModel.clear()
+                                        cameraOptionsModel.append({ displayText: "NONE" })
+
+                                        if (cameraGroup.selectedVendor && cameraGroup.selectedVendor.options) {
+                                            for (var i = 0; i < cameraGroup.selectedVendor.options.length; i++) {
+                                                var option = cameraGroup.selectedVendor.options[i]
+                                                cameraOptionsModel.append({ displayText: option.id, value: option.valueWritten })
+                                            }
+                                        }
+
+                                        console.log("[OptionsPopup] camera options rebuilt for vendor", cameraGroup.selectedVendor ? cameraGroup.selectedVendor.id : "none", "->", cameraOptionsModel.count, "entries")
+
+                                        var targetIndex = 0
+                                        for (var idx = 0; idx < cameraOptionsModel.count; idx++) {
+                                            if (cameraOptionsModel.get(idx).displayText === camera) {
+                                                targetIndex = idx
+                                            }
+                                        }
+
+                                        cameraSelector.currentIndex = targetIndex
+                                    }
+
+                                    function rebuildVendors() {
+                                        vendorModel.clear()
+                                        for (var i = 0; i < cameraGroup.vendorList.length; i++) {
+                                            var vendor = cameraGroup.vendorList[i]
+                                            vendorModel.append({ displayName: vendor.displayName, vendorIndex: i })
+                                        }
+                                        console.log("[OptionsPopup] vendor list rebuilt for boot", bootType, "sbc", sbc, "->", vendorModel.count, "vendors")
+                                        if (vendorModel.count > 0) {
+                                            var index = vendorSelector.currentIndex >= 0 ? vendorSelector.currentIndex : 0
+                                            var foundVendor = false
+                                            for (var vendorIdx = 0; vendorIdx < cameraGroup.vendorList.length; vendorIdx++) {
+                                                var vendorCandidate = cameraGroup.vendorList[vendorIdx]
+                                                if (vendorCandidate && vendorCandidate.options) {
+                                                    for (var optIdx = 0; optIdx < vendorCandidate.options.length; optIdx++) {
+                                                        if (vendorCandidate.options[optIdx].id === camera) {
+                                                            index = vendorIdx
+                                                            foundVendor = true
+                                                            break
+                                                        }
+                                                    }
+                                                    if (foundVendor) {
+                                                        break
+                                                    }
+                                                }
+                                            }
+
+                                            vendorSelector.currentIndex = index
+                                            cameraGroup.selectedVendor = cameraGroup.vendorList[index]
+                                        }
+                                        cameraGroup.rebuildCameraOptions()
+                                    }
+
+                                    Component.onCompleted: rebuildVendors()
                                 }
                             }
                         }
                     }
                 }
-                GroupBox {
-                    title: qsTr("Camera Settings")
-                    id: cameraSettingsRock3
-                    Layout.fillWidth: true
-                    visible: rock3 && (bootType === "Air")
-
-
-                    ColumnLayout {
-                        spacing: -10
-                        ComboBox {
-                            id: cameraSelectorRock3
-                            textRole: "displayText"
-                            model: ListModel {
-                                ListElement { displayText: "NONE" }
-                                ListElement { displayText: "IMX462" }
-                                //ListElement { displayText: "IMX519" }
-                                ListElement { displayText: "HDMI" }
-                                ListElement { displayText: "IMX219" }
-                                ListElement { displayText: "VEYE" }
-                                ListElement { displayText: "OV5647" }
-                                //ListElement { displayText: "IMX708" }
-                                // ListElement { displayText: "OHD-JAGUAR" }
-                            }
-                            onCurrentIndexChanged: {
-                                var selectedCamera = model.get(currentIndex).displayText;
-                                if (selectedCamera !== "NONE") {
-                                    camera = selectedCamera;
-                                }
-                            }
-                        }
-                    }
-                }
-                GroupBox {
-                    title: qsTr("Camera Settings")
-                    id: cameraSettingsRpi
-                    Layout.fillWidth: true
-                    visible: rpi && (bootType === "Air")
-                    ColumnLayout {
-                        // Add a ComboBox to select between cameras
-                        ComboBox {
-                            id: cameraVendorSelectorRpi
-                            textRole: "displayText"
-                            model: ListModel {
-                                ListElement { displayText: "Raspberry" }
-                                ListElement { displayText: "Arducam" }
-                                ListElement { displayText: "Veye" }
-                                ListElement { displayText: "Advanced" }
-                            }
-                            Layout.minimumWidth: 200
-                            Layout.maximumHeight: 40
-                            onCurrentIndexChanged: {
-                                var selectedCameraVendor = model.get(currentIndex).displayText;
-                                if (selectedCameraVendor !== "Raspberry" && selectedCameraVendor !== "Veye" && selectedCameraVendor !== "Advanced") {
-                                    cameraSelectorArducam.visible=true
-                                    cameraSelectorVeye.visible=false
-                                    cameraSelectorAdvanced.visible=false
-                                    cameraSelectorRpiOriginal.visible=false
-                                }
-                                else if (selectedCameraVendor !== "Raspberry" && selectedCameraVendor !== "Arducam" && selectedCameraVendor !== "Advanced") {
-                                    cameraSelectorVeye.visible=true
-                                    cameraSelectorArducam.visible=false
-                                    cameraSelectorAdvanced.visible=false
-                                    cameraSelectorRpiOriginal.visible=false
-                                }
-                                else if (selectedCameraVendor !== "Raspberry" && selectedCameraVendor !== "Arducam"&& selectedCameraVendor !== "Veye") {
-                                    cameraSelectorVeye.visible=false
-                                    cameraSelectorArducam.visible=false
-                                    cameraSelectorAdvanced.visible=true
-                                    cameraSelectorRpiOriginal.visible=false
-                                }
-                                else if (selectedCameraVendor !== "Advanced" && selectedCameraVendor !== "Arducam"&& selectedCameraVendor !== "Veye") {
-                                    cameraSelectorVeye.visible=false
-                                    cameraSelectorArducam.visible=false
-                                    cameraSelectorAdvanced.visible=false
-                                    cameraSelectorRpiOriginal.visible=true
-                                }
-                            }
-                        }
-                        ComboBox {
-                            id: cameraSelectorAdvanced
-                            visible:false
-                            textRole: "displayText"
-                            model: ListModel {
-                                ListElement { displayText: "None" }
-                                ListElement { displayText: "USB" }
-                                ListElement { displayText: "FILESRC" }
-                                ListElement { displayText: "IP-CAMERA" }
-                                ListElement { displayText: "EXTERNAL" }
-                                ListElement { displayText: "TESTPATTERN" }
-                            }
-                            Layout.minimumWidth: 200
-                            Layout.maximumHeight: 40
-                            onCurrentIndexChanged: {
-                                var selectedCamera = model.get(currentIndex).displayText;
-                                if (selectedCamera !== "None") {
-                                camera = selectedCamera;
-                                }
-                            }
-                        }
-                        ComboBox {
-
-                            id: cameraSelectorRpiOriginal
-                            visible:false
-                            textRole: "displayText"
-                            model: ListModel {
-                                ListElement { displayText: "None" }
-                                ListElement { displayText: "HDMI" }
-                                ListElement { displayText: "OV5647" }
-                                ListElement { displayText: "IMX219" }
-                                ListElement { displayText: "IMX477" }
-                                ListElement { displayText: "IMX708" }
-
-                            }
-                            Layout.minimumWidth: 200
-                            Layout.maximumHeight: 40
-                            onCurrentIndexChanged: {
-                                var selectedCamera = model.get(currentIndex).displayText;
-                                if (selectedCamera !== "None") {
-                                    camera = selectedCamera;
-                                }
-                            }
-                        }
-                        ComboBox {
-
-                            id: cameraSelectorArducam
-                            visible:false
-                            textRole: "displayText"
-                            model: ListModel {
-                                ListElement { displayText: "None" }
-                                ListElement { displayText: "SkyMasterHDR708" }
-                                ListElement { displayText: "SkyVisionPro519" }
-                                ListElement { displayText: "IMX462MINI" }
-                                ListElement { displayText: "IMX477" }
-                                ListElement { displayText: "IMX477m" }
-                                ListElement { displayText: "IMX462" }
-                                ListElement { displayText: "IMX327" }
-                                ListElement { displayText: "IMX290" }
-                            }
-                            Layout.minimumWidth: 200
-                            Layout.maximumHeight: 40
-                            onCurrentIndexChanged: {
-                                var selectedCamera = model.get(currentIndex).displayText;
-                                if (selectedCamera !== "None") {
-                                    camera = selectedCamera;                                  
-                                }
-                            }
-                        }
-                        ComboBox {
-
-                            id: cameraSelectorVeye
-                            visible:false
-                            textRole: "displayText"
-                            model: ListModel {
-                                ListElement { displayText: "None" }
-                                ListElement { displayText: "2MPCAMERAS" }
-                                ListElement { displayText: "CSIMX307" }
-                                ListElement { displayText: "CSSC137" }
-                                ListElement { displayText: "MVCAM" }
-                            }
-                            Layout.minimumWidth: 200
-                            Layout.maximumHeight: 40
-                            onCurrentIndexChanged: {
-                                var selectedCamera = model.get(currentIndex).displayText;
-                                if (selectedCamera !== "None") {
-                                    camera = selectedCamera;
-                                }
-                            }
-                        }
-
-                    }
-                }
-                GroupBox {
-                    title: qsTr("Bind Settings")
-                    Layout.fillWidth: true
-                    visible: true
-
-                    ColumnLayout {
-                        spacing: 0
-
-                        Text {
-                            text: qsTr("   Must match on Air and Ground!")
-                            font.pixelSize: 12
-                            color: "gray"
-                            Layout.alignment: Qt.AlignHCenter
-                        }
-
-                        ImCheckBox {
-                            id: bndKey
-                            text: qsTr("Set binding phrase")
-                            checkable: true
-                            onCheckedChanged: {
-                                if (!checked) {
-                                    bindPhrase=""
-                                    bndPhrase.visible=false;
-                                }
-                                bndPhrase.visible=true;
-                            }
-                        }
-                        TextField {
-                            id: bndPhrase
-                            visible: bindPhrase_used
-                            maximumLength:10
-                            width:10
-                            color: bndPhrase.text.length >= 4 ? "green" : "red"
-                            text: bindPhrase
-                            selectByMouse: true
-                            placeholderTextColor: "blue"
-                            placeholderText: "openhd"
-                            onTextChanged: {
-                                bindPhrase = bndPhrase.text;
-                            }
-
-                        }
-                    }
-                }
-
                 GroupBox {
                     title: qsTr("Misc Settings")
                     id: miscSettings
@@ -370,15 +246,15 @@ Popup {
                         spacing: -10
 
                         ImCheckBox {
-                        id: setDebug
-                        visible: true
-                        text: qsTr("Debug Mode")
-                        onCheckedChanged: {
-                            if (checked) {
-                                mode = "debug";
+                            id: setDebug
+                            visible: !!(settingsMap.mode && settingsMap.mode.options && settingsMap.mode.options.length > 0)
+                            text: settingsMap.mode && settingsMap.mode.options && settingsMap.mode.options.length > 0 ? qsTr(settingsMap.mode.options[0].id || "Debug Mode") : qsTr("Debug Mode")
+                            onCheckedChanged: {
+                                if (checked) {
+                                    mode = "debug";
+                                }
                             }
                         }
-                    }
 
                     TextField {
                             id: textField
@@ -410,13 +286,52 @@ Popup {
 
                         ImCheckBox {
                             id: setWifiHotspot
-                            visible: false
-                            text: qsTr("WifiHotspot")
+                            visible: !!(settingsMap.hotSpot && settingsMap.hotSpot.options && settingsMap.hotSpot.options.length > 0)
+                            text: settingsMap.hotSpot && settingsMap.hotSpot.options && settingsMap.hotSpot.options.length > 0 ? qsTr(settingsMap.hotSpot.options[0].id || "WifiHotspot") : qsTr("WifiHotspot")
                             onCheckedChanged: {
                                 if (checked) {
                                     hotSpot = "wifi";
                                 }
                             }
+                        }
+                    }
+                }
+
+                GroupBox {
+                    title: qsTr("QOpenHD.conf")
+                    Layout.fillWidth: true
+
+                    ColumnLayout {
+                        spacing: 8
+
+                        TextField {
+                            id: qopenhdConfDisplay
+                            Layout.fillWidth: true
+                            readOnly: true
+                            placeholderText: qsTr("No QOpenHD.conf selected")
+                            text: qopenhdConfPath
+                        }
+
+                        RowLayout {
+                            spacing: 8
+
+                            Button {
+                                text: qsTr("Choose File")
+                                onClicked: qopenhdConfDialog.open()
+                            }
+
+                            Button {
+                                text: qsTr("Clear Selection")
+                                enabled: qopenhdConfPath.length > 0
+                                onClicked: qopenhdConfPath = ""
+                            }
+                        }
+
+                        Label {
+                            visible: qopenhdConfPath.length === 0
+                            text: qsTr("Existing QOpenHD.conf on the target will be kept when no file is selected.")
+                            wrapMode: Text.Wrap
+                            Layout.fillWidth: true
                         }
                     }
                 }
@@ -442,35 +357,37 @@ Popup {
         }
     }
 
+    FileDialog {
+        id: qopenhdConfDialog
+        title: qsTr("Select QOpenHD.conf")
+        nameFilters: [qsTr("QOpenHD.conf (*.conf)"), qsTr("All files (*)")]
+        selectExisting: true
+        onAccepted: {
+            qopenhdConfPath = qopenhdConfDialog.fileUrl.toLocalFile()
+        }
+    }
+
     function initialize() {
+        console.log("[OptionsPopup] initialize() called")
+        loadSettingsMap()
         var settings = imageWriter.getSavedCustomizationSettings()
 
         // initialise settings
         bootType = imageWriter.getValue("bootType")
+        if (!bootType && settingsMap.bootType && settingsMap.bootType.options && settingsMap.bootType.options.length > 0) {
+            bootType = settingsMap.bootType.options[0].id
+        }
+        console.log("[OptionsPopup] bootType:", bootType)
         fileName = imageWriter.srcFileName();
         sbc = imageWriter.getValue("sbc")
         camera= imageWriter.getValue("camera")
-        bindPhrase = imageWriter.getValue("bindPhrase")
         mode = imageWriter.getValue("mode")
         hotSpot = imageWriter.getValue("hotSpot")
         beep = imageWriter.getBoolSetting("beep")
         eject = imageWriter.getBoolSetting("eject")
+        qopenhdConfPath = imageWriter.getValue("qopenhdConfPath")
 
         // set session settings
-        if (bootType==="Air") {
-            setAir.checked=true
-            setGround.checked=false
-        }
-        else if (bootType==="Ground") {
-            setAir.checked=false
-            setGround.checked=true
-        }
-        if (bindPhrase) {
-            bndKey.checked=true
-        }
-        else{
-            bndKey.checked=false
-        }
         if (mode) {
             setDebug.checked=true
         }
@@ -486,37 +403,47 @@ Popup {
 
         //get SBC
         imageWriter.setSetting("fileName", fileName)
-        console.log(fileName)
+        console.log("[OptionsPopup] src file:", fileName)
         if (fileName.includes("pi")) {
             imageWriter.setSetting("sbc", "rpi");
+            sbc = "rpi"
             rpi=true;
             rock5=false;
             rock3=false;
         }
         else if (fileName.includes("rock5a")) {
             imageWriter.setSetting("sbc", "rock-5a");
+            sbc = "rock-5a"
             rpi=false;
             rock5=true;
             rock3=false;
         }
         else if (fileName.includes("rock5b")) {
             imageWriter.setSetting("sbc", "rock-5b");
+            sbc = "rock-5b"
             rpi=false;
             rock5=true;
             rock3=false;
         }
         else if (fileName.includes("zero3w")) {
             imageWriter.setSetting("sbc", "zero3w");
+            sbc = "zero3w"
             rpi=false;
             rock5=false;
             rock3=true;
         }
         else{
-           imageWriter.setSetting("sbc", "unknown"); 
+           imageWriter.setSetting("sbc", "unknown");
+           sbc = "unknown"
            rpi=false;
            rock5=false;
            rock3=false;
         }
+
+        console.log("[OptionsPopup] detected SBC:", sbc)
+        console.log("[OptionsPopup] saved camera:", camera)
+
+        initialized = true
     }
 
     function openPopup() {
@@ -533,12 +460,29 @@ Popup {
 
         imageWriter.setSetting("bootType", bootType)
         imageWriter.setSetting("camera", camera)
-        imageWriter.setSetting("bindPhrase" , bindPhrase)
         imageWriter.setSetting("mode", mode)
         imageWriter.setSetting("hotSpot" , hotSpot)
         imageWriter.setSetting("beep", beep)
         imageWriter.setSetting("eject", eject)
         imageWriter.setSetting("useSettings", useSettings)
+        imageWriter.setSetting("qopenhdConfPath", qopenhdConfPath)
 
+    }
+
+    function loadSettingsMap() {
+        if (settingsMapLoaded)
+            return
+
+        var xhr = new XMLHttpRequest()
+        xhr.open("GET", Qt.resolvedUrl("qrc:/doc/openhd_settings_map.json"), false)
+        xhr.send()
+
+        try {
+            settingsMap = JSON.parse(xhr.responseText)
+            settingsMapLoaded = true
+            console.log("[OptionsPopup] settings map loaded with keys:", Object.keys(settingsMap))
+        } catch (e) {
+            console.log("Failed to load OpenHD settings map: " + e)
+        }
     }
 }

@@ -1137,36 +1137,10 @@ bool DownloadThread::_customizeImage()
         QString cameraName = settings_.value("camera").toString();
         QString sbcValue = settings_.value("sbc").toString();
         QString modeValue = settings_.value("mode").toString();
-        QString bindPhraseSaved = settings_.value("bindPhrase").toString();
         QString hotspot = settings_.value("hotspot").toString();
         QString bootType = settings_.value("bootType").toString();
+        QString qopenhdConfPath = settings_.value("qopenhdConfPath").toString();
 
-        if (!bindPhraseSaved.isEmpty()){
-            qDebug() << "BindPhrase found" << bindPhraseSaved;
-            QFile Bp(folder+"/openhd"+"/password.txt");
-            if (Bp.open(QIODevice::WriteOnly))
-            {
-                // Convert bindPhrase to UTF-8 bytes and write to the file
-                QByteArray bindPhraseBytes = bindPhraseSaved.toUtf8();
-                qint64 bytesWritten = Bp.write(bindPhraseBytes);
-                Bp.close();
-
-                if (bytesWritten == bindPhraseBytes.length())
-                {
-                    // Successfully wrote the password to the file
-                }
-                else
-                {
-                    emit error(tr("Error writing password to password.txt on FAT partition"));
-                    return false;
-                }
-            }
-            else
-            {
-                emit error(tr("Error creating password.txt on FAT partition"));
-                return false;
-            }
-        }
         if (!cameraName.isEmpty()){
             QString cameraValue;
             qDebug() << "Camera found" << cameraName;
@@ -1212,6 +1186,9 @@ bool DownloadThread::_customizeImage()
                     }
                     else if (cameraName == "IMX462MINI"){
                     cameraValue="46";
+                    }
+                    else if (cameraName == "IMX662"){
+                    cameraValue="47";
                     }
                     //Veye
                     else if (cameraName == "2MPCAMERAS"){
@@ -1377,6 +1354,31 @@ bool DownloadThread::_customizeImage()
                 ground.close();
             } else {
                 emit error(tr("Error creating air.txt file on FAT partition"));
+                return false;
+            }
+        }
+
+        if (!qopenhdConfPath.isEmpty()) {
+            QFileInfo confInfo(qopenhdConfPath);
+            if (!confInfo.exists() || !confInfo.isFile()) {
+                emit error(tr("QOpenHD.conf not found at the selected path."));
+                return false;
+            }
+
+            QDir openhdDir(folder + "/openhd");
+            if (!openhdDir.exists() && !openhdDir.mkpath(".")) {
+                emit error(tr("Error creating openhd folder on FAT partition"));
+                return false;
+            }
+
+            QString targetConfPath = openhdDir.filePath("QOpenHD.conf");
+            if (QFileInfo::exists(targetConfPath) && !QFile::remove(targetConfPath)) {
+                emit error(tr("Error replacing existing QOpenHD.conf on FAT partition"));
+                return false;
+            }
+
+            if (!QFile::copy(qopenhdConfPath, targetConfPath)) {
+                emit error(tr("Error copying QOpenHD.conf to FAT partition"));
                 return false;
             }
         }

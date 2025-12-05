@@ -5,3 +5,4 @@ CMakeCache.txt
 *.qml_hack
 /src/build
 /openssl111
+openssl-1.1.1w.zip

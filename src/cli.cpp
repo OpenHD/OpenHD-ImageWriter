@@ -37,6 +37,7 @@ Cli::Cli(int &argc, char *argv[]) : QObject(nullptr)
     connect(_imageWriter, &ImageWriter::error, this, &Cli::onError);
     connect(_imageWriter, &ImageWriter::preparationStatusUpdate, this, &Cli::onPreparationStatusUpdate);
     connect(_imageWriter, &ImageWriter::downloadProgress, this, &Cli::onDownloadProgress);
+    connect(_imageWriter, &ImageWriter::writeProgress, this, &Cli::onWriteProgress);
     connect(_imageWriter, &ImageWriter::verifyProgress, this, &Cli::onVerifyProgress);
 }
 
@@ -179,7 +180,12 @@ void Cli::onError(QVariant msg)
 
 void Cli::onDownloadProgress(QVariant dlnow, QVariant dltotal)
 {
-    _printProgress("Writing",  dlnow, dltotal);
+    _printProgress("Downloading",  dlnow, dltotal);
+}
+
+void Cli::onWriteProgress(QVariant now, QVariant total)
+{
+    _printProgress("Writing", now, total);
 }
 
 void Cli::onVerifyProgress(QVariant now, QVariant total)
