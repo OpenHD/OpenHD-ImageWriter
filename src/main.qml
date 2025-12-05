@@ -9,6 +9,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.0
 import QtQuick.Controls.Material 2.2
 import Qt.labs.settings 1.0
+import QtQuick.Dialogs 1.2
 import "qmlcomponents"
 
 
@@ -17,6 +18,10 @@ ApplicationWindow {
     id: window
     visible: true
     color: "#34495E"
+
+    property string currentScreen: "menu"
+    property url updateZipPath: ""
+    property string updateMountpoint: ""
 
     width: imageWriter.isEmbeddedMode() ? -1 : 680
     height: imageWriter.isEmbeddedMode() ? -1 : 420
@@ -31,95 +36,21 @@ ApplicationWindow {
     FontLoader {id: robotoLight; source: "fonts/Roboto-Light.ttf"}
     FontLoader {id: robotoBold;  source: "fonts/Roboto-Bold.ttf"}
 
-    property bool modeSelectionActive: true
+    FileDialog {
+        id: updateFileDialog
+        title: qsTr("Select OpenHD update (upload.zip)")
+        nameFilters: ["Zip files (*.zip)"]
+        onAccepted: {
+            window.updateZipPath = fileUrl
+            updateFileButton.text = imageWriter.fileNameFromUrl(fileUrl)
+            updateUploadButton.enabled = updateTargetButton.text !== qsTr("SELECT OPENHD DRIVE")
+        }
+    }
 
     onClosing: {
         if (progressBar.visible) {
             close.accepted = false
             quitpopup.openPopup()
-        }
-    }
-
-    Popup {
-        id: configurePopup
-        x: 75
-        y: (parent.height - height) / 2
-        width: parent.width - 150
-        height: 300
-        padding: 0
-        modal: true
-
-        Rectangle {
-            color: "#f5f5f5"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: 35
-            width: parent.width
-        }
-        Rectangle {
-            color: "#afafaf"
-            width: parent.width
-            y: 35
-            implicitHeight: 1
-        }
-
-        Text {
-            text: "X"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: 25
-            anchors.topMargin: 10
-            font.family: roboto.name
-            font.bold: true
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: configurePopup.close()
-            }
-        }
-
-        ColumnLayout {
-            spacing: 10
-            anchors.fill: parent
-
-            Text {
-                text: qsTr("Example configuration")
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                Layout.fillWidth: true
-                Layout.topMargin: 10
-                font.family: roboto.name
-                font.bold: true
-            }
-
-            ColumnLayout {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.fillWidth: true
-                Layout.leftMargin: 30
-                Layout.rightMargin: 30
-
-                Label {
-                    text: qsTr("• Set SBC role to Air or Ground under advanced options")
-                    wrapMode: Text.WordWrap
-                }
-                Label {
-                    text: qsTr("• Choose cameras such as HDMI, IMX219 or OV5647 when the board is Air")
-                    wrapMode: Text.WordWrap
-                }
-                Label {
-                    text: qsTr("• Provide a bind phrase to pair your devices")
-                    wrapMode: Text.WordWrap
-                }
-                Label {
-                    text: qsTr("• Enable hotspot, beeps or safe eject once flashing finishes")
-                    wrapMode: Text.WordWrap
-                }
-                Label {
-                    text: qsTr("These options mirror what you will find in the full configuration menu.")
-                    wrapMode: Text.WordWrap
-                }
-            }
         }
     }
 
@@ -370,403 +301,568 @@ ApplicationWindow {
             color: "#2C3E50"
             implicitWidth: window.width
             implicitHeight: window.height/2
-            Loader {
+
+            ColumnLayout {
                 anchors.fill: parent
-                active: modeSelectionActive
-                sourceComponent: modeSelector
-            }
+                anchors.topMargin: 10
+                anchors.leftMargin: 20
+                anchors.rightMargin: 20
+                anchors.bottomMargin: 10
+                spacing: 10
 
-            Loader {
-                anchors.fill: parent
-                active: !modeSelectionActive
-                sourceComponent: gridSelector
-            }
-
-            Component {
-                id: modeSelector
-
-                Item {
-                    anchors.fill: parent
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 50
-                        anchors.rightMargin: 50
-                        anchors.topMargin: 25
-                        anchors.bottomMargin: 25
-                        spacing: 20
-                        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-
-                        Text {
-                            text: qsTr("Choose what you want to do")
-                            color: "white"
-                            font.pixelSize: 18
-                            font.family: robotoBold.name
-                            horizontalAlignment: Text.AlignHCenter
-                            Layout.fillWidth: true
-                        }
-
-                        RowLayout {
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.fillWidth: true
-                            spacing: 20
-
-                            ImButton {
-                                id: flashButton
-                                text: qsTr("FLASH")
-                                Layout.minimumHeight: 50
-                                Layout.fillWidth: true
-                                onClicked: modeSelectionActive = false
-                            }
-
-                            ImButton {
-                                id: updateButton
-                                text: qsTr("UPDATE")
-                                Layout.minimumHeight: 50
-                                Layout.fillWidth: true
-                                onClicked: modeSelectionActive = false
-                            }
-
-                            ImButton {
-                                id: configureButton
-                                text: qsTr("CONFIGURE")
-                                Layout.minimumHeight: 50
-                                Layout.fillWidth: true
-                                onClicked: configurePopup.open()
-                            }
-                        }
+                RowLayout {
+                    Layout.fillWidth: true
+                    ImButton {
+                        id: backToMenuButton
+                        text: qsTr("BACK")
+                        visible: window.currentScreen !== "menu"
+                        onClicked: window.currentScreen = "menu"
                     }
                 }
-            }
 
-            Component {
-                id: gridSelector
+                StackLayout {
+                    id: screenStack
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    currentIndex: window.currentScreen === "menu" ? 0 : window.currentScreen === "flash" ? 1 : 2
 
-                GridLayout {
-                    id: gridLayout
-                    rowSpacing: 25
-
-                    anchors.fill: parent
-                    anchors.topMargin: 25
-                    anchors.rightMargin: 50
-                    anchors.leftMargin: 50
-
-                    rows: 6
-                    columns: 3
-                    columnSpacing: 25
-
-                    ColumnLayout {
-                        id: columnLayout
-                        spacing: 0
+                    Item {
+                        id: menuScreen
                         Layout.fillWidth: true
+                        Layout.fillHeight: true
 
-                        Text {
-                            id: text1
-                            color: "#ffffff"
-                            text: qsTr("Operating System")
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 17
-                            Layout.preferredWidth: 100
-                            font.pixelSize: 12
-                            font.family: robotoBold.name
-                            font.bold: true
-                            horizontalAlignment: Text.AlignHCenter
-                        }
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 30
+                            spacing: 20
 
-                        ImButton {
-                            id: osbutton
-                            text: imageWriter.srcFileName() === "" ? qsTr("CHOOSE OS") : imageWriter.srcFileName()
-                            spacing: 0
-                            padding: 0
-                            bottomPadding: 0
-                            topPadding: 0
-                            Layout.minimumHeight: 40
-                            Layout.fillWidth: true
-                            onClicked: {
-                                ospopup.open()
-                                osswipeview.currentItem.forceActiveFocus()
-                                customizebutton.visible=true
-                                // reset all saved settings but the bindPhrase
-                                imageWriter.setSetting("sbc", "")
-                                imageWriter.setSetting("bootType", "")
-                                imageWriter.setSetting("fileName", "")
-                                imageWriter.setSetting("camera", "")
-                                imageWriter.setSetting("mode", "")
-                                imageWriter.setSetting("hotSpot" , "")
-                                imageWriter.setSetting("beep", "")
-                                imageWriter.setSetting("eject", "")
+                            Text {
+                                text: qsTr("What would you like to do?")
+                                color: "#ffffff"
+                                font.pixelSize: 20
+                                font.family: robotoBold.name
+                                Layout.alignment: Qt.AlignHCenter
                             }
-                            Accessible.ignored: ospopup.visible || dstpopup.visible
-                            Accessible.description: qsTr("Select this button to change the operating system")
-                        }
-                    }
 
-                    ColumnLayout {
-                        id: columnLayout2
-                        spacing: 0
-                        Layout.fillWidth: true
+                            RowLayout {
+                                Layout.alignment: Qt.AlignHCenter
+                                spacing: 20
 
-                        Text {
-                            id: text2
-                            text: qsTr("Storage")
-                            color: "#fff"
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 17
-                            Layout.preferredWidth: 100
-                            font.pixelSize: 12
-                            font.family: robotoBold.name
-                            font.bold: true
-                            horizontalAlignment: Text.AlignHCenter
-                        }
-
-                        ImButton {
-                            id: dstbutton
-                            text: qsTr("CHOOSE STORAGE")
-                            Layout.minimumHeight: 40
-                            Layout.preferredWidth: 100
-                            Layout.fillWidth: true
-                            onClicked: {
-                                imageWriter.startDriveListPolling()
-                                dstpopup.open()
-                                dstlist.forceActiveFocus()
-                            }
-                            Accessible.ignored: ospopup.visible || dstpopup.visible
-                            Accessible.description: qsTr("Select this button to change the destination storage device")
-                        }
-                    }
-
-                    ColumnLayout {
-                        spacing: 0
-                        Layout.fillWidth: true
-
-                        Text {
-                            text: " "
-                            Layout.preferredHeight: 17
-                            Layout.preferredWidth: 100
-                        }
-
-                        ImButton {
-                            id: writebutton
-                            visible: !updateButton.visible
-                            property var image_name
-                            property var use_settings
-                            property var bootType
-                            property string camera:""
-                            text: qsTr("WRITE")
-                            Layout.minimumHeight: 40
-                            Layout.fillWidth: true
-                            Accessible.ignored: ospopup.visible || dstpopup.visible
-                            Accessible.description: qsTr("Select this button to start writing the image")
-                            enabled: false
-                            onClicked: {
-                                if (!imageWriter.readyToWrite()) {
-                                    return
+                                ImButton {
+                                    text: qsTr("FLASH")
+                                    Layout.preferredWidth: 150
+                                    Layout.preferredHeight: 60
+                                    onClicked: window.currentScreen = "flash"
                                 }
-                                image_name=imageWriter.srcFileName();
-                                bootType=imageWriter.getValue("bootType");
-                                camera=imageWriter.getValue("camera");
-                                if(image_name.includes("configurable")){
-                                    if(bootType!=="Air" && bootType!=="Ground" ){
-                                        console.log("Cannot write yet, air or ground not set yet");
-                                        onError("Cannot write yet, air or ground not set yet - please open settings and select air or ground")
-                                        return;
+                                ImButton {
+                                    text: qsTr("UPDATE")
+                                    Layout.preferredWidth: 150
+                                    Layout.preferredHeight: 60
+                                    onClicked: window.currentScreen = "update"
+                                }
+                                ImButton {
+                                    text: qsTr("CONFIGURE")
+                                    Layout.preferredWidth: 150
+                                    Layout.preferredHeight: 60
+                                    onClicked: {
+                                        window.currentScreen = "flash"
+                                        optionspopup.openPopup()
                                     }
                                 }
-                                use_settings=imageWriter.getValue("useSettings")
-                                if (!optionspopup.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
-                                    usesavedsettingspopup.openPopup()
-                                } else {
-                                    confirmwritepopup.askForConfirmation()
-                                }
                             }
                         }
-                        ImButton {
-                            id: updateButton
-                            visible:ospopup.visible
-                            property var image_name
-                            property var use_settings
-                            property var bootType
-                            property string camera:""
+                    }
 
-                            text: qsTr("UPDATE")
-                            Layout.minimumHeight: 40
-                            Layout.fillWidth: true
-                            Accessible.ignored: ospopup.visible || dstpopup.visible
-                            Accessible.description: qsTr("Select this button to start writing the image")
-                            enabled: false
-                            onClicked: {
-                                if (!imageWriter.readyToWrite()) {
-                                    return
+                    Item {
+                        id: flashScreen
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        GridLayout {
+                            id: gridLayout
+                            rowSpacing: 25
+
+                            anchors.fill: parent
+                            anchors.topMargin: 15
+                            anchors.rightMargin: 30
+                            anchors.leftMargin: 30
+
+                            rows: 6
+                            columns: 3
+                            columnSpacing: 25
+
+                            ColumnLayout {
+                                id: columnLayout
+                                spacing: 0
+                                Layout.fillWidth: true
+
+                                Text {
+                                    id: text1
+                                    color: "#ffffff"
+                                    text: qsTr("Operating System")
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 17
+                                    Layout.preferredWidth: 100
+                                    font.pixelSize: 12
+                                    font.family: robotoBold.name
+                                    font.bold: true
+                                    horizontalAlignment: Text.AlignHCenter
                                 }
-                                image_name=imageWriter.srcFileName();
-                                bootType=imageWriter.getValue("bootType");
-                                camera=imageWriter.getValue("camera");
-                                if(image_name.includes("configurable")){
-                                    if(bootType!=="Air" && bootType!=="Ground" ){
-                                        console.log("Cannot write yet, air or ground not set yet");
-                                        onError("Cannot write yet, air or ground not set yet - please open settings and select air or ground")
-                                        return;
+
+                                ImButton {
+                                    id: osbutton
+                                    text: imageWriter.srcFileName() === "" ? qsTr("CHOOSE OS") : imageWriter.srcFileName()
+                                    spacing: 0
+                                    padding: 0
+                                    bottomPadding: 0
+                                    topPadding: 0
+                                    Layout.minimumHeight: 40
+                                    Layout.fillWidth: true
+                                    onClicked: {
+                                        ospopup.open()
+                                        osswipeview.currentItem.forceActiveFocus()
+                                        customizebutton.visible=true
+                                        // reset all saved settings but the bindPhrase
+                                        imageWriter.setSetting("sbc", "")
+                                        imageWriter.setSetting("bootType", "")
+                                        imageWriter.setSetting("fileName", "")
+                                        imageWriter.setSetting("camera", "")
+                                        imageWriter.setSetting("mode", "")
+                                        imageWriter.setSetting("hotSpot" , "")
+                                        imageWriter.setSetting("beep", "")
+                                        imageWriter.setSetting("eject", "")
+                                    }
+                                    Accessible.ignored: ospopup.visible || dstpopup.visible
+                                    Accessible.description: qsTr("Select this button to change the operating system")
+                                }
+                            }
+
+                            ColumnLayout {
+                                id: columnLayout2
+                                spacing: 0
+                                Layout.fillWidth: true
+
+                                Text {
+                                    id: text2
+                                    text: qsTr("Storage")
+                                    color: "#fff"
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 17
+                                    Layout.preferredWidth: 100
+                                    font.pixelSize: 12
+                                    font.family: robotoBold.name
+                                    font.bold: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+
+                                ImButton {
+                                    id: dstbutton
+                                    text: qsTr("CHOOSE STORAGE")
+                                    Layout.minimumHeight: 40
+                                    Layout.preferredWidth: 100
+                                    Layout.fillWidth: true
+                                    onClicked: {
+                                        imageWriter.startDriveListPolling()
+                                        dstpopup.open()
+                                        dstlist.forceActiveFocus()
+                                    }
+                                    Accessible.ignored: ospopup.visible || dstpopup.visible
+                                    Accessible.description: qsTr("Select this button to change the destination storage device")
+                                }
+                            }
+
+                            ColumnLayout {
+                                spacing: 0
+                                Layout.fillWidth: true
+
+                                Text {
+                                    text: " "
+                                    Layout.preferredHeight: 17
+                                    Layout.preferredWidth: 100
+                                }
+
+                                ImButton {
+                                    id: writebutton
+                                    visible: !updateButton.visible
+                                    property var image_name
+                                    property var use_settings
+                                    property var bootType
+                                    property string camera:""
+                                    text: qsTr("WRITE")
+                                    Layout.minimumHeight: 40
+                                    Layout.fillWidth: true
+                                    Accessible.ignored: ospopup.visible || dstpopup.visible
+                                    Accessible.description: qsTr("Select this button to start writing the image")
+                                    enabled: false
+                                    onClicked: {
+                                        if (!imageWriter.readyToWrite()) {
+                                            return
+                                        }
+                                        image_name=imageWriter.srcFileName();
+                                        bootType=imageWriter.getValue("bootType");
+                                        camera=imageWriter.getValue("camera");
+                                        if(image_name.includes("configurable")){
+                                            if(bootType!=="Air" && bootType!=="Ground" ){
+                                                console.log("Cannot write yet, air or ground not set yet");
+                                                onError("Cannot write yet, air or ground not set yet - please open settings and select air or ground")
+                                                return;
+                                            }
+                                        }
+                                        use_settings=imageWriter.getValue("useSettings")
+                                        if (!optionspopup.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
+                                            usesavedsettingspopup.openPopup()
+                                        } else {
+                                            confirmwritepopup.askForConfirmation()
+                                        }
                                     }
                                 }
-                                use_settings=imageWriter.getValue("useSettings")
-                                if (!optionspopup.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
-                                    usesavedsettingspopup.openPopup()
-                                } else {
-                                    confirmwritepopup.askForConfirmation()
+                                ImButton {
+                                    id: updateButton
+                                    visible:ospopup.visible
+                                    property var image_name
+                                    property var use_settings
+                                    property var bootType
+                                    property string camera:""
+
+                                    text: qsTr("UPDATE")
+                                    Layout.minimumHeight: 40
+                                    Layout.fillWidth: true
+                                    Accessible.ignored: ospopup.visible || dstpopup.visible
+                                    Accessible.description: qsTr("Select this button to start writing the image")
+                                    enabled: false
+                                    onClicked: {
+                                        if (!imageWriter.readyToWrite()) {
+                                            return
+                                        }
+                                        image_name=imageWriter.srcFileName();
+                                        bootType=imageWriter.getValue("bootType");
+                                        camera=imageWriter.getValue("camera");
+                                        if(image_name.includes("configurable")){
+                                            if(bootType!=="Air" && bootType!=="Ground" ){
+                                                console.log("Cannot write yet, air or ground not set yet");
+                                                onError("Cannot write yet, air or ground not set yet - please open settings and select air or ground")
+                                                return;
+                                            }
+                                        }
+                                        use_settings=imageWriter.getValue("useSettings")
+                                        if (!optionspopup.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
+                                            usesavedsettingspopup.openPopup()
+                                        } else {
+                                            confirmwritepopup.askForConfirmation()
+                                        }
+                                    }
+                                }
+
+                            }
+
+                            ColumnLayout {
+                                id: columnLayout3
+                                Layout.columnSpan: 3
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+
+                                Text {
+                                    id: progressText
+                                    font.pointSize: 10
+                                    color: "white"
+                                    font.family: robotoBold.name
+                                    font.bold: true
+                                    visible: false
+                                    horizontalAlignment: Text.AlignHCenter
+                                    Layout.fillWidth: true
+                                }
+
+                                ProgressBar {
+                                    id: progressBar
+                                    Layout.fillWidth: true
+                                    visible: false
+                                    Material.background: "#00b3f7"
+                                }
+
+                                ImButton {
+                                    id: cancelwritebutton
+                                    text: qsTr("CANCEL WRITE")
+                                    onClicked: {
+                                        enabled = false
+                                        progressText.text = qsTr("Cancelling...")
+                                        imageWriter.cancelWrite()
+                                    }
+                                    Layout.alignment: Qt.AlignRight
+                                    visible: false
+                                }
+                                ImButton {
+                                    id: cancelverifybutton
+                                    text: qsTr("CANCEL VERIFY")
+                                    onClicked: {
+                                        enabled = false
+                                        progressText.text = qsTr("Finalizing...")
+                                        imageWriter.setVerifyEnabled(false)
+                                    }
+                                    Layout.alignment: Qt.AlignRight
+                                    visible: false
+                                }
+                                ImButton {
+                                    Layout.bottomMargin: 55
+                                    padding: 5
+                                    id: customizebutton
+                                    onClicked: {
+                                        optionspopup.openPopup()
+                                    }
+                                    visible: false
+                                    Accessible.description: qsTr("Select this button to configure Settings")
+                                    contentItem: Image {
+                                        source: "icons/ic_cog_red.svg"
+                                        fillMode: Image.PreserveAspectFit
+                                    }
+                                }
+
+                            }
+
+                            Text {
+                                Layout.columnSpan: 3
+                                color: "#ffffff"
+                                font.pixelSize: 18
+                                font.family: roboto.name
+                                visible: imageWriter.isEmbeddedMode() && imageWriter.customRepo()
+                                text: qsTr("Using custom repository: %1").arg(imageWriter.constantOsListUrl())
+                            }
+
+                            Text {
+                                Layout.columnSpan: 3
+                                color: "#ffffff"
+                                font.pixelSize: 18
+                                font.family: roboto.name
+                                visible: !imageWriter.hasMouse()
+                                text: qsTr("Keyboard navigation: <tab> navigate to next button <space> press button/select item <arrow up/down> go up/down in lists")
+                            }
+
+                            RowLayout {
+                                id: langbar
+                                Layout.columnSpan: 3
+                                Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
+                                Layout.bottomMargin: 5
+                                spacing: 10
+                                visible: imageWriter.isEmbeddedMode()
+
+                                Rectangle {
+                                    color: "#ffffe3"
+                                    radius: 5
+                                }
+
+                                Text {
+                                    font.pixelSize: 12
+                                    font.family: roboto.name
+                                    text: qsTr("Language: ")
+                                    Layout.leftMargin: 30
+                                    Layout.topMargin: 10
+                                    Layout.bottomMargin: 10
+                                }
+                                ComboBox {
+                                    font.pixelSize: 12
+                                    font.family: roboto.name
+                                    model: imageWriter.getTranslations()
+                                    Layout.preferredWidth: 200
+                                    currentIndex: -1
+                                    Component.onCompleted: {
+                                        currentIndex = find(imageWriter.getCurrentLanguage())
+                                    }
+                                    onActivated: {
+                                        imageWriter.changeLanguage(editText)
+                                    }
+                                    Layout.topMargin: 10
+                                    Layout.bottomMargin: 10
+                                }
+                                Text {
+                                    font.pixelSize: 12
+                                    font.family: roboto.name
+                                    text: qsTr("Keyboard: ")
+                                    Layout.topMargin: 10
+                                    Layout.bottomMargin: 10
+                                }
+                                ComboBox {
+                                    enabled: imageWriter.isEmbeddedMode()
+                                    font.pixelSize: 12
+                                    font.family: roboto.name
+                                    model: imageWriter.getKeymapLayoutList()
+                                    currentIndex: -1
+                                    Component.onCompleted: {
+                                        currentIndex = find(imageWriter.getCurrentKeyboard())
+                                    }
+                                    onActivated: {
+                                        imageWriter.changeKeyboard(editText)
+                                    }
+                                    Layout.topMargin: 10
+                                    Layout.bottomMargin: 10
+                                    Layout.rightMargin: 30
+                                }
+                            }
+
+                            /* Language/keyboard bar is normally only visible in embedded mode.
+                               To test translations also show it when shift+ctrl+L is pressed. */
+                            Shortcut {
+                                sequences: ["Shift+Ctrl+L", "Shift+Meta+L"]
+                                context: Qt.ApplicationShortcut
+                                onActivated: {
+                                    langbar.visible = true
+                                }
+                            }
+                        }
+                    }
+
+                    Item {
+                        id: updateScreen
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        GridLayout {
+                            rowSpacing: 25
+                            anchors.fill: parent
+                            anchors.topMargin: 15
+                            anchors.rightMargin: 30
+                            anchors.leftMargin: 30
+                            rows: 4
+                            columns: 3
+                            columnSpacing: 25
+
+                            ColumnLayout {
+                                spacing: 0
+                                Layout.fillWidth: true
+
+                                Text {
+                                    color: "#ffffff"
+                                    text: qsTr("Update package")
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 17
+                                    Layout.preferredWidth: 100
+                                    font.pixelSize: 12
+                                    font.family: robotoBold.name
+                                    font.bold: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+
+                                ImButton {
+                                    id: updateFileButton
+                                    text: qsTr("SELECT UPLOAD.ZIP")
+                                    spacing: 0
+                                    padding: 0
+                                    bottomPadding: 0
+                                    topPadding: 0
+                                    Layout.minimumHeight: 40
+                                    Layout.fillWidth: true
+                                    onClicked: updateFileDialog.open()
+                                }
+                            }
+
+                            ColumnLayout {
+                                spacing: 0
+                                Layout.fillWidth: true
+
+                                Text {
+                                    color: "#ffffff"
+                                    text: qsTr("OpenHD target")
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 17
+                                    Layout.preferredWidth: 100
+                                    font.pixelSize: 12
+                                    font.family: robotoBold.name
+                                    font.bold: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+
+                                ImButton {
+                                    id: updateTargetButton
+                                    text: qsTr("SELECT OPENHD DRIVE")
+                                    Layout.minimumHeight: 40
+                                    Layout.fillWidth: true
+                                    onClicked: {
+                                        const targets = imageWriter.listOpenHdTargets()
+                                        updateDriveModel.clear()
+                                        if (targets.length === 0) {
+                                            onError(qsTr("No mounted OpenHD installs found."))
+                                            return
+                                        }
+                                        for (var i = 0; i < targets.length; ++i) {
+                                            updateDriveModel.append(targets[i])
+                                        }
+                                        updateTargetPopup.open()
+                                    }
+                                }
+                            }
+
+                            ColumnLayout {
+                                spacing: 0
+                                Layout.fillWidth: true
+
+                                Text {
+                                    text: " "
+                                    Layout.preferredHeight: 17
+                                    Layout.preferredWidth: 100
+                                }
+
+                                ImButton {
+                                    id: updateUploadButton
+                                    text: qsTr("UPLOAD UPDATE")
+                                    Layout.minimumHeight: 40
+                                    Layout.fillWidth: true
+                                    enabled: false
+                                    onClicked: {
+                                        enabled = false
+                                        updateProgressText.visible = true
+                                        updateProgressBar.visible = true
+                                        updateProgressBar.value = 0
+                                        updateProgressText.text = qsTr("Starting upload...")
+                                        imageWriter.startUpdateUpload(window.updateZipPath, window.updateMountpoint)
+                                    }
+                                }
+                            }
+
+                            ColumnLayout {
+                                Layout.columnSpan: 3
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+
+                                Text {
+                                    id: updateProgressText
+                                    font.pointSize: 10
+                                    color: "white"
+                                    font.family: robotoBold.name
+                                    font.bold: true
+                                    visible: false
+                                    horizontalAlignment: Text.AlignHCenter
+                                    Layout.fillWidth: true
+                                }
+
+                                ProgressBar {
+                                    id: updateProgressBar
+                                    Layout.fillWidth: true
+                                    visible: false
+                                    from: 0
+                                    to: 1
+                                    value: 0
+                                    Material.background: "#00b3f7"
                                 }
                             }
                         }
 
-                    }
-
-                    ColumnLayout {
-                        id: columnLayout3
-                        Layout.columnSpan: 3
-                        Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-
-                        Text {
-                            id: progressText
-                            font.pointSize: 10
-                            color: "white"
-                            font.family: robotoBold.name
-                            font.bold: true
-                            visible: false
-                            horizontalAlignment: Text.AlignHCenter
-                            Layout.fillWidth: true
-                        }
-
-                        ProgressBar {
-                            id: progressBar
-                            Layout.fillWidth: true
-                            visible: false
-                            Material.background: "#00b3f7"
-                        }
-
-                        ImButton {
-                            id: cancelwritebutton
-                            text: qsTr("CANCEL WRITE")
-                            onClicked: {
-                                enabled = false
-                                progressText.text = qsTr("Cancelling...")
-                                imageWriter.cancelWrite()
+                        Connections {
+                            target: imageWriter
+                            onUploadProgress: {
+                                updateProgressBar.visible = true
+                                updateProgressText.visible = true
+                                updateProgressBar.value = percentage
                             }
-                            Layout.alignment: Qt.AlignRight
-                            visible: false
-                        }
-                        ImButton {
-                            id: cancelverifybutton
-                            text: qsTr("CANCEL VERIFY")
-                            onClicked: {
-                                enabled = false
-                                progressText.text = qsTr("Finalizing...")
-                                imageWriter.setVerifyEnabled(false)
+                            onUploadStatusUpdate: {
+                                updateProgressText.visible = true
+                                updateProgressText.text = status
                             }
-                            Layout.alignment: Qt.AlignRight
-                            visible: false
-                        }
-                        ImButton {
-                            Layout.bottomMargin: 55
-                            padding: 5
-                            id: customizebutton
-                            onClicked: {
-                                optionspopup.openPopup()
+                            onUploadSuccess: {
+                                updateProgressText.visible = true
+                                updateProgressText.text = qsTr("Update upload completed")
+                                updateUploadButton.enabled = true
                             }
-                            visible: false
-                            Accessible.description: qsTr("Select this button to configure Settings")
-                            contentItem: Image {
-                                source: "icons/ic_cog_red.svg"
-                                fillMode: Image.PreserveAspectFit
+                            onUploadError: {
+                                updateProgressText.visible = true
+                                updateProgressText.text = message
+                                updateUploadButton.enabled = true
                             }
-                        }
-
-                    }
-
-                    Text {
-                        Layout.columnSpan: 3
-                        color: "#ffffff"
-                        font.pixelSize: 18
-                        font.family: roboto.name
-                        visible: imageWriter.isEmbeddedMode() && imageWriter.customRepo()
-                        text: qsTr("Using custom repository: %1").arg(imageWriter.constantOsListUrl())
-                    }
-
-                    Text {
-                        Layout.columnSpan: 3
-                        color: "#ffffff"
-                        font.pixelSize: 18
-                        font.family: roboto.name
-                        visible: !imageWriter.hasMouse()
-                        text: qsTr("Keyboard navigation: <tab> navigate to next button <space> press button/select item <arrow up/down> go up/down in lists")
-                    }
-
-                    RowLayout {
-                        id: langbar
-                        Layout.columnSpan: 3
-                        Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
-                        Layout.bottomMargin: 5
-                        spacing: 10
-                        visible: imageWriter.isEmbeddedMode()
-
-                        Rectangle {
-                            color: "#ffffe3"
-                            radius: 5
-                        }
-
-                        Text {
-                            font.pixelSize: 12
-                            font.family: roboto.name
-                            text: qsTr("Language: ")
-                            Layout.leftMargin: 30
-                            Layout.topMargin: 10
-                            Layout.bottomMargin: 10
-                        }
-                        ComboBox {
-                            font.pixelSize: 12
-                            font.family: roboto.name
-                            model: imageWriter.getTranslations()
-                            Layout.preferredWidth: 200
-                            currentIndex: -1
-                            Component.onCompleted: {
-                                currentIndex = find(imageWriter.getCurrentLanguage())
-                            }
-                            onActivated: {
-                                imageWriter.changeLanguage(editText)
-                            }
-                            Layout.topMargin: 10
-                            Layout.bottomMargin: 10
-                        }
-                        Text {
-                            font.pixelSize: 12
-                            font.family: roboto.name
-                            text: qsTr("Keyboard: ")
-                            Layout.topMargin: 10
-                            Layout.bottomMargin: 10
-                        }
-                        ComboBox {
-                            enabled: imageWriter.isEmbeddedMode()
-                            font.pixelSize: 12
-                            font.family: roboto.name
-                            model: imageWriter.getKeymapLayoutList()
-                            currentIndex: -1
-                            Component.onCompleted: {
-                                currentIndex = find(imageWriter.getCurrentKeyboard())
-                            }
-                            onActivated: {
-                                imageWriter.changeKeyboard(editText)
-                            }
-                            Layout.topMargin: 10
-                            Layout.bottomMargin: 10
-                            Layout.rightMargin: 30
-                        }
-                    }
-
-                    /* Language/keyboard bar is normally only visible in embedded mode.
-                       To test translations also show it when shift+ctrl+L is pressed. */
-                    Shortcut {
-                        sequences: ["Shift+Ctrl+L", "Shift+Meta+L"]
-                        context: Qt.ApplicationShortcut
-                        onActivated: {
-                            langbar.visible = true
                         }
                     }
                 }
@@ -1183,6 +1279,100 @@ ApplicationWindow {
         }
     }
 
+    ListModel {
+        id: updateDriveModel
+    }
+
+    Popup {
+        id: updateTargetPopup
+        x: 50
+        y: 25
+        width: parent.width-100
+        height: parent.height-50
+        padding: 0
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        Rectangle {
+            color: "#f5f5f5"
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: 35
+            width: parent.width
+        }
+        Rectangle {
+            color: "#afafaf"
+            width: parent.width
+            y: 35
+            implicitHeight: 1
+        }
+
+        Text {
+            text: "X"
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.rightMargin: 25
+            anchors.topMargin: 10
+            font.family: roboto.name
+            font.bold: true
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    updateTargetPopup.close()
+                }
+            }
+        }
+
+        ColumnLayout {
+            spacing: 10
+
+            Text {
+                text: qsTr("OpenHD targets")
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                Layout.fillWidth: true
+                Layout.topMargin: 10
+                font.family: roboto.name
+                font.bold: true
+            }
+
+            Item {
+                clip: true
+                Layout.preferredWidth: updateTargetList.width
+                Layout.preferredHeight: updateTargetList.height
+
+                ListView {
+                    id: updateTargetList
+                    model: updateDriveModel
+                    currentIndex: -1
+                    delegate: updateDstDelegate
+                    width: window.width-100
+                    height: window.height-100
+                    boundsBehavior: Flickable.StopAtBounds
+                    highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
+                    ScrollBar.vertical: ScrollBar {
+                        width: 10
+                        policy: updateTargetList.contentHeight > updateTargetList.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+                    }
+                    Keys.onSpacePressed: {
+                        if (currentIndex == -1)
+                            return
+                        selectUpdateDstItem(currentItem)
+                    }
+                    Accessible.onPressAction: {
+                        if (currentIndex == -1)
+                            return
+                        selectUpdateDstItem(currentItem)
+                    }
+                    Keys.onEnterPressed: Keys.onSpacePressed(event)
+                    Keys.onReturnPressed: Keys.onSpacePressed(event)
+                }
+
+            }
+        }
+    }
+
     Component {
         id: dstdelegate
         Item {
@@ -1275,6 +1465,95 @@ ApplicationWindow {
 
                 onClicked: {
                     selectDstItem(model)
+                }
+            }
+        }
+    }
+
+    Component {
+        id: updateDstDelegate
+        Item {
+            width: window.width-100
+            height: 60
+            Accessible.name: {
+                var txt = description+" - "+(size/1000000000).toFixed(1)+" gigabytes"
+                if (mountpoints.length > 0) {
+                    txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))
+                }
+                return txt;
+            }
+            property string description: model.description
+            property string device: model.device
+            property string size: model.size
+            property var mountpoints: model.mountpoints
+
+            Rectangle {
+                id: updateDstbgrect
+                anchors.fill: parent
+                color: "#f5f5f5"
+                visible: mouseOver && parent.ListView.view.currentIndex !== index
+                property bool mouseOver: false
+
+            }
+
+            Rectangle {
+                id: updateDstborderrect
+                implicitHeight: 1
+                implicitWidth: parent.width
+                color: "#dcdcdc"
+                y: parent.height
+            }
+
+            Row {
+                leftPadding: 25
+
+                Column {
+                    width: 64
+
+                    Image {
+                        source: isUsb ? "icons/ic_usb_40px.svg" : isScsi ? "icons/ic_storage_40px.svg" : "icons/ic_sd_storage_40px.svg"
+                        verticalAlignment: Image.AlignVCenter
+                        height: parent.parent.parent.height
+                        fillMode: Image.Pad
+                    }
+                }
+
+                Column {
+                    width: parent.parent.width-64
+
+                    Text {
+                        textFormat: Text.StyledText
+                        height: parent.parent.parent.height
+                        verticalAlignment: Text.AlignVCenter
+                        font.family: roboto.name
+                        text: {
+                            var sizeStr = (size/1000000000).toFixed(1)+" GB";
+                            var txt;
+                            txt = "<p><font size='4'>"+description+" - "+sizeStr+"</font></p>"
+                            if (mountpoints.length > 0) {
+                                txt += "<font color='grey'>"+qsTr("Mounted as %1").arg(mountpoints.join(", "))+"</font>"
+                            }
+                            return txt;
+                        }
+                    }
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                hoverEnabled: true
+
+                onEntered: {
+                    updateDstbgrect.mouseOver = true
+                }
+
+                onExited: {
+                    updateDstbgrect.mouseOver = false
+                }
+
+                onClicked: {
+                    selectUpdateDstItem(model)
                 }
             }
         }
@@ -1737,5 +2016,12 @@ ApplicationWindow {
         if (imageWriter.readyToWrite()) {
             writebutton.enabled = true
         }
+    }
+
+    function selectUpdateDstItem(d) {
+        updateTargetPopup.close()
+        window.updateMountpoint = d.mountpoint
+        updateTargetButton.text = d.description
+        updateUploadButton.enabled = window.updateZipPath !== "" && window.updateMountpoint !== ""
     }
 }
