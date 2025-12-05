@@ -17,6 +17,7 @@
 
 class QQmlApplicationEngine;
 class DownloadThread;
+class UpdateUploadThread;
 class QNetworkReply;
 class QWinTaskbarButton;
 class QTranslator;
@@ -104,6 +105,9 @@ public:
     Q_INVOKABLE QString getSSID();
     Q_INVOKABLE QString getPSK(const QString &ssid);
 
+    Q_INVOKABLE void startUpdateUpload(const QString &sourceFile, const QString &device);
+    Q_INVOKABLE QString getDestination() const;
+
     Q_INVOKABLE bool getBoolSetting(const QString &key);
     Q_INVOKABLE QString getValue(const QString &key);
     Q_INVOKABLE void setSetting(const QString &key, const QVariant &value);
@@ -138,6 +142,10 @@ signals:
     void finalizing();
     void networkOnline();
     void preparationStatusUpdate(QVariant msg);
+    void updateUploadProgress(QVariant percentage);
+    void updateUploadStatus(QVariant msg);
+    void updateUploadError(QVariant msg);
+    void updateUploadSuccess();
 
 protected slots:
 
@@ -154,6 +162,10 @@ protected slots:
     void onFinalizing();
     void onTimeSyncReply(QNetworkReply *reply);
     void onPreparationStatusUpdate(QString msg);
+    void onUpdateUploadProgress(qreal progress);
+    void onUpdateUploadStatus(const QString &msg);
+    void onUpdateUploadError(const QString &msg);
+    void onUpdateUploadSuccess();
 
 protected:
     QUrl _src, _repo;
@@ -165,6 +177,7 @@ protected:
     QTimer _polltimer, _networkchecktimer;
     PowerSaveBlocker _powersave;
     DownloadThread *_thread;
+    UpdateUploadThread *_updateThread;
     bool _verifyEnabled, _multipleFilesInZip, _cachingEnabled, _embeddedMode, _online;
     QSettings _settings;
     QMap<QString,QString> _translations;

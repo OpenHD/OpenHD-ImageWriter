@@ -255,6 +255,10 @@ int main(int argc, char *argv[])
     qmlwindow->connect(&imageWriter, SIGNAL(preparationStatusUpdate(QVariant)), qmlwindow, SLOT(onPreparationStatusUpdate(QVariant)));
     qmlwindow->connect(&imageWriter, SIGNAL(error(QVariant)), qmlwindow, SLOT(onError(QVariant)));
     qmlwindow->connect(&imageWriter, SIGNAL(success()), qmlwindow, SLOT(onSuccess()));
+    qmlwindow->connect(&imageWriter, SIGNAL(updateUploadProgress(QVariant)), qmlwindow, SLOT(onUpdateUploadProgress(QVariant)));
+    qmlwindow->connect(&imageWriter, SIGNAL(updateUploadStatus(QVariant)), qmlwindow, SLOT(onUpdateUploadStatus(QVariant)));
+    qmlwindow->connect(&imageWriter, SIGNAL(updateUploadError(QVariant)), qmlwindow, SLOT(onUpdateUploadError(QVariant)));
+    qmlwindow->connect(&imageWriter, SIGNAL(updateUploadSuccess()), qmlwindow, SLOT(onUpdateUploadSuccess()));
     qmlwindow->connect(&imageWriter, SIGNAL(fileSelected(QVariant)), qmlwindow, SLOT(onFileSelected(QVariant)));
     qmlwindow->connect(&imageWriter, SIGNAL(cancelled()), qmlwindow, SLOT(onCancelled()));
     qmlwindow->connect(&imageWriter, SIGNAL(finalizing()), qmlwindow, SLOT(onFinalizing()));

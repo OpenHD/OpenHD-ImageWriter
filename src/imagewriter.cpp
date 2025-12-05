@@ -11,6 +11,7 @@
 #include "driveformatthread.h"
 #include "localfileextractthread.h"
 #include "downloadstatstelemetry.h"
+#include "updateuploadthread.h"
 #include <archive.h>
 #include <archive_entry.h>
 #include <random>
@@ -65,7 +66,7 @@
 
 ImageWriter::ImageWriter(QObject *parent)
     : QObject(parent), _repo(QUrl(QString(OSLIST_URL))), _dlnow(0), _verifynow(0),
-      _engine(nullptr), _thread(nullptr), _verifyEnabled(false), _cachingEnabled(false),
+      _engine(nullptr), _thread(nullptr), _updateThread(nullptr), _verifyEnabled(false), _cachingEnabled(false),
       _embeddedMode(false), _online(false), _trans(nullptr)
 {
     connect(&_polltimer, SIGNAL(timeout()), SLOT(pollProgress()));
@@ -195,6 +196,12 @@ ImageWriter::ImageWriter(QObject *parent)
 
 ImageWriter::~ImageWriter()
 {
+    if (_updateThread)
+    {
+        _updateThread->quit();
+        _updateThread->wait();
+        delete _updateThread;
+    }
     if (_trans)
     {
         QCoreApplication::removeTranslator(_trans);
@@ -275,6 +282,11 @@ void ImageWriter::setDst(const QString &device, quint64 deviceSize)
 {
     _dst = device;
     _devLen = deviceSize;
+}
+
+QString ImageWriter::getDestination() const
+{
+    return _dst;
 }
 
 /* Returns true if src and dst are set */
@@ -604,6 +616,66 @@ void ImageWriter::setVerifyEnabled(bool verify)
         _thread->setVerifyEnabled(verify);
 }
 
+void ImageWriter::startUpdateUpload(const QString &sourceFile, const QString &device)
+{
+    QString targetDevice = device.isEmpty() ? _dst : device;
+    if (sourceFile.isEmpty())
+    {
+        emit updateUploadError(tr("No update package selected."));
+        return;
+    }
+    if (targetDevice.isEmpty())
+    {
+        emit updateUploadError(tr("No destination drive selected."));
+        return;
+    }
+
+    QByteArray targetDeviceLower = targetDevice.toLower().toLatin1();
+    auto devices = Drivelist::ListStorageDevices();
+    QString mountpoint;
+
+    for (auto &d : devices)
+    {
+        if (QByteArray::fromStdString(d.device).toLower() == targetDeviceLower)
+        {
+            for (auto &mp : d.mountpoints)
+            {
+                QString mount = QString::fromStdString(mp);
+                if (mount.endsWith("/") || mount.endsWith("\\"))
+                    mount.chop(1);
+
+                if (QFileInfo::exists(mount + "/config.txt"))
+                {
+                    mountpoint = mount;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    if (mountpoint.isEmpty())
+    {
+        emit updateUploadError(tr("Unable to find OpenHD FAT partition on %1").arg(targetDevice));
+        return;
+    }
+
+    if (_updateThread)
+    {
+        _updateThread->quit();
+        _updateThread->wait();
+        _updateThread->deleteLater();
+        _updateThread = nullptr;
+    }
+
+    _updateThread = new UpdateUploadThread(sourceFile, mountpoint, this);
+    connect(_updateThread, &UpdateUploadThread::progress, this, &ImageWriter::onUpdateUploadProgress);
+    connect(_updateThread, &UpdateUploadThread::status, this, &ImageWriter::onUpdateUploadStatus);
+    connect(_updateThread, &UpdateUploadThread::error, this, &ImageWriter::onUpdateUploadError);
+    connect(_updateThread, &UpdateUploadThread::success, this, &ImageWriter::onUpdateUploadSuccess);
+    _updateThread->start();
+}
+
 /* Relay events from download thread to QML */
 void ImageWriter::onSuccess()
 {
@@ -638,6 +710,36 @@ void ImageWriter::onFinalizing()
 void ImageWriter::onPreparationStatusUpdate(QString msg)
 {
     emit preparationStatusUpdate(msg);
+}
+
+void ImageWriter::onUpdateUploadProgress(qreal progress)
+{
+    emit updateUploadProgress(progress);
+}
+
+void ImageWriter::onUpdateUploadStatus(const QString &msg)
+{
+    emit updateUploadStatus(msg);
+}
+
+void ImageWriter::onUpdateUploadError(const QString &msg)
+{
+    emit updateUploadError(msg);
+    if (_updateThread)
+    {
+        _updateThread->deleteLater();
+        _updateThread = nullptr;
+    }
+}
+
+void ImageWriter::onUpdateUploadSuccess()
+{
+    emit updateUploadSuccess();
+    if (_updateThread)
+    {
+        _updateThread->deleteLater();
+        _updateThread = nullptr;
+    }
 }
 
 void ImageWriter::openFileDialog()

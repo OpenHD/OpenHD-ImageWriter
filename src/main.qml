@@ -32,6 +32,8 @@ ApplicationWindow {
     FontLoader {id: robotoBold;  source: "fonts/Roboto-Bold.ttf"}
 
     property bool modeSelectionActive: true
+    property bool updateMode: false
+    property string updateFilePath: ""
 
     onClosing: {
         if (progressBar.visible) {
@@ -416,7 +418,11 @@ ApplicationWindow {
                                 text: qsTr("FLASH")
                                 Layout.minimumHeight: 50
                                 Layout.fillWidth: true
-                                onClicked: modeSelectionActive = false
+                                onClicked: {
+                                    updateMode = false
+                                    modeSelectionActive = false
+                                    resetWriteButton()
+                                }
                             }
 
                             ImButton {
@@ -424,7 +430,12 @@ ApplicationWindow {
                                 text: qsTr("UPDATE")
                                 Layout.minimumHeight: 50
                                 Layout.fillWidth: true
-                                onClicked: modeSelectionActive = false
+                                onClicked: {
+                                    updateMode = true
+                                    updateFilePath = ""
+                                    modeSelectionActive = false
+                                    resetWriteButton()
+                                }
                             }
 
                             ImButton {
@@ -455,6 +466,21 @@ ApplicationWindow {
                     columns: 3
                     columnSpacing: 25
 
+                    RowLayout {
+                        Layout.columnSpan: 3
+                        Layout.alignment: Qt.AlignLeft
+
+                        ImButton {
+                            text: qsTr("BACK")
+                            onClicked: {
+                                modeSelectionActive = true
+                                updateMode = false
+                                updateFilePath = ""
+                                resetWriteButton()
+                            }
+                        }
+                    }
+
                     ColumnLayout {
                         id: columnLayout
                         spacing: 0
@@ -463,7 +489,7 @@ ApplicationWindow {
                         Text {
                             id: text1
                             color: "#ffffff"
-                            text: qsTr("Operating System")
+                            text: updateMode ? qsTr("Update package") : qsTr("Operating System")
                             Layout.fillWidth: true
                             Layout.preferredHeight: 17
                             Layout.preferredWidth: 100
@@ -475,7 +501,7 @@ ApplicationWindow {
 
                         ImButton {
                             id: osbutton
-                            text: imageWriter.srcFileName() === "" ? qsTr("CHOOSE OS") : imageWriter.srcFileName()
+                            text: updateMode ? (updateFilePath === "" ? qsTr("CHOOSE UPDATE") : imageWriter.fileNameFromUrl(updateFilePath)) : (imageWriter.srcFileName() === "" ? qsTr("CHOOSE OS") : imageWriter.srcFileName())
                             spacing: 0
                             padding: 0
                             bottomPadding: 0
@@ -483,18 +509,22 @@ ApplicationWindow {
                             Layout.minimumHeight: 40
                             Layout.fillWidth: true
                             onClicked: {
-                                ospopup.open()
-                                osswipeview.currentItem.forceActiveFocus()
-                                customizebutton.visible=true
-                                // reset all saved settings but the bindPhrase
-                                imageWriter.setSetting("sbc", "")
-                                imageWriter.setSetting("bootType", "")
-                                imageWriter.setSetting("fileName", "")
-                                imageWriter.setSetting("camera", "")
-                                imageWriter.setSetting("mode", "")
-                                imageWriter.setSetting("hotSpot" , "")
-                                imageWriter.setSetting("beep", "")
-                                imageWriter.setSetting("eject", "")
+                                if (updateMode) {
+                                    imageWriter.openFileDialog()
+                                } else {
+                                    ospopup.open()
+                                    osswipeview.currentItem.forceActiveFocus()
+                                    customizebutton.visible=true
+                                    // reset all saved settings but the bindPhrase
+                                    imageWriter.setSetting("sbc", "")
+                                    imageWriter.setSetting("bootType", "")
+                                    imageWriter.setSetting("fileName", "")
+                                    imageWriter.setSetting("camera", "")
+                                    imageWriter.setSetting("mode", "")
+                                    imageWriter.setSetting("hotSpot" , "")
+                                    imageWriter.setSetting("beep", "")
+                                    imageWriter.setSetting("eject", "")
+                                }
                             }
                             Accessible.ignored: ospopup.visible || dstpopup.visible
                             Accessible.description: qsTr("Select this button to change the operating system")
@@ -508,7 +538,7 @@ ApplicationWindow {
 
                         Text {
                             id: text2
-                            text: qsTr("Storage")
+                            text: updateMode ? qsTr("OpenHD Storage") : qsTr("Storage")
                             color: "#fff"
                             Layout.fillWidth: true
                             Layout.preferredHeight: 17
@@ -547,36 +577,51 @@ ApplicationWindow {
 
                         ImButton {
                             id: writebutton
-                            visible: !updateButton.visible
                             property var image_name
                             property var use_settings
                             property var bootType
                             property string camera:""
-                            text: qsTr("WRITE")
+                            text: updateMode ? qsTr("UPLOAD UPDATE") : qsTr("WRITE")
                             Layout.minimumHeight: 40
                             Layout.fillWidth: true
                             Accessible.ignored: ospopup.visible || dstpopup.visible
                             Accessible.description: qsTr("Select this button to start writing the image")
                             enabled: false
                             onClicked: {
-                                if (!imageWriter.readyToWrite()) {
-                                    return
-                                }
-                                image_name=imageWriter.srcFileName();
-                                bootType=imageWriter.getValue("bootType");
-                                camera=imageWriter.getValue("camera");
-                                if(image_name.includes("configurable")){
-                                    if(bootType!=="Air" && bootType!=="Ground" ){
-                                        console.log("Cannot write yet, air or ground not set yet");
-                                        onError("Cannot write yet, air or ground not set yet - please open settings and select air or ground")
-                                        return;
+                                if (updateMode) {
+                                    if (!updateReady()) {
+                                        return
                                     }
-                                }
-                                use_settings=imageWriter.getValue("useSettings")
-                                if (!optionspopup.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
-                                    usesavedsettingspopup.openPopup()
+                                    progressText.visible = true
+                                    progressText.text = qsTr("Preparing update upload...")
+                                    progressBar.visible = true
+                                    progressBar.indeterminate = true
+                                    progressBar.Material.accent = "#ffffff"
+                                    osbutton.enabled = false
+                                    dstbutton.enabled = false
+                                    cancelwritebutton.visible = false
+                                    cancelverifybutton.visible = false
+                                    imageWriter.startUpdateUpload(updateFilePath, imageWriter.getDestination())
                                 } else {
-                                    confirmwritepopup.askForConfirmation()
+                                    if (!imageWriter.readyToWrite()) {
+                                        return
+                                    }
+                                    image_name=imageWriter.srcFileName();
+                                    bootType=imageWriter.getValue("bootType");
+                                    camera=imageWriter.getValue("camera");
+                                    if(image_name.includes("configurable")){
+                                        if(bootType!=="Air" && bootType!=="Ground" ){
+                                            console.log("Cannot write yet, air or ground not set yet");
+                                            onError("Cannot write yet, air or ground not set yet - please open settings and select air or ground")
+                                            return;
+                                        }
+                                    }
+                                    use_settings=imageWriter.getValue("useSettings")
+                                    if (!optionspopup.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
+                                        usesavedsettingspopup.openPopup()
+                                    } else {
+                                        confirmwritepopup.askForConfirmation()
+                                    }
                                 }
                             }
                         }
@@ -1412,6 +1457,22 @@ ApplicationWindow {
         }
     }
 
+    function onUpdateUploadProgress(percentage) {
+        if (progressBar.visible === false) {
+            progressBar.visible = true
+            progressText.visible = true
+            progressBar.indeterminate = false
+        }
+        progressText.text = qsTr("Uploading update... %1%").arg(Math.floor(percentage*100))
+        progressBar.Material.accent = "#6cc04a"
+        progressBar.value = percentage
+    }
+
+    function onUpdateUploadStatus(msg) {
+        progressText.visible = true
+        progressText.text = msg
+    }
+
     function onVerifyProgress(now,total) {
         var newPos
         if (total) {
@@ -1439,19 +1500,33 @@ ApplicationWindow {
         progressText.text = qsTr("Preparing to write... (%1)").arg(msg)
     }
 
+    function updateReady() {
+        return updateFilePath !== "" && imageWriter.getDestination() !== ""
+    }
+
     function resetWriteButton() {
         progressText.visible = false
         progressBar.visible = false
-        customizebutton.visible = imageWriter.imageSupportsCustomization()
+        customizebutton.visible = !updateMode && imageWriter.imageSupportsCustomization()
         osbutton.enabled = true
         dstbutton.enabled = true
         writebutton.visible = true
-        writebutton.enabled = imageWriter.readyToWrite()
+        writebutton.enabled = updateMode ? updateReady() : imageWriter.readyToWrite()
         cancelwritebutton.visible = false
         cancelverifybutton.visible = false
+        progressBar.indeterminate = false
+        progressBar.value = 0
+        progressBar.Material.accent = "#00b3f7"
     }
 
     function onError(msg) {
+        msgpopup.title = qsTr("Error")
+        msgpopup.text = msg
+        msgpopup.openPopup()
+        resetWriteButton()
+    }
+
+    function onUpdateUploadError(msg) {
         msgpopup.title = qsTr("Error")
         msgpopup.text = msg
         msgpopup.openPopup()
@@ -1482,14 +1557,31 @@ ApplicationWindow {
         resetWriteButton()
     }
 
+    function onUpdateUploadSuccess() {
+        msgpopup.title = qsTr("Update uploaded")
+        msgpopup.text = qsTr("upload.zip was copied to <b>%1</b>. You can now reboot the device to apply the update.").arg(dstbutton.text)
+        msgpopup.continueButton = false
+        msgpopup.detailsButton = false
+        msgpopup.openPopup()
+        updateFilePath = ""
+        resetWriteButton()
+    }
+
     function onFileSelected(file) {
-        imageWriter.setSrc(file)
-        osbutton.text = imageWriter.srcFileName()
-        ospopup.close()
-        if (imageWriter.readyToWrite()) {
-            writebutton.enabled = true
+        if (updateMode) {
+            updateFilePath = file
+            osbutton.text = imageWriter.fileNameFromUrl(file)
+            ospopup.close()
+            writebutton.enabled = updateReady()
+        } else {
+            imageWriter.setSrc(file)
+            osbutton.text = imageWriter.srcFileName()
+            ospopup.close()
+            if (imageWriter.readyToWrite()) {
+                writebutton.enabled = true
+            }
+            customizebutton.visible = imageWriter.imageSupportsCustomization()
         }
-        customizebutton.visible = imageWriter.imageSupportsCustomization()
     }
 
     function onCancelled() {
@@ -1734,8 +1826,6 @@ ApplicationWindow {
         dstpopup.close()
         imageWriter.setDst(d.device, d.size)
         dstbutton.text = d.description
-        if (imageWriter.readyToWrite()) {
-            writebutton.enabled = true
-        }
+        writebutton.enabled = updateMode ? updateReady() : imageWriter.readyToWrite()
     }
 }
