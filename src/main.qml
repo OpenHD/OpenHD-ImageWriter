@@ -125,24 +125,26 @@ ApplicationWindow {
         anchors.fill: parent
 
         Rectangle {
-            implicitHeight: window.height / 2
+            Layout.fillWidth: true
+            Layout.preferredHeight: window.height / 2
             color: "transparent"
 
             Image {
                 id: logo
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.verticalCenter: parent.verticalCenter
+                anchors.centerIn: parent
                 source: "icons/logo_stacked_imager.png"
                 fillMode: Image.PreserveAspectFit
-                width: window.width * 0.7
-                height: window.height / 2
+
+                // Scale relative to the top half area
+                width: parent.width * 0.7
+                height: parent.height
             }
         }
 
         Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: window.height / 2
             color: "#2C3E50"
-            implicitWidth: window.width
-            implicitHeight: window.height / 2
 
             ColumnLayout {
                 anchors.fill: parent
