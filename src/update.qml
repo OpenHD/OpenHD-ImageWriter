@@ -33,6 +33,9 @@ ApplicationWindow {
 
     property url updateManifestUrl: "https://github.com/OpenHD/OpenHD-ImageWriter/releases/download/Json/OpenHD-Update.json"
     property string selectedUpdateSource: ""
+    property double downloadSpeedMbit: 0
+    property double lastDownloadBytes: 0
+    property double lastDownloadTimestamp: 0
 
     ToolButton {
         id: backButton
@@ -1143,6 +1146,15 @@ ApplicationWindow {
 
     MsgPopup {
         id: msgpopup
+        onConfigure: {
+            var component = Qt.createComponent("configure.qml")
+            if (component.status === Component.Ready) {
+                component.createObject(null)
+            } else if (component.status === Component.Error) {
+                console.error(component.errorString())
+            }
+            window.close()
+        }
     }
     MsgPopup {
         id: quitpopup
@@ -1169,6 +1181,7 @@ ApplicationWindow {
             cancelwritebutton.enabled = true
             cancelwritebutton.visible = true
             cancelverifybutton.enabled = true
+            resetDownloadTracking()
             progressText.text = qsTr("Preparing update transfer...");
             progressText.visible = true
             progressBar.visible = true
@@ -1231,6 +1244,31 @@ ApplicationWindow {
         }
     }
 
+    function resetDownloadTracking() {
+        downloadSpeedMbit = 0
+        lastDownloadBytes = 0
+        lastDownloadTimestamp = 0
+    }
+
+    function updateDownloadSpeed(currentBytes) {
+        var nowMs = Date.now()
+        if (!lastDownloadTimestamp) {
+            lastDownloadTimestamp = nowMs
+            lastDownloadBytes = currentBytes
+            downloadSpeedMbit = 0
+            return
+        }
+
+        var elapsedSeconds = (nowMs - lastDownloadTimestamp) / 1000
+        if (elapsedSeconds > 0 && currentBytes >= lastDownloadBytes) {
+            var bitsPerSecond = (currentBytes - lastDownloadBytes) * 8 / elapsedSeconds
+            downloadSpeedMbit = bitsPerSecond / 1000000
+        }
+
+        lastDownloadTimestamp = nowMs
+        lastDownloadBytes = currentBytes
+    }
+
     /* Utility functions */
     function httpRequest(url, callback, errorCallback) {
         var xhr = new XMLHttpRequest();
@@ -1269,7 +1307,8 @@ ApplicationWindow {
             if (progressText.text === qsTr("Cancelling..."))
                 return
 
-            progressText.text = qsTr("Writing... %1%").arg(Math.floor(newPos*100))
+            updateDownloadSpeed(now)
+            progressText.text = qsTr("Downloading... %1% (%2 Mbit/s)").arg(Math.floor(newPos*100)).arg(downloadSpeedMbit.toFixed(1))
             progressBar.indeterminate = false
             progressBar.value = newPos
         }
@@ -1319,6 +1358,7 @@ ApplicationWindow {
     function resetWriteButton() {
         progressText.visible = false
         progressBar.visible = false
+        resetDownloadTracking()
         customizebutton.visible = imageWriter.imageSupportsCustomization()
         osbutton.enabled = true
         dstbutton.enabled = true
@@ -1330,6 +1370,8 @@ ApplicationWindow {
 
     function onError(msg) {
         msgpopup.title = qsTr("Error")
+        msgpopup.configureButton = false
+        msgpopup.closeButton = false
         msgpopup.text = msg
         msgpopup.openPopup()
         resetWriteButton()
@@ -1341,6 +1383,8 @@ ApplicationWindow {
 
     function onSuccess() {
         msgpopup.title = qsTr("Image was written successfully!")
+        msgpopup.configureButton = false
+        msgpopup.closeButton = false
         if (osbutton.text === qsTr("Erase"))
             msgpopup.text = qsTr("<b>%1</b> has been erased<br><br> You can now remove the SD card from the reader").arg(dstbutton.text)
         else if (imageWriter.isEmbeddedMode()) {
@@ -1368,6 +1412,9 @@ ApplicationWindow {
         msgpopup.text = qsTr("<b>%1</b> was copied to <b>%2</b>.<br>You can now safely remove the card or continue configuring it.").arg(osbutton.text).arg(dstbutton.text)
         msgpopup.continueButton = false
         msgpopup.detailsButton = false
+        msgpopup.configureButton = true
+        msgpopup.closeButton = true
+        msgpopup.quitButton = false
         msgpopup.openPopup()
         resetWriteButton()
         customizebutton.visible = true

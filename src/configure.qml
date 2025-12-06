@@ -40,7 +40,7 @@ ApplicationWindow {
 
         Button {
             text: qsTr("Back")
-            onClicked: Qt.quit()
+            onClicked: configureWindow.close()
         }
     }
 }
