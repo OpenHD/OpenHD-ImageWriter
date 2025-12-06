@@ -1,0 +1,162 @@
+{
+  "_comment": "Machine-readable map of OpenHD advanced options, the UI categories that show them, and the FAT32 outputs written by downloadthread.cpp.",
+  "_comment_use": "Programs can traverse each setting object to build menus and know which file/value is produced.",
+  "useSettings": {
+    "_comment": "Global gate: when true, all other files under openhd/ are written.",
+    "files": [
+      {
+        "path": "openhd/*",
+        "note": "All other setting files are only written when useSettings is true."
+      }
+    ]
+  },
+  "bootType": {
+    "_comment": "Mutually exclusive Air/Ground flags that create marker files.",
+    "options": [
+      {
+        "id": "Air",
+        "file": "openhd/air.txt",
+        "valueWritten": ""
+      },
+      {
+        "id": "Ground",
+        "file": "openhd/ground.txt",
+        "valueWritten": ""
+      }
+    ]
+  },
+  "sbc": {
+    "_comment": "Detected SBC marker files written as empty files.",
+    "options": [
+      { "id": "rpi", "file": "openhd/rpi.txt" },
+      { "id": "rock-5a", "file": "openhd/rock-5a.txt" },
+      { "id": "rock-5b", "file": "openhd/rock-5b.txt" },
+      { "id": "zero3w", "file": "openhd/zero3w.txt" },
+      { "id": "unknown", "file": "openhd/unknown.txt" }
+    ]
+  },
+  "mode": {
+    "_comment": "Debug toggle currently supported.",
+    "options": [
+      {
+        "id": "debug",
+        "file": "openhd/debug.txt",
+        "valueWritten": ""
+      }
+    ]
+  },
+  "camera": {
+    "_comment": "Camera selection depends on SBC and vendor/category shown in the UI.",
+    "valueEncoding": "stringified integers written to openhd/camera1.txt",
+    "sbcGroups": [
+      {
+        "sbc": ["rpi"],
+        "bootTypeRequired": "Air",
+        "file": "openhd/camera1.txt",
+        "vendors": [
+          {
+            "id": "raspberry",
+            "displayName": "Raspberry",
+            "options": [
+              { "id": "HDMI", "valueWritten": "20" },
+              { "id": "OV5647", "valueWritten": "30" },
+              { "id": "IMX219", "valueWritten": "31" },
+              { "id": "IMX708", "valueWritten": "32" },
+              { "id": "IMX477", "valueWritten": "33" }
+            ]
+          },
+          {
+            "id": "arducam",
+            "displayName": "Arducam",
+            "options": [
+              { "id": "SkyMasterHDR708", "valueWritten": "40" },
+              { "id": "SkyVisionPro519", "valueWritten": "41" },
+              { "id": "IMX477m", "valueWritten": "42" },
+              { "id": "IMX462", "valueWritten": "43" },
+              { "id": "IMX327", "valueWritten": "44" },
+              { "id": "IMX290", "valueWritten": "45" },
+              { "id": "IMX462MINI", "valueWritten": "46" },
+              { "id": "IMX662", "valueWritten": "47" }
+            ]
+          },
+          {
+            "id": "veye",
+            "displayName": "Veye",
+            "options": [
+              { "id": "2MPCAMERAS", "valueWritten": "60" },
+              { "id": "CSIMX307", "valueWritten": "61" },
+              { "id": "CSSC137", "valueWritten": "62" },
+              { "id": "MVCAM", "valueWritten": "63" }
+            ]
+          },
+          {
+            "id": "advanced",
+            "displayName": "Advanced",
+            "options": [
+              { "id": "USB", "valueWritten": "1" },
+              { "id": "FILESRC", "valueWritten": "4" },
+              { "id": "IP-CAMERA", "valueWritten": "3" },
+              { "id": "EXTERNAL", "valueWritten": "2" },
+              { "id": "TESTPATTERN", "valueWritten": "0" }
+            ]
+          }
+        ]
+      },
+      {
+        "sbc": ["rock-5a", "rock-5b"],
+        "bootTypeRequired": "Air",
+        "file": "openhd/camera1.txt",
+        "vendors": [
+          {
+            "id": "rock-default",
+            "displayName": "Rock5",
+            "options": [
+              { "id": "HDMI", "valueWritten": "80" },
+              { "id": "OV5647", "valueWritten": "81" },
+              { "id": "IMX219", "valueWritten": "82" },
+              { "id": "IMX708", "valueWritten": "83" },
+              { "id": "IMX462", "valueWritten": "84" },
+              { "id": "IMX415", "valueWritten": "85" },
+              { "id": "IMX477", "valueWritten": "86" },
+              { "id": "IMX519", "valueWritten": "87" },
+              { "id": "OHD-JAGUAR", "valueWritten": "88" }
+            ]
+          }
+        ]
+      },
+      {
+        "sbc": ["zero3w"],
+        "bootTypeRequired": "Air",
+        "file": "openhd/camera1.txt",
+        "vendors": [
+          {
+            "id": "rock3-default",
+            "displayName": "Zero3W",
+            "options": [
+              { "id": "HDMI", "valueWritten": "90" },
+              { "id": "OV5647", "valueWritten": "91" },
+              { "id": "IMX219", "valueWritten": "92" },
+              { "id": "IMX708", "valueWritten": "93" },
+              { "id": "IMX462", "valueWritten": "94" },
+              { "id": "IMX519", "valueWritten": "95" },
+              { "id": "OHD-JAGUAR", "valueWritten": "96" },
+              { "id": "VEYE", "valueWritten": "97" }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "hotSpot": {
+    "_comment": "UI exposes WifiHotspot but creation of wifi_hotspot.txt is commented out in downloadthread.cpp.",
+    "options": []
+  },
+  "beep": {
+    "_comment": "Stored in settings but not written to FAT32 partition.",
+    "options": []
+  },
+  "eject": {
+    "_comment": "Stored in settings but not written to FAT32 partition.",
+    "options": []
+  }
+}

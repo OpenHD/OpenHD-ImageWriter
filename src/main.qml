@@ -71,6 +71,10 @@ ApplicationWindow {
         forwardIfAvailable("onDownloadProgress", [now, total])
     }
 
+    function onWriteProgress(now, total) {
+        forwardIfAvailable("onWriteProgress", [now, total])
+    }
+
     function onVerifyProgress(now, total) {
         forwardIfAvailable("onVerifyProgress", [now, total])
     }

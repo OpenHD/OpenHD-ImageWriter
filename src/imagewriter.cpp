@@ -68,7 +68,7 @@
 #include <filesystem>
 
 ImageWriter::ImageWriter(QObject *parent)
-    : QObject(parent), _repo(QUrl(QString(OSLIST_URL))), _dlnow(0), _verifynow(0),
+    : QObject(parent), _repo(QUrl(QString(OSLIST_URL))), _dlnow(0), _writenow(0), _verifynow(0),
       _engine(nullptr), _thread(nullptr), _updateThread(nullptr), _verifyEnabled(false), _cachingEnabled(false),
       _embeddedMode(false), _online(false), _trans(nullptr)
 {
@@ -349,14 +349,43 @@ QString ImageWriter::readTextFile(const QString &filePath) const
 
 bool ImageWriter::writeTextFile(const QString &filePath, const QString &content) const
 {
+    QFileInfo info(filePath);
+    QDir dir = info.dir();
+    if (!dir.exists()) {
+        if (!dir.mkpath(".")) {
+            qDebug() << "[ImageWriter] Failed to create directory for" << filePath;
+            return false;
+        }
+    }
+
     QFile f(filePath);
-    if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+    if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+        qDebug() << "[ImageWriter] Failed to open" << filePath << "for writing";
         return false;
+    }
 
     QByteArray data = content.toUtf8();
     bool success = f.write(data) == data.size();
     f.close();
     return success;
+}
+
+bool ImageWriter::fileExists(const QString &filePath) const
+{
+    return QFileInfo::exists(filePath);
+}
+
+bool ImageWriter::removeFile(const QString &filePath) const
+{
+    if (!QFileInfo::exists(filePath))
+        return true;
+
+    QFile f(filePath);
+    if (!f.remove()) {
+        qDebug() << "[ImageWriter] Failed to remove file" << filePath;
+        return false;
+    }
+    return true;
 }
 
 /* Returns true if src and dst are set */
@@ -613,7 +642,7 @@ void ImageWriter::startProgressPolling()
         }
     }
 #endif
-    _dlnow = 0; _verifynow = 0;
+    _dlnow = 0; _writenow = 0; _verifynow = 0;
     _polltimer.start(PROGRESS_UPDATE_INTERVAL);
 }
 
@@ -637,29 +666,43 @@ void ImageWriter::pollProgress()
     if (!_thread)
         return;
 
-    quint64 newDlNow, dlTotal;
-    if (_extrLen)
-    {
-        newDlNow = _thread->bytesWritten();
-        dlTotal = _extrLen;
-    }
-    else
-    {
-        newDlNow = _thread->dlNow();
-        dlTotal = _thread->dlTotal();
-    }
+    quint64 downloadNow = _thread->dlNow();
+    quint64 downloadTotal = _thread->dlTotal();
+    quint64 writeTotal = _extrLen;
+    quint64 writeNow = writeTotal ? _thread->bytesWritten() : 0;
 
-    if (newDlNow != _dlnow)
+    bool downloadActive = downloadTotal && downloadNow < downloadTotal;
+    bool writingPhase = !downloadActive && writeTotal;
+
+    quint64 progressNow = writingPhase ? writeNow : downloadNow;
+    quint64 progressTotal = writingPhase ? writeTotal : downloadTotal;
+
+    if (writingPhase)
     {
-        _dlnow = newDlNow;
+        if (progressNow != _writenow)
+        {
+            _writenow = progressNow;
+#ifdef Q_OS_WIN
+            if (_taskbarButton)
+            {
+                _taskbarButton->progress()->setMaximum(progressTotal/1048576);
+                _taskbarButton->progress()->setValue(progressNow/1048576);
+            }
+#endif
+            emit writeProgress(progressNow, progressTotal);
+        }
+    }
+    else if (progressNow != _dlnow)
+    {
+        _dlnow = progressNow;
 #ifdef Q_OS_WIN
         if (_taskbarButton)
         {
-            _taskbarButton->progress()->setMaximum(dlTotal/1048576);
-            _taskbarButton->progress()->setValue(newDlNow/1048576);
+            _taskbarButton->progress()->setMaximum(progressTotal/1048576);
+            _taskbarButton->progress()->setValue(progressNow/1048576);
         }
 #endif
-        emit downloadProgress(newDlNow, dlTotal);
+        emit downloadProgress(progressNow, progressTotal);
     }
 
     quint64 newVerifyNow = _thread->verifyNow();

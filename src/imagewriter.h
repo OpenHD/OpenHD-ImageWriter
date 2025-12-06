@@ -112,6 +112,8 @@ public:
     Q_INVOKABLE QVariantList listTextFilesOnDevice(const QString &device) const;
     Q_INVOKABLE QString readTextFile(const QString &filePath) const;
     Q_INVOKABLE bool writeTextFile(const QString &filePath, const QString &content) const;
+    Q_INVOKABLE bool fileExists(const QString &filePath) const;
+    Q_INVOKABLE bool removeFile(const QString &filePath) const;
 
     Q_INVOKABLE bool getBoolSetting(const QString &key);
     Q_INVOKABLE QString getValue(const QString &key);
@@ -139,6 +141,7 @@ signals:
     /* We are emiting signals with QVariant as parameters because QML likes it that way */
 
     void downloadProgress(QVariant dlnow, QVariant dltotal);
+    void writeProgress(QVariant now, QVariant total);
     void verifyProgress(QVariant now, QVariant total);
     void error(QVariant msg);
     void success();
@@ -176,7 +179,7 @@ protected:
     QUrl _src, _repo;
     QString _dst, _cacheFileName, _parentCategory, _osName, _currentLang, _currentLangcode, _currentKeyboard;
     QByteArray _expectedHash, _cachedFileHash, _cmdline, _config, _initFormat;
-    quint64 _downloadLen, _extrLen, _devLen, _dlnow, _verifynow;
+    quint64 _downloadLen, _extrLen, _devLen, _dlnow, _writenow, _verifynow;
     DriveListModel _drivelist;
     QQmlApplicationEngine *_engine;
     QTimer _polltimer, _networkchecktimer;

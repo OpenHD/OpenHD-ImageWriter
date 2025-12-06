@@ -32,9 +32,12 @@ ApplicationWindow {
     FontLoader {id: robotoBold;  source: "fonts/Roboto-Bold.ttf"}
 
     property var mainWindow: null
-    property double downloadSpeedMbit: 0
+    property double downloadSpeedMB: 0
     property double lastDownloadBytes: 0
     property double lastDownloadTimestamp: 0
+    property double writeSpeedMB: 0
+    property double lastWriteBytes: 0
+    property double lastWriteTimestamp: 0
 
     function navigateBack() {
         if (progressBar.visible) {
@@ -47,19 +50,6 @@ ApplicationWindow {
         }
 
         destroy()
-    }
-
-    ToolButton {
-        id: backButton
-        text: "\u2190"
-        visible: !progressBar.visible
-        enabled: visible
-        anchors.top: parent.top
-        anchors.right: parent.right
-        anchors.topMargin: 8
-        anchors.rightMargin: 8
-        font.pixelSize: 16
-        onClicked: navigateBack()
     }
 
     onClosing: {
@@ -233,17 +223,6 @@ ApplicationWindow {
 
                 RowLayout {
                     Text {
-                        text: "Bind Phrase:"
-                        font.bold: true
-                    }
-                    Text {
-                        text: optionspopup.bindPhrase
-                        font.bold: false
-                        color: "grey"
-                    }
-                }
-                RowLayout {
-                    Text {
                         text: "Changelog:"
                         font.bold: true
                     }
@@ -270,7 +249,6 @@ ApplicationWindow {
 
         Rectangle {
             Component.onCompleted: {
-                    // Reset all saved settings but the bindPhrase
                     imageWriter.setSetting("sbc", "")
                     imageWriter.setSetting("bootType", "")
                     imageWriter.setSetting("fileName", "")
@@ -366,11 +344,10 @@ ApplicationWindow {
                         topPadding: 0
                         Layout.minimumHeight: 40
                         Layout.fillWidth: true
-                        onClicked: {
+                            onClicked: {
                             ospopup.open()
                             osswipeview.currentItem.forceActiveFocus()
                             customizebutton.visible=true
-                            // reset all saved settings but the bindPhrase
                             imageWriter.setSetting("sbc", "")
                             imageWriter.setSetting("bootType", "")
                             imageWriter.setSetting("fileName", "")
@@ -1256,9 +1233,12 @@ ApplicationWindow {
     }
 
     function resetDownloadTracking() {
-        downloadSpeedMbit = 0
+        downloadSpeedMB = 0
         lastDownloadBytes = 0
         lastDownloadTimestamp = 0
+        writeSpeedMB = 0
+        lastWriteBytes = 0
+        lastWriteTimestamp = 0
     }
 
     function updateDownloadSpeed(currentBytes) {
@@ -1266,18 +1246,37 @@ ApplicationWindow {
         if (!lastDownloadTimestamp) {
             lastDownloadTimestamp = nowMs
             lastDownloadBytes = currentBytes
-            downloadSpeedMbit = 0
+            downloadSpeedMB = 0
             return
         }
 
         var elapsedSeconds = (nowMs - lastDownloadTimestamp) / 1000
         if (elapsedSeconds > 0 && currentBytes >= lastDownloadBytes) {
-            var bitsPerSecond = (currentBytes - lastDownloadBytes) * 8 / elapsedSeconds
-            downloadSpeedMbit = bitsPerSecond / 1000000
+            var bytesPerSecond = (currentBytes - lastDownloadBytes) / elapsedSeconds
+            downloadSpeedMB = bytesPerSecond / (1024 * 1024)
         }
 
         lastDownloadTimestamp = nowMs
         lastDownloadBytes = currentBytes
+    }
+
+    function updateWriteSpeed(currentBytes) {
+        var nowMs = Date.now()
+        if (!lastWriteTimestamp) {
+            lastWriteTimestamp = nowMs
+            lastWriteBytes = currentBytes
+            writeSpeedMB = 0
+            return
+        }
+
+        var elapsedSeconds = (nowMs - lastWriteTimestamp) / 1000
+        if (elapsedSeconds > 0 && currentBytes >= lastWriteBytes) {
+            var bytesPerSecond = (currentBytes - lastWriteBytes) / elapsedSeconds
+            writeSpeedMB = bytesPerSecond / (1024 * 1024)
+        }
+
+        lastWriteTimestamp = nowMs
+        lastWriteBytes = currentBytes
     }
 
     /* Utility functions */
@@ -1316,7 +1315,25 @@ ApplicationWindow {
                 return
 
             updateDownloadSpeed(now)
-            progressText.text = qsTr("Downloading... %1% (%2 Mbit/s)").arg(Math.floor(newPos*100)).arg(downloadSpeedMbit.toFixed(1))
+            progressText.text = qsTr("Downloading... %1% (%2 MB/s)").arg(Math.floor(newPos*100)).arg(downloadSpeedMB.toFixed(1))
+            progressBar.indeterminate = false
+            progressBar.value = newPos
+        }
+    }
+
+    function onWriteProgress(now,total) {
+        var newPos
+        if (total) {
+            newPos = now/total
+        } else {
+            newPos = 0
+        }
+        if (progressBar.value !== newPos) {
+            if (progressText.text === qsTr("Cancelling..."))
+                return
+
+            updateWriteSpeed(now)
+            progressText.text = qsTr("Writing... %1% (%2 MB/s)").arg(Math.floor(newPos*100)).arg(writeSpeedMB.toFixed(1))
             progressBar.indeterminate = false
             progressBar.value = newPos
         }
