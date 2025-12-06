@@ -43,7 +43,7 @@ ApplicationWindow {
         var component = Qt.createComponent(Qt.resolvedUrl(source))
 
         if (component.status === Component.Ready) {
-            featureWindow = component.createObject(null)
+            featureWindow = component.createObject(null, { mainWindow: window })
 
             if (!featureWindow) {
                 statusMessage = qsTr("Could not open %1").arg(source)

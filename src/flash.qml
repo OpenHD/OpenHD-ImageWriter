@@ -31,11 +31,51 @@ ApplicationWindow {
     FontLoader {id: robotoLight; source: "fonts/Roboto-Light.ttf"}
     FontLoader {id: robotoBold;  source: "fonts/Roboto-Bold.ttf"}
 
+    property var mainWindow: null
+    property double downloadSpeedMbit: 0
+    property double lastDownloadBytes: 0
+    property double lastDownloadTimestamp: 0
+
+    function navigateBack() {
+        if (progressBar.visible) {
+            quitpopup.openPopup()
+            return
+        }
+
+        if (mainWindow) {
+            mainWindow.visible = true
+        }
+
+        destroy()
+    }
+
+    ToolButton {
+        id: backButton
+        text: "\u2190"
+        visible: !progressBar.visible
+        enabled: visible
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: 8
+        anchors.rightMargin: 8
+        font.pixelSize: 16
+        onClicked: navigateBack()
+    }
+
     onClosing: {
         if (progressBar.visible) {
             close.accepted = false
             quitpopup.openPopup()
+            return
         }
+
+        close.accepted = false
+
+        if (mainWindow) {
+            mainWindow.visible = true
+        }
+
+        destroy()
     }
 
     Shortcut {
@@ -1152,6 +1192,7 @@ ApplicationWindow {
             cancelwritebutton.enabled = true
             cancelwritebutton.visible = true
             cancelverifybutton.enabled = true
+            resetDownloadTracking()
             progressText.text = qsTr("Preparing to write...");
             progressText.visible = true
             progressBar.visible = true
@@ -1214,6 +1255,31 @@ ApplicationWindow {
         }
     }
 
+    function resetDownloadTracking() {
+        downloadSpeedMbit = 0
+        lastDownloadBytes = 0
+        lastDownloadTimestamp = 0
+    }
+
+    function updateDownloadSpeed(currentBytes) {
+        var nowMs = Date.now()
+        if (!lastDownloadTimestamp) {
+            lastDownloadTimestamp = nowMs
+            lastDownloadBytes = currentBytes
+            downloadSpeedMbit = 0
+            return
+        }
+
+        var elapsedSeconds = (nowMs - lastDownloadTimestamp) / 1000
+        if (elapsedSeconds > 0 && currentBytes >= lastDownloadBytes) {
+            var bitsPerSecond = (currentBytes - lastDownloadBytes) * 8 / elapsedSeconds
+            downloadSpeedMbit = bitsPerSecond / 1000000
+        }
+
+        lastDownloadTimestamp = nowMs
+        lastDownloadBytes = currentBytes
+    }
+
     /* Utility functions */
     function httpRequest(url, callback) {
         var xhr = new XMLHttpRequest();
@@ -1249,7 +1315,8 @@ ApplicationWindow {
             if (progressText.text === qsTr("Cancelling..."))
                 return
 
-            progressText.text = qsTr("Writing... %1%").arg(Math.floor(newPos*100))
+            updateDownloadSpeed(now)
+            progressText.text = qsTr("Downloading... %1% (%2 Mbit/s)").arg(Math.floor(newPos*100)).arg(downloadSpeedMbit.toFixed(1))
             progressBar.indeterminate = false
             progressBar.value = newPos
         }
@@ -1285,6 +1352,7 @@ ApplicationWindow {
     function resetWriteButton() {
         progressText.visible = false
         progressBar.visible = false
+        resetDownloadTracking()
         customizebutton.visible = imageWriter.imageSupportsCustomization()
         osbutton.enabled = true
         dstbutton.enabled = true

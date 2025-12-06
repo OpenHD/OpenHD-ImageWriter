@@ -31,11 +31,25 @@ ApplicationWindow {
     FontLoader {id: robotoLight; source: "fonts/Roboto-Light.ttf"}
     FontLoader {id: robotoBold;  source: "fonts/Roboto-Bold.ttf"}
 
+    property var mainWindow: null
     property url updateManifestUrl: "https://github.com/OpenHD/OpenHD-ImageWriter/releases/download/Json/OpenHD-Update.json"
     property string selectedUpdateSource: ""
     property double downloadSpeedMbit: 0
     property double lastDownloadBytes: 0
     property double lastDownloadTimestamp: 0
+
+    function navigateBack() {
+        if (progressBar.visible) {
+            quitpopup.openPopup()
+            return
+        }
+
+        if (mainWindow) {
+            mainWindow.visible = true
+        }
+
+        destroy()
+    }
 
     ToolButton {
         id: backButton
@@ -47,14 +61,23 @@ ApplicationWindow {
         anchors.topMargin: 8
         anchors.rightMargin: 8
         font.pixelSize: 16
-        onClicked: window.close()
+        onClicked: navigateBack()
     }
 
     onClosing: {
         if (progressBar.visible) {
             close.accepted = false
             quitpopup.openPopup()
+            return
         }
+
+        close.accepted = false
+
+        if (mainWindow) {
+            mainWindow.visible = true
+        }
+
+        destroy()
     }
 
     Shortcut {

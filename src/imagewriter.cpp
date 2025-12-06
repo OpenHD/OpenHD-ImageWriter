@@ -15,7 +15,10 @@
 #include <archive.h>
 #include <archive_entry.h>
 #include <random>
+#include <QDir>
+#include <QFile>
 #include <QFileInfo>
+#include <QIODevice>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QProcess>
@@ -287,6 +290,73 @@ void ImageWriter::setDst(const QString &device, quint64 deviceSize)
 QString ImageWriter::getDestination() const
 {
     return _dst;
+}
+
+QVariantList ImageWriter::listTextFilesOnDevice(const QString &device) const
+{
+    QVariantList files;
+
+    if (device.isEmpty())
+        return files;
+
+    QByteArray targetDeviceLower = device.toLower().toLatin1();
+    auto devices = Drivelist::ListStorageDevices();
+
+    QStringList mountpoints;
+    for (auto &d : devices)
+    {
+        if (QByteArray::fromStdString(d.device).toLower() == targetDeviceLower)
+        {
+            for (auto &mp : d.mountpoints)
+            {
+                QString mount = QString::fromStdString(mp);
+                if (mount.endsWith("/") || mount.endsWith("\\"))
+                    mount.chop(1);
+
+                mountpoints.append(mount);
+            }
+            break;
+        }
+    }
+
+    for (const QString &mountpoint : mountpoints)
+    {
+        QDir dir(mountpoint);
+        const QFileInfoList entries = dir.entryInfoList(QStringList() << "*.txt",
+                                                        QDir::Files | QDir::Readable,
+                                                        QDir::Name | QDir::IgnoreCase);
+
+        for (const QFileInfo &entry : entries)
+        {
+            QVariantMap fileEntry;
+            fileEntry.insert("name", entry.fileName());
+            fileEntry.insert("path", entry.absoluteFilePath());
+            files.append(fileEntry);
+        }
+    }
+
+    return files;
+}
+
+QString ImageWriter::readTextFile(const QString &filePath) const
+{
+    QFile f(filePath);
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
+        return QString();
+
+    return QString::fromUtf8(f.readAll());
+}
+
+bool ImageWriter::writeTextFile(const QString &filePath, const QString &content) const
+{
+    QFile f(filePath);
+    if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+        return false;
+
+    QByteArray data = content.toUtf8();
+    bool success = f.write(data) == data.size();
+    f.close();
+    return success;
 }
 
 /* Returns true if src and dst are set */

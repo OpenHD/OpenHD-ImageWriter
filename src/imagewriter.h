@@ -108,6 +108,11 @@ public:
     Q_INVOKABLE void startUpdateUpload(const QString &sourceFile, const QString &device);
     Q_INVOKABLE QString getDestination() const;
 
+    /* Helpers for reading and writing configuration files on target devices */
+    Q_INVOKABLE QVariantList listTextFilesOnDevice(const QString &device) const;
+    Q_INVOKABLE QString readTextFile(const QString &filePath) const;
+    Q_INVOKABLE bool writeTextFile(const QString &filePath, const QString &content) const;
+
     Q_INVOKABLE bool getBoolSetting(const QString &key);
     Q_INVOKABLE QString getValue(const QString &key);
     Q_INVOKABLE void setSetting(const QString &key, const QVariant &value);
