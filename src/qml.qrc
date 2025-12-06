@@ -1,6 +1,9 @@
 <RCC>
     <qresource prefix="/">
         <file>main.qml</file>
+        <file>flash.qml</file>
+        <file>update.qml</file>
+        <file>configure.qml</file>
         <file>qtquickcontrols2.conf</file>
         <file>icons/openhdimagewriter.ico</file>
         <file>fonts/Roboto-Bold.ttf</file>
