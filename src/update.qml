@@ -34,6 +34,19 @@ ApplicationWindow {
     property url updateManifestUrl: "https://github.com/OpenHD/OpenHD-ImageWriter/releases/download/Json/OpenHD-Update.json"
     property string selectedUpdateSource: ""
 
+    ToolButton {
+        id: backButton
+        text: "\u2190"
+        visible: !progressBar.visible
+        enabled: visible
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: 8
+        anchors.rightMargin: 8
+        font.pixelSize: 16
+        onClicked: window.close()
+    }
+
     onClosing: {
         if (progressBar.visible) {
             close.accepted = false
