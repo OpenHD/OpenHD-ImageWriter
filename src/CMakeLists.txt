@@ -322,12 +322,14 @@ if(WIN32)
 include_directories(
     ${CURL_INCLUDE_DIR}
     ${LibArchive_INCLUDE_DIR}
+    ${OPENSSL_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/sha256crypt
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt5::Core Qt5::Quick Qt5::Svg Qt5::Widgets Qt5::Network Qt5::Gui
     ${CURL_LIBRARIES}
     ${LibArchive_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
     ${ATOMIC_LIBRARY}
     ${EXTRALIBS}
     crypt32 secur32 bcrypt)  # Required for Schannel
