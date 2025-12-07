@@ -233,6 +233,30 @@ if (WIN32)
         POST_BUILD
         COMMAND "${WINDEPLOYQT}" --no-translations --no-webkit2 --no-opengl-sw --angle --qmldir "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/deploy/OpenHDImageWriter.exe")
 
+    add_custom_command(TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/main.qml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/flash.qml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/configure.qml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/update.qml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/MsgPopup.qml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/OptionsPopup.qml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/UseSavedSettingsPopup.qml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/qtquickcontrols2.conf"
+            "${CMAKE_CURRENT_SOURCE_DIR}/countries.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/timezones.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/keymap-layouts.txt"
+            "${CMAKE_BINARY_DIR}/deploy"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/doc"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/doc/openhd_settings_map.json" "${CMAKE_BINARY_DIR}/deploy/doc"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/icons" "${CMAKE_BINARY_DIR}/deploy/icons"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/fonts" "${CMAKE_BINARY_DIR}/deploy/fonts"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/qmlcomponents" "${CMAKE_BINARY_DIR}/deploy/qmlcomponents")
+
     # Remove excess files
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
