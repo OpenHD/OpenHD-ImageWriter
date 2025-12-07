@@ -147,6 +147,10 @@
       }
     ]
   },
+  "qopenhdConf": {
+    "_comment": "Optional full configuration file copied verbatim when provided by the user.",
+    "file": "openhd/QOpenHD.conf"
+  },
   "hotSpot": {
     "_comment": "UI exposes WifiHotspot but creation of wifi_hotspot.txt is commented out in downloadthread.cpp.",
     "options": []

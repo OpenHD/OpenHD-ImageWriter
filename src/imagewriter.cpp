@@ -375,6 +375,34 @@ bool ImageWriter::fileExists(const QString &filePath) const
     return QFileInfo::exists(filePath);
 }
 
+bool ImageWriter::copyFile(const QString &sourcePath, const QString &destinationPath) const
+{
+    QFileInfo sourceInfo(sourcePath);
+    if (!sourceInfo.exists() || !sourceInfo.isFile()) {
+        qDebug() << "[ImageWriter] Source file does not exist" << sourcePath;
+        return false;
+    }
+
+    QFileInfo destinationInfo(destinationPath);
+    QDir destinationDir = destinationInfo.dir();
+    if (!destinationDir.exists() && !destinationDir.mkpath(".")) {
+        qDebug() << "[ImageWriter] Failed to create directory for" << destinationPath;
+        return false;
+    }
+
+    if (QFileInfo::exists(destinationPath) && !QFile::remove(destinationPath)) {
+        qDebug() << "[ImageWriter] Failed to remove existing file" << destinationPath;
+        return false;
+    }
+
+    if (!QFile::copy(sourcePath, destinationPath)) {
+        qDebug() << "[ImageWriter] Failed to copy" << sourcePath << "to" << destinationPath;
+        return false;
+    }
+
+    return true;
+}
+
 bool ImageWriter::removeFile(const QString &filePath) const
 {
     if (!QFileInfo::exists(filePath))

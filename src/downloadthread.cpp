@@ -1139,6 +1139,7 @@ bool DownloadThread::_customizeImage()
         QString modeValue = settings_.value("mode").toString();
         QString hotspot = settings_.value("hotspot").toString();
         QString bootType = settings_.value("bootType").toString();
+        QString qopenhdConfPath = settings_.value("qopenhdConfPath").toString();
 
         if (!cameraName.isEmpty()){
             QString cameraValue;
@@ -1353,6 +1354,31 @@ bool DownloadThread::_customizeImage()
                 ground.close();
             } else {
                 emit error(tr("Error creating air.txt file on FAT partition"));
+                return false;
+            }
+        }
+
+        if (!qopenhdConfPath.isEmpty()) {
+            QFileInfo confInfo(qopenhdConfPath);
+            if (!confInfo.exists() || !confInfo.isFile()) {
+                emit error(tr("QOpenHD.conf not found at the selected path."));
+                return false;
+            }
+
+            QDir openhdDir(folder + "/openhd");
+            if (!openhdDir.exists() && !openhdDir.mkpath(".")) {
+                emit error(tr("Error creating openhd folder on FAT partition"));
+                return false;
+            }
+
+            QString targetConfPath = openhdDir.filePath("QOpenHD.conf");
+            if (QFileInfo::exists(targetConfPath) && !QFile::remove(targetConfPath)) {
+                emit error(tr("Error replacing existing QOpenHD.conf on FAT partition"));
+                return false;
+            }
+
+            if (!QFile::copy(qopenhdConfPath, targetConfPath)) {
+                emit error(tr("Error copying QOpenHD.conf to FAT partition"));
                 return false;
             }
         }

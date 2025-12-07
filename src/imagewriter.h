@@ -113,6 +113,7 @@ public:
     Q_INVOKABLE QString readTextFile(const QString &filePath) const;
     Q_INVOKABLE bool writeTextFile(const QString &filePath, const QString &content) const;
     Q_INVOKABLE bool fileExists(const QString &filePath) const;
+    Q_INVOKABLE bool copyFile(const QString &sourcePath, const QString &destinationPath) const;
     Q_INVOKABLE bool removeFile(const QString &filePath) const;
 
     Q_INVOKABLE bool getBoolSetting(const QString &key);

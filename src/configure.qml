@@ -9,6 +9,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.0
 import QtQuick.Controls.Material 2.2
 import Qt.labs.settings 1.0
+import QtQuick.Dialogs 1.3
 import "qmlcomponents"
 
 ApplicationWindow {
@@ -45,6 +46,8 @@ ApplicationWindow {
     property string beep: ""
     property string eject: ""
     property bool useSettings: true
+    property string qopenhdConfPath: imageWriter.getValue("qopenhdConfPath")
+    property bool qopenhdConfPresent: false
 
     Component.onCompleted: loadSettingsMap()
 
@@ -150,13 +153,32 @@ ApplicationWindow {
                     id: settingsScroll
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    Layout.margins: 12
+                    padding: 16
                     clip: true
                     visible: driveSelected
-                    ScrollBar.vertical.policy: ScrollBar.AlwaysOn
-
+                    ScrollBar.vertical: ScrollBar {
+                        policy: ScrollBar.AsNeeded
+                        contentItem: Rectangle {
+                            implicitWidth: 8
+                            radius: width / 2
+                            color: "#95A5A6"
+                        }
+                        background: Rectangle {
+                            implicitWidth: 8
+                            radius: width / 2
+                            color: "#D6DDE3"
+                        }
+                    }
+                    background: Rectangle {
+                        radius: 10
+                        color: "#ECF0F1"
+                        border.color: "#C7D0D9"
+                        border.width: 1
+                    }
                     ColumnLayout {
                         id: settingsBody
-                        width: settingsScroll.width
+                        width: settingsScroll.width - settingsScroll.leftPadding - settingsScroll.rightPadding
                         spacing: 16
 
                         GroupBox {
@@ -331,6 +353,52 @@ ApplicationWindow {
                                             hotSpot = ""
                                         }
                                     }
+                                }
+                            }
+                        }
+
+                        GroupBox {
+                            title: qsTr("QOpenHD.conf")
+                            Layout.fillWidth: true
+
+                            ColumnLayout {
+                                spacing: 8
+
+                                TextField {
+                                    id: qopenhdConfDisplay
+                                    Layout.fillWidth: true
+                                    readOnly: true
+                                    placeholderText: qsTr("No QOpenHD.conf selected")
+                                    text: qopenhdConfPath
+                                }
+
+                                RowLayout {
+                                    spacing: 8
+
+                                    Button {
+                                        text: qsTr("Choose File")
+                                        onClicked: qopenhdConfDialog.open()
+                                    }
+
+                                    Button {
+                                        text: qsTr("Clear Selection")
+                                        enabled: qopenhdConfPath.length > 0
+                                        onClicked: qopenhdConfPath = ""
+                                    }
+                                }
+
+                                Label {
+                                    visible: qopenhdConfPresent
+                                    text: qsTr("A QOpenHD.conf is already present on the drive.")
+                                    wrapMode: Text.Wrap
+                                    Layout.fillWidth: true
+                                }
+
+                                Label {
+                                    visible: qopenhdConfPath.length === 0
+                                    text: qsTr("Keep the existing file or select a new one to replace it.")
+                                    wrapMode: Text.Wrap
+                                    Layout.fillWidth: true
                                 }
                             }
                         }
@@ -553,6 +621,16 @@ ApplicationWindow {
         id: msgpopup
     }
 
+    FileDialog {
+        id: qopenhdConfDialog
+        title: qsTr("Select QOpenHD.conf")
+        nameFilters: [qsTr("QOpenHD.conf (*.conf)"), qsTr("All files (*)")]
+        selectExisting: true
+        onAccepted: {
+            qopenhdConfPath = qopenhdConfDialog.fileUrl.toLocalFile()
+        }
+    }
+
     function selectDstItem(d) {
         if (d.isReadOnly) {
             onError(qsTr("SD card is write protected.<br>Push the lock switch on the left side of the card upwards, and try again."))
@@ -606,6 +684,12 @@ ApplicationWindow {
         if (rel.startsWith("/"))
             rel = rel.slice(1)
         return openhdRoot + "/" + rel
+    }
+
+    function qopenhdConfRelativePath() {
+        if (settingsMap.qopenhdConf && settingsMap.qopenhdConf.file)
+            return settingsMap.qopenhdConf.file
+        return "openhd/QOpenHD.conf"
     }
 
     function loadSettingsMap() {
@@ -700,6 +784,7 @@ ApplicationWindow {
         sbc = ""
         camera = ""
         mode = ""
+        qopenhdConfPresent = false
 
         var airFile = drivePath("air.txt")
         var groundFile = drivePath("ground.txt")
@@ -740,6 +825,8 @@ ApplicationWindow {
         } else {
             camera = ""
         }
+
+        qopenhdConfPresent = imageWriter.fileExists(drivePath(qopenhdConfRelativePath()))
 
         console.log("[Configure] Loaded settings -> bootType:", bootType, "sbc:", sbc, "camera:", camera)
     }
@@ -794,10 +881,22 @@ ApplicationWindow {
             imageWriter.removeFile(drivePath("camera1.txt"))
         }
 
+        if (qopenhdConfPath && qopenhdConfPath.length > 0) {
+            var qopenhdTarget = drivePath(qopenhdConfRelativePath())
+            if (!imageWriter.copyFile(qopenhdConfPath, qopenhdTarget)) {
+                onError(qsTr("Failed to copy QOpenHD.conf to the drive."))
+                return
+            }
+            qopenhdConfPresent = true
+        } else {
+            qopenhdConfPresent = imageWriter.fileExists(drivePath(qopenhdConfRelativePath()))
+        }
+
         imageWriter.setSetting("bootType", bootType)
         imageWriter.setSetting("sbc", sbc)
         imageWriter.setSetting("camera", camera)
         imageWriter.setSetting("mode", mode)
+        imageWriter.setSetting("qopenhdConfPath", qopenhdConfPath)
 
         console.log("[Configure] Settings written: bootType", bootType, "sbc", sbc, "camera", camera)
     }

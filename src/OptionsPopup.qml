@@ -8,6 +8,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.0
 import QtQuick.Controls.Material 2.2
 import Qt.labs.settings 1.0
+import QtQuick.Dialogs 1.3
 import "qmlcomponents"
 
 Popup {
@@ -38,6 +39,7 @@ Popup {
     property bool rock5
     property bool rpi
     property bool useSettings:true
+    property string qopenhdConfPath: ""
 
     // background of title
     Rectangle {
@@ -294,6 +296,45 @@ Popup {
                         }
                     }
                 }
+
+                GroupBox {
+                    title: qsTr("QOpenHD.conf")
+                    Layout.fillWidth: true
+
+                    ColumnLayout {
+                        spacing: 8
+
+                        TextField {
+                            id: qopenhdConfDisplay
+                            Layout.fillWidth: true
+                            readOnly: true
+                            placeholderText: qsTr("No QOpenHD.conf selected")
+                            text: qopenhdConfPath
+                        }
+
+                        RowLayout {
+                            spacing: 8
+
+                            Button {
+                                text: qsTr("Choose File")
+                                onClicked: qopenhdConfDialog.open()
+                            }
+
+                            Button {
+                                text: qsTr("Clear Selection")
+                                enabled: qopenhdConfPath.length > 0
+                                onClicked: qopenhdConfPath = ""
+                            }
+                        }
+
+                        Label {
+                            visible: qopenhdConfPath.length === 0
+                            text: qsTr("Existing QOpenHD.conf on the target will be kept when no file is selected.")
+                            wrapMode: Text.Wrap
+                            Layout.fillWidth: true
+                        }
+                    }
+                }
             }
         }
 
@@ -316,6 +357,16 @@ Popup {
         }
     }
 
+    FileDialog {
+        id: qopenhdConfDialog
+        title: qsTr("Select QOpenHD.conf")
+        nameFilters: [qsTr("QOpenHD.conf (*.conf)"), qsTr("All files (*)")]
+        selectExisting: true
+        onAccepted: {
+            qopenhdConfPath = qopenhdConfDialog.fileUrl.toLocalFile()
+        }
+    }
+
     function initialize() {
         console.log("[OptionsPopup] initialize() called")
         loadSettingsMap()
@@ -334,6 +385,7 @@ Popup {
         hotSpot = imageWriter.getValue("hotSpot")
         beep = imageWriter.getBoolSetting("beep")
         eject = imageWriter.getBoolSetting("eject")
+        qopenhdConfPath = imageWriter.getValue("qopenhdConfPath")
 
         // set session settings
         if (mode) {
@@ -413,6 +465,7 @@ Popup {
         imageWriter.setSetting("beep", beep)
         imageWriter.setSetting("eject", eject)
         imageWriter.setSetting("useSettings", useSettings)
+        imageWriter.setSetting("qopenhdConfPath", qopenhdConfPath)
 
     }
 
