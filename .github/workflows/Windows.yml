@@ -142,7 +142,7 @@ jobs:
         & "${Env:ProgramFiles(x86)}\NSIS\makensis.exe" "openhdimagewriter.nsi"
 
     - name: Upload Installer
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: OpenHDImageWriter-Build-Full
         path: src/build/OpenHD-ImageWriter-*
