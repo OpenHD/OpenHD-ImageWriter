@@ -807,32 +807,31 @@ ImButton {
         mode = ""
         qopenhdConfPresent = false
 
-        var airFile = drivePath("air.txt")
-        var groundFile = drivePath("ground.txt")
-        if (imageWriter.fileExists(airFile)) {
+        var settingsJson = imageWriter.readTextFile(drivePath("settings.json"))
+        var settingsObj = {}
+        if (settingsJson && settingsJson.length > 0) {
+            try {
+                settingsObj = JSON.parse(settingsJson)
+            } catch (e) {
+                console.log("[Configure] Error parsing settings.json:", e)
+            }
+        }
+
+        if (settingsObj.role === "air") {
             bootType = "Air"
-        } else if (imageWriter.fileExists(groundFile)) {
+        } else if (settingsObj.role === "ground") {
             bootType = "Ground"
         } else if (settingsMap.bootType && settingsMap.bootType.options && settingsMap.bootType.options.length > 0) {
             bootType = settingsMap.bootType.options[0].id
         }
 
-        // Detect SBC marker
-        if (settingsMap.sbc && settingsMap.sbc.options) {
-            for (var i = 0; i < settingsMap.sbc.options.length; i++) {
-                var opt = settingsMap.sbc.options[i]
-                var optPath = drivePath(opt.file)
-                if (imageWriter.fileExists(optPath)) {
-                    sbc = opt.id
-                    break
-                }
-            }
-            if (!sbc && settingsMap.sbc.options.length > 0) {
-                sbc = settingsMap.sbc.options[0].id
-            }
+        if (settingsObj.sbc) {
+            sbc = settingsObj.sbc
+        } else if (settingsMap.sbc && settingsMap.sbc.options && settingsMap.sbc.options.length > 0) {
+            sbc = settingsMap.sbc.options[0].id
         }
 
-        if (imageWriter.fileExists(drivePath("debug.txt"))) {
+        if (settingsObj.debug) {
             mode = "debug"
             setDebug.checked = true
         } else {
@@ -840,9 +839,8 @@ ImButton {
             setDebug.checked = false
         }
 
-        var cameraValue = imageWriter.readTextFile(drivePath("camera1.txt")).trim()
-        if (cameraValue.length > 0) {
-            setCameraFromValue(cameraValue)
+        if (settingsObj.camera) {
+            setCameraFromValue(settingsObj.camera)
         } else {
             camera = ""
         }
@@ -870,36 +868,44 @@ ImButton {
 
         console.log("[Configure] Writing settings to", openhdRoot)
 
-        var bootFile = bootType === "Air" ? "air.txt" : (bootType === "Ground" ? "ground.txt" : "")
-        if (bootFile) {
-            imageWriter.writeTextFile(drivePath(bootFile), "")
-            var otherBoot = bootType === "Air" ? "ground.txt" : "air.txt"
-            imageWriter.removeFile(drivePath(otherBoot))
+        var settingsObj = {}
+        if (bootType === "Air") {
+            settingsObj.role = "air"
+        } else if (bootType === "Ground") {
+            settingsObj.role = "ground"
         }
 
-        if (settingsMap.sbc && settingsMap.sbc.options) {
-            for (var i = 0; i < settingsMap.sbc.options.length; i++) {
-                var opt = settingsMap.sbc.options[i]
-                var targetPath = drivePath(opt.file)
-                if (opt.id === sbc) {
-                    imageWriter.writeTextFile(targetPath, "")
-                } else {
-                    imageWriter.removeFile(targetPath)
-                }
-            }
+        if (sbc && sbc.length > 0) {
+            settingsObj.sbc = sbc
         }
 
         if (mode === "debug") {
-            imageWriter.writeTextFile(drivePath("debug.txt"), "")
-        } else {
-            imageWriter.removeFile(drivePath("debug.txt"))
+            settingsObj.debug = true
         }
 
         var camValue = cameraValueForSelection()
         if (camValue && camValue.length > 0) {
-            imageWriter.writeTextFile(drivePath("camera1.txt"), camValue)
-        } else {
+            settingsObj.camera = camValue
+        }
+
+        var jsonString = JSON.stringify(settingsObj, null, 4)
+        if (imageWriter.writeTextFile(drivePath("settings.json"), jsonString)) {
+            // Clean up old files if they exist, just in case
+            imageWriter.removeFile(drivePath("air.txt"))
+            imageWriter.removeFile(drivePath("ground.txt"))
+            imageWriter.removeFile(drivePath("debug.txt"))
             imageWriter.removeFile(drivePath("camera1.txt"))
+            // We don't easily know which SBC file might exist, so we might skip cleaning those up
+            // or iterate through sbc options to delete them. For now, assuming fresh flash or JSON usage.
+             if (settingsMap.sbc && settingsMap.sbc.options) {
+                for (var i = 0; i < settingsMap.sbc.options.length; i++) {
+                    var opt = settingsMap.sbc.options[i]
+                    imageWriter.removeFile(drivePath(opt.file))
+                }
+            }
+        } else {
+             onError(qsTr("Failed to write settings.json to the drive."))
+             return
         }
 
         if (qopenhdConfPath && qopenhdConfPath.length > 0) {
