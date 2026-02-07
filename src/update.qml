@@ -31,6 +31,7 @@ Rectangle {
     property double writeSpeedMB: 0
     property double lastWriteBytes: 0
     property double lastWriteTimestamp: 0
+    property bool returnHomeAfterPopupClose: false
 
     function navigateBack() {
         if (progressBar.visible) {
@@ -783,6 +784,7 @@ Rectangle {
 
         Item {
             width: window.width-100
+            height: contentLayout.implicitHeight + 24
             Accessible.name: name+".\n"+description
 
             MouseArea {
@@ -1117,6 +1119,12 @@ Rectangle {
             }
             window.close()
         }
+        onClosed: {
+            if (returnHomeAfterPopupClose) {
+                returnHomeAfterPopupClose = false
+                navigateBack()
+            }
+        }
     }
     MsgPopup {
         id: quitpopup
@@ -1371,6 +1379,7 @@ Rectangle {
     }
 
     function onError(msg) {
+        returnHomeAfterPopupClose = false
         msgpopup.title = qsTr("Error")
         msgpopup.configureButton = false
         msgpopup.closeButton = false
@@ -1410,13 +1419,14 @@ Rectangle {
     }
 
     function onUpdateUploadSuccess() {
-        msgpopup.title = qsTr("Update ready")
-        msgpopup.text = qsTr("<b>%1</b> was copied to <b>%2</b>.<br>You can now safely remove the card or continue configuring it.").arg(osbutton.text).arg(dstbutton.text)
-        msgpopup.continueButton = false
+        msgpopup.title = qsTr("Update written")
+        msgpopup.text = qsTr("<b>%1</b> was written to <b>%2</b>.<br>You can now safely remove the card.").arg(osbutton.text).arg(dstbutton.text)
+        msgpopup.continueButton = true
         msgpopup.detailsButton = false
-        msgpopup.configureButton = true
-        msgpopup.closeButton = true
+        msgpopup.configureButton = false
+        msgpopup.closeButton = false
         msgpopup.quitButton = false
+        returnHomeAfterPopupClose = true
         msgpopup.openPopup()
         resetWriteButton()
         customizebutton.visible = true

@@ -41,6 +41,7 @@ Rectangle {
     property bool useSettings: true
     property string qopenhdConfPath: ""
     property bool qopenhdConfPresent: false
+    property bool returnHomeAfterPopupClose: false
 
     Component.onCompleted: {
         qopenhdConfPath = normalizeLocalFilePath(imageWriter.getValue("qopenhdConfPath"))
@@ -59,6 +60,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.topMargin: 8
         anchors.rightMargin: 8
+        z: 10
         width: 28
         height: 28
         padding: 4
@@ -133,7 +135,7 @@ ImButton {
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.topMargin: -100
+                anchors.topMargin: driveSelected ? 16 : -100
                 anchors.leftMargin: 50
                 anchors.rightMargin: 50
                 spacing: 12
@@ -633,6 +635,12 @@ ImButton {
 
     MsgPopup {
         id: msgpopup
+        onClosed: {
+            if (returnHomeAfterPopupClose) {
+                returnHomeAfterPopupClose = false
+                navigateBack()
+            }
+        }
     }
 
     FileDialog {
@@ -699,6 +707,7 @@ ImButton {
     }
 
     function onError(msg) {
+        returnHomeAfterPopupClose = false
         msgpopup.title = qsTr("Error")
         msgpopup.text = msg
         msgpopup.openPopup()
@@ -947,5 +956,16 @@ ImButton {
         imageWriter.setSetting("qopenhdConfPath", qopenhdConfPath)
 
         console.log("[Configure] Settings written: bootType", bootType, "sbc", sbc, "camera", camera)
+        msgpopup.title = qsTr("Settings written")
+        msgpopup.text = qsTr("Settings were written to <b>%1</b>.").arg(selectedDevice)
+        msgpopup.continueButton = true
+        msgpopup.detailsButton = false
+        msgpopup.configureButton = false
+        msgpopup.closeButton = false
+        msgpopup.quitButton = false
+        msgpopup.yesButton = false
+        msgpopup.noButton = false
+        returnHomeAfterPopupClose = true
+        msgpopup.openPopup()
     }
 }
