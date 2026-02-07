@@ -416,6 +416,60 @@ bool ImageWriter::removeFile(const QString &filePath) const
     return true;
 }
 
+bool ImageWriter::hasOpenHdSettingsCard() const
+{
+    auto devices = Drivelist::ListStorageDevices();
+    bool filterSystemDrives = DRIVELIST_FILTER_SYSTEM_DRIVES;
+
+    for (auto &d : devices)
+    {
+        if (filterSystemDrives && d.isSystem)
+            continue;
+
+        if (d.size == 0)
+            continue;
+
+#ifdef Q_OS_DARWIN
+        if (d.isVirtual)
+            continue;
+#endif
+
+        for (auto &mp : d.mountpoints)
+        {
+            QString mount = QString::fromStdString(mp);
+            if (mount.isEmpty())
+                continue;
+
+            if (mount.endsWith("/") || mount.endsWith("\\"))
+                mount.chop(1);
+
+            QString mountLower = mount.toLower();
+            if (mountLower == "/" || mountLower.startsWith("c:\\") || mountLower.startsWith("c:/"))
+                continue;
+
+            QStorageInfo storage(mount);
+            if (!storage.isValid() || !storage.isReady())
+                continue;
+
+            QString fsType = QString::fromLatin1(storage.fileSystemType()).toLower();
+            if (fsType.contains("exfat"))
+                continue;
+
+            if (!fsType.contains("fat") && !fsType.contains("msdos"))
+                continue;
+
+            QString settingsPath = QDir(mount).filePath("openhd/settings.json");
+            if (QFileInfo::exists(settingsPath))
+            {
+                qDebug() << "[ImageWriter] OpenHD settings detected at" << settingsPath;
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 /* Returns true if src and dst are set */
 bool ImageWriter::readyToWrite()
 {

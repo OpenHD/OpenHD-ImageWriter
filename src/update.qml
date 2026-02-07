@@ -306,7 +306,7 @@ Rectangle {
                 rowSpacing: 25
 
                 anchors.fill: parent
-                anchors.topMargin: 25
+                anchors.topMargin: 35
                 anchors.rightMargin: 50
                 anchors.leftMargin: 50
 
@@ -318,19 +318,6 @@ Rectangle {
                     id: columnLayout
                     spacing: 0
                     Layout.fillWidth: true
-
-                    Text {
-                        id: text1
-                        color: "#ffffff"
-                        text: qsTr("Operating System")
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 17
-                        Layout.preferredWidth: 100
-                        font.pixelSize: 12
-                        font.family: robotoBold.name
-                        font.bold: true
-                        horizontalAlignment: Text.AlignHCenter
-                    }
 
                     ImButton {
                         id: osbutton
@@ -364,19 +351,6 @@ Rectangle {
                     spacing: 0
                     Layout.fillWidth: true
 
-                    Text {
-                        id: text2
-                        text: qsTr("Storage")
-                        color: "#fff"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 17
-                        Layout.preferredWidth: 100
-                        font.pixelSize: 12
-                        font.family: robotoBold.name
-                        font.bold: true
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-
                     ImButton {
                         id: dstbutton
                         text: qsTr("CHOOSE STORAGE")
@@ -397,11 +371,6 @@ Rectangle {
                     spacing: 0
                     Layout.fillWidth: true
 
-                    Text {
-                        text: " "
-                        Layout.preferredHeight: 17
-                        Layout.preferredWidth: 100
-                    }
 
                     ImButton {
                         id: writebutton
@@ -814,7 +783,6 @@ Rectangle {
 
         Item {
             width: window.width-100
-            height: contentLayout.implicitHeight + 24
             Accessible.name: name+".\n"+description
 
             MouseArea {
@@ -1455,8 +1423,14 @@ Rectangle {
     }
 
     function onFileSelected(file) {
-        imageWriter.setSrc(file)
-        selectedUpdateSource = file
+        var normalized = file
+        if (typeof file === "string") {
+            if (file.indexOf("file:") !== 0) {
+                normalized = "file:///" + file.replace(/\\/g, "/")
+            }
+        }
+        imageWriter.setSrc(normalized)
+        selectedUpdateSource = normalized
         osbutton.text = imageWriter.srcFileName()
         ospopup.close()
         if (imageWriter.readyToWrite()) {

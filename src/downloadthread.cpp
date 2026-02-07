@@ -1314,6 +1314,9 @@ bool DownloadThread::_customizeImage()
         }
 
         if (!qopenhdConfPath.isEmpty()) {
+            if (qopenhdConfPath.startsWith("file:")) {
+                qopenhdConfPath = QUrl(qopenhdConfPath).toLocalFile();
+            }
             QFileInfo confInfo(qopenhdConfPath);
             if (!confInfo.exists() || !confInfo.isFile()) {
                 emit error(tr("QOpenHD.conf not found at the selected path."));

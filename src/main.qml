@@ -16,9 +16,9 @@ ApplicationWindow {
     color: "#34495E"
 
     width: imageWriter.isEmbeddedMode() ? -1 : 680
-    height: imageWriter.isEmbeddedMode() ? -1 : 420
+    height: imageWriter.isEmbeddedMode() ? -1 : 400
     minimumWidth: imageWriter.isEmbeddedMode() ? -1 : 680
-    minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 420
+    minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 400
 
     title: qsTr("OpenHD ImageWriter v%1").arg(imageWriter.constantVersion())
 
@@ -27,6 +27,13 @@ ApplicationWindow {
 
     property string currentView: "home"
     property string statusMessage: ""
+
+    Component.onCompleted: {
+        var hasOpenHdCard = imageWriter.hasOpenHdSettingsCard()
+        if (!hasOpenHdCard) {
+            openFeature("flash")
+        }
+    }
 
     function currentFeature() {
         if (currentView === "flash") {
@@ -202,7 +209,9 @@ ImButton {
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 32
+                    anchors.leftMargin: 50
+                    anchors.rightMargin: 50
+                    anchors.topMargin: -125
                     spacing: 24
 
                     RowLayout {
@@ -210,25 +219,79 @@ ImButton {
                         Layout.alignment: Qt.AlignHCenter
                         Layout.fillWidth: true
 
-                        ImButton {
-                            text: qsTr("FLASH")
+                        ColumnLayout {
+                            spacing: 4
                             Layout.fillWidth: true
                             Layout.preferredWidth: 150
-                            onClicked: openFeature("flash")
+
+                            Text {
+                                text: qsTr(" ")
+                                color: "#fff"
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 17
+                                Layout.preferredWidth: 100
+                                font.pixelSize: 12
+                                font.family: robotoBold.name
+                                font.bold: true
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+
+                            ImButton {
+                                text: qsTr("FLASH")
+                                Layout.fillWidth: true
+                                Layout.preferredWidth: 150
+                                onClicked: openFeature("flash")
+                            }
                         }
 
-                        ImButton {
-                            text: qsTr("UPDATE")
+                        ColumnLayout {
+                            spacing: 4
                             Layout.fillWidth: true
                             Layout.preferredWidth: 150
-                            onClicked: openFeature("update")
+
+                            Text {
+                                text: qsTr(" ")
+                                color: "#fff"
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 17
+                                Layout.preferredWidth: 100
+                                font.pixelSize: 12
+                                font.family: robotoBold.name
+                                font.bold: true
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+
+                            ImButton {
+                                text: qsTr("UPDATE")
+                                Layout.fillWidth: true
+                                Layout.preferredWidth: 150
+                                onClicked: openFeature("update")
+                            }
                         }
 
-                        ImButton {
-                            text: qsTr("CONFIGURE")
+                        ColumnLayout {
+                            spacing: 4
                             Layout.fillWidth: true
                             Layout.preferredWidth: 150
-                            onClicked: openFeature("configure")
+
+                            Text {
+                                text: qsTr(" ")
+                                color: "#fff"
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 17
+                                Layout.preferredWidth: 100
+                                font.pixelSize: 12
+                                font.family: robotoBold.name
+                                font.bold: true
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+
+                            ImButton {
+                                text: qsTr("CONFIGURE")
+                                Layout.fillWidth: true
+                                Layout.preferredWidth: 150
+                                onClicked: openFeature("configure")
+                            }
                         }
                     }
 

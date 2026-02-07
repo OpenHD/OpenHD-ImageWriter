@@ -314,19 +314,7 @@ Rectangle {
                     id: columnLayout
                     spacing: 0
                     Layout.fillWidth: true
-
-                    Text {
-                        id: text1
-                        color: "#ffffff"
-                        text: qsTr("Operating System")
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 17
-                        Layout.preferredWidth: 100
-                        font.pixelSize: 12
-                        font.family: robotoBold.name
-                        font.bold: true
-                        horizontalAlignment: Text.AlignHCenter
-                    }
+                    Layout.alignment: Qt.AlignTop
 
                     ImButton {
                         id: osbutton
@@ -359,19 +347,7 @@ Rectangle {
                     id: columnLayout2
                     spacing: 0
                     Layout.fillWidth: true
-
-                    Text {
-                        id: text2
-                        text: qsTr("Storage")
-                        color: "#fff"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 17
-                        Layout.preferredWidth: 100
-                        font.pixelSize: 12
-                        font.family: robotoBold.name
-                        font.bold: true
-                        horizontalAlignment: Text.AlignHCenter
-                    }
+                    Layout.alignment: Qt.AlignTop
 
                     ImButton {
                         id: dstbutton
@@ -392,12 +368,7 @@ Rectangle {
                 ColumnLayout {
                     spacing: 0
                     Layout.fillWidth: true
-
-                    Text {
-                        text: " "
-                        Layout.preferredHeight: 17
-                        Layout.preferredWidth: 100
-                    }
+                    Layout.alignment: Qt.AlignTop
 
                     ImButton {
                         id: writebutton
@@ -1404,7 +1375,13 @@ Rectangle {
     }
 
     function onFileSelected(file) {
-        imageWriter.setSrc(file)
+        var normalized = file
+        if (typeof file === "string") {
+            if (file.indexOf("file:") !== 0) {
+                normalized = "file:///" + file.replace(/\\/g, "/")
+            }
+        }
+        imageWriter.setSrc(normalized)
         osbutton.text = imageWriter.srcFileName()
         ospopup.close()
         if (imageWriter.readyToWrite()) {

@@ -39,10 +39,13 @@ Rectangle {
     property string beep: ""
     property string eject: ""
     property bool useSettings: true
-    property string qopenhdConfPath: imageWriter.getValue("qopenhdConfPath")
+    property string qopenhdConfPath: ""
     property bool qopenhdConfPresent: false
 
-    Component.onCompleted: loadSettingsMap()
+    Component.onCompleted: {
+        qopenhdConfPath = normalizeLocalFilePath(imageWriter.getValue("qopenhdConfPath"))
+        loadSettingsMap()
+    }
 
     function navigateBack() {
         if (mainWindow && mainWindow.showHome) {
@@ -130,7 +133,9 @@ ImButton {
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: driveSelected ? 16 : 32
+                anchors.topMargin: -100
+                anchors.leftMargin: 50
+                anchors.rightMargin: 50
                 spacing: 12
 
                 RowLayout {
@@ -141,19 +146,6 @@ ImButton {
                     ColumnLayout {
                         spacing: 4
                         Layout.fillWidth: true
-
-                        Text {
-                            id: storageHeader
-                            text: qsTr("Storage")
-                            color: "#fff"
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 17
-                            Layout.preferredWidth: 100
-                            font.pixelSize: 12
-                            font.family: robotoBold.name
-                            font.bold: true
-                            horizontalAlignment: Text.AlignHCenter
-                        }
 
                         ImButton {
                             id: dstbutton
@@ -493,6 +485,7 @@ ImButton {
             spacing: 10
 
             Text {
+                //not this
                 text: qsTr("Storage")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -648,8 +641,35 @@ ImButton {
         nameFilters: [qsTr("QOpenHD.conf (*.conf)"), qsTr("All files (*)")]
         selectExisting: true
         onAccepted: {
-            qopenhdConfPath = qopenhdConfDialog.fileUrl.toLocalFile()
+            var selectedUrl = qopenhdConfDialog.fileUrl
+            if (!selectedUrl || selectedUrl.toString().length === 0) {
+                if (qopenhdConfDialog.fileUrls && qopenhdConfDialog.fileUrls.length > 0) {
+                    selectedUrl = qopenhdConfDialog.fileUrls[0]
+                }
+            }
+            if (selectedUrl && selectedUrl.toString) {
+                var selectedStr = selectedUrl.toString()
+                if (selectedStr.startsWith("file:")) {
+                    qopenhdConfPath = normalizeLocalFilePath(selectedUrl.toLocalFile ? selectedUrl.toLocalFile() : selectedStr)
+                } else {
+                    qopenhdConfPath = normalizeLocalFilePath(selectedStr)
+                }
+            }
         }
+    }
+
+    function normalizeLocalFilePath(value) {
+        if (!value)
+            return ""
+        if (typeof value !== "string" && value.toString)
+            value = value.toString()
+        if (value.startsWith("file:")) {
+            value = decodeURIComponent(value.replace(/^file:\/\//, ""))
+            if (value.startsWith("/") && value.length > 2 && value[2] === ":") {
+                value = value.substring(1)
+            }
+        }
+        return value
     }
 
     function selectDstItem(d) {
@@ -908,6 +928,7 @@ ImButton {
              return
         }
 
+        qopenhdConfPath = normalizeLocalFilePath(qopenhdConfPath)
         if (qopenhdConfPath && qopenhdConfPath.length > 0) {
             var qopenhdTarget = drivePath(qopenhdConfRelativePath())
             if (!imageWriter.copyFile(qopenhdConfPath, qopenhdTarget)) {

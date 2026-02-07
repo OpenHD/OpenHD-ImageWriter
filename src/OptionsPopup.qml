@@ -58,7 +58,7 @@ Popup {
     }
 
     ColumnLayout {
-        spacing: 20
+        spacing: 10
         anchors.fill: parent
 
         Text {
@@ -340,8 +340,8 @@ Popup {
 
         RowLayout {
             Layout.alignment: Qt.AlignCenter | Qt.AlignBottom
-            Layout.bottomMargin: 10
-            spacing: 20
+            Layout.bottomMargin: 6
+            spacing: 16
 
             ImButton {
                 text: qsTr("SAVE")
@@ -363,7 +363,20 @@ Popup {
         nameFilters: [qsTr("QOpenHD.conf (*.conf)"), qsTr("All files (*)")]
         selectExisting: true
         onAccepted: {
-            qopenhdConfPath = qopenhdConfDialog.fileUrl.toLocalFile()
+            var selectedUrl = qopenhdConfDialog.fileUrl
+            if (!selectedUrl || selectedUrl.toString().length === 0) {
+                if (qopenhdConfDialog.fileUrls && qopenhdConfDialog.fileUrls.length > 0) {
+                    selectedUrl = qopenhdConfDialog.fileUrls[0]
+                }
+            }
+            if (selectedUrl && selectedUrl.toString) {
+                var selectedStr = selectedUrl.toString()
+                if (selectedStr.startsWith("file:")) {
+                    qopenhdConfPath = normalizeLocalFilePath(selectedUrl.toLocalFile ? selectedUrl.toLocalFile() : selectedStr)
+                } else {
+                    qopenhdConfPath = normalizeLocalFilePath(selectedStr)
+                }
+            }
         }
     }
 
@@ -385,7 +398,7 @@ Popup {
         hotSpot = imageWriter.getValue("hotSpot")
         beep = imageWriter.getBoolSetting("beep")
         eject = imageWriter.getBoolSetting("eject")
-        qopenhdConfPath = imageWriter.getValue("qopenhdConfPath")
+        qopenhdConfPath = normalizeLocalFilePath(imageWriter.getValue("qopenhdConfPath"))
 
         // set session settings
         if (mode) {
@@ -457,6 +470,7 @@ Popup {
 
     function applySettings()
     {
+        qopenhdConfPath = normalizeLocalFilePath(qopenhdConfPath)
 
         imageWriter.setSetting("bootType", bootType)
         imageWriter.setSetting("camera", camera)
@@ -484,5 +498,19 @@ Popup {
         } catch (e) {
             console.log("Failed to load OpenHD settings map: " + e)
         }
+    }
+
+    function normalizeLocalFilePath(value) {
+        if (!value)
+            return ""
+        if (typeof value !== "string" && value.toString)
+            value = value.toString()
+        if (value.startsWith("file:")) {
+            value = decodeURIComponent(value.replace(/^file:\/\//, ""))
+            if (value.startsWith("/") && value.length > 2 && value[2] === ":") {
+                value = value.substring(1)
+            }
+        }
+        return value
     }
 }
