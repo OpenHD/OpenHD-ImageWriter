@@ -1141,6 +1141,8 @@ bool DownloadThread::_customizeImage()
         QString hotspot = settings_.value("hotspot").toString();
         QString bootType = settings_.value("bootType").toString();
         QString qopenhdConfPath = settings_.value("qopenhdConfPath").toString();
+        QString languageValue = settings_.value("language").toString();
+        QString tokenValue = settings_.value("token").toString();
 
         QJsonObject openhdSettings;
 
@@ -1295,6 +1297,9 @@ bool DownloadThread::_customizeImage()
         else if(bootType == "Ground"){
             openhdSettings.insert("role", "ground");
         }
+
+        openhdSettings.insert("language", languageValue);
+        openhdSettings.insert("token", tokenValue);
 
         // Always write settings.json if useSettings is true, even if empty
         QDir openhdDir(folder + "/openhd");

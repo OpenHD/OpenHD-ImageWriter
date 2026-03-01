@@ -93,7 +93,6 @@ int main(int argc, char *argv[])
     ImageWriter imageWriter;
     NetworkAccessManagerFactory namf;
     QQmlApplicationEngine engine;
-    QTranslator *translator = new QTranslator;
     QString customQm;
     QSettings settings;
 
@@ -224,18 +223,24 @@ int main(int argc, char *argv[])
         CFRelease(prefLangs);
         QLocale::setDefault(QLocale(langcode));
 #endif
-
-        if (translator->load(QLocale(), "rpi-imager", "_", QLatin1String(":/i18n")))
-            imageWriter.replaceTranslator(translator);
-        else
-            delete translator;
+        QLocale::setDefault(QLocale("en"));
     }
     else
     {
+        QTranslator *translator = new QTranslator;
         if (translator->load(customQm))
             imageWriter.replaceTranslator(translator);
         else
             delete translator;
+    }
+
+    if (customQm.isEmpty())
+    {
+        QString savedLanguage = settings.value("language").toString();
+        if (!savedLanguage.isEmpty() && savedLanguage != imageWriter.getCurrentLanguage())
+        {
+            imageWriter.changeLanguage(savedLanguage);
+        }
     }
 
     if (!url.isEmpty())

@@ -64,6 +64,10 @@ ApplicationWindow {
         currentView = "home"
     }
 
+    function openLanguagePopup() {
+        languagePopup.open()
+    }
+
     function onDownloadProgress(now, total) {
         forwardIfAvailable("onDownloadProgress", [now, total])
     }
@@ -118,6 +122,99 @@ ApplicationWindow {
 
     function fetchOSlist() {
         forwardIfAvailable("fetchOSlist", [])
+    }
+
+    Popup {
+        id: languagePopup
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+        width: 360
+        height: 200
+        padding: 0
+        modal: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        onOpened: {
+            var currentLang = imageWriter.getCurrentLanguage()
+            languageSelector.currentIndex = languageSelector.find(currentLang)
+        }
+
+        Rectangle {
+            color: "#f5f5f5"
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: 35
+            width: parent.width
+        }
+        Rectangle {
+            color: "#afafaf"
+            width: parent.width
+            y: 35
+            implicitHeight: 1
+        }
+
+        Text {
+            text: "X"
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.rightMargin: 25
+            anchors.topMargin: 10
+            font.family: roboto.name
+            font.bold: true
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: languagePopup.close()
+            }
+        }
+
+        ColumnLayout {
+            spacing: 16
+            anchors.fill: parent
+            anchors.topMargin: 12
+            anchors.leftMargin: 20
+            anchors.rightMargin: 20
+            anchors.bottomMargin: 12
+
+            Text {
+                text: qsTr("Language settings")
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                font.family: robotoBold.name
+                font.bold: true
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 12
+
+                Text {
+                    text: qsTr("Language")
+                    font.family: roboto.name
+                }
+
+                ComboBox {
+                    id: languageSelector
+                    font.family: roboto.name
+                    model: imageWriter.getTranslations()
+                    Layout.fillWidth: true
+                    currentIndex: -1
+                    onActivated: {
+                        imageWriter.changeLanguage(editText)
+                        imageWriter.setSetting("language", editText)
+                    }
+                }
+            }
+
+            Item { Layout.fillHeight: true }
+
+            ImButton {
+                text: qsTr("CLOSE")
+                Layout.alignment: Qt.AlignHCenter
+                onClicked: languagePopup.close()
+            }
+        }
     }
 
     Loader {
@@ -303,6 +400,21 @@ ImButton {
                         horizontalAlignment: Text.AlignHCenter
                         Layout.alignment: Qt.AlignHCenter
                         Layout.fillWidth: true
+                    }
+                }
+
+                ImButton {
+                    id: homeSettingsButton
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.rightMargin: 50
+                    anchors.bottomMargin: 55
+                    padding: 5
+                    onClicked: openLanguagePopup()
+                    Accessible.description: qsTr("Select this button to configure language")
+                    contentItem: Image {
+                        source: "icons/ic_cog_red.svg"
+                        fillMode: Image.PreserveAspectFit
                     }
                 }
             }

@@ -23,6 +23,7 @@
 #include <QQmlContext>
 #include <QProcess>
 #include <QRegularExpression>
+#include <QSet>
 #include <QStandardPaths>
 #include <QStorageInfo>
 #include <QTimeZone>
@@ -171,11 +172,9 @@ ImageWriter::ImageWriter(QObject *parent)
 
     QDir dir(":/i18n", "rpi-imager_*.qm");
     const QStringList transFiles = dir.entryList();
-    QLocale currentLocale;
-    QStringList localeComponents = currentLocale.name().split('_');
-    QString currentlangcode;
-    if (!localeComponents.isEmpty())
-        currentlangcode = localeComponents.first();
+    const QSet<QString> fullyTranslated = {"en", "de", "es", "it", "uk", "ro"};
+    QString currentlangcode = "en";
+    bool hasEnglish = false;
 
     for (const QString &tf : transFiles)
     {
@@ -183,6 +182,9 @@ ImageWriter::ImageWriter(QObject *parent)
         /* FIXME: we currently lack a font with support for Chinese characters in embedded mode */
         //if (isEmbeddedMode() && langcode == "zh")
         //    continue;
+
+        if (!fullyTranslated.contains(langcode))
+            continue;
 
         QLocale loc(langcode);
         /* Use "English" for "en" and not "American English" */
@@ -193,6 +195,15 @@ ImageWriter::ImageWriter(QObject *parent)
             _currentLang = langname;
             _currentLangcode = currentlangcode;
         }
+        if (langcode == "en")
+            hasEnglish = true;
+    }
+    if (!hasEnglish)
+        _translations.insert("English", "en");
+    if (_currentLang.isEmpty())
+    {
+        _currentLang = "English";
+        _currentLangcode = "en";
     }
     //_currentKeyboard = "us";
 }
@@ -1476,6 +1487,21 @@ void ImageWriter::changeLanguage(const QString &newLanguageName)
 
     QString langcode = _translations[newLanguageName];
     qDebug() << "Changing language to" << langcode;
+
+    if (langcode == "en")
+    {
+        if (_trans)
+        {
+            QCoreApplication::removeTranslator(_trans);
+            delete _trans;
+            _trans = nullptr;
+            if (_engine)
+                _engine->retranslate();
+        }
+        _currentLang = newLanguageName;
+        _currentLangcode = langcode;
+        return;
+    }
 
     QTranslator *trans = new QTranslator();
     if (trans->load(":/i18n/rpi-imager_"+langcode+".qm"))

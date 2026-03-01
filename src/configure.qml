@@ -42,9 +42,13 @@ Rectangle {
     property string qopenhdConfPath: ""
     property bool qopenhdConfPresent: false
     property bool returnHomeAfterPopupClose: false
+    property string language: ""
+    property string token: ""
 
     Component.onCompleted: {
         qopenhdConfPath = normalizeLocalFilePath(imageWriter.getValue("qopenhdConfPath"))
+        language = imageWriter.getValue("language")
+        token = imageWriter.getValue("token")
         loadSettingsMap()
     }
 
@@ -874,6 +878,18 @@ ImButton {
             camera = ""
         }
 
+        if (settingsObj.language !== undefined) {
+            language = settingsObj.language
+        } else {
+            language = imageWriter.getValue("language")
+        }
+
+        if (settingsObj.token !== undefined) {
+            token = settingsObj.token
+        } else {
+            token = imageWriter.getValue("token")
+        }
+
         qopenhdConfPresent = imageWriter.fileExists(drivePath(qopenhdConfRelativePath()))
 
         console.log("[Configure] Loaded settings -> bootType:", bootType, "sbc:", sbc, "camera:", camera)
@@ -917,6 +933,9 @@ ImButton {
             settingsObj.camera = camValue
         }
 
+        settingsObj.language = language ? language : ""
+        settingsObj.token = token ? token : ""
+
         var jsonString = JSON.stringify(settingsObj, null, 4)
         if (imageWriter.writeTextFile(drivePath("settings.json"), jsonString)) {
             // Clean up old files if they exist, just in case
@@ -954,6 +973,8 @@ ImButton {
         imageWriter.setSetting("camera", camera)
         imageWriter.setSetting("mode", mode)
         imageWriter.setSetting("qopenhdConfPath", qopenhdConfPath)
+        imageWriter.setSetting("language", language)
+        imageWriter.setSetting("token", token)
 
         console.log("[Configure] Settings written: bootType", bootType, "sbc", sbc, "camera", camera)
         msgpopup.title = qsTr("Settings written")

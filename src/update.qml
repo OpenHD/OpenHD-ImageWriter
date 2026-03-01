@@ -332,7 +332,6 @@ Rectangle {
                         onClicked: {
                             ospopup.open()
                             osswipeview.currentItem.forceActiveFocus()
-                            customizebutton.visible=true
                             imageWriter.setSetting("sbc", "")
                             imageWriter.setSetting("bootType", "")
                             imageWriter.setSetting("fileName", "")
@@ -499,7 +498,7 @@ Rectangle {
                         onClicked: {
                             optionspopup.openPopup()
                         }
-                        visible: false
+                        visible: true
                         Accessible.description: qsTr("Select this button to configure Settings")
                         contentItem: Image {
                             source: "icons/ic_cog_red.svg"
@@ -555,10 +554,13 @@ Rectangle {
                         Layout.preferredWidth: 200
                         currentIndex: -1
                         Component.onCompleted: {
-                            currentIndex = find(imageWriter.getCurrentLanguage())
+                            var currentLang = imageWriter.getCurrentLanguage()
+                            currentIndex = find(currentLang)
+                            imageWriter.setSetting("language", currentLang)
                         }
                         onActivated: {
                             imageWriter.changeLanguage(editText)
+                            imageWriter.setSetting("language", editText)
                         }
                         Layout.topMargin: 10
                         Layout.bottomMargin: 10
@@ -1147,7 +1149,6 @@ Rectangle {
         onYes: {
             langbar.visible = false
             writebutton.enabled = false
-            customizebutton.visible = false
             cancelwritebutton.enabled = true
             cancelwritebutton.visible = true
             cancelverifybutton.enabled = true
@@ -1369,7 +1370,6 @@ Rectangle {
         progressText.visible = false
         progressBar.visible = false
         resetDownloadTracking()
-        customizebutton.visible = imageWriter.imageSupportsCustomization()
         osbutton.enabled = true
         dstbutton.enabled = true
         writebutton.visible = true
@@ -1429,7 +1429,6 @@ Rectangle {
         returnHomeAfterPopupClose = true
         msgpopup.openPopup()
         resetWriteButton()
-        customizebutton.visible = true
     }
 
     function onFileSelected(file) {
@@ -1446,7 +1445,6 @@ Rectangle {
         if (imageWriter.readyToWrite()) {
             writebutton.enabled = true
         }
-        customizebutton.visible = imageWriter.imageSupportsCustomization()
     }
 
     function onCancelled() {
@@ -1688,7 +1686,6 @@ Rectangle {
             if (imageWriter.readyToWrite()) {
                 writebutton.enabled = true
             }
-            customizebutton.visible = imageWriter.imageSupportsCustomization()
         }
     }
 
