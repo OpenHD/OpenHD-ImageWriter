@@ -284,6 +284,7 @@ SectionEnd
 Section -Icons_Reg
 !ifndef INNER
 SetOutPath "$INSTDIR"
+WriteUninstaller "$INSTDIR\uninstall.exe"
 !endif
 
 !ifdef REG_START_MENU
@@ -308,7 +309,8 @@ CreateShortCut "$SMPROGRAMS\OpenHD\${APP_NAME} Website.lnk" "$INSTDIR\${APP_NAME
 
 WriteRegStr ${REG_ROOT} "${REG_APP_PATH}" "" "$INSTDIR\${MAIN_APP_EXE}"
 WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "DisplayName" "${APP_NAME}"
-WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "UninstallString" "$INSTDIR\uninstall.exe"
+WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "UninstallString" '"$INSTDIR\uninstall.exe"'
+WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "QuietUninstallString" '"$INSTDIR\uninstall.exe" /S'
 WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "DisplayIcon" "$INSTDIR\${MAIN_APP_EXE}"
 WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "DisplayVersion" "${VERSION}"
 WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "Publisher" "${COMP_NAME}"
@@ -426,8 +428,6 @@ DeleteRegValue SHCTX "Software\Classes\.xz\OpenWithProgIds" "RPI_IMAGINGUTILITY"
 DeleteRegValue SHCTX "Software\Classes\.img\OpenWithProgIds" "RPI_IMAGINGUTILITY"
 DeleteRegValue SHCTX "Software\Classes\.zstd\OpenWithProgIds" "RPI_IMAGINGUTILITY"
 DeleteRegKey SHCTX "Software\Classes\RPI_IMAGINGUTILITY"
-
-DeleteRegKey ${REG_ROOT} ""
 
 RMDir /r "$APPDATA\OpenHD\Imager"
 RMDir "$APPDATA\OpenHD"
