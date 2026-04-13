@@ -216,6 +216,42 @@ Rectangle {
 
                 RowLayout {
                     Text {
+                        text: "Camera 2:"
+                        font.bold: true
+                    }
+                    Text {
+                        text: optionspopup.camera2
+                        font.bold: false
+                        color: "grey"
+                    }
+                }
+
+                RowLayout {
+                    Text {
+                        text: "Camera Res:"
+                        font.bold: true
+                    }
+                    Text {
+                        text: optionspopup.cameraResolution
+                        font.bold: false
+                        color: "grey"
+                    }
+                }
+
+                RowLayout {
+                    Text {
+                        text: "Camera 2 Res:"
+                        font.bold: true
+                    }
+                    Text {
+                        text: optionspopup.camera2Resolution
+                        font.bold: false
+                        color: "grey"
+                    }
+                }
+
+                RowLayout {
+                    Text {
                         text: "Changelog:"
                         font.bold: true
                     }
@@ -242,15 +278,7 @@ Rectangle {
 
         Rectangle {
             Component.onCompleted: {
-                    imageWriter.setSetting("sbc", "")
-                    imageWriter.setSetting("bootType", "")
-                    imageWriter.setSetting("fileName", "")
-                    imageWriter.setSetting("camera", "")
-                    imageWriter.setSetting("mode", "")
-                    imageWriter.setSetting("hotSpot" , "")
-                    imageWriter.setSetting("beep", "")
-                    imageWriter.setSetting("eject", "")
-                    imageWriter.setSetting("justUpdate", "")
+                    resetOpenHdSettingsForNewImage()
                 }
             implicitHeight: window.height/2
 
@@ -328,14 +356,8 @@ Rectangle {
                         onClicked: {
                             ospopup.open()
                             osswipeview.currentItem.forceActiveFocus()
-                            imageWriter.setSetting("sbc", "")
-                            imageWriter.setSetting("bootType", "")
-                            imageWriter.setSetting("fileName", "")
-                            imageWriter.setSetting("camera", "")
-                            imageWriter.setSetting("mode", "")
-                            imageWriter.setSetting("hotSpot" , "")
-                            imageWriter.setSetting("beep", "")
-                            imageWriter.setSetting("eject", "")
+                            resetOpenHdSettingsForNewImage()
+                            optionspopup.initialized = false
                         }
                         Accessible.ignored: ospopup.visible || dstpopup.visible
                         Accessible.description: qsTr("Select this button to change the operating system")
@@ -495,7 +517,7 @@ Rectangle {
                         onClicked: {
                             optionspopup.openPopup()
                         }
-                        visible: true
+                        visible: !progressBar.visible && !cancelwritebutton.visible && !cancelverifybutton.visible
                         Accessible.description: qsTr("Select this button to configure Settings")
                         contentItem: Image {
                             source: "icons/ic_cog_red.svg"
@@ -1343,6 +1365,31 @@ Rectangle {
         cancelverifybutton.visible = false
     }
 
+    function resetOpenHdSettingsForNewImage() {
+        imageWriter.setSetting("sbc", "")
+        imageWriter.setSetting("bootType", "")
+        imageWriter.setSetting("fileName", "")
+        imageWriter.setSetting("camera", "")
+        imageWriter.setSetting("camera2", "")
+        imageWriter.setSetting("cameraResolution", "")
+        imageWriter.setSetting("camera2Resolution", "")
+        imageWriter.setSetting("mode", "")
+        imageWriter.setSetting("hotSpot" , "")
+        imageWriter.setSetting("beep", "")
+        imageWriter.setSetting("eject", "")
+        imageWriter.setSetting("justUpdate", "")
+        imageWriter.setSetting("qopenhdConfPath", "")
+    }
+
+    function resetWorkflowAfterSuccess() {
+        resetOpenHdSettingsForNewImage()
+        optionspopup.initialized = false
+        imageWriter.setSrc("")
+        imageWriter.setDst("")
+        osbutton.text = qsTr("CHOOSE OS")
+        dstbutton.text = qsTr("CHOOSE STORAGE")
+    }
+
     function onError(msg) {
         msgpopup.title = qsTr("Error")
         msgpopup.text = msg
@@ -1369,8 +1416,7 @@ Rectangle {
         }
 
         msgpopup.openPopup()
-        imageWriter.setDst("")
-        dstbutton.text = qsTr("CHOOSE STORAGE")
+        resetWorkflowAfterSuccess()
         resetWriteButton()
     }
 

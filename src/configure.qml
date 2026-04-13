@@ -34,6 +34,9 @@ Rectangle {
     property string bootType: ""
     property string sbc: ""
     property string camera: ""
+    property string camera2: ""
+    property string cameraResolution: ""
+    property string camera2Resolution: ""
     property string mode: ""
     property string hotSpot: ""
     property string beep: ""
@@ -215,6 +218,12 @@ ImButton {
                                         onClicked: {
                                             if (option) {
                                                 bootType = option.id
+                                                if (bootType !== "Air") {
+                                                    camera = ""
+                                                    camera2 = ""
+                                                    cameraResolution = ""
+                                                    camera2Resolution = ""
+                                                }
                                                 rebuildCameraSelectors()
                                             }
                                         }
@@ -237,6 +246,9 @@ ImButton {
 
                                 ListModel { id: vendorModel }
                                 ListModel { id: cameraOptionsModel }
+                                ListModel { id: camera2OptionsModel }
+                                ListModel { id: cameraResolutionOptionsModel }
+                                ListModel { id: camera2ResolutionOptionsModel }
 
                                 ComboBox {
                                     id: vendorSelector
@@ -256,22 +268,223 @@ ImButton {
                                     }
                                 }
 
-                                ComboBox {
-                                    id: cameraSelector
-                                    textRole: "displayText"
-                                    model: cameraOptionsModel
-                                    Layout.minimumWidth: 220
-                                    Layout.maximumHeight: 40
-                                    onCurrentIndexChanged: {
-                                        if (cameraOptionsModel.count > 0) {
-                                            var selectedCamera = cameraOptionsModel.get(currentIndex).displayText
-                                            if (selectedCamera !== "NONE") {
-                                                camera = selectedCamera
-                                            } else {
-                                                camera = ""
+                                GridLayout {
+                                    columns: 2
+                                    columnSpacing: 12
+                                    rowSpacing: 6
+                                    Layout.fillWidth: true
+
+                                    Label {
+                                        text: qsTr("Primary camera")
+                                    }
+
+                                    Label {
+                                        text: qsTr("Primary resolution")
+                                        visible: camera.length > 0 && cameraResolutionOptionsModel.count > 0
+                                    }
+
+                                    ComboBox {
+                                        id: cameraSelector
+                                        textRole: "displayText"
+                                        model: cameraOptionsModel
+                                        Layout.minimumWidth: 220
+                                        Layout.maximumHeight: 40
+                                        onCurrentIndexChanged: {
+                                            if (cameraOptionsModel.count > 0) {
+                                                var selectedCamera = cameraOptionsModel.get(currentIndex).displayText
+                                                if (selectedCamera !== "NONE") {
+                                                    camera = selectedCamera
+                                                } else {
+                                                    camera = ""
+                                                }
+                                                cameraLayout.rebuildPrimaryResolutionOptions()
                                             }
                                         }
                                     }
+
+                                    ComboBox {
+                                        id: cameraResolutionSelector
+                                        textRole: "label"
+                                        model: cameraResolutionOptionsModel
+                                        Layout.minimumWidth: 220
+                                        Layout.maximumHeight: 40
+                                        visible: camera.length > 0 && cameraResolutionOptionsModel.count > 0
+                                        onCurrentIndexChanged: {
+                                            if (cameraResolutionOptionsModel.count > 0 && currentIndex >= 0) {
+                                                var selectedResolution = cameraResolutionOptionsModel.get(currentIndex)
+                                                cameraResolution = selectedResolution && selectedResolution.value ? selectedResolution.value : ""
+                                            }
+                                        }
+                                    }
+
+                                    Label {
+                                        text: qsTr("Secondary camera")
+                                        Layout.topMargin: 4
+                                    }
+
+                                    Label {
+                                        text: qsTr("Secondary resolution")
+                                        Layout.topMargin: 4
+                                        visible: camera2.length > 0 && camera2ResolutionOptionsModel.count > 0
+                                    }
+
+                                    ComboBox {
+                                        id: camera2Selector
+                                        textRole: "label"
+                                        model: camera2OptionsModel
+                                        Layout.minimumWidth: 220
+                                        Layout.maximumHeight: 40
+                                        onCurrentIndexChanged: {
+                                            if (camera2OptionsModel.count > 0) {
+                                                var selectedSecondary = camera2OptionsModel.get(currentIndex)
+                                                camera2 = selectedSecondary && selectedSecondary.cameraId ? selectedSecondary.cameraId : ""
+                                                cameraLayout.rebuildSecondaryResolutionOptions()
+                                            }
+                                        }
+                                    }
+
+                                    ComboBox {
+                                        id: camera2ResolutionSelector
+                                        textRole: "label"
+                                        model: camera2ResolutionOptionsModel
+                                        Layout.minimumWidth: 220
+                                        Layout.maximumHeight: 40
+                                        visible: camera2.length > 0 && camera2ResolutionOptionsModel.count > 0
+                                        onCurrentIndexChanged: {
+                                            if (camera2ResolutionOptionsModel.count > 0 && currentIndex >= 0) {
+                                                var selectedSecondaryResolution = camera2ResolutionOptionsModel.get(currentIndex)
+                                                camera2Resolution = selectedSecondaryResolution && selectedSecondaryResolution.value ? selectedSecondaryResolution.value : ""
+                                            }
+                                        }
+                                    }
+                                }
+
+                                function normalizeCameraValueForResolutionLookup(encodedValue) {
+                                    if (encodedValue === "1")
+                                        return "10"
+                                    return encodedValue
+                                }
+
+                                function resolutionListForCameraValue(encodedValue) {
+                                    if (!settingsMap.cameraResolution || !settingsMap.cameraResolution.byCameraValue || !encodedValue || encodedValue.length === 0)
+                                        return []
+                                    var normalizedValue = normalizeCameraValueForResolutionLookup(encodedValue)
+                                    var resolutionList = settingsMap.cameraResolution.byCameraValue[normalizedValue]
+                                    if (!resolutionList || !resolutionList.length)
+                                        return []
+                                    return resolutionList
+                                }
+
+                                function rebuildPrimaryResolutionOptions() {
+                                    cameraResolutionOptionsModel.clear()
+
+                                    var selectedCamera = (cameraOptionsModel.count > 0 && cameraSelector.currentIndex >= 0) ? cameraOptionsModel.get(cameraSelector.currentIndex) : null
+                                    var encodedCameraValue = selectedCamera && selectedCamera.value ? selectedCamera.value : ""
+                                    if (!selectedCamera || selectedCamera.displayText === "NONE")
+                                        encodedCameraValue = ""
+
+                                    var resolutions = resolutionListForCameraValue(encodedCameraValue)
+                                    var seenResolutions = {}
+                                    for (var i = 0; i < resolutions.length; i++) {
+                                        var resolutionValue = resolutions[i]
+                                        if (resolutionValue === "0x0@0")
+                                            continue
+                                        if (seenResolutions[resolutionValue])
+                                            continue
+                                        seenResolutions[resolutionValue] = true
+                                        cameraResolutionOptionsModel.append({ label: resolutionValue, value: resolutionValue })
+                                    }
+
+                                    if (!camera || camera.length === 0 || !encodedCameraValue || encodedCameraValue.length === 0) {
+                                        cameraResolution = ""
+                                    }
+
+                                    var targetIndex = 0
+                                    if (cameraResolution && cameraResolution.length > 0) {
+                                        for (var idx = 0; idx < cameraResolutionOptionsModel.count; idx++) {
+                                            if (cameraResolutionOptionsModel.get(idx).value === cameraResolution) {
+                                                targetIndex = idx
+                                                break
+                                            }
+                                        }
+                                    }
+                                    cameraResolutionSelector.currentIndex = cameraResolutionOptionsModel.count > 0 ? targetIndex : -1
+
+                                    if (cameraResolutionOptionsModel.count > 0) {
+                                        var currentResolution = cameraResolutionOptionsModel.get(cameraResolutionSelector.currentIndex)
+                                        cameraResolution = currentResolution && currentResolution.value ? currentResolution.value : ""
+                                    } else {
+                                        cameraResolution = ""
+                                    }
+                                }
+
+                                function rebuildSecondaryResolutionOptions() {
+                                    camera2ResolutionOptionsModel.clear()
+
+                                    var encodedCamera2Value = window.secondaryCameraValueForSelection(camera2)
+
+                                    var resolutions = resolutionListForCameraValue(encodedCamera2Value)
+                                    var seenResolutions = {}
+                                    for (var i = 0; i < resolutions.length; i++) {
+                                        var resolutionValue = resolutions[i]
+                                        if (resolutionValue === "0x0@0")
+                                            continue
+                                        if (seenResolutions[resolutionValue])
+                                            continue
+                                        seenResolutions[resolutionValue] = true
+                                        camera2ResolutionOptionsModel.append({ label: resolutionValue, value: resolutionValue })
+                                    }
+
+                                    if (!camera2 || camera2.length === 0 || !encodedCamera2Value || encodedCamera2Value.length === 0) {
+                                        camera2Resolution = ""
+                                    }
+
+                                    var targetIndex = 0
+                                    if (camera2Resolution && camera2Resolution.length > 0) {
+                                        for (var idx = 0; idx < camera2ResolutionOptionsModel.count; idx++) {
+                                            if (camera2ResolutionOptionsModel.get(idx).value === camera2Resolution) {
+                                                targetIndex = idx
+                                                break
+                                            }
+                                        }
+                                    }
+                                    camera2ResolutionSelector.currentIndex = camera2ResolutionOptionsModel.count > 0 ? targetIndex : -1
+
+                                    if (camera2ResolutionOptionsModel.count > 0) {
+                                        var currentResolution = camera2ResolutionOptionsModel.get(camera2ResolutionSelector.currentIndex)
+                                        camera2Resolution = currentResolution && currentResolution.value ? currentResolution.value : ""
+                                    } else {
+                                        camera2Resolution = ""
+                                    }
+                                }
+
+                                function rebuildSecondaryCameraOptions() {
+                                    camera2OptionsModel.clear()
+                                    camera2OptionsModel.append({ label: "NONE", cameraId: "" })
+                                    camera2OptionsModel.append({ label: "USB", cameraId: "USB" })
+                                    camera2OptionsModel.append({ label: qsTr("DEV CAMERA"), cameraId: "TESTPATTERN" })
+                                    camera2OptionsModel.append({ label: "INFIRAY", cameraId: "INFIRAY" })
+                                    camera2OptionsModel.append({ label: "INFIRAY T2", cameraId: "INFIRAY_T2" })
+                                    camera2OptionsModel.append({ label: "INFIRAY X2", cameraId: "INFIRAY_X2" })
+                                    camera2OptionsModel.append({ label: "INFIRAY P2 PRO", cameraId: "INFIRAY_P2_PRO" })
+                                    camera2OptionsModel.append({ label: "FLIR VUE", cameraId: "FLIR_VUE" })
+                                    camera2OptionsModel.append({ label: "FLIR BOSON", cameraId: "FLIR_BOSON" })
+
+                                    if (camera2 === "FLIR VUE")
+                                        camera2 = "FLIR_VUE"
+                                    else if (camera2 === "FLIR BOSON")
+                                        camera2 = "FLIR_BOSON"
+
+                                    var targetIndex2 = 0
+                                    for (var idx2 = 0; idx2 < camera2OptionsModel.count; idx2++) {
+                                        if (camera2OptionsModel.get(idx2).cameraId === camera2) {
+                                            targetIndex2 = idx2
+                                            break
+                                        }
+                                    }
+
+                                    camera2Selector.currentIndex = targetIndex2
+                                    rebuildSecondaryResolutionOptions()
                                 }
 
                                 function rebuildCameraOptions() {
@@ -293,8 +506,9 @@ ImButton {
                                             targetIndex = idx
                                         }
                                     }
-
                                     cameraSelector.currentIndex = targetIndex
+                                    rebuildSecondaryCameraOptions()
+                                    rebuildPrimaryResolutionOptions()
                                 }
 
                                 function rebuildVendors() {
@@ -782,7 +996,35 @@ ImButton {
         cameraLayout.rebuildVendors()
     }
 
-    function cameraValueForSelection() {
+    function secondaryCameraValueForSelection(cameraSelection) {
+        if (!cameraSelection || cameraSelection.length === 0)
+            return ""
+
+        if (cameraSelection === "USB")
+            return "1"
+        if (cameraSelection === "TESTPATTERN")
+            return "0"
+        if (cameraSelection === "INFIRAY")
+            return "11"
+        if (cameraSelection === "INFIRAY_T2")
+            return "12"
+        if (cameraSelection === "INFIRAY_X2")
+            return "13"
+        if (cameraSelection === "INFIRAY_P2_PRO")
+            return "14"
+        if (cameraSelection === "FLIR_VUE" || cameraSelection === "FLIR VUE")
+            return "15"
+        if (cameraSelection === "FLIR_BOSON" || cameraSelection === "FLIR BOSON")
+            return "16"
+
+        return ""
+    }
+
+    function cameraValueForSelection(cameraSelection) {
+        var secondaryCameraValue = secondaryCameraValueForSelection(cameraSelection)
+        if (secondaryCameraValue && secondaryCameraValue.length > 0)
+            return secondaryCameraValue
+
         var group = getCameraGroupForSelection()
         if (!group || !group.vendors)
             return ""
@@ -794,7 +1036,7 @@ ImButton {
 
             for (var optIdx = 0; optIdx < vendor.options.length; optIdx++) {
                 var opt = vendor.options[optIdx]
-                if (opt && opt.id === camera) {
+                if (opt && opt.id === cameraSelection) {
                     return opt.valueWritten || ""
                 }
             }
@@ -802,7 +1044,35 @@ ImButton {
         return ""
     }
 
-    function setCameraFromValue(encodedValue) {
+    function setCameraFromValue(encodedValue, cameraSlot) {
+        var normalizedEncodedValue = encodedValue !== undefined && encodedValue !== null ? encodedValue.toString() : ""
+        if (normalizedEncodedValue === "10")
+            normalizedEncodedValue = "1"
+
+        if (cameraSlot === "camera2") {
+            if (normalizedEncodedValue === "1") {
+                camera2 = "USB"
+            } else if (normalizedEncodedValue === "0") {
+                camera2 = "TESTPATTERN"
+            } else if (normalizedEncodedValue === "11") {
+                camera2 = "INFIRAY"
+            } else if (normalizedEncodedValue === "12") {
+                camera2 = "INFIRAY_T2"
+            } else if (normalizedEncodedValue === "13") {
+                camera2 = "INFIRAY_X2"
+            } else if (normalizedEncodedValue === "14") {
+                camera2 = "INFIRAY_P2_PRO"
+            } else if (normalizedEncodedValue === "15") {
+                camera2 = "FLIR_VUE"
+            } else if (normalizedEncodedValue === "16") {
+                camera2 = "FLIR_BOSON"
+            } else {
+                camera2 = ""
+            }
+            cameraLayout.rebuildSecondaryCameraOptions()
+            return
+        }
+
         var group = getCameraGroupForSelection()
         if (!group || !group.vendors)
             return
@@ -814,10 +1084,10 @@ ImButton {
 
             for (var optIdx = 0; optIdx < vendor.options.length; optIdx++) {
                 var opt = vendor.options[optIdx]
-                if (opt && opt.valueWritten === encodedValue) {
+                if (opt && opt.valueWritten === normalizedEncodedValue) {
                     camera = opt.id
                     cameraLayout.selectedVendor = vendor
-                    console.log("[Configure] Camera loaded from drive:", camera)
+                    console.log("[Configure] Camera loaded from drive:", cameraSlot, opt.id)
                     cameraLayout.rebuildCameraOptions()
                     return
                 }
@@ -837,6 +1107,9 @@ ImButton {
         bootType = ""
         sbc = ""
         camera = ""
+        camera2 = ""
+        cameraResolution = ""
+        camera2Resolution = ""
         mode = ""
         qopenhdConfPresent = false
 
@@ -872,10 +1145,28 @@ ImButton {
             setDebug.checked = false
         }
 
+        if (settingsObj.camera_resolution_fps !== undefined && settingsObj.camera_resolution_fps !== null) {
+            cameraResolution = settingsObj.camera_resolution_fps.toString()
+        } else {
+            cameraResolution = ""
+        }
+
+        if (settingsObj.camera2_resolution_fps !== undefined && settingsObj.camera2_resolution_fps !== null) {
+            camera2Resolution = settingsObj.camera2_resolution_fps.toString()
+        } else {
+            camera2Resolution = ""
+        }
+
         if (settingsObj.camera) {
-            setCameraFromValue(settingsObj.camera)
+            setCameraFromValue(settingsObj.camera, "camera")
         } else {
             camera = ""
+        }
+
+        if (settingsObj.camera2) {
+            setCameraFromValue(settingsObj.camera2, "camera2")
+        } else {
+            camera2 = ""
         }
 
         if (settingsObj.language !== undefined) {
@@ -892,7 +1183,7 @@ ImButton {
 
         qopenhdConfPresent = imageWriter.fileExists(drivePath(qopenhdConfRelativePath()))
 
-        console.log("[Configure] Loaded settings -> bootType:", bootType, "sbc:", sbc, "camera:", camera)
+        console.log("[Configure] Loaded settings -> bootType:", bootType, "sbc:", sbc, "camera:", camera, "camera2:", camera2, "cameraResolution:", cameraResolution, "camera2Resolution:", camera2Resolution)
     }
 
     function reloadSettingsFromDrive() {
@@ -928,9 +1219,22 @@ ImButton {
             settingsObj.debug = true
         }
 
-        var camValue = cameraValueForSelection()
+        var camValue = cameraValueForSelection(camera)
         if (camValue && camValue.length > 0) {
             settingsObj.camera = camValue
+        }
+
+        var cam2Value = cameraValueForSelection(camera2)
+        if (cam2Value && cam2Value.length > 0) {
+            settingsObj.camera2 = cam2Value
+        }
+
+        if (cameraResolution && cameraResolution.length > 0) {
+            settingsObj.camera_resolution_fps = cameraResolution
+        }
+
+        if (camera2Resolution && camera2Resolution.length > 0) {
+            settingsObj.camera2_resolution_fps = camera2Resolution
         }
 
         settingsObj.language = language ? language : ""
@@ -943,6 +1247,7 @@ ImButton {
             imageWriter.removeFile(drivePath("ground.txt"))
             imageWriter.removeFile(drivePath("debug.txt"))
             imageWriter.removeFile(drivePath("camera1.txt"))
+            imageWriter.removeFile(drivePath("camera2.txt"))
             // We don't easily know which SBC file might exist, so we might skip cleaning those up
             // or iterate through sbc options to delete them. For now, assuming fresh flash or JSON usage.
              if (settingsMap.sbc && settingsMap.sbc.options) {
@@ -971,12 +1276,15 @@ ImButton {
         imageWriter.setSetting("bootType", bootType)
         imageWriter.setSetting("sbc", sbc)
         imageWriter.setSetting("camera", camera)
+        imageWriter.setSetting("camera2", camera2)
+        imageWriter.setSetting("cameraResolution", cameraResolution)
+        imageWriter.setSetting("camera2Resolution", camera2Resolution)
         imageWriter.setSetting("mode", mode)
         imageWriter.setSetting("qopenhdConfPath", qopenhdConfPath)
         imageWriter.setSetting("language", language)
         imageWriter.setSetting("token", token)
 
-        console.log("[Configure] Settings written: bootType", bootType, "sbc", sbc, "camera", camera)
+        console.log("[Configure] Settings written: bootType", bootType, "sbc", sbc, "camera", camera, "camera2", camera2, "cameraResolution", cameraResolution, "camera2Resolution", camera2Resolution)
         msgpopup.title = qsTr("Settings written")
         msgpopup.text = qsTr("Settings were written to <b>%1</b>.").arg(selectedDevice)
         msgpopup.continueButton = true

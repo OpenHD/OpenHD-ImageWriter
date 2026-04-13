@@ -1136,6 +1136,9 @@ bool DownloadThread::_customizeImage()
         QSettings settings_;
 
         QString cameraName = settings_.value("camera").toString();
+        QString camera2Name = settings_.value("camera2").toString();
+        QString cameraResolutionValue = settings_.value("cameraResolution").toString().trimmed();
+        QString camera2ResolutionValue = settings_.value("camera2Resolution").toString().trimmed();
         QString sbcValue = settings_.value("sbc").toString();
         QString modeValue = settings_.value("mode").toString();
         QString hotspot = settings_.value("hotspot").toString();
@@ -1146,141 +1149,180 @@ bool DownloadThread::_customizeImage()
 
         QJsonObject openhdSettings;
 
-        if (!cameraName.isEmpty()){
+        auto mapCameraNameToValue = [&](const QString &cameraNameToMap) -> QString {
             QString cameraValue;
-            qDebug() << "Camera found" << cameraName;
+            if (cameraNameToMap.isEmpty())
+                return cameraValue;
+
+            qDebug() << "Camera found" << cameraNameToMap;
 
             if (sbcValue == "rpi"){
                 //RaspberryPi
-                if (cameraName == "OV5647"){
+                if (cameraNameToMap == "OV5647"){
                 cameraValue="30";
                 }
-                else if (cameraName == "IMX219"){
+                else if (cameraNameToMap == "IMX219"){
                 cameraValue="31";
                 }
-                else if (cameraName == "IMX708"){
+                else if (cameraNameToMap == "IMX708"){
                 cameraValue="32";
                 }
-                else if (cameraName == "IMX477"){
+                else if (cameraNameToMap == "IMX477"){
                 cameraValue="33";
                 }
-                else if (cameraName == "HDMI"){
+                else if (cameraNameToMap == "HDMI"){
                 cameraValue="20";
                 }
                 //Arducam
-                else if (cameraName == "SkyMasterHDR708"){
+                else if (cameraNameToMap == "SkyMasterHDR708"){
                 cameraValue="40";
                 }
-                else if (cameraName == "SkyVisionPro519"){
+                else if (cameraNameToMap == "SkyVisionPro519"){
                 cameraValue="41";
                 }
-                else if (cameraName == "IMX477m"){
+                else if (cameraNameToMap == "IMX477m"){
                 cameraValue="42";
                 }
-                else if (cameraName == "IMX462"){
+                else if (cameraNameToMap == "IMX462"){
                 cameraValue="43";
                 }
-                else if (cameraName == "IMX327"){
+                else if (cameraNameToMap == "IMX327"){
                 cameraValue="44";
                 }
-                else if (cameraName == "IMX290"){
+                else if (cameraNameToMap == "IMX290"){
                 cameraValue="45";
                 }
-                else if (cameraName == "IMX462MINI"){
+                else if (cameraNameToMap == "IMX462MINI"){
                 cameraValue="46";
                 }
-                else if (cameraName == "IMX662"){
+                else if (cameraNameToMap == "IMX662"){
                 cameraValue="47";
                 }
                 //Veye
-                else if (cameraName == "2MPCAMERAS"){
+                else if (cameraNameToMap == "2MPCAMERAS"){
                 cameraValue="60";
                 }
-                else if (cameraName == "CSIMX307"){
+                else if (cameraNameToMap == "CSIMX307"){
                 cameraValue="61";
                 }
-                else if (cameraName == "CSSC137"){
+                else if (cameraNameToMap == "CSSC137"){
                 cameraValue="62";
                 }
-                else if (cameraName == "MVCAM"){
+                else if (cameraNameToMap == "MVCAM"){
                 cameraValue="63";
                 }
             }
             else if (sbcValue == "zero3w"){
-                if (cameraName == "HDMI"){
+                if (cameraNameToMap == "HDMI"){
                 cameraValue="90";
                 }
-                if (cameraName == "IMX462"){
+                if (cameraNameToMap == "IMX462"){
                 cameraValue="94";
                 }
-                if (cameraName == "IMX519"){
+                if (cameraNameToMap == "IMX519"){
                 cameraValue="95";
                 }
-                if (cameraName == "IMX219"){
+                if (cameraNameToMap == "IMX219"){
                 cameraValue="92";
                 }
-                else if (cameraName == "OV5647"){
+                else if (cameraNameToMap == "OV5647"){
                 cameraValue="91";
                 }
-                else if (cameraName == "IMX708"){
+                else if (cameraNameToMap == "IMX708"){
                 cameraValue="93";
                 }
-                else if (cameraName == "VEYE"){
+                else if (cameraNameToMap == "VEYE"){
                 cameraValue="97";
                 }
-                else if (cameraName == "OHD-JAGUAR"){
+                else if (cameraNameToMap == "OHD-JAGUAR"){
                 cameraValue="96";
                 }
             }
             else if ((sbcValue == "rock-5b") || (sbcValue == "rock-5a")) {
-                if (cameraName == "HDMI"){
+                if (cameraNameToMap == "HDMI"){
                 cameraValue="80";
                 }
-                if (cameraName == "IMX219"){
+                if (cameraNameToMap == "IMX219"){
                 cameraValue="82";
                 }
-                else if (cameraName == "OV5647"){
+                else if (cameraNameToMap == "OV5647"){
                 cameraValue="81";
                 }
-                else if (cameraName == "IMX708"){
+                else if (cameraNameToMap == "IMX708"){
                 cameraValue="83";
                 }
-                else if (cameraName == "IMX462"){
+                else if (cameraNameToMap == "IMX462"){
                 cameraValue="84";
                 }
-                else if (cameraName == "IMX415"){
+                else if (cameraNameToMap == "IMX415"){
                 cameraValue="85";
                 }
-                else if (cameraName == "IMX477"){
+                else if (cameraNameToMap == "IMX477"){
                 cameraValue="86";
                 }
-                else if (cameraName == "IMX519"){
+                else if (cameraNameToMap == "IMX519"){
                 cameraValue="87";
                 }
-                else if (cameraName == "OHD-JAGUAR"){
+                else if (cameraNameToMap == "OHD-JAGUAR"){
                 cameraValue="88";
                 }
             }
 
-            if (cameraName == "FILESRC"){
+            if (cameraNameToMap == "FILESRC"){
                 cameraValue="4";
             }
-            else if (cameraName == "IP-CAMERA"){
+            else if (cameraNameToMap == "IP-CAMERA"){
                 cameraValue="3";
             }
-            else if (cameraName == "EXTERNAL"){
+            else if (cameraNameToMap == "EXTERNAL"){
                 cameraValue="2";
             }
-            else if (cameraName == "USB"){
+            else if (cameraNameToMap == "USB"){
                 cameraValue="1";
             }
-            else if (cameraName == "TESTPATTERN"){
+            else if (cameraNameToMap == "TESTPATTERN"){
                 cameraValue="0";
             }
-
-            if (!cameraValue.isEmpty()) {
-                openhdSettings.insert("camera", cameraValue);
+            else if (cameraNameToMap == "INFIRAY"){
+                cameraValue="11";
             }
+            else if (cameraNameToMap == "INFIRAY_T2"){
+                cameraValue="12";
+            }
+            else if (cameraNameToMap == "INFIRAY_X2"){
+                cameraValue="13";
+            }
+            else if (cameraNameToMap == "INFIRAY_P2_PRO"){
+                cameraValue="14";
+            }
+            else if (cameraNameToMap == "FLIR_VUE" || cameraNameToMap == "FLIR VUE"){
+                cameraValue="15";
+            }
+            else if (cameraNameToMap == "FLIR_BOSON" || cameraNameToMap == "FLIR BOSON"){
+                cameraValue="16";
+            }
+
+            return cameraValue;
+        };
+
+        if (!cameraName.isEmpty()) {
+            const QString cameraValue = mapCameraNameToValue(cameraName);
+            if (!cameraValue.isEmpty())
+                openhdSettings.insert("camera", cameraValue);
+        }
+
+        if (!camera2Name.isEmpty()) {
+            const QString camera2Value = mapCameraNameToValue(camera2Name);
+            if (!camera2Value.isEmpty())
+                openhdSettings.insert("camera2", camera2Value);
+        }
+
+        if (!cameraName.isEmpty() && !cameraResolutionValue.isEmpty()) {
+            openhdSettings.insert("camera_resolution_fps", cameraResolutionValue);
+        }
+
+        if (!camera2Name.isEmpty() && !camera2ResolutionValue.isEmpty()) {
+            openhdSettings.insert("camera2_resolution_fps", camera2ResolutionValue);
         }
 
         if (!sbcValue.isEmpty()){
