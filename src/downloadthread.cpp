@@ -4,6 +4,7 @@
  */
 
 #include "downloadthread.h"
+#include "certificatevalidator.h"
 #include "config.h"
 #include "dependencies/mountutils/src/mountutils.hpp"
 #include "dependencies/drivelist/src/drivelist.hpp"
@@ -1144,6 +1145,7 @@ bool DownloadThread::_customizeImage()
         QString hotspot = settings_.value("hotspot").toString();
         QString bootType = settings_.value("bootType").toString();
         QString qopenhdConfPath = settings_.value("qopenhdConfPath").toString();
+        QString premiumCertificatePath = settings_.value("premiumCertificatePath").toString();
         QString languageValue = settings_.value("language").toString();
         QString tokenValue = settings_.value("token").toString();
 
@@ -1311,17 +1313,17 @@ bool DownloadThread::_customizeImage()
                 openhdSettings.insert("camera", cameraValue);
         }
 
-        if (!camera2Name.isEmpty()) {
-            const QString camera2Value = mapCameraNameToValue(camera2Name);
-            if (!camera2Value.isEmpty())
-                openhdSettings.insert("camera2", camera2Value);
+        QString camera2Value = mapCameraNameToValue(camera2Name);
+        if (camera2Value.isEmpty()) {
+            camera2Value = "255";
         }
+        openhdSettings.insert("camera2", camera2Value);
 
         if (!cameraName.isEmpty() && !cameraResolutionValue.isEmpty()) {
             openhdSettings.insert("camera_resolution_fps", cameraResolutionValue);
         }
 
-        if (!camera2Name.isEmpty() && !camera2ResolutionValue.isEmpty()) {
+        if (camera2Value != "255" && !camera2ResolutionValue.isEmpty()) {
             openhdSettings.insert("camera2_resolution_fps", camera2ResolutionValue);
         }
 
@@ -1384,6 +1386,37 @@ bool DownloadThread::_customizeImage()
 
             if (!QFile::copy(qopenhdConfPath, targetConfPath)) {
                 emit error(tr("Error copying QOpenHD.conf to FAT partition"));
+                return false;
+            }
+        }
+
+        if (!premiumCertificatePath.isEmpty()) {
+            if (premiumCertificatePath.startsWith("file:")) {
+                premiumCertificatePath = QUrl(premiumCertificatePath).toLocalFile();
+            }
+            const QString certificateError =
+                CertificateValidator::validatePremiumCertificateFile(premiumCertificatePath);
+            if (!certificateError.isEmpty()) {
+                emit error(tr("Premium certificate is invalid: %1").arg(certificateError));
+                return false;
+            }
+
+            QDir openhdDir(folder + "/openhd");
+            if (!openhdDir.exists() && !openhdDir.mkpath(".")) {
+                emit error(tr("Error creating openhd folder on FAT partition"));
+                return false;
+            }
+
+            const QString targetCertificatePath =
+                openhdDir.filePath("premium_certificate.ohdcert");
+            if (QFileInfo::exists(targetCertificatePath) &&
+                !QFile::remove(targetCertificatePath)) {
+                emit error(tr("Error replacing existing premium certificate on FAT partition"));
+                return false;
+            }
+
+            if (!QFile::copy(premiumCertificatePath, targetCertificatePath)) {
+                emit error(tr("Error copying premium certificate to FAT partition"));
                 return false;
             }
         }

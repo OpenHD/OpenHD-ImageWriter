@@ -43,6 +43,8 @@ Popup {
     property bool rpi
     property bool useSettings:true
     property string qopenhdConfPath: ""
+    property string premiumCertificatePath: ""
+    property string premiumCertificateError: ""
 
     // background of title
     Rectangle {
@@ -584,6 +586,56 @@ Popup {
                         }
                     }
                 }
+
+                GroupBox {
+                    title: qsTr("Premium Certificate")
+                    Layout.fillWidth: true
+
+                    ColumnLayout {
+                        spacing: 8
+
+                        TextField {
+                            id: premiumCertificateDisplay
+                            Layout.fillWidth: true
+                            readOnly: true
+                            placeholderText: qsTr("No premium certificate selected")
+                            text: premiumCertificatePath
+                        }
+
+                        RowLayout {
+                            spacing: 8
+
+                            Button {
+                                text: qsTr("Choose File")
+                                onClicked: premiumCertificateDialog.open()
+                            }
+
+                            Button {
+                                text: qsTr("Clear Selection")
+                                enabled: premiumCertificatePath.length > 0
+                                onClicked: {
+                                    premiumCertificatePath = ""
+                                    premiumCertificateError = ""
+                                }
+                            }
+                        }
+
+                        Label {
+                            visible: premiumCertificateError.length > 0
+                            text: premiumCertificateError
+                            color: "#C0392B"
+                            wrapMode: Text.Wrap
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            visible: premiumCertificatePath.length === 0 && premiumCertificateError.length === 0
+                            text: qsTr("Existing premium certificate on the target will be kept when no file is selected.")
+                            wrapMode: Text.Wrap
+                            Layout.fillWidth: true
+                        }
+                    }
+                }
             }
         }
 
@@ -629,6 +681,39 @@ Popup {
         }
     }
 
+    FileDialog {
+        id: premiumCertificateDialog
+        title: qsTr("Select premium certificate")
+        nameFilters: [qsTr("OpenHD certificate (*.ohdcert)"), qsTr("All files (*)")]
+        selectExisting: true
+        onAccepted: {
+            var selectedUrl = premiumCertificateDialog.fileUrl
+            if (!selectedUrl || selectedUrl.toString().length === 0) {
+                if (premiumCertificateDialog.fileUrls && premiumCertificateDialog.fileUrls.length > 0) {
+                    selectedUrl = premiumCertificateDialog.fileUrls[0]
+                }
+            }
+            if (selectedUrl && selectedUrl.toString) {
+                var selectedStr = selectedUrl.toString()
+                var selectedPath = ""
+                if (selectedStr.startsWith("file:")) {
+                    selectedPath = normalizeLocalFilePath(selectedUrl.toLocalFile ? selectedUrl.toLocalFile() : selectedStr)
+                } else {
+                    selectedPath = normalizeLocalFilePath(selectedStr)
+                }
+
+                var validationError = imageWriter.validatePremiumCertificate(selectedPath)
+                if (validationError && validationError.length > 0) {
+                    premiumCertificatePath = ""
+                    premiumCertificateError = qsTr("Premium certificate is invalid: %1").arg(validationError)
+                } else {
+                    premiumCertificatePath = selectedPath
+                    premiumCertificateError = ""
+                }
+            }
+        }
+    }
+
     function initialize() {
         console.log("[OptionsPopup] initialize() called")
         loadSettingsMap()
@@ -651,6 +736,8 @@ Popup {
         beep = imageWriter.getBoolSetting("beep")
         eject = imageWriter.getBoolSetting("eject")
         qopenhdConfPath = normalizeLocalFilePath(imageWriter.getValue("qopenhdConfPath"))
+        premiumCertificatePath = normalizeLocalFilePath(imageWriter.getValue("premiumCertificatePath"))
+        premiumCertificateError = ""
 
         // set session settings
         if (mode) {
@@ -723,6 +810,14 @@ Popup {
     function applySettings()
     {
         qopenhdConfPath = normalizeLocalFilePath(qopenhdConfPath)
+        premiumCertificatePath = normalizeLocalFilePath(premiumCertificatePath)
+        if (premiumCertificatePath.length > 0) {
+            var certificateError = imageWriter.validatePremiumCertificate(premiumCertificatePath)
+            if (certificateError && certificateError.length > 0) {
+                premiumCertificatePath = ""
+                premiumCertificateError = qsTr("Premium certificate is invalid: %1").arg(certificateError)
+            }
+        }
 
         imageWriter.setSetting("bootType", bootType)
         imageWriter.setSetting("camera", camera)
@@ -735,6 +830,7 @@ Popup {
         imageWriter.setSetting("eject", eject)
         imageWriter.setSetting("useSettings", useSettings)
         imageWriter.setSetting("qopenhdConfPath", qopenhdConfPath)
+        imageWriter.setSetting("premiumCertificatePath", premiumCertificatePath)
 
     }
 

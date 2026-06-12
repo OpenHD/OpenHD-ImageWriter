@@ -23,7 +23,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 # Adding headers explicity so they are displayed in Qt Creator
-set(HEADERS config.h imagewriter.h networkaccessmanagerfactory.h nan.h drivelistitem.h drivelistmodel.h drivelistmodelpollthread.h driveformatthread.h powersaveblocker.h cli.h
+set(HEADERS config.h certificatevalidator.h imagewriter.h networkaccessmanagerfactory.h nan.h drivelistitem.h drivelistmodel.h drivelistmodelpollthread.h driveformatthread.h powersaveblocker.h cli.h
     downloadthread.h downloadextractthread.h localfileextractthread.h downloadstatstelemetry.h updateuploadthread.h dependencies/mountutils/src/mountutils.hpp dependencies/sha256crypt/sha256crypt.h)
 
 # Add dependencies
@@ -34,6 +34,7 @@ if (APPLE)
     enable_language(OBJC C)
 elseif (UNIX)
     set(DEPENDENCIES dependencies/mountutils/src/linux/functions.cpp linux/linuxdrivelist.cpp)
+    find_package(OpenSSL REQUIRED)
     find_package(Qt5DBus)
     if(Qt5DBus_FOUND)
         set(DEPENDENCIES ${DEPENDENCIES} linux/udisks2api.cpp linux/udisks2api.h)
@@ -56,7 +57,6 @@ elseif (UNIX)
         set(EXTRALIBS ${EXTRALIBS} GnuTLS::GnuTLS)
         add_definitions(-DHAVE_GNUTLS)
     else()
-        find_package(OpenSSL REQUIRED)
         set(DEPENDENCIES ${DEPENDENCIES} acceleratedcryptographichash.cpp)
     endif()
 elseif (WIN32)
@@ -88,7 +88,7 @@ if (NOT atomicbuiltin)
         endif()
 endif()
 
-set(SOURCES "main.cpp" "imagewriter.cpp" "networkaccessmanagerfactory.cpp"
+set(SOURCES "main.cpp" "certificatevalidator.cpp" "imagewriter.cpp" "networkaccessmanagerfactory.cpp"
     "drivelistitem.cpp" "drivelistmodel.cpp" "drivelistmodelpollthread.cpp" "downloadthread.cpp" "downloadextractthread.cpp"
      "driveformatthread.cpp" "localfileextractthread.cpp" "powersaveblocker.cpp" "downloadstatstelemetry.cpp" "updateuploadthread.cpp" "qml.qrc" "dependencies/sha256crypt/sha256crypt.c" "cli.cpp")
 

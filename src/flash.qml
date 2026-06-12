@@ -1379,6 +1379,7 @@ Rectangle {
         imageWriter.setSetting("eject", "")
         imageWriter.setSetting("justUpdate", "")
         imageWriter.setSetting("qopenhdConfPath", "")
+        imageWriter.setSetting("premiumCertificatePath", "")
     }
 
     function resetWorkflowAfterSuccess() {

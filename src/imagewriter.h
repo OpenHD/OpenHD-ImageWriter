@@ -115,6 +115,7 @@ public:
     Q_INVOKABLE bool fileExists(const QString &filePath) const;
     Q_INVOKABLE bool copyFile(const QString &sourcePath, const QString &destinationPath) const;
     Q_INVOKABLE bool removeFile(const QString &filePath) const;
+    Q_INVOKABLE QString validatePremiumCertificate(const QString &filePath) const;
     Q_INVOKABLE bool hasOpenHdSettingsCard() const;
 
     Q_INVOKABLE bool getBoolSetting(const QString &key);

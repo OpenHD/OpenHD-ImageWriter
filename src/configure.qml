@@ -44,12 +44,15 @@ Rectangle {
     property bool useSettings: true
     property string qopenhdConfPath: ""
     property bool qopenhdConfPresent: false
+    property string premiumCertificatePath: ""
+    property bool premiumCertificatePresent: false
     property bool returnHomeAfterPopupClose: false
     property string language: ""
     property string token: ""
 
     Component.onCompleted: {
         qopenhdConfPath = normalizeLocalFilePath(imageWriter.getValue("qopenhdConfPath"))
+        premiumCertificatePath = normalizeLocalFilePath(imageWriter.getValue("premiumCertificatePath"))
         language = imageWriter.getValue("language")
         token = imageWriter.getValue("token")
         loadSettingsMap()
@@ -635,6 +638,52 @@ ImButton {
                                 }
                             }
                         }
+
+                        GroupBox {
+                            title: qsTr("Premium Certificate")
+                            Layout.fillWidth: true
+
+                            ColumnLayout {
+                                spacing: 8
+
+                                TextField {
+                                    id: premiumCertificateDisplay
+                                    Layout.fillWidth: true
+                                    readOnly: true
+                                    placeholderText: qsTr("No premium certificate selected")
+                                    text: premiumCertificatePath
+                                }
+
+                                RowLayout {
+                                    spacing: 8
+
+                                    Button {
+                                        text: qsTr("Choose File")
+                                        onClicked: premiumCertificateDialog.open()
+                                    }
+
+                                    Button {
+                                        text: qsTr("Clear Selection")
+                                        enabled: premiumCertificatePath.length > 0
+                                        onClicked: premiumCertificatePath = ""
+                                    }
+                                }
+
+                                Label {
+                                    visible: premiumCertificatePresent
+                                    text: qsTr("A premium certificate is already present on the drive.")
+                                    wrapMode: Text.Wrap
+                                    Layout.fillWidth: true
+                                }
+
+                                Label {
+                                    visible: premiumCertificatePath.length === 0
+                                    text: qsTr("Keep the existing certificate or select a new one to replace it.")
+                                    wrapMode: Text.Wrap
+                                    Layout.fillWidth: true
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -884,6 +933,38 @@ ImButton {
         }
     }
 
+    FileDialog {
+        id: premiumCertificateDialog
+        title: qsTr("Select premium certificate")
+        nameFilters: [qsTr("OpenHD certificate (*.ohdcert)"), qsTr("All files (*)")]
+        selectExisting: true
+        onAccepted: {
+            var selectedUrl = premiumCertificateDialog.fileUrl
+            if (!selectedUrl || selectedUrl.toString().length === 0) {
+                if (premiumCertificateDialog.fileUrls && premiumCertificateDialog.fileUrls.length > 0) {
+                    selectedUrl = premiumCertificateDialog.fileUrls[0]
+                }
+            }
+            if (selectedUrl && selectedUrl.toString) {
+                var selectedStr = selectedUrl.toString()
+                var selectedPath = ""
+                if (selectedStr.startsWith("file:")) {
+                    selectedPath = normalizeLocalFilePath(selectedUrl.toLocalFile ? selectedUrl.toLocalFile() : selectedStr)
+                } else {
+                    selectedPath = normalizeLocalFilePath(selectedStr)
+                }
+
+                var validationError = imageWriter.validatePremiumCertificate(selectedPath)
+                if (validationError && validationError.length > 0) {
+                    premiumCertificatePath = ""
+                    onError(qsTr("Premium certificate is invalid: %1").arg(validationError))
+                } else {
+                    premiumCertificatePath = selectedPath
+                }
+            }
+        }
+    }
+
     function normalizeLocalFilePath(value) {
         if (!value)
             return ""
@@ -958,6 +1039,12 @@ ImButton {
         if (settingsMap.qopenhdConf && settingsMap.qopenhdConf.file)
             return settingsMap.qopenhdConf.file
         return "openhd/QOpenHD.conf"
+    }
+
+    function premiumCertificateRelativePath() {
+        if (settingsMap.premiumCertificate && settingsMap.premiumCertificate.file)
+            return settingsMap.premiumCertificate.file
+        return "openhd/premium_certificate.ohdcert"
     }
 
     function loadSettingsMap() {
@@ -1112,6 +1199,7 @@ ImButton {
         camera2Resolution = ""
         mode = ""
         qopenhdConfPresent = false
+        premiumCertificatePresent = false
 
         var settingsJson = imageWriter.readTextFile(drivePath("settings.json"))
         var settingsObj = {}
@@ -1182,6 +1270,7 @@ ImButton {
         }
 
         qopenhdConfPresent = imageWriter.fileExists(drivePath(qopenhdConfRelativePath()))
+        premiumCertificatePresent = imageWriter.fileExists(drivePath(premiumCertificateRelativePath()))
 
         console.log("[Configure] Loaded settings -> bootType:", bootType, "sbc:", sbc, "camera:", camera, "camera2:", camera2, "cameraResolution:", cameraResolution, "camera2Resolution:", camera2Resolution)
     }
@@ -1225,15 +1314,16 @@ ImButton {
         }
 
         var cam2Value = cameraValueForSelection(camera2)
-        if (cam2Value && cam2Value.length > 0) {
-            settingsObj.camera2 = cam2Value
+        if (!cam2Value || cam2Value.length === 0) {
+            cam2Value = "255"
         }
+        settingsObj.camera2 = cam2Value
 
         if (cameraResolution && cameraResolution.length > 0) {
             settingsObj.camera_resolution_fps = cameraResolution
         }
 
-        if (camera2Resolution && camera2Resolution.length > 0) {
+        if (cam2Value !== "255" && camera2Resolution && camera2Resolution.length > 0) {
             settingsObj.camera2_resolution_fps = camera2Resolution
         }
 
@@ -1273,6 +1363,23 @@ ImButton {
             qopenhdConfPresent = imageWriter.fileExists(drivePath(qopenhdConfRelativePath()))
         }
 
+        premiumCertificatePath = normalizeLocalFilePath(premiumCertificatePath)
+        if (premiumCertificatePath && premiumCertificatePath.length > 0) {
+            var certificateError = imageWriter.validatePremiumCertificate(premiumCertificatePath)
+            if (certificateError && certificateError.length > 0) {
+                onError(qsTr("Premium certificate is invalid: %1").arg(certificateError))
+                return
+            }
+            var certificateTarget = drivePath(premiumCertificateRelativePath())
+            if (!imageWriter.copyFile(premiumCertificatePath, certificateTarget)) {
+                onError(qsTr("Failed to copy premium certificate to the drive."))
+                return
+            }
+            premiumCertificatePresent = true
+        } else {
+            premiumCertificatePresent = imageWriter.fileExists(drivePath(premiumCertificateRelativePath()))
+        }
+
         imageWriter.setSetting("bootType", bootType)
         imageWriter.setSetting("sbc", sbc)
         imageWriter.setSetting("camera", camera)
@@ -1281,6 +1388,7 @@ ImButton {
         imageWriter.setSetting("camera2Resolution", camera2Resolution)
         imageWriter.setSetting("mode", mode)
         imageWriter.setSetting("qopenhdConfPath", qopenhdConfPath)
+        imageWriter.setSetting("premiumCertificatePath", premiumCertificatePath)
         imageWriter.setSetting("language", language)
         imageWriter.setSetting("token", token)
 

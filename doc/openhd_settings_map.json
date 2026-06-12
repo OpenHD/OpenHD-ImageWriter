@@ -198,6 +198,10 @@
     "_comment": "Optional full configuration file copied verbatim when provided by the user.",
     "file": "openhd/QOpenHD.conf"
   },
+  "premiumCertificate": {
+    "_comment": "Optional signed premium certificate copied verbatim when provided by the user.",
+    "file": "openhd/premium_certificate.ohdcert"
+  },
   "hotSpot": {
     "_comment": "UI exposes WifiHotspot but creation of wifi_hotspot.txt is commented out in downloadthread.cpp.",
     "options": []

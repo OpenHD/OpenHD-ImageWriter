@@ -4,6 +4,7 @@
  */
 
 #include "imagewriter.h"
+#include "certificatevalidator.h"
 #include "drivelistitem.h"
 #include "downloadextractthread.h"
 #include "dependencies/drivelist/src/drivelist.hpp"
@@ -425,6 +426,11 @@ bool ImageWriter::removeFile(const QString &filePath) const
         return false;
     }
     return true;
+}
+
+QString ImageWriter::validatePremiumCertificate(const QString &filePath) const
+{
+    return CertificateValidator::validatePremiumCertificateFile(filePath);
 }
 
 bool ImageWriter::hasOpenHdSettingsCard() const
