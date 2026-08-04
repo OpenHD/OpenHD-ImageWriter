@@ -384,6 +384,14 @@
     "reservedBitrateRangeMbits": [1, 20],
     "defaultReservedBitrateMbits": 2
   },
+  "rpi5CameraConnectors": {
+    "_comment": "For Raspberry Pi CSI cameras, ImageWriter asks which Pi 5 connector is used. Sysutils applies ,cam0 for CAM0; CAM1 uses the overlay default.",
+    "primaryKey": "camera_port",
+    "secondaryKey": "camera2_port",
+    "options": ["cam0", "cam1"],
+    "primaryDefault": "cam1",
+    "secondaryDefault": "cam0"
+  },
   "qopenhdConf": {
     "_comment": "Optional full configuration file copied verbatim when provided by the user.",
     "file": "openhd/QOpenHD.conf"

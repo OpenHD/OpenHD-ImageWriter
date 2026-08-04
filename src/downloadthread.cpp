@@ -1141,6 +1141,12 @@ bool DownloadThread::_customizeImage()
           settings_.value("cameraResolution").toString().trimmed();
       QString camera2ResolutionValue =
           settings_.value("camera2Resolution").toString().trimmed();
+      const QString cameraPort =
+          settings_.value("cameraPort", "cam1").toString() == "cam0" ? "cam0"
+                                                                       : "cam1";
+      const QString camera2Port =
+          settings_.value("camera2Port", "cam0").toString() == "cam1" ? "cam1"
+                                                                        : "cam0";
       const QString defaultIpCameraPipeline = QStringLiteral(
           "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay");
       QString ipCameraAddress =
@@ -1355,6 +1361,17 @@ bool DownloadThread::_customizeImage()
 
       if (camera2Value != "255" && !camera2ResolutionValue.isEmpty()) {
         openhdSettings.insert("camera2_resolution_fps", camera2ResolutionValue);
+      }
+      const auto isRpiCsiCameraType = [](const QString& value) {
+        bool ok = false;
+        const int cameraType = value.toInt(&ok);
+        return ok && cameraType >= 20 && cameraType <= 69;
+      };
+      if (sbcValue == "rpi" && isRpiCsiCameraType(cameraValue)) {
+        openhdSettings.insert("camera_port", cameraPort);
+      }
+      if (sbcValue == "rpi" && isRpiCsiCameraType(camera2Value)) {
+        openhdSettings.insert("camera2_port", camera2Port);
       }
 
       if (cameraValue == "3") {

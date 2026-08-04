@@ -34,6 +34,8 @@ Popup {
     property string camera2
     property string cameraResolution
     property string camera2Resolution
+    property string cameraPort: "cam1"
+    property string camera2Port: "cam0"
     property string ipCameraAddress: "192.168.144.108"
     property string ipCameraPipeline: "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
     property string camera2IpCameraAddress: "192.168.144.108"
@@ -417,8 +419,6 @@ Popup {
                                             camera2OptionsModel.append({ label: secondaryOption.displayName || secondaryOption.id, cameraId: secondaryOption.id })
                                         }
 
-                                        // Pi 5 routes its second CSI connector through CAM0. Sysutils
-                                        // applies the matching overlay with the cam0 parameter.
                                         if (groupData.secondaryCsi && groupData.vendors) {
                                             for (var vendorIdx = 0; vendorIdx < groupData.vendors.length; vendorIdx++) {
                                                 var vendorOptions = groupData.vendors[vendorIdx].options || []
@@ -426,7 +426,7 @@ Popup {
                                                     var csiOption = vendorOptions[optIdx]
                                                     var cameraType = parseInt(csiOption.valueWritten)
                                                     if (cameraType >= 20 && cameraType <= 69)
-                                                        camera2OptionsModel.append({ label: "CAM0 - " + csiOption.id, cameraId: csiOption.id })
+                                                        camera2OptionsModel.append({ label: "CSI - " + csiOption.id, cameraId: csiOption.id })
                                                 }
                                             }
                                         }
@@ -504,6 +504,44 @@ Popup {
                                     }
 
                                     Component.onCompleted: rebuildVendors()
+                                }
+                            }
+                        }
+
+                        GroupBox {
+                            title: qsTr("Raspberry Pi 5 Camera Connectors")
+                            Layout.fillWidth: true
+                            visible: bootType === "Air" && sbc === "rpi" &&
+                                     (isRpiCsiCamera(camera) || isRpiCsiCamera(camera2))
+
+                            GridLayout {
+                                columns: 2
+                                columnSpacing: 12
+                                rowSpacing: 8
+                                Layout.fillWidth: true
+
+                                Label { text: qsTr("Primary camera connector"); visible: isRpiCsiCamera(camera) }
+                                ComboBox {
+                                    visible: isRpiCsiCamera(camera)
+                                    model: ["CAM0", "CAM1"]
+                                    currentIndex: cameraPort === "cam0" ? 0 : 1
+                                    onActivated: {
+                                        cameraPort = currentIndex === 0 ? "cam0" : "cam1"
+                                        if (isRpiCsiCamera(camera2) && camera2Port === cameraPort)
+                                            camera2Port = cameraPort === "cam0" ? "cam1" : "cam0"
+                                    }
+                                }
+
+                                Label { text: qsTr("Secondary camera connector"); visible: isRpiCsiCamera(camera2) }
+                                ComboBox {
+                                    visible: isRpiCsiCamera(camera2)
+                                    model: ["CAM0", "CAM1"]
+                                    currentIndex: camera2Port === "cam0" ? 0 : 1
+                                    onActivated: {
+                                        camera2Port = currentIndex === 0 ? "cam0" : "cam1"
+                                        if (isRpiCsiCamera(camera) && cameraPort === camera2Port)
+                                            cameraPort = camera2Port === "cam0" ? "cam1" : "cam0"
+                                    }
                                 }
                             }
                         }
@@ -811,6 +849,8 @@ Popup {
         camera2 = imageWriter.getValue("camera2")
         cameraResolution = imageWriter.getValue("cameraResolution")
         camera2Resolution = imageWriter.getValue("camera2Resolution")
+        cameraPort = imageWriter.getValue("cameraPort") === "cam0" ? "cam0" : "cam1"
+        camera2Port = imageWriter.getValue("camera2Port") === "cam1" ? "cam1" : "cam0"
         ipCameraAddress = imageWriter.getValue("ipCameraAddress") || "192.168.144.108"
         ipCameraPipeline = imageWriter.getValue("ipCameraPipeline") || "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
         camera2IpCameraAddress = imageWriter.getValue("camera2IpCameraAddress") || "192.168.144.108"
@@ -959,6 +999,8 @@ Popup {
         imageWriter.setSetting("camera2", camera2)
         imageWriter.setSetting("cameraResolution", cameraResolution)
         imageWriter.setSetting("camera2Resolution", camera2Resolution)
+        imageWriter.setSetting("cameraPort", cameraPort)
+        imageWriter.setSetting("camera2Port", camera2Port)
         imageWriter.setSetting("ipCameraAddress", ipCameraAddress)
         imageWriter.setSetting("ipCameraPipeline", ipCameraPipeline)
         imageWriter.setSetting("camera2IpCameraAddress", camera2IpCameraAddress)
@@ -972,6 +1014,27 @@ Popup {
         imageWriter.setSetting("qopenhdConfPath", qopenhdConfPath)
         imageWriter.setSetting("premiumCertificatePath", premiumCertificatePath)
 
+    }
+
+    function isRpiCsiCamera(cameraSelection) {
+        if (!cameraSelection || !settingsMap.camera || !settingsMap.camera.sbcGroups)
+            return false
+
+        for (var groupIdx = 0; groupIdx < settingsMap.camera.sbcGroups.length; groupIdx++) {
+            var group = settingsMap.camera.sbcGroups[groupIdx]
+            if (!group || !group.sbc || group.sbc.indexOf("rpi") === -1 || !group.vendors)
+                continue
+            for (var vendorIdx = 0; vendorIdx < group.vendors.length; vendorIdx++) {
+                var options = group.vendors[vendorIdx].options || []
+                for (var optionIdx = 0; optionIdx < options.length; optionIdx++) {
+                    if (options[optionIdx].id === cameraSelection) {
+                        var cameraType = parseInt(options[optionIdx].valueWritten)
+                        return cameraType >= 20 && cameraType <= 69
+                    }
+                }
+            }
+        }
+        return false
     }
 
     function loadSettingsMap() {

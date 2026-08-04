@@ -37,6 +37,8 @@ Rectangle {
     property string camera2: ""
     property string cameraResolution: ""
     property string camera2Resolution: ""
+    property string cameraPort: "cam1"
+    property string camera2Port: "cam0"
     property string ipCameraAddress: "192.168.144.108"
     property string ipCameraPipeline: "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
     property string camera2IpCameraAddress: "192.168.144.108"
@@ -483,7 +485,7 @@ ImButton {
                                                 var csiOption = vendorOptions[optIdx]
                                                 var cameraType = parseInt(csiOption.valueWritten)
                                                 if (cameraType >= 20 && cameraType <= 69)
-                                                    camera2OptionsModel.append({ label: "CAM0 - " + csiOption.id, cameraId: csiOption.id })
+                                                    camera2OptionsModel.append({ label: "CSI - " + csiOption.id, cameraId: csiOption.id })
                                             }
                                         }
                                     }
@@ -570,6 +572,44 @@ ImButton {
                                         cameraLayout.selectedVendor = null
                                     }
                                     rebuildCameraOptions()
+                                }
+                            }
+                        }
+
+                        GroupBox {
+                            title: qsTr("Raspberry Pi 5 Camera Connectors")
+                            Layout.fillWidth: true
+                            visible: bootType === "Air" && sbc === "rpi" &&
+                                     (isRpiCsiCamera(camera) || isRpiCsiCamera(camera2))
+
+                            GridLayout {
+                                columns: 2
+                                columnSpacing: 12
+                                rowSpacing: 8
+                                Layout.fillWidth: true
+
+                                Label { text: qsTr("Primary camera connector"); visible: isRpiCsiCamera(camera) }
+                                ComboBox {
+                                    visible: isRpiCsiCamera(camera)
+                                    model: ["CAM0", "CAM1"]
+                                    currentIndex: cameraPort === "cam0" ? 0 : 1
+                                    onActivated: {
+                                        cameraPort = currentIndex === 0 ? "cam0" : "cam1"
+                                        if (isRpiCsiCamera(camera2) && camera2Port === cameraPort)
+                                            camera2Port = cameraPort === "cam0" ? "cam1" : "cam0"
+                                    }
+                                }
+
+                                Label { text: qsTr("Secondary camera connector"); visible: isRpiCsiCamera(camera2) }
+                                ComboBox {
+                                    visible: isRpiCsiCamera(camera2)
+                                    model: ["CAM0", "CAM1"]
+                                    currentIndex: camera2Port === "cam0" ? 0 : 1
+                                    onActivated: {
+                                        camera2Port = currentIndex === 0 ? "cam0" : "cam1"
+                                        if (isRpiCsiCamera(camera) && cameraPort === camera2Port)
+                                            cameraPort = camera2Port === "cam0" ? "cam1" : "cam0"
+                                    }
                                 }
                             }
                         }
@@ -1190,6 +1230,11 @@ ImButton {
         return ""
     }
 
+    function isRpiCsiCamera(cameraSelection) {
+        var cameraType = parseInt(cameraValueForSelection(cameraSelection))
+        return cameraType >= 20 && cameraType <= 69
+    }
+
     function setCameraFromValue(encodedValue, cameraSlot) {
         var normalizedEncodedValue = encodedValue !== undefined && encodedValue !== null ? encodedValue.toString() : ""
         if (normalizedEncodedValue === "1")
@@ -1270,6 +1315,8 @@ ImButton {
         camera2 = ""
         cameraResolution = ""
         camera2Resolution = ""
+        cameraPort = "cam1"
+        camera2Port = "cam0"
         ipCameraAddress = "192.168.144.108"
         ipCameraPipeline = "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
         camera2IpCameraAddress = "192.168.144.108"
@@ -1322,6 +1369,8 @@ ImButton {
         } else {
             camera2Resolution = ""
         }
+        cameraPort = settingsObj.camera_port === "cam0" ? "cam0" : "cam1"
+        camera2Port = settingsObj.camera2_port === "cam1" ? "cam1" : "cam0"
 
         if (settingsObj.ip_camera_address) {
             ipCameraAddress = settingsObj.ip_camera_address.toString()
@@ -1421,6 +1470,10 @@ ImButton {
         if (cam2Value !== "255" && camera2Resolution && camera2Resolution.length > 0) {
             settingsObj.camera2_resolution_fps = camera2Resolution
         }
+        if (sbc === "rpi" && parseInt(camValue) >= 20 && parseInt(camValue) <= 69)
+            settingsObj.camera_port = cameraPort
+        if (sbc === "rpi" && parseInt(cam2Value) >= 20 && parseInt(cam2Value) <= 69)
+            settingsObj.camera2_port = camera2Port
 
         if (camValue === "3") {
             settingsObj.ip_camera_address = ipCameraAddress.trim()
@@ -1493,6 +1546,8 @@ ImButton {
         imageWriter.setSetting("camera2", camera2)
         imageWriter.setSetting("cameraResolution", cameraResolution)
         imageWriter.setSetting("camera2Resolution", camera2Resolution)
+        imageWriter.setSetting("cameraPort", cameraPort)
+        imageWriter.setSetting("camera2Port", camera2Port)
         imageWriter.setSetting("ipCameraAddress", ipCameraAddress)
         imageWriter.setSetting("ipCameraPipeline", ipCameraPipeline)
         imageWriter.setSetting("camera2IpCameraAddress", camera2IpCameraAddress)
