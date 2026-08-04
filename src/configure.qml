@@ -37,6 +37,11 @@ Rectangle {
     property string camera2: ""
     property string cameraResolution: ""
     property string camera2Resolution: ""
+    property string ipCameraAddress: "192.168.144.108"
+    property string ipCameraPipeline: "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
+    property string camera2IpCameraAddress: "192.168.144.108"
+    property string camera2IpCameraPipeline: "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
+    property int ipCameraBitrate: 2
     property string mode: ""
     property string hotSpot: ""
     property string beep: ""
@@ -424,7 +429,7 @@ ImButton {
                                 function rebuildSecondaryResolutionOptions() {
                                     camera2ResolutionOptionsModel.clear()
 
-                                    var encodedCamera2Value = window.secondaryCameraValueForSelection(camera2)
+                                    var encodedCamera2Value = window.cameraValueForSelection(camera2)
 
                                     var resolutions = resolutionListForCameraValue(encodedCamera2Value)
                                     var seenResolutions = {}
@@ -464,14 +469,24 @@ ImButton {
                                 function rebuildSecondaryCameraOptions() {
                                     camera2OptionsModel.clear()
                                     camera2OptionsModel.append({ label: "NONE", cameraId: "" })
-                                    camera2OptionsModel.append({ label: "USB", cameraId: "USB" })
-                                    camera2OptionsModel.append({ label: qsTr("DEV CAMERA"), cameraId: "TESTPATTERN" })
-                                    camera2OptionsModel.append({ label: "INFIRAY", cameraId: "INFIRAY" })
-                                    camera2OptionsModel.append({ label: "INFIRAY T2", cameraId: "INFIRAY_T2" })
-                                    camera2OptionsModel.append({ label: "INFIRAY X2", cameraId: "INFIRAY_X2" })
-                                    camera2OptionsModel.append({ label: "INFIRAY P2 PRO", cameraId: "INFIRAY_P2_PRO" })
-                                    camera2OptionsModel.append({ label: "FLIR VUE", cameraId: "FLIR_VUE" })
-                                    camera2OptionsModel.append({ label: "FLIR BOSON", cameraId: "FLIR_BOSON" })
+                                    var secondaryOptions = settingsMap.camera && settingsMap.camera.secondaryOptions ? settingsMap.camera.secondaryOptions : []
+                                    for (var i = 0; i < secondaryOptions.length; i++) {
+                                        var secondaryOption = secondaryOptions[i]
+                                        camera2OptionsModel.append({ label: secondaryOption.displayName || secondaryOption.id, cameraId: secondaryOption.id })
+                                    }
+
+                                    var group = getCameraGroupForSelection()
+                                    if (group && group.secondaryCsi && group.vendors) {
+                                        for (var vendorIdx = 0; vendorIdx < group.vendors.length; vendorIdx++) {
+                                            var vendorOptions = group.vendors[vendorIdx].options || []
+                                            for (var optIdx = 0; optIdx < vendorOptions.length; optIdx++) {
+                                                var csiOption = vendorOptions[optIdx]
+                                                var cameraType = parseInt(csiOption.valueWritten)
+                                                if (cameraType >= 20 && cameraType <= 69)
+                                                    camera2OptionsModel.append({ label: "CAM0 - " + csiOption.id, cameraId: csiOption.id })
+                                            }
+                                        }
+                                    }
 
                                     if (camera2 === "FLIR VUE")
                                         camera2 = "FLIR_VUE"
@@ -520,7 +535,8 @@ ImButton {
 
                                     var group = getCameraGroupForSelection()
                                     if (group && group.vendors) {
-                                        cameraLayout.vendorList = group.vendors
+                                        cameraLayout.vendorList = group.vendors.concat(
+                                            settingsMap.camera && settingsMap.camera.commonVendors ? settingsMap.camera.commonVendors : [])
                                     }
 
                                     for (var i = 0; i < cameraLayout.vendorList.length; i++) {
@@ -554,6 +570,60 @@ ImButton {
                                         cameraLayout.selectedVendor = null
                                     }
                                     rebuildCameraOptions()
+                                }
+                            }
+                        }
+
+                        GroupBox {
+                            title: qsTr("IP Camera Setup")
+                            Layout.fillWidth: true
+                            visible: bootType === "Air" && (camera === "IP-CAMERA" || camera2 === "IP-CAMERA")
+
+                            GridLayout {
+                                columns: 2
+                                columnSpacing: 12
+                                rowSpacing: 8
+                                Layout.fillWidth: true
+
+                                Label { text: qsTr("Primary camera IP"); visible: camera === "IP-CAMERA" }
+                                TextField {
+                                    visible: camera === "IP-CAMERA"
+                                    Layout.minimumWidth: 420
+                                    maximumLength: 15
+                                    text: ipCameraAddress
+                                    onEditingFinished: ipCameraAddress = text.trim()
+                                }
+                                Label { text: qsTr("Primary source pipeline"); visible: camera === "IP-CAMERA" }
+                                TextField {
+                                    visible: camera === "IP-CAMERA"
+                                    Layout.minimumWidth: 420
+                                    maximumLength: 127
+                                    text: ipCameraPipeline
+                                    onEditingFinished: ipCameraPipeline = text.trim()
+                                }
+                                Label { text: qsTr("Secondary camera IP"); visible: camera2 === "IP-CAMERA" }
+                                TextField {
+                                    visible: camera2 === "IP-CAMERA"
+                                    Layout.minimumWidth: 420
+                                    maximumLength: 15
+                                    text: camera2IpCameraAddress
+                                    onEditingFinished: camera2IpCameraAddress = text.trim()
+                                }
+                                Label { text: qsTr("Secondary source pipeline"); visible: camera2 === "IP-CAMERA" }
+                                TextField {
+                                    visible: camera2 === "IP-CAMERA"
+                                    Layout.minimumWidth: 420
+                                    maximumLength: 127
+                                    text: camera2IpCameraPipeline
+                                    onEditingFinished: camera2IpCameraPipeline = text.trim()
+                                }
+                                Label { text: qsTr("Reserved link bitrate (Mbit/s)") }
+                                SpinBox {
+                                    from: 1
+                                    to: 20
+                                    value: ipCameraBitrate
+                                    editable: true
+                                    onValueChanged: ipCameraBitrate = value
                                 }
                             }
                         }
@@ -1087,22 +1157,11 @@ ImButton {
         if (!cameraSelection || cameraSelection.length === 0)
             return ""
 
-        if (cameraSelection === "USB")
-            return "1"
-        if (cameraSelection === "TESTPATTERN")
-            return "0"
-        if (cameraSelection === "INFIRAY")
-            return "11"
-        if (cameraSelection === "INFIRAY_T2")
-            return "12"
-        if (cameraSelection === "INFIRAY_X2")
-            return "13"
-        if (cameraSelection === "INFIRAY_P2_PRO")
-            return "14"
-        if (cameraSelection === "FLIR_VUE" || cameraSelection === "FLIR VUE")
-            return "15"
-        if (cameraSelection === "FLIR_BOSON" || cameraSelection === "FLIR BOSON")
-            return "16"
+        var options = settingsMap.camera && settingsMap.camera.secondaryOptions ? settingsMap.camera.secondaryOptions : []
+        for (var i = 0; i < options.length; i++) {
+            if (options[i].id === cameraSelection)
+                return options[i].valueWritten || ""
+        }
 
         return ""
     }
@@ -1133,31 +1192,45 @@ ImButton {
 
     function setCameraFromValue(encodedValue, cameraSlot) {
         var normalizedEncodedValue = encodedValue !== undefined && encodedValue !== null ? encodedValue.toString() : ""
-        if (normalizedEncodedValue === "10")
-            normalizedEncodedValue = "1"
+        if (normalizedEncodedValue === "1")
+            normalizedEncodedValue = "10"
 
         if (cameraSlot === "camera2") {
-            if (normalizedEncodedValue === "1") {
-                camera2 = "USB"
-            } else if (normalizedEncodedValue === "0") {
-                camera2 = "TESTPATTERN"
-            } else if (normalizedEncodedValue === "11") {
-                camera2 = "INFIRAY"
-            } else if (normalizedEncodedValue === "12") {
-                camera2 = "INFIRAY_T2"
-            } else if (normalizedEncodedValue === "13") {
-                camera2 = "INFIRAY_X2"
-            } else if (normalizedEncodedValue === "14") {
-                camera2 = "INFIRAY_P2_PRO"
-            } else if (normalizedEncodedValue === "15") {
-                camera2 = "FLIR_VUE"
-            } else if (normalizedEncodedValue === "16") {
-                camera2 = "FLIR_BOSON"
-            } else {
-                camera2 = ""
+            camera2 = ""
+            var secondaryOptions = settingsMap.camera && settingsMap.camera.secondaryOptions ? settingsMap.camera.secondaryOptions : []
+            for (var secondaryIdx = 0; secondaryIdx < secondaryOptions.length; secondaryIdx++) {
+                if ((secondaryOptions[secondaryIdx].valueWritten || "") === normalizedEncodedValue) {
+                    camera2 = secondaryOptions[secondaryIdx].id
+                    break
+                }
+            }
+            if (!camera2 || camera2.length === 0) {
+                var secondaryGroup = getCameraGroupForSelection()
+                if (secondaryGroup && secondaryGroup.secondaryCsi && secondaryGroup.vendors) {
+                    for (var vendorIdx = 0; vendorIdx < secondaryGroup.vendors.length; vendorIdx++) {
+                        var vendorOptions = secondaryGroup.vendors[vendorIdx].options || []
+                        for (var optIdx = 0; optIdx < vendorOptions.length; optIdx++) {
+                            if ((vendorOptions[optIdx].valueWritten || "") === normalizedEncodedValue) {
+                                camera2 = vendorOptions[optIdx].id
+                                break
+                            }
+                        }
+                        if (camera2 && camera2.length > 0)
+                            break
+                    }
+                }
             }
             cameraLayout.rebuildSecondaryCameraOptions()
             return
+        }
+
+        var commonOptions = settingsMap.camera && settingsMap.camera.secondaryOptions ? settingsMap.camera.secondaryOptions : []
+        for (var commonIdx = 0; commonIdx < commonOptions.length; commonIdx++) {
+            if ((commonOptions[commonIdx].valueWritten || "") === normalizedEncodedValue) {
+                camera = commonOptions[commonIdx].id
+                cameraLayout.rebuildVendors()
+                return
+            }
         }
 
         var group = getCameraGroupForSelection()
@@ -1197,6 +1270,11 @@ ImButton {
         camera2 = ""
         cameraResolution = ""
         camera2Resolution = ""
+        ipCameraAddress = "192.168.144.108"
+        ipCameraPipeline = "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
+        camera2IpCameraAddress = "192.168.144.108"
+        camera2IpCameraPipeline = "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
+        ipCameraBitrate = 2
         mode = ""
         qopenhdConfPresent = false
         premiumCertificatePresent = false
@@ -1243,6 +1321,23 @@ ImButton {
             camera2Resolution = settingsObj.camera2_resolution_fps.toString()
         } else {
             camera2Resolution = ""
+        }
+
+        if (settingsObj.ip_camera_address) {
+            ipCameraAddress = settingsObj.ip_camera_address.toString()
+        }
+        if (settingsObj.ip_camera_pipeline) {
+            ipCameraPipeline = settingsObj.ip_camera_pipeline.toString()
+        }
+        if (settingsObj.camera2_ip_camera_address) {
+            camera2IpCameraAddress = settingsObj.camera2_ip_camera_address.toString()
+        }
+        if (settingsObj.camera2_ip_camera_pipeline) {
+            camera2IpCameraPipeline = settingsObj.camera2_ip_camera_pipeline.toString()
+        }
+        var loadedIpCameraBitrate = parseInt(settingsObj.ip_camera_bitrate_mbits)
+        if (loadedIpCameraBitrate >= 1 && loadedIpCameraBitrate <= 20) {
+            ipCameraBitrate = loadedIpCameraBitrate
         }
 
         if (settingsObj.camera) {
@@ -1327,6 +1422,18 @@ ImButton {
             settingsObj.camera2_resolution_fps = camera2Resolution
         }
 
+        if (camValue === "3") {
+            settingsObj.ip_camera_address = ipCameraAddress.trim()
+            settingsObj.ip_camera_pipeline = ipCameraPipeline.trim()
+        }
+        if (cam2Value === "3") {
+            settingsObj.camera2_ip_camera_address = camera2IpCameraAddress.trim()
+            settingsObj.camera2_ip_camera_pipeline = camera2IpCameraPipeline.trim()
+        }
+        if (camValue === "3" || cam2Value === "3") {
+            settingsObj.ip_camera_bitrate_mbits = Math.max(1, Math.min(20, ipCameraBitrate))
+        }
+
         settingsObj.language = language ? language : ""
         settingsObj.token = token ? token : ""
 
@@ -1386,6 +1493,11 @@ ImButton {
         imageWriter.setSetting("camera2", camera2)
         imageWriter.setSetting("cameraResolution", cameraResolution)
         imageWriter.setSetting("camera2Resolution", camera2Resolution)
+        imageWriter.setSetting("ipCameraAddress", ipCameraAddress)
+        imageWriter.setSetting("ipCameraPipeline", ipCameraPipeline)
+        imageWriter.setSetting("camera2IpCameraAddress", camera2IpCameraAddress)
+        imageWriter.setSetting("camera2IpCameraPipeline", camera2IpCameraPipeline)
+        imageWriter.setSetting("ipCameraBitrate", ipCameraBitrate)
         imageWriter.setSetting("mode", mode)
         imageWriter.setSetting("qopenhdConfPath", qopenhdConfPath)
         imageWriter.setSetting("premiumCertificatePath", premiumCertificatePath)

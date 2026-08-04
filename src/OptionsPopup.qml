@@ -34,6 +34,11 @@ Popup {
     property string camera2
     property string cameraResolution
     property string camera2Resolution
+    property string ipCameraAddress: "192.168.144.108"
+    property string ipCameraPipeline: "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
+    property string camera2IpCameraAddress: "192.168.144.108"
+    property string camera2IpCameraPipeline: "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
+    property int ipCameraBitrate: 2
     property string mode
     property string hotSpot
     property string beep
@@ -41,6 +46,8 @@ Popup {
     property bool rock3
     property bool rock5
     property bool rpi
+    property bool supportsAir: true
+    property bool supportsGround: true
     property bool useSettings:true
     property string qopenhdConfPath: ""
     property string premiumCertificatePath: ""
@@ -103,7 +110,9 @@ Popup {
 
                         Repeater {
                             id: bootRepeater
-                            model: settingsMap.bootType && settingsMap.bootType.options ? settingsMap.bootType.options.filter(function(option) { return option.id && option.id.length > 0 }) : []
+                            model: settingsMap.bootType && settingsMap.bootType.options ? settingsMap.bootType.options.filter(function(option) {
+                                return option.id && option.id.length > 0 && ((option.id === "Air" && supportsAir) || (option.id === "Ground" && supportsGround))
+                            }) : []
                             delegate: ImCheckBox {
                                 property var option: modelData
                                 text: qsTr("Set SBC to %1").arg(option ? option.id : "")
@@ -143,7 +152,8 @@ Popup {
                                     id: cameraGroup
                                     spacing: 8
 
-                                    property var vendorList: groupData && groupData.vendors ? groupData.vendors : []
+                                    property var vendorList: (groupData && groupData.vendors ? groupData.vendors : []).concat(
+                                        settingsMap.camera && settingsMap.camera.commonVendors ? settingsMap.camera.commonVendors : [])
                                     property var selectedVendor: vendorList.length > 0 ? vendorList[0] : null
 
                                     ListModel {
@@ -286,22 +296,21 @@ Popup {
                                         if (!selection || selection.length === 0)
                                             return ""
 
-                                        if (selection === "USB")
-                                            return "1"
-                                        if (selection === "TESTPATTERN")
-                                            return "0"
-                                        if (selection === "INFIRAY")
-                                            return "11"
-                                        if (selection === "INFIRAY_T2")
-                                            return "12"
-                                        if (selection === "INFIRAY_X2")
-                                            return "13"
-                                        if (selection === "INFIRAY_P2_PRO")
-                                            return "14"
-                                        if (selection === "FLIR_VUE" || selection === "FLIR VUE")
-                                            return "15"
-                                        if (selection === "FLIR_BOSON" || selection === "FLIR BOSON")
-                                            return "16"
+                                        var options = settingsMap.camera && settingsMap.camera.secondaryOptions ? settingsMap.camera.secondaryOptions : []
+                                        for (var i = 0; i < options.length; i++) {
+                                            if (options[i].id === selection)
+                                                return options[i].valueWritten || ""
+                                        }
+
+                                        if (groupData.secondaryCsi && groupData.vendors) {
+                                            for (var vendorIdx = 0; vendorIdx < groupData.vendors.length; vendorIdx++) {
+                                                var vendorOptions = groupData.vendors[vendorIdx].options || []
+                                                for (var optIdx = 0; optIdx < vendorOptions.length; optIdx++) {
+                                                    if (vendorOptions[optIdx].id === selection)
+                                                        return vendorOptions[optIdx].valueWritten || ""
+                                                }
+                                            }
+                                        }
 
                                         return ""
                                     }
@@ -402,14 +411,25 @@ Popup {
                                     function rebuildSecondaryCameraOptions() {
                                         camera2OptionsModel.clear()
                                         camera2OptionsModel.append({ label: "NONE", cameraId: "" })
-                                        camera2OptionsModel.append({ label: "USB", cameraId: "USB" })
-                                        camera2OptionsModel.append({ label: qsTr("DEV CAMERA"), cameraId: "TESTPATTERN" })
-                                        camera2OptionsModel.append({ label: "INFIRAY", cameraId: "INFIRAY" })
-                                        camera2OptionsModel.append({ label: "INFIRAY T2", cameraId: "INFIRAY_T2" })
-                                        camera2OptionsModel.append({ label: "INFIRAY X2", cameraId: "INFIRAY_X2" })
-                                        camera2OptionsModel.append({ label: "INFIRAY P2 PRO", cameraId: "INFIRAY_P2_PRO" })
-                                        camera2OptionsModel.append({ label: "FLIR VUE", cameraId: "FLIR_VUE" })
-                                        camera2OptionsModel.append({ label: "FLIR BOSON", cameraId: "FLIR_BOSON" })
+                                        var secondaryOptions = settingsMap.camera && settingsMap.camera.secondaryOptions ? settingsMap.camera.secondaryOptions : []
+                                        for (var i = 0; i < secondaryOptions.length; i++) {
+                                            var secondaryOption = secondaryOptions[i]
+                                            camera2OptionsModel.append({ label: secondaryOption.displayName || secondaryOption.id, cameraId: secondaryOption.id })
+                                        }
+
+                                        // Pi 5 routes its second CSI connector through CAM0. Sysutils
+                                        // applies the matching overlay with the cam0 parameter.
+                                        if (groupData.secondaryCsi && groupData.vendors) {
+                                            for (var vendorIdx = 0; vendorIdx < groupData.vendors.length; vendorIdx++) {
+                                                var vendorOptions = groupData.vendors[vendorIdx].options || []
+                                                for (var optIdx = 0; optIdx < vendorOptions.length; optIdx++) {
+                                                    var csiOption = vendorOptions[optIdx]
+                                                    var cameraType = parseInt(csiOption.valueWritten)
+                                                    if (cameraType >= 20 && cameraType <= 69)
+                                                        camera2OptionsModel.append({ label: "CAM0 - " + csiOption.id, cameraId: csiOption.id })
+                                                }
+                                            }
+                                        }
 
                                         if (camera2 === "FLIR VUE")
                                             camera2 = "FLIR_VUE"
@@ -484,6 +504,66 @@ Popup {
                                     }
 
                                     Component.onCompleted: rebuildVendors()
+                                }
+                            }
+                        }
+
+                        GroupBox {
+                            title: qsTr("IP Camera Setup")
+                            Layout.fillWidth: true
+                            visible: bootType === "Air" && (camera === "IP-CAMERA" || camera2 === "IP-CAMERA")
+
+                            GridLayout {
+                                columns: 2
+                                columnSpacing: 12
+                                rowSpacing: 8
+                                Layout.fillWidth: true
+
+                                Label { text: qsTr("Primary camera IP"); visible: camera === "IP-CAMERA" }
+                                TextField {
+                                    visible: camera === "IP-CAMERA"
+                                    Layout.minimumWidth: 360
+                                    maximumLength: 15
+                                    text: ipCameraAddress
+                                    placeholderText: "192.168.144.108"
+                                    onEditingFinished: ipCameraAddress = text.trim()
+                                }
+                                Label { text: qsTr("Primary source pipeline"); visible: camera === "IP-CAMERA" }
+                                TextField {
+                                    visible: camera === "IP-CAMERA"
+                                    Layout.minimumWidth: 360
+                                    maximumLength: 127
+                                    text: ipCameraPipeline
+                                    placeholderText: "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
+                                    onEditingFinished: ipCameraPipeline = text.trim()
+                                }
+
+                                Label { text: qsTr("Secondary camera IP"); visible: camera2 === "IP-CAMERA" }
+                                TextField {
+                                    visible: camera2 === "IP-CAMERA"
+                                    Layout.minimumWidth: 360
+                                    maximumLength: 15
+                                    text: camera2IpCameraAddress
+                                    placeholderText: "192.168.144.108"
+                                    onEditingFinished: camera2IpCameraAddress = text.trim()
+                                }
+                                Label { text: qsTr("Secondary source pipeline"); visible: camera2 === "IP-CAMERA" }
+                                TextField {
+                                    visible: camera2 === "IP-CAMERA"
+                                    Layout.minimumWidth: 360
+                                    maximumLength: 127
+                                    text: camera2IpCameraPipeline
+                                    placeholderText: "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
+                                    onEditingFinished: camera2IpCameraPipeline = text.trim()
+                                }
+
+                                Label { text: qsTr("Reserved link bitrate (Mbit/s)") }
+                                SpinBox {
+                                    from: 1
+                                    to: 20
+                                    value: ipCameraBitrate
+                                    editable: true
+                                    onValueChanged: ipCameraBitrate = value
                                 }
                             }
                         }
@@ -731,6 +811,12 @@ Popup {
         camera2 = imageWriter.getValue("camera2")
         cameraResolution = imageWriter.getValue("cameraResolution")
         camera2Resolution = imageWriter.getValue("camera2Resolution")
+        ipCameraAddress = imageWriter.getValue("ipCameraAddress") || "192.168.144.108"
+        ipCameraPipeline = imageWriter.getValue("ipCameraPipeline") || "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
+        camera2IpCameraAddress = imageWriter.getValue("camera2IpCameraAddress") || "192.168.144.108"
+        camera2IpCameraPipeline = imageWriter.getValue("camera2IpCameraPipeline") || "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
+        var savedIpCameraBitrate = parseInt(imageWriter.getValue("ipCameraBitrate"))
+        ipCameraBitrate = savedIpCameraBitrate >= 1 && savedIpCameraBitrate <= 20 ? savedIpCameraBitrate : 2
         mode = imageWriter.getValue("mode")
         hotSpot = imageWriter.getValue("hotSpot")
         beep = imageWriter.getBoolSetting("beep")
@@ -753,36 +839,83 @@ Popup {
             setWifiHotspot.checked=false
         }
 
-        //get SBC
+        // Detect the platform and the role capabilities from all current image
+        // naming schemes. Lite/minimal images intentionally have no Air stack.
         imageWriter.setSetting("fileName", fileName)
         console.log("[OptionsPopup] src file:", fileName)
-        if (fileName.includes("pi")) {
+        var normalizedFileName = fileName.toLowerCase()
+        supportsAir = normalizedFileName.indexOf("lite") === -1 && normalizedFileName.indexOf("minimal") === -1
+        supportsGround = normalizedFileName.indexOf("x20") === -1
+        if (!supportsGround)
+            bootType = "Air"
+        else if (!supportsAir)
+            bootType = "Ground"
+
+        if (normalizedFileName.includes("rock5a") || normalizedFileName.includes("rock-5a")) {
+            imageWriter.setSetting("sbc", "rock-5a");
+            sbc = "rock-5a"
+            rpi=false; rock5=true; rock3=false;
+        }
+        else if (normalizedFileName.includes("rock5b") || normalizedFileName.includes("rock-5b")) {
+            imageWriter.setSetting("sbc", "rock-5b");
+            sbc = "rock-5b"
+            rpi=false; rock5=true; rock3=false;
+        }
+        else if (normalizedFileName.includes("zero3") || normalizedFileName.includes("zero-3")) {
+            imageWriter.setSetting("sbc", "zero3w");
+            sbc = "zero3w"
+            rpi=false; rock5=false; rock3=true;
+        }
+        else if (normalizedFileName.includes("radxa-cm5") || normalizedFileName.includes("radxa_cm5")) {
+            sbc = "radxa-cm5"; rpi=false; rock5=true; rock3=false;
+        }
+        else if (normalizedFileName.includes("radxa-cm3") || normalizedFileName.includes("radxa_cm3")) {
+            imageWriter.setSetting("sbc", "radxa-cm3");
+            sbc = "radxa-cm3"
+            rpi=false; rock5=false; rock3=true;
+        }
+        else if (normalizedFileName.includes("qrb5165")) {
+            sbc = "qrb5165"; rpi=false; rock5=false; rock3=false;
+        }
+        else if (normalizedFileName.includes("qcs405")) {
+            sbc = "qcs405"; rpi=false; rock5=false; rock3=false;
+        }
+        else if (normalizedFileName.includes("openipc")) {
+            sbc = "openipc"; rpi=false; rock5=false; rock3=false;
+        }
+        else if (normalizedFileName.includes("rv1103") || normalizedFileName.includes("rv1106") || normalizedFileName.includes("rv1126") || normalizedFileName.includes("luckfox")) {
+            sbc = "rockchip-rv"; rpi=false; rock5=false; rock3=false;
+        }
+        else if (normalizedFileName.includes("orqa")) {
+            sbc = "orqa"; rpi=false; rock5=false; rock3=false;
+        }
+        else if (normalizedFileName.includes("x20")) {
+            sbc = "x20"; rpi=false; rock5=false; rock3=false;
+        }
+        else if (normalizedFileName.includes("x21")) {
+            sbc = "x21"; rpi=false; rock5=false; rock3=false;
+        }
+        else if (normalizedFileName.includes("cubie") || normalizedFileName.includes("a733")) {
+            sbc = "cubie"; rpi=false; rock5=false; rock3=false;
+        }
+        else if (normalizedFileName.includes("xavier") || normalizedFileName.includes("jetson")) {
+            sbc = "nvidia-xavier"; rpi=false; rock5=false; rock3=false;
+        }
+        else if (normalizedFileName.includes("uvx") || normalizedFileName.includes("uvx-mod")) {
+            sbc = "uvx"; rpi=false; rock5=false; rock3=false;
+        }
+        else if (normalizedFileName.includes("imx8") || normalizedFileName.includes("nxp")) {
+            sbc = "nxp-imx8"; rpi=false; rock5=false; rock3=false;
+        }
+        else if (normalizedFileName.includes("x86") || normalizedFileName.includes("amd64")) {
+            sbc = "x86"; rpi=false; rock5=false; rock3=false;
+        }
+        else if (normalizedFileName.includes("raspberry") || normalizedFileName.includes("rpi") || normalizedFileName.includes("image-pi") || normalizedFileName.includes("image_pi")) {
             imageWriter.setSetting("sbc", "rpi");
             sbc = "rpi"
             rpi=true;
             rock5=false;
             rock3=false;
-        }
-        else if (fileName.includes("rock5a")) {
-            imageWriter.setSetting("sbc", "rock-5a");
-            sbc = "rock-5a"
-            rpi=false;
-            rock5=true;
-            rock3=false;
-        }
-        else if (fileName.includes("rock5b")) {
-            imageWriter.setSetting("sbc", "rock-5b");
-            sbc = "rock-5b"
-            rpi=false;
-            rock5=true;
-            rock3=false;
-        }
-        else if (fileName.includes("zero3w")) {
-            imageWriter.setSetting("sbc", "zero3w");
-            sbc = "zero3w"
-            rpi=false;
-            rock5=false;
-            rock3=true;
         }
         else{
            imageWriter.setSetting("sbc", "unknown");
@@ -791,6 +924,8 @@ Popup {
            rock5=false;
            rock3=false;
         }
+        imageWriter.setSetting("sbc", sbc)
+        imageWriter.setSetting("bootType", bootType)
 
         console.log("[OptionsPopup] detected SBC:", sbc)
         console.log("[OptionsPopup] saved camera:", camera)
@@ -824,6 +959,11 @@ Popup {
         imageWriter.setSetting("camera2", camera2)
         imageWriter.setSetting("cameraResolution", cameraResolution)
         imageWriter.setSetting("camera2Resolution", camera2Resolution)
+        imageWriter.setSetting("ipCameraAddress", ipCameraAddress)
+        imageWriter.setSetting("ipCameraPipeline", ipCameraPipeline)
+        imageWriter.setSetting("camera2IpCameraAddress", camera2IpCameraAddress)
+        imageWriter.setSetting("camera2IpCameraPipeline", camera2IpCameraPipeline)
+        imageWriter.setSetting("ipCameraBitrate", ipCameraBitrate)
         imageWriter.setSetting("mode", mode)
         imageWriter.setSetting("hotSpot" , hotSpot)
         imageWriter.setSetting("beep", beep)

@@ -1131,295 +1131,343 @@ bool DownloadThread::_customizeImage()
         qDebug() << justUpdate;
     }
 
-
     if (useSettings) {
-        qDebug() << "Writing OpenHD-Settings";
-        QSettings settings_;
+      qDebug() << "Writing OpenHD-Settings";
+      QSettings settings_;
 
-        QString cameraName = settings_.value("camera").toString();
-        QString camera2Name = settings_.value("camera2").toString();
-        QString cameraResolutionValue = settings_.value("cameraResolution").toString().trimmed();
-        QString camera2ResolutionValue = settings_.value("camera2Resolution").toString().trimmed();
-        QString sbcValue = settings_.value("sbc").toString();
-        QString modeValue = settings_.value("mode").toString();
-        QString hotspot = settings_.value("hotspot").toString();
-        QString bootType = settings_.value("bootType").toString();
-        QString qopenhdConfPath = settings_.value("qopenhdConfPath").toString();
-        QString premiumCertificatePath = settings_.value("premiumCertificatePath").toString();
-        QString languageValue = settings_.value("language").toString();
-        QString tokenValue = settings_.value("token").toString();
+      QString cameraName = settings_.value("camera").toString();
+      QString camera2Name = settings_.value("camera2").toString();
+      QString cameraResolutionValue =
+          settings_.value("cameraResolution").toString().trimmed();
+      QString camera2ResolutionValue =
+          settings_.value("camera2Resolution").toString().trimmed();
+      const QString defaultIpCameraPipeline = QStringLiteral(
+          "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay");
+      QString ipCameraAddress =
+          settings_.value("ipCameraAddress", "192.168.144.108")
+              .toString()
+              .trimmed();
+      QString ipCameraPipeline =
+          settings_.value("ipCameraPipeline", defaultIpCameraPipeline)
+              .toString()
+              .trimmed();
+      QString camera2IpCameraAddress =
+          settings_.value("camera2IpCameraAddress", "192.168.144.108")
+              .toString()
+              .trimmed();
+      QString camera2IpCameraPipeline =
+          settings_.value("camera2IpCameraPipeline", defaultIpCameraPipeline)
+              .toString()
+              .trimmed();
+      int ipCameraBitrate =
+          qBound(1, settings_.value("ipCameraBitrate", 2).toInt(), 20);
+      QString sbcValue = settings_.value("sbc").toString();
+      QString modeValue = settings_.value("mode").toString();
+      QString hotspot = settings_.value("hotspot").toString();
+      QString bootType = settings_.value("bootType").toString();
+      const QString imageFileName =
+          settings_.value("fileName").toString().toLower();
+      if (imageFileName.contains("x20")) {
+        bootType = "Air";
+      } else if (imageFileName.contains("lite") ||
+                 imageFileName.contains("minimal")) {
+        // Lite images do not contain the Air-side video stack.
+        bootType = "Ground";
+      }
+      QString qopenhdConfPath = settings_.value("qopenhdConfPath").toString();
+      QString premiumCertificatePath =
+          settings_.value("premiumCertificatePath").toString();
+      QString languageValue = settings_.value("language").toString();
+      QString tokenValue = settings_.value("token").toString();
 
-        QJsonObject openhdSettings;
+      QJsonObject openhdSettings;
 
-        auto mapCameraNameToValue = [&](const QString &cameraNameToMap) -> QString {
-            QString cameraValue;
-            if (cameraNameToMap.isEmpty())
-                return cameraValue;
+      auto mapCameraNameToValue =
+          [&](const QString &cameraNameToMap) -> QString {
+        QString cameraValue;
+        if (cameraNameToMap.isEmpty())
+          return cameraValue;
 
-            qDebug() << "Camera found" << cameraNameToMap;
+        qDebug() << "Camera found" << cameraNameToMap;
 
-            if (sbcValue == "rpi"){
-                //RaspberryPi
-                if (cameraNameToMap == "OV5647"){
-                cameraValue="30";
-                }
-                else if (cameraNameToMap == "IMX219"){
-                cameraValue="31";
-                }
-                else if (cameraNameToMap == "IMX708"){
-                cameraValue="32";
-                }
-                else if (cameraNameToMap == "IMX477"){
-                cameraValue="33";
-                }
-                else if (cameraNameToMap == "HDMI"){
-                cameraValue="20";
-                }
-                //Arducam
-                else if (cameraNameToMap == "SkyMasterHDR708"){
-                cameraValue="40";
-                }
-                else if (cameraNameToMap == "SkyVisionPro519"){
-                cameraValue="41";
-                }
-                else if (cameraNameToMap == "IMX477m"){
-                cameraValue="42";
-                }
-                else if (cameraNameToMap == "IMX462"){
-                cameraValue="43";
-                }
-                else if (cameraNameToMap == "IMX327"){
-                cameraValue="44";
-                }
-                else if (cameraNameToMap == "IMX290"){
-                cameraValue="45";
-                }
-                else if (cameraNameToMap == "IMX462MINI"){
-                cameraValue="46";
-                }
-                else if (cameraNameToMap == "IMX662"){
-                cameraValue="47";
-                }
-                //Veye
-                else if (cameraNameToMap == "2MPCAMERAS"){
-                cameraValue="60";
-                }
-                else if (cameraNameToMap == "CSIMX307"){
-                cameraValue="61";
-                }
-                else if (cameraNameToMap == "CSSC137"){
-                cameraValue="62";
-                }
-                else if (cameraNameToMap == "MVCAM"){
-                cameraValue="63";
-                }
-            }
-            else if (sbcValue == "zero3w"){
-                if (cameraNameToMap == "HDMI"){
-                cameraValue="90";
-                }
-                if (cameraNameToMap == "IMX462"){
-                cameraValue="94";
-                }
-                if (cameraNameToMap == "IMX519"){
-                cameraValue="95";
-                }
-                if (cameraNameToMap == "IMX219"){
-                cameraValue="92";
-                }
-                else if (cameraNameToMap == "OV5647"){
-                cameraValue="91";
-                }
-                else if (cameraNameToMap == "IMX708"){
-                cameraValue="93";
-                }
-                else if (cameraNameToMap == "VEYE"){
-                cameraValue="97";
-                }
-                else if (cameraNameToMap == "OHD-JAGUAR"){
-                cameraValue="96";
-                }
-            }
-            else if ((sbcValue == "rock-5b") || (sbcValue == "rock-5a")) {
-                if (cameraNameToMap == "HDMI"){
-                cameraValue="80";
-                }
-                if (cameraNameToMap == "IMX219"){
-                cameraValue="82";
-                }
-                else if (cameraNameToMap == "OV5647"){
-                cameraValue="81";
-                }
-                else if (cameraNameToMap == "IMX708"){
-                cameraValue="83";
-                }
-                else if (cameraNameToMap == "IMX462"){
-                cameraValue="84";
-                }
-                else if (cameraNameToMap == "IMX415"){
-                cameraValue="85";
-                }
-                else if (cameraNameToMap == "IMX477"){
-                cameraValue="86";
-                }
-                else if (cameraNameToMap == "IMX519"){
-                cameraValue="87";
-                }
-                else if (cameraNameToMap == "OHD-JAGUAR"){
-                cameraValue="88";
-                }
-            }
-
-            if (cameraNameToMap == "FILESRC"){
-                cameraValue="4";
-            }
-            else if (cameraNameToMap == "IP-CAMERA"){
-                cameraValue="3";
-            }
-            else if (cameraNameToMap == "EXTERNAL"){
-                cameraValue="2";
-            }
-            else if (cameraNameToMap == "USB"){
-                cameraValue="1";
-            }
-            else if (cameraNameToMap == "TESTPATTERN"){
-                cameraValue="0";
-            }
-            else if (cameraNameToMap == "INFIRAY"){
-                cameraValue="11";
-            }
-            else if (cameraNameToMap == "INFIRAY_T2"){
-                cameraValue="12";
-            }
-            else if (cameraNameToMap == "INFIRAY_X2"){
-                cameraValue="13";
-            }
-            else if (cameraNameToMap == "INFIRAY_P2_PRO"){
-                cameraValue="14";
-            }
-            else if (cameraNameToMap == "FLIR_VUE" || cameraNameToMap == "FLIR VUE"){
-                cameraValue="15";
-            }
-            else if (cameraNameToMap == "FLIR_BOSON" || cameraNameToMap == "FLIR BOSON"){
-                cameraValue="16";
-            }
-
-            return cameraValue;
-        };
-
-        if (!cameraName.isEmpty()) {
-            const QString cameraValue = mapCameraNameToValue(cameraName);
-            if (!cameraValue.isEmpty())
-                openhdSettings.insert("camera", cameraValue);
+        if (sbcValue == "rpi") {
+          // RaspberryPi
+          if (cameraNameToMap == "OV5647") {
+            cameraValue = "30";
+          } else if (cameraNameToMap == "IMX219") {
+            cameraValue = "31";
+          } else if (cameraNameToMap == "IMX708") {
+            cameraValue = "32";
+          } else if (cameraNameToMap == "IMX477") {
+            cameraValue = "33";
+          } else if (cameraNameToMap == "HDMI") {
+            cameraValue = "20";
+          }
+          // Arducam
+          else if (cameraNameToMap == "SkyMasterHDR708") {
+            cameraValue = "40";
+          } else if (cameraNameToMap == "SkyVisionPro519") {
+            cameraValue = "41";
+          } else if (cameraNameToMap == "IMX477m") {
+            cameraValue = "42";
+          } else if (cameraNameToMap == "IMX462") {
+            cameraValue = "43";
+          } else if (cameraNameToMap == "IMX327") {
+            cameraValue = "44";
+          } else if (cameraNameToMap == "IMX290") {
+            cameraValue = "45";
+          } else if (cameraNameToMap == "IMX462MINI") {
+            cameraValue = "46";
+          } else if (cameraNameToMap == "IMX662") {
+            cameraValue = "47";
+          }
+          // Veye
+          else if (cameraNameToMap == "2MPCAMERAS") {
+            cameraValue = "60";
+          } else if (cameraNameToMap == "CSIMX307") {
+            cameraValue = "61";
+          } else if (cameraNameToMap == "CSSC137") {
+            cameraValue = "62";
+          } else if (cameraNameToMap == "MVCAM") {
+            cameraValue = "63";
+          }
+        } else if (sbcValue == "zero3w") {
+          if (cameraNameToMap == "HDMI") {
+            cameraValue = "90";
+          }
+          if (cameraNameToMap == "IMX462") {
+            cameraValue = "94";
+          }
+          if (cameraNameToMap == "IMX519") {
+            cameraValue = "95";
+          }
+          if (cameraNameToMap == "IMX219") {
+            cameraValue = "92";
+          } else if (cameraNameToMap == "OV5647") {
+            cameraValue = "91";
+          } else if (cameraNameToMap == "IMX708") {
+            cameraValue = "93";
+          } else if (cameraNameToMap == "VEYE") {
+            cameraValue = "97";
+          } else if (cameraNameToMap == "OHD-JAGUAR") {
+            cameraValue = "96";
+          }
+        } else if ((sbcValue == "rock-5b") || (sbcValue == "rock-5a") ||
+                   (sbcValue == "radxa-cm5")) {
+          if (cameraNameToMap == "HDMI") {
+            cameraValue = "80";
+          }
+          if (cameraNameToMap == "IMX219") {
+            cameraValue = "82";
+          } else if (cameraNameToMap == "OV5647") {
+            cameraValue = "81";
+          } else if (cameraNameToMap == "IMX708") {
+            cameraValue = "83";
+          } else if (cameraNameToMap == "IMX462") {
+            cameraValue = "84";
+          } else if (cameraNameToMap == "IMX415") {
+            cameraValue = "85";
+          } else if (cameraNameToMap == "IMX477") {
+            cameraValue = "86";
+          } else if (cameraNameToMap == "IMX519") {
+            cameraValue = "87";
+          } else if (cameraNameToMap == "OHD-JAGUAR") {
+            cameraValue = "88";
+          }
         }
 
-        QString camera2Value = mapCameraNameToValue(camera2Name);
-        if (camera2Value.isEmpty()) {
-            camera2Value = "255";
+        if (cameraNameToMap == "FILESRC") {
+          cameraValue = "4";
+        } else if (cameraNameToMap == "IP-CAMERA") {
+          cameraValue = "3";
+        } else if (cameraNameToMap == "EXTERNAL") {
+          cameraValue = "2";
+        } else if (cameraNameToMap == "USB") {
+          cameraValue = "10";
+        } else if (cameraNameToMap == "TESTPATTERN") {
+          cameraValue = "0";
+        } else if (cameraNameToMap == "INFIRAY") {
+          cameraValue = "11";
+        } else if (cameraNameToMap == "INFIRAY_T2") {
+          cameraValue = "12";
+        } else if (cameraNameToMap == "INFIRAY_X2") {
+          cameraValue = "13";
+        } else if (cameraNameToMap == "INFIRAY_P2_PRO") {
+          cameraValue = "14";
+        } else if (cameraNameToMap == "FLIR_VUE" ||
+                   cameraNameToMap == "FLIR VUE") {
+          cameraValue = "15";
+        } else if (cameraNameToMap == "FLIR_BOSON" ||
+                   cameraNameToMap == "FLIR BOSON") {
+          cameraValue = "16";
+        } else if (cameraNameToMap == "HDZERO") {
+          cameraValue = "70";
+        } else if (cameraNameToMap == "RUNCAM_V1") {
+          cameraValue = "71";
+        } else if (cameraNameToMap == "RUNCAM_V2") {
+          cameraValue = "72";
+        } else if (cameraNameToMap == "RUNCAM_V3") {
+          cameraValue = "73";
+        } else if (cameraNameToMap == "RUNCAM_NANO_90") {
+          cameraValue = "74";
+        } else if (cameraNameToMap == "OHD-JAGUAR-X21") {
+          cameraValue = "76";
+        } else if (cameraNameToMap == "OPENIPC") {
+          cameraValue = "110";
+        } else if (cameraNameToMap == "XAVIER-IMX577") {
+          cameraValue = "101";
+        } else if (cameraNameToMap == "ORQA-HORNET") {
+          cameraValue = "122";
+        } else if (cameraNameToMap == "ORQA-JAGUAR") {
+          cameraValue = "123";
+        } else if (cameraNameToMap == "ORQA-REKINDLE") {
+          cameraValue = "124";
+        } else if (cameraNameToMap == "ROCKCHIP-RV") {
+          cameraValue = "125";
+        } else if (sbcValue == "x20" && cameraNameToMap == "OHD-JAGUAR") {
+          cameraValue = "75";
+        } else if ((sbcValue == "qcs405" || sbcValue == "qrb5165") &&
+                   cameraNameToMap == "IMX577") {
+          cameraValue = "120";
+        } else if ((sbcValue == "qcs405" || sbcValue == "qrb5165") &&
+                   cameraNameToMap == "OV9282") {
+          cameraValue = "121";
         }
-        openhdSettings.insert("camera2", camera2Value);
 
-        if (!cameraName.isEmpty() && !cameraResolutionValue.isEmpty()) {
-            openhdSettings.insert("camera_resolution_fps", cameraResolutionValue);
+        return cameraValue;
+      };
+
+      const QString cameraValue = mapCameraNameToValue(cameraName);
+      if (!cameraName.isEmpty()) {
+        if (!cameraValue.isEmpty())
+          openhdSettings.insert("camera", cameraValue);
+      }
+
+      QString camera2Value = mapCameraNameToValue(camera2Name);
+      if (camera2Value.isEmpty()) {
+        camera2Value = "255";
+      }
+      openhdSettings.insert("camera2", camera2Value);
+
+      if (!cameraName.isEmpty() && !cameraResolutionValue.isEmpty()) {
+        openhdSettings.insert("camera_resolution_fps", cameraResolutionValue);
+      }
+
+      if (camera2Value != "255" && !camera2ResolutionValue.isEmpty()) {
+        openhdSettings.insert("camera2_resolution_fps", camera2ResolutionValue);
+      }
+
+      if (cameraValue == "3") {
+        openhdSettings.insert("ip_camera_address", ipCameraAddress);
+        openhdSettings.insert("ip_camera_pipeline", ipCameraPipeline);
+      }
+      if (camera2Value == "3") {
+        openhdSettings.insert("camera2_ip_camera_address",
+                              camera2IpCameraAddress);
+        openhdSettings.insert("camera2_ip_camera_pipeline",
+                              camera2IpCameraPipeline);
+      }
+      if (cameraValue == "3" || camera2Value == "3") {
+        openhdSettings.insert("ip_camera_bitrate_mbits", ipCameraBitrate);
+      }
+
+      if (!sbcValue.isEmpty()) {
+        openhdSettings.insert("sbc", sbcValue);
+      }
+
+      if (modeValue == "debug") {
+        openhdSettings.insert("debug", true);
+      }
+
+      if (bootType == "Air") {
+        openhdSettings.insert("role", "air");
+      } else if (bootType == "Ground") {
+        openhdSettings.insert("role", "ground");
+      }
+
+      openhdSettings.insert("language", languageValue);
+      openhdSettings.insert("token", tokenValue);
+
+      // Always write settings.json if useSettings is true, even if empty
+      QDir openhdDir(folder + "/openhd");
+      if (!openhdDir.exists() && !openhdDir.mkpath(".")) {
+        emit error(tr("Error creating openhd folder on FAT partition"));
+        return false;
+      }
+
+      QFile settingsFile(openhdDir.filePath("settings.json"));
+      if (settingsFile.open(QIODevice::WriteOnly)) {
+        QJsonDocument doc(openhdSettings);
+        settingsFile.write(doc.toJson());
+        settingsFile.close();
+      } else {
+        emit error(tr("Error writing settings.json on FAT partition"));
+        return false;
+      }
+
+      if (!qopenhdConfPath.isEmpty()) {
+        if (qopenhdConfPath.startsWith("file:")) {
+          qopenhdConfPath = QUrl(qopenhdConfPath).toLocalFile();
+        }
+        QFileInfo confInfo(qopenhdConfPath);
+        if (!confInfo.exists() || !confInfo.isFile()) {
+          emit error(tr("QOpenHD.conf not found at the selected path."));
+          return false;
         }
 
-        if (camera2Value != "255" && !camera2ResolutionValue.isEmpty()) {
-            openhdSettings.insert("camera2_resolution_fps", camera2ResolutionValue);
-        }
-
-        if (!sbcValue.isEmpty()){
-            openhdSettings.insert("sbc", sbcValue);
-        }
-
-        if (modeValue == "debug"){
-            openhdSettings.insert("debug", true);
-        }
-
-        if (bootType == "Air"){
-            openhdSettings.insert("role", "air");
-        }
-        else if(bootType == "Ground"){
-            openhdSettings.insert("role", "ground");
-        }
-
-        openhdSettings.insert("language", languageValue);
-        openhdSettings.insert("token", tokenValue);
-
-        // Always write settings.json if useSettings is true, even if empty
         QDir openhdDir(folder + "/openhd");
         if (!openhdDir.exists() && !openhdDir.mkpath(".")) {
-            emit error(tr("Error creating openhd folder on FAT partition"));
-            return false;
+          emit error(tr("Error creating openhd folder on FAT partition"));
+          return false;
         }
 
-        QFile settingsFile(openhdDir.filePath("settings.json"));
-        if (settingsFile.open(QIODevice::WriteOnly)) {
-            QJsonDocument doc(openhdSettings);
-            settingsFile.write(doc.toJson());
-            settingsFile.close();
-        } else {
-            emit error(tr("Error writing settings.json on FAT partition"));
-            return false;
+        QString targetConfPath = openhdDir.filePath("QOpenHD.conf");
+        if (QFileInfo::exists(targetConfPath) &&
+            !QFile::remove(targetConfPath)) {
+          emit error(
+              tr("Error replacing existing QOpenHD.conf on FAT partition"));
+          return false;
         }
 
-        if (!qopenhdConfPath.isEmpty()) {
-            if (qopenhdConfPath.startsWith("file:")) {
-                qopenhdConfPath = QUrl(qopenhdConfPath).toLocalFile();
-            }
-            QFileInfo confInfo(qopenhdConfPath);
-            if (!confInfo.exists() || !confInfo.isFile()) {
-                emit error(tr("QOpenHD.conf not found at the selected path."));
-                return false;
-            }
+        if (!QFile::copy(qopenhdConfPath, targetConfPath)) {
+          emit error(tr("Error copying QOpenHD.conf to FAT partition"));
+          return false;
+        }
+      }
 
-            QDir openhdDir(folder + "/openhd");
-            if (!openhdDir.exists() && !openhdDir.mkpath(".")) {
-                emit error(tr("Error creating openhd folder on FAT partition"));
-                return false;
-            }
-
-            QString targetConfPath = openhdDir.filePath("QOpenHD.conf");
-            if (QFileInfo::exists(targetConfPath) && !QFile::remove(targetConfPath)) {
-                emit error(tr("Error replacing existing QOpenHD.conf on FAT partition"));
-                return false;
-            }
-
-            if (!QFile::copy(qopenhdConfPath, targetConfPath)) {
-                emit error(tr("Error copying QOpenHD.conf to FAT partition"));
-                return false;
-            }
+      if (!premiumCertificatePath.isEmpty()) {
+        if (premiumCertificatePath.startsWith("file:")) {
+          premiumCertificatePath = QUrl(premiumCertificatePath).toLocalFile();
+        }
+        const QString certificateError =
+            CertificateValidator::validatePremiumCertificateFile(
+                premiumCertificatePath);
+        if (!certificateError.isEmpty()) {
+          emit error(
+              tr("Premium certificate is invalid: %1").arg(certificateError));
+          return false;
         }
 
-        if (!premiumCertificatePath.isEmpty()) {
-            if (premiumCertificatePath.startsWith("file:")) {
-                premiumCertificatePath = QUrl(premiumCertificatePath).toLocalFile();
-            }
-            const QString certificateError =
-                CertificateValidator::validatePremiumCertificateFile(premiumCertificatePath);
-            if (!certificateError.isEmpty()) {
-                emit error(tr("Premium certificate is invalid: %1").arg(certificateError));
-                return false;
-            }
-
-            QDir openhdDir(folder + "/openhd");
-            if (!openhdDir.exists() && !openhdDir.mkpath(".")) {
-                emit error(tr("Error creating openhd folder on FAT partition"));
-                return false;
-            }
-
-            const QString targetCertificatePath =
-                openhdDir.filePath("premium_certificate.ohdcert");
-            if (QFileInfo::exists(targetCertificatePath) &&
-                !QFile::remove(targetCertificatePath)) {
-                emit error(tr("Error replacing existing premium certificate on FAT partition"));
-                return false;
-            }
-
-            if (!QFile::copy(premiumCertificatePath, targetCertificatePath)) {
-                emit error(tr("Error copying premium certificate to FAT partition"));
-                return false;
-            }
+        QDir openhdDir(folder + "/openhd");
+        if (!openhdDir.exists() && !openhdDir.mkpath(".")) {
+          emit error(tr("Error creating openhd folder on FAT partition"));
+          return false;
         }
+
+        const QString targetCertificatePath =
+            openhdDir.filePath("premium_certificate.ohdcert");
+        if (QFileInfo::exists(targetCertificatePath) &&
+            !QFile::remove(targetCertificatePath)) {
+          emit error(tr(
+              "Error replacing existing premium certificate on FAT partition"));
+          return false;
+        }
+
+        if (!QFile::copy(premiumCertificatePath, targetCertificatePath)) {
+          emit error(tr("Error copying premium certificate to FAT partition"));
+          return false;
+        }
+      }
     }
 
     emit finalizing();
