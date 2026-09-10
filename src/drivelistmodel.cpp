@@ -5,7 +5,8 @@
 
 #include "drivelistmodel.h"
 #include "config.h"
-#include "dependencies/drivelist/src/drivelist.hpp"
+#include "drivesafetypolicy.h"
+#include "drivelist/drivelist.h"
 #include <QSet>
 #include <QDebug>
 
@@ -19,11 +20,18 @@ DriveListModel::DriveListModel(QObject *parent)
         {isUsbRole, "isUsb"},
         {isScsiRole, "isScsi"},
         {isReadOnlyRole, "isReadOnly"},
-        {mountpointsRole, "mountpoints"}
+        {mountpointsRole, "mountpoints"},
+        {isMaskromRole, "isMaskrom"},
+        {usbVendorIdRole, "usbVendorId"},
+        {usbProductIdRole, "usbProductId"},
+        {isLoaderRole, "isLoader"},
+        {socNameRole, "socName"},
+        {boardNameRole, "boardName"}
     };
 
     // Enumerate drives in seperate thread, but process results in UI thread
     connect(&_thread, SIGNAL(newDriveList(std::vector<Drivelist::DeviceDescriptor>)), SLOT(processDriveList(std::vector<Drivelist::DeviceDescriptor>)));
+    connect(&_thread, SIGNAL(newRockchipDeviceList(std::vector<RockchipDeviceDescriptor>)), SLOT(processRockchipDeviceList(std::vector<RockchipDeviceDescriptor>)));
 }
 
 int DriveListModel::rowCount(const QModelIndex &) const
@@ -51,6 +59,14 @@ QVariant DriveListModel::data(const QModelIndex &index, int role) const
 
 void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l)
 {
+    if (!l.empty() && l.front().device == "__error__" &&
+        !l.front().error.empty())
+    {
+        qWarning() << "Drive enumeration failed; retaining the previous list:"
+                   << QString::fromStdString(l.front().error);
+        return;
+    }
+
     bool changes = false;
     bool filterSystemDrives = DRIVELIST_FILTER_SYSTEM_DRIVES;
     QSet<QString> drivesInNewList;
@@ -64,27 +80,25 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
             mountpoints.append(QString::fromStdString(s));
         }
 
-        if (filterSystemDrives)
-        {
-            if (i.isSystem)
-                continue;
-        }
-        // Should already be caught by isSystem variable, but just in case...
-        if (mountpoints.contains("/") || mountpoints.contains("C://"))
+        DriveCandidate candidate;
+        candidate.device = QString::fromStdString(i.device);
+        candidate.description = QString::fromStdString(i.description);
+        candidate.busType = QString::fromStdString(i.busType);
+        candidate.enumerator = QString::fromStdString(i.enumerator);
+        candidate.mountpoints = mountpoints;
+        candidate.size = i.size;
+        candidate.readOnly = i.isReadOnly;
+        candidate.system = i.isSystem;
+        candidate.virtualDevice = i.isVirtual;
+        candidate.removable = i.isRemovable;
+        candidate.usb = i.isUSB;
+        candidate.uas = !i.isUASNull && i.isUAS;
+        candidate.scsi = i.isSCSI;
+        const SafeDrive safeDrive = DriveSafetyPolicy::evaluate(candidate);
+        if (!safeDrive.displayable || (filterSystemDrives && safeDrive.system))
             continue;
 
-        // Skip zero-sized devices
-        if (i.size == 0)
-            continue;
-
-#ifdef Q_OS_DARWIN
-        if (i.isVirtual)
-            continue;
-#endif
-
-        QString deviceNamePlusSize = QString::fromStdString(i.device)+":"+QString::number(i.size);
-        if (i.isReadOnly)
-            deviceNamePlusSize += "ro";
+        const QString deviceNamePlusSize = safeDrive.key;
         drivesInNewList.insert(deviceNamePlusSize);
 
         if (!_drivelist.contains(deviceNamePlusSize))
@@ -96,7 +110,9 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
                 changes = true;
             }
 
-            _drivelist[deviceNamePlusSize] = new DriveListItem(QString::fromStdString(i.device), QString::fromStdString(i.description), i.size, i.isUSB, i.isSCSI, i.isReadOnly, mountpoints, this);
+            _drivelist[deviceNamePlusSize] = new DriveListItem(
+                candidate.device, safeDrive.description, i.size, safeDrive.usb,
+                safeDrive.scsi, i.isReadOnly, mountpoints, this);
         }
     }
 
@@ -104,7 +120,7 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
     QStringList drivesInOldList = _drivelist.keys();
     for (auto &device: drivesInOldList)
     {
-        if (!drivesInNewList.contains(device))
+        if (!device.startsWith(QStringLiteral("rockusb:")) && !drivesInNewList.contains(device))
         {
             if (!changes)
             {
@@ -114,6 +130,61 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
 
             _drivelist.value(device)->deleteLater();
             _drivelist.remove(device);
+        }
+    }
+
+    if (changes)
+        endResetModel();
+}
+
+void DriveListModel::processRockchipDeviceList(std::vector<RockchipDeviceDescriptor> l)
+{
+    bool changes = false;
+    QSet<QString> devicesInNewList;
+
+    for (const RockchipDeviceDescriptor &device : l)
+    {
+        const QString key = QStringLiteral("rockusb:") + device.id;
+        devicesInNewList.insert(key);
+        if (_drivelist.contains(key))
+            continue;
+
+        if (!changes)
+        {
+            beginResetModel();
+            changes = true;
+        }
+
+        QString description;
+        if (!device.displayName.isEmpty())
+        {
+            description = device.displayName;
+        }
+        else
+        {
+            description = tr("Rockchip %1 (%2:%3)")
+                    .arg(device.isMaskrom ? tr("MaskROM") : tr("Loader"))
+                    .arg(device.vendorId, 4, 16, QLatin1Char('0'))
+                    .arg(device.productId, 4, 16, QLatin1Char('0'));
+        }
+
+        _drivelist[key] = new DriveListItem(device.id, description, 0, true, false, false,
+                                             {}, device.isMaskrom, device.vendorId, device.productId,
+                                             device.isLoader, device.socName, device.displayName, this);
+    }
+
+    const QStringList oldKeys = _drivelist.keys();
+    for (const QString &key : oldKeys)
+    {
+        if (key.startsWith(QStringLiteral("rockusb:")) && !devicesInNewList.contains(key))
+        {
+            if (!changes)
+            {
+                beginResetModel();
+                changes = true;
+            }
+            _drivelist.value(key)->deleteLater();
+            _drivelist.remove(key);
         }
     }
 

@@ -44,6 +44,10 @@ Rectangle {
     property string camera2IpCameraAddress: "192.168.144.108"
     property string camera2IpCameraPipeline: "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
     property int ipCameraBitrate: 2
+    property bool displayForceMode: false
+    property int displayWidth: 1920
+    property int displayHeight: 1080
+    property int displayRefreshHz: 60
     property string mode: ""
     property string hotSpot: ""
     property string beep: ""
@@ -610,6 +614,31 @@ ImButton {
                                         if (isRpiCsiCamera(camera) && cameraPort === camera2Port)
                                             cameraPort = camera2Port === "cam0" ? "cam1" : "cam0"
                                     }
+                                }
+                            }
+                        }
+
+                        GroupBox {
+                            title: qsTr("Ground display")
+                            Layout.fillWidth: true
+                            visible: bootType === "Ground"
+
+                            ColumnLayout {
+                                spacing: 8
+                                ImCheckBox {
+                                    text: qsTr("Force HDMI resolution and refresh rate")
+                                    checked: displayForceMode
+                                    onClicked: displayForceMode = checked
+                                }
+                                GridLayout {
+                                    columns: 2
+                                    enabled: displayForceMode
+                                    Label { text: qsTr("Width") }
+                                    SpinBox { from: 320; to: 7680; value: displayWidth; onValueModified: displayWidth = value }
+                                    Label { text: qsTr("Height") }
+                                    SpinBox { from: 240; to: 4320; value: displayHeight; onValueModified: displayHeight = value }
+                                    Label { text: qsTr("Refresh rate (Hz)") }
+                                    SpinBox { from: 20; to: 240; value: displayRefreshHz; onValueModified: displayRefreshHz = value }
                                 }
                             }
                         }
@@ -1322,6 +1351,10 @@ ImButton {
         camera2IpCameraAddress = "192.168.144.108"
         camera2IpCameraPipeline = "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
         ipCameraBitrate = 2
+        displayForceMode = false
+        displayWidth = 1920
+        displayHeight = 1080
+        displayRefreshHz = 60
         mode = ""
         qopenhdConfPresent = false
         premiumCertificatePresent = false
@@ -1388,6 +1421,13 @@ ImButton {
         if (loadedIpCameraBitrate >= 1 && loadedIpCameraBitrate <= 20) {
             ipCameraBitrate = loadedIpCameraBitrate
         }
+        displayForceMode = settingsObj.display_force_mode === true
+        var loadedDisplayWidth = parseInt(settingsObj.display_width)
+        var loadedDisplayHeight = parseInt(settingsObj.display_height)
+        var loadedDisplayRefreshHz = parseInt(settingsObj.display_refresh_hz)
+        displayWidth = loadedDisplayWidth >= 320 && loadedDisplayWidth <= 7680 ? loadedDisplayWidth : 1920
+        displayHeight = loadedDisplayHeight >= 240 && loadedDisplayHeight <= 4320 ? loadedDisplayHeight : 1080
+        displayRefreshHz = loadedDisplayRefreshHz >= 20 && loadedDisplayRefreshHz <= 240 ? loadedDisplayRefreshHz : 60
 
         if (settingsObj.camera) {
             setCameraFromValue(settingsObj.camera, "camera")
@@ -1442,6 +1482,13 @@ ImButton {
             settingsObj.role = "air"
         } else if (bootType === "Ground") {
             settingsObj.role = "ground"
+            settingsObj.display_force_mode = displayForceMode
+            if (displayForceMode) {
+                settingsObj.display_width = displayWidth
+                settingsObj.display_height = displayHeight
+                settingsObj.display_refresh_hz = displayRefreshHz
+                settingsObj.display_connector = "HDMI-A-1"
+            }
         }
 
         if (sbc && sbc.length > 0) {
@@ -1553,6 +1600,10 @@ ImButton {
         imageWriter.setSetting("camera2IpCameraAddress", camera2IpCameraAddress)
         imageWriter.setSetting("camera2IpCameraPipeline", camera2IpCameraPipeline)
         imageWriter.setSetting("ipCameraBitrate", ipCameraBitrate)
+        imageWriter.setSetting("displayForceMode", displayForceMode)
+        imageWriter.setSetting("displayWidth", displayWidth)
+        imageWriter.setSetting("displayHeight", displayHeight)
+        imageWriter.setSetting("displayRefreshHz", displayRefreshHz)
         imageWriter.setSetting("mode", mode)
         imageWriter.setSetting("qopenhdConfPath", qopenhdConfPath)
         imageWriter.setSetting("premiumCertificatePath", premiumCertificatePath)

@@ -5,14 +5,15 @@
 
 #include "imagewriter.h"
 #include "certificatevalidator.h"
+#include "openhdstorageservice.h"
 #include "drivelistitem.h"
 #include "downloadextractthread.h"
-#include "dependencies/drivelist/src/drivelist.hpp"
 #include "dependencies/sha256crypt/sha256crypt.h"
 #include "driveformatthread.h"
 #include "localfileextractthread.h"
 #include "downloadstatstelemetry.h"
 #include "updateuploadthread.h"
+#include "rockchipflashthread.h"
 #include <archive.h>
 #include <archive_entry.h>
 #include <random>
@@ -71,7 +72,7 @@
 
 ImageWriter::ImageWriter(QObject *parent)
     : QObject(parent), _repo(QUrl(QString(OSLIST_URL))), _dlnow(0), _writenow(0), _verifynow(0),
-      _engine(nullptr), _thread(nullptr), _updateThread(nullptr), _verifyEnabled(false), _cachingEnabled(false),
+      _engine(nullptr), _thread(nullptr), _updateThread(nullptr), _rockchipThread(nullptr), _verifyEnabled(false), _cachingEnabled(false),
       _embeddedMode(false), _online(false), _trans(nullptr)
 {
     connect(&_polltimer, SIGNAL(timeout()), SLOT(pollProgress()));
@@ -217,6 +218,12 @@ ImageWriter::~ImageWriter()
         _updateThread->wait();
         delete _updateThread;
     }
+    if (_rockchipThread)
+    {
+        _rockchipThread->cancel();
+        _rockchipThread->wait();
+        delete _rockchipThread;
+    }
     if (_trans)
     {
         QCoreApplication::removeTranslator(_trans);
@@ -306,126 +313,32 @@ QString ImageWriter::getDestination() const
 
 QVariantList ImageWriter::listTextFilesOnDevice(const QString &device) const
 {
-    QVariantList files;
-
-    if (device.isEmpty())
-        return files;
-
-    QByteArray targetDeviceLower = device.toLower().toLatin1();
-    auto devices = Drivelist::ListStorageDevices();
-
-    QStringList mountpoints;
-    for (auto &d : devices)
-    {
-        if (QByteArray::fromStdString(d.device).toLower() == targetDeviceLower)
-        {
-            for (auto &mp : d.mountpoints)
-            {
-                QString mount = QString::fromStdString(mp);
-                if (mount.endsWith("/") || mount.endsWith("\\"))
-                    mount.chop(1);
-
-                mountpoints.append(mount);
-            }
-            break;
-        }
-    }
-
-    for (const QString &mountpoint : mountpoints)
-    {
-        QDir dir(mountpoint);
-        const QFileInfoList entries = dir.entryInfoList(QStringList() << "*.txt",
-                                                        QDir::Files | QDir::Readable,
-                                                        QDir::Name | QDir::IgnoreCase);
-
-        for (const QFileInfo &entry : entries)
-        {
-            QVariantMap fileEntry;
-            fileEntry.insert("name", entry.fileName());
-            fileEntry.insert("path", entry.absoluteFilePath());
-            files.append(fileEntry);
-        }
-    }
-
-    return files;
+    return OpenHDStorageService::listTextFilesOnDevice(device);
 }
 
 QString ImageWriter::readTextFile(const QString &filePath) const
 {
-    QFile f(filePath);
-    if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
-        return QString();
-
-    return QString::fromUtf8(f.readAll());
+    return OpenHDStorageService::readTextFile(filePath);
 }
 
 bool ImageWriter::writeTextFile(const QString &filePath, const QString &content) const
 {
-    QFileInfo info(filePath);
-    QDir dir = info.dir();
-    if (!dir.exists()) {
-        if (!dir.mkpath(".")) {
-            qDebug() << "[ImageWriter] Failed to create directory for" << filePath;
-            return false;
-        }
-    }
-
-    QFile f(filePath);
-    if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
-        qDebug() << "[ImageWriter] Failed to open" << filePath << "for writing";
-        return false;
-    }
-
-    QByteArray data = content.toUtf8();
-    bool success = f.write(data) == data.size();
-    f.close();
-    return success;
+    return OpenHDStorageService::writeTextFile(filePath, content);
 }
 
 bool ImageWriter::fileExists(const QString &filePath) const
 {
-    return QFileInfo::exists(filePath);
+    return OpenHDStorageService::fileExists(filePath);
 }
 
 bool ImageWriter::copyFile(const QString &sourcePath, const QString &destinationPath) const
 {
-    QFileInfo sourceInfo(sourcePath);
-    if (!sourceInfo.exists() || !sourceInfo.isFile()) {
-        qDebug() << "[ImageWriter] Source file does not exist" << sourcePath;
-        return false;
-    }
-
-    QFileInfo destinationInfo(destinationPath);
-    QDir destinationDir = destinationInfo.dir();
-    if (!destinationDir.exists() && !destinationDir.mkpath(".")) {
-        qDebug() << "[ImageWriter] Failed to create directory for" << destinationPath;
-        return false;
-    }
-
-    if (QFileInfo::exists(destinationPath) && !QFile::remove(destinationPath)) {
-        qDebug() << "[ImageWriter] Failed to remove existing file" << destinationPath;
-        return false;
-    }
-
-    if (!QFile::copy(sourcePath, destinationPath)) {
-        qDebug() << "[ImageWriter] Failed to copy" << sourcePath << "to" << destinationPath;
-        return false;
-    }
-
-    return true;
+    return OpenHDStorageService::copyFile(sourcePath, destinationPath);
 }
 
 bool ImageWriter::removeFile(const QString &filePath) const
 {
-    if (!QFileInfo::exists(filePath))
-        return true;
-
-    QFile f(filePath);
-    if (!f.remove()) {
-        qDebug() << "[ImageWriter] Failed to remove file" << filePath;
-        return false;
-    }
-    return true;
+    return OpenHDStorageService::removeFile(filePath);
 }
 
 QString ImageWriter::validatePremiumCertificate(const QString &filePath) const
@@ -435,56 +348,7 @@ QString ImageWriter::validatePremiumCertificate(const QString &filePath) const
 
 bool ImageWriter::hasOpenHdSettingsCard() const
 {
-    auto devices = Drivelist::ListStorageDevices();
-    bool filterSystemDrives = DRIVELIST_FILTER_SYSTEM_DRIVES;
-
-    for (auto &d : devices)
-    {
-        if (filterSystemDrives && d.isSystem)
-            continue;
-
-        if (d.size == 0)
-            continue;
-
-#ifdef Q_OS_DARWIN
-        if (d.isVirtual)
-            continue;
-#endif
-
-        for (auto &mp : d.mountpoints)
-        {
-            QString mount = QString::fromStdString(mp);
-            if (mount.isEmpty())
-                continue;
-
-            if (mount.endsWith("/") || mount.endsWith("\\"))
-                mount.chop(1);
-
-            QString mountLower = mount.toLower();
-            if (mountLower == "/" || mountLower.startsWith("c:\\") || mountLower.startsWith("c:/"))
-                continue;
-
-            QStorageInfo storage(mount);
-            if (!storage.isValid() || !storage.isReady())
-                continue;
-
-            QString fsType = QString::fromLatin1(storage.fileSystemType()).toLower();
-            if (fsType.contains("exfat"))
-                continue;
-
-            if (!fsType.contains("fat") && !fsType.contains("msdos"))
-                continue;
-
-            QString settingsPath = QDir(mount).filePath("openhd/settings.json");
-            if (QFileInfo::exists(settingsPath))
-            {
-                qDebug() << "[ImageWriter] OpenHD settings detected at" << settingsPath;
-                return true;
-            }
-        }
-    }
-
-    return false;
+    return OpenHDStorageService::hasSettingsCard();
 }
 
 /* Returns true if src and dst are set */
@@ -501,12 +365,41 @@ void ImageWriter::startWrite()
     if (!readyToWrite())
         return;
 
+    if (_dst.startsWith(QStringLiteral("rockusb:")) || _dst.contains(QStringLiteral("rockusb")))
+    {
+        if (_rockchipThread)
+        {
+            _rockchipThread->cancel();
+            _rockchipThread->wait();
+            delete _rockchipThread;
+            _rockchipThread = nullptr;
+        }
+
+        _rockchipThread = new RockchipFlashThread(_src, _dst, this);
+        connect(_rockchipThread, &RockchipFlashThread::writeProgress, this, &ImageWriter::writeProgress);
+        connect(_rockchipThread, &RockchipFlashThread::preparationStatusUpdate, this, &ImageWriter::preparationStatusUpdate);
+        connect(_rockchipThread, &RockchipFlashThread::finalizing, this, &ImageWriter::onFinalizing);
+        connect(_rockchipThread, &RockchipFlashThread::success, this, &ImageWriter::onSuccess);
+        connect(_rockchipThread, &RockchipFlashThread::error, this, [this](QVariant msg) {
+            onError(msg.toString());
+        });
+        _rockchipThread->start();
+        return;
+    }
+
     if (_src.toString() == "internal://format")
     {
         DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), this);
         connect(dft, SIGNAL(success()), SLOT(onSuccess()));
         connect(dft, SIGNAL(error(QString)), SLOT(onError(QString)));
         dft->start();
+        return;
+    }
+
+    if (isOhdFile(_src))
+    {
+        qDebug() << "[ImageWriter] .ohd update file detected in startWrite(), writing to FAT32 partition of" << _dst;
+        startUpdateUpload(_src.toString(), _dst, QString(), QString(), QByteArray());
         return;
     }
 
@@ -644,6 +537,26 @@ void ImageWriter::onCacheFileUpdated(QByteArray sha256)
 /* Cancel write */
 void ImageWriter::cancelWrite()
 {
+    if (_rockchipThread)
+    {
+        _rockchipThread->cancel();
+        _rockchipThread->wait();
+        delete _rockchipThread;
+        _rockchipThread = nullptr;
+        emit cancelled();
+        return;
+    }
+
+    if (_updateThread)
+    {
+        _updateThread->cancel();
+        _updateThread->wait();
+        delete _updateThread;
+        _updateThread = nullptr;
+        emit cancelled();
+        return;
+    }
+
     if (_thread)
     {
         connect(_thread, SIGNAL(finished()), SLOT(onCancelled()));
@@ -742,11 +655,13 @@ void ImageWriter::startProgressPolling()
     }
 #endif
     _dlnow = 0; _writenow = 0; _verifynow = 0;
+    _writeWatchdog.start(QDateTime::currentMSecsSinceEpoch());
     _polltimer.start(PROGRESS_UPDATE_INTERVAL);
 }
 
 void ImageWriter::stopProgressPolling()
 {
+    _writeWatchdog.stop();
     _polltimer.stop();
     pollProgress();
 #ifdef Q_OS_WIN
@@ -806,6 +721,34 @@ void ImageWriter::pollProgress()
 
     quint64 newVerifyNow = _thread->verifyNow();
 
+    WriteProgressWatchdog::Snapshot watchdogSnapshot;
+    watchdogSnapshot.downloaded = downloadNow;
+    watchdogSnapshot.written = writeNow;
+    watchdogSnapshot.verified = newVerifyNow;
+    watchdogSnapshot.deviceOperationActive = _thread->deviceOperationActive();
+    const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
+    switch (_writeWatchdog.observe(nowMs, watchdogSnapshot))
+    {
+    case WriteProgressWatchdog::Action::Warn:
+        qWarning() << "Storage write has made no progress for"
+                   << _writeWatchdog.stalledForMs(nowMs) / 1000 << "seconds";
+        break;
+    case WriteProgressWatchdog::Action::RequestRecovery:
+        qWarning() << "Storage write stalled; requesting native I/O cancellation and retry";
+        _thread->requestWriteRecovery();
+        break;
+    case WriteProgressWatchdog::Action::HardTimeout:
+        qCritical() << "Storage write hard timeout after"
+                    << _writeWatchdog.stalledForMs(nowMs) / 1000 << "seconds";
+        _writeWatchdog.stop();
+        _thread->cancelDownload();
+        onError(tr("Write stalled because the storage device stopped responding.<br>"
+                   "Please reconnect or replace the storage device and try again."));
+        return;
+    case WriteProgressWatchdog::Action::None:
+        break;
+    }
+
     if (newVerifyNow != _verifynow)
     {
         _verifynow = newVerifyNow;
@@ -828,6 +771,16 @@ void ImageWriter::setVerifyEnabled(bool verify)
         _thread->setVerifyEnabled(verify);
 }
 
+bool ImageWriter::isOhdFile(const QUrl &url) const
+{
+    return OpenHDStorageService::isOhdFile(url);
+}
+
+QString ImageWriter::findFatPartition(const QString &device) const
+{
+    return OpenHDStorageService::findFatPartition(device);
+}
+
 void ImageWriter::startUpdateUpload(const QString &sourceFile, const QString &device,
                                     const QString &targetSubdirectory,
                                     const QString &destinationFileName,
@@ -837,63 +790,104 @@ void ImageWriter::startUpdateUpload(const QString &sourceFile, const QString &de
     if (sourceFile.isEmpty())
     {
         emit updateUploadError(tr("No update package selected."));
+        onError(tr("No update package selected."));
         return;
     }
     if (targetDevice.isEmpty())
     {
         emit updateUploadError(tr("No destination drive selected."));
+        onError(tr("No destination drive selected."));
         return;
     }
 
-    QByteArray targetDeviceLower = targetDevice.toLower().toLatin1();
-    auto devices = Drivelist::ListStorageDevices();
-    QString mountpoint;
-    QString fallbackMountpoint;
-
-    for (auto &d : devices)
+    if (targetDevice.startsWith(QStringLiteral("rockusb:")) || targetDevice.contains(QStringLiteral("rockusb")))
     {
-        if (QByteArray::fromStdString(d.device).toLower() == targetDeviceLower)
+        if (_rockchipThread)
         {
-            for (auto &mp : d.mountpoints)
-            {
-                QString mount = QString::fromStdString(mp);
-                if (mount.endsWith("/") || mount.endsWith("\\"))
-                    mount.chop(1);
-
-                if (QFileInfo::exists(mount + "/config.txt"))
-                {
-                    mountpoint = mount;
-                    break;
-                }
-                if (targetSubdirectory.isEmpty() && fallbackMountpoint.isEmpty() && QFileInfo(mount).isDir())
-                    fallbackMountpoint = mount;
-            }
-            if (mountpoint.isEmpty())
-                mountpoint = fallbackMountpoint;
-            break;
+            _rockchipThread->cancel();
+            _rockchipThread->wait();
+            delete _rockchipThread;
+            _rockchipThread = nullptr;
         }
+
+        QUrl srcUrl = sourceFile.startsWith(QStringLiteral("http://"), Qt::CaseInsensitive) ||
+                      sourceFile.startsWith(QStringLiteral("https://"), Qt::CaseInsensitive)
+                ? QUrl(sourceFile)
+                : QUrl::fromLocalFile(sourceFile);
+
+        _rockchipThread = new RockchipFlashThread(srcUrl, targetDevice, this);
+        connect(_rockchipThread, &RockchipFlashThread::writeProgress, this, [this](QVariant now, QVariant total) {
+            quint64 n = now.toULongLong();
+            quint64 t = total.toULongLong();
+            if (t > 0)
+            {
+                qreal prog = static_cast<qreal>(n) / static_cast<qreal>(t);
+                emit updateUploadProgress(prog);
+                emit writeProgress(n, t);
+            }
+        });
+        connect(_rockchipThread, &RockchipFlashThread::preparationStatusUpdate, this, [this](QVariant msg) {
+            emit updateUploadStatus(msg.toString());
+            emit preparationStatusUpdate(msg);
+        });
+        connect(_rockchipThread, &RockchipFlashThread::finalizing, this, [this]() {
+            emit updateUploadStatus(tr("Finalizing and rebooting OpenHD device..."));
+            emit onFinalizing();
+        });
+        connect(_rockchipThread, &RockchipFlashThread::success, this, [this]() {
+            emit updateUploadSuccess();
+            onSuccess();
+        });
+        connect(_rockchipThread, &RockchipFlashThread::error, this, [this](QVariant msg) {
+            emit updateUploadError(msg.toString());
+            onError(msg.toString());
+        });
+        _rockchipThread->start();
+        return;
     }
 
+    QString mountpoint = findFatPartition(targetDevice);
     if (mountpoint.isEmpty())
     {
         emit updateUploadError(tr("Unable to find OpenHD FAT partition on %1").arg(targetDevice));
+        onError(tr("Unable to find OpenHD FAT partition on %1").arg(targetDevice));
         return;
+    }
+
+    QString targetSubdir = targetSubdirectory;
+    bool isOhd = sourceFile.toLower().endsWith(QStringLiteral(".ohd")) ||
+                 destinationFileName.toLower().endsWith(QStringLiteral(".ohd"));
+    if (isOhd && targetSubdir == QStringLiteral("openhd"))
+    {
+        targetSubdir.clear(); // .ohd files belong directly on the FAT32 partition root
     }
 
     if (_updateThread)
     {
-        _updateThread->quit();
+        _updateThread->cancel();
         _updateThread->wait();
         _updateThread->deleteLater();
         _updateThread = nullptr;
     }
 
-    _updateThread = new UpdateUploadThread(sourceFile, mountpoint, targetSubdirectory,
+    _updateThread = new UpdateUploadThread(sourceFile, mountpoint, targetSubdir,
                                            destinationFileName, expectedSha256, this);
-    connect(_updateThread, &UpdateUploadThread::progress, this, &ImageWriter::onUpdateUploadProgress);
-    connect(_updateThread, &UpdateUploadThread::status, this, &ImageWriter::onUpdateUploadStatus);
-    connect(_updateThread, &UpdateUploadThread::error, this, &ImageWriter::onUpdateUploadError);
-    connect(_updateThread, &UpdateUploadThread::success, this, &ImageWriter::onUpdateUploadSuccess);
+    connect(_updateThread, &UpdateUploadThread::progress, this, [this](qreal percentage) {
+        emit updateUploadProgress(percentage);
+        emit writeProgress(static_cast<quint64>(percentage * 1000000), 1000000);
+    });
+    connect(_updateThread, &UpdateUploadThread::status, this, [this](const QString &msg) {
+        emit updateUploadStatus(msg);
+        emit preparationStatusUpdate(msg);
+    });
+    connect(_updateThread, &UpdateUploadThread::error, this, [this](const QString &msg) {
+        emit updateUploadError(msg);
+        onError(msg);
+    });
+    connect(_updateThread, &UpdateUploadThread::success, this, [this]() {
+        emit updateUploadSuccess();
+        onSuccess();
+    });
     _updateThread->start();
 }
 
@@ -975,7 +969,7 @@ void ImageWriter::openFileDialog()
 
     QFileDialog *fd = new QFileDialog(nullptr, tr("Select image"),
                                       path,
-                                      "Image files (*.img *.zip *.iso *.gz *.xz *.zst);;All files (*.*)");
+                                      "Image & Update files (*.img *.zip *.iso *.gz *.xz *.zst *.ohd);;OpenHD Update (*.ohd);;All files (*.*)");
     connect(fd, SIGNAL(fileSelected(QString)), SLOT(onFileSelected(QString)));
 
     if (_engine)

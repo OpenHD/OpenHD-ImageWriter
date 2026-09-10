@@ -10,7 +10,7 @@
 #include <QCommandLineParser>
 #include <QFileInfo>
 #include "drivelistmodel.h"
-#include "dependencies/drivelist/src/drivelist.hpp"
+#include "drivelist/drivelist.h"
 
 /* Message handler to discard qDebug() output if using cli (unless --debug is set) */
 static void devnullMsgHandler(QtMsgType, const QMessageLogContext &, const QString &)

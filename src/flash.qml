@@ -1037,6 +1037,10 @@ Rectangle {
             width: window.width-100
             height: 60
             Accessible.name: {
+                if (isMaskrom)
+                    return description + ". " + qsTr("Detected in MaskROM mode")
+                if (isLoader)
+                    return description + ". " + qsTr("Detected in Loader mode")
                 var txt = description+" - "+(size/1000000000).toFixed(1)+" gigabytes"
                 if (mountpoints.length > 0) {
                     txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))
@@ -1046,6 +1050,8 @@ Rectangle {
             property string description: model.description
             property string device: model.device
             property string size: model.size
+            property bool isMaskrom: typeof(model.isMaskrom) != "undefined" && model.isMaskrom
+            property bool isLoader: typeof(model.isLoader) != "undefined" && model.isLoader
 
             Rectangle {
                 id: dstbgrect
@@ -1087,6 +1093,14 @@ Rectangle {
                         verticalAlignment: Text.AlignVCenter
                         font.family: roboto.name
                         text: {
+                            if (isMaskrom) {
+                                return "<p><font size='4'>"+description+"</font></p>" +
+                                       "<font color='#28a745'>"+qsTr("Recovery mode (MaskROM) — will load bootloader and flash via Rockchip USB")+"</font>"
+                            }
+                            if (isLoader) {
+                                return "<p><font size='4'>"+description+"</font></p>" +
+                                       "<font color='#28a745'>"+qsTr("Loader mode — ready to flash firmware")+"</font>"
+                            }
                             var sizeStr = (size/1000000000).toFixed(1)+" GB";
                             var txt;
                             if (isReadOnly) {
@@ -1170,6 +1184,16 @@ Rectangle {
 
         function askForConfirmation()
         {
+            var isRockusb = (imageWriter.dst().indexOf("rockusb:") === 0);
+            if (imageWriter.isOhdFile(imageWriter.src())) {
+                if (isRockusb) {
+                    text = qsTr("The update (.ohd) will be flashed directly to the board over Rockchip USB.<br><br>Are you sure you want to continue?")
+                } else {
+                    text = qsTr("The update package (.ohd) will be copied to the FAT32 partition on <b>%1</b>.<br><br>Are you sure you want to continue?").arg(dstbutton.text)
+                }
+                openPopup()
+                return
+            }
             var bootType=imageWriter.getValue("bootType");
             if(bootType==="Ground"){
             text = qsTr("All existing data on <b>%1</b> will be erased.<br><b>This Device will boot as Groundstation!</b><br>Are you sure you want to continue?").arg(dstbutton.text)
@@ -1399,6 +1423,22 @@ Rectangle {
     }
 
     function onSuccess() {
+        if (imageWriter.isOhdFile(imageWriter.src())) {
+            var isRockusb = (imageWriter.dst().indexOf("rockusb:") === 0);
+            msgpopup.title = qsTr("Update complete!")
+            if (isRockusb) {
+                msgpopup.text = qsTr("<b>%1</b> was flashed to the board.<br>The board is now rebooting.").arg(osbutton.text)
+            } else {
+                msgpopup.text = qsTr("<b>%1</b> was copied to the FAT32 partition on <b>%2</b>.<br>You can now safely remove the card and insert it into your board.").arg(osbutton.text).arg(dstbutton.text)
+            }
+            msgpopup.continueButton = false
+            msgpopup.detailsButton = false
+            msgpopup.openPopup()
+            resetWorkflowAfterSuccess()
+            resetWriteButton()
+            return
+        }
+
         msgpopup.title = qsTr("Image was written successfully!")
         if (osbutton.text === qsTr("Erase"))
             msgpopup.text = qsTr("<b>%1</b> has been erased<br><br> You can now remove the SD card from the reader").arg(dstbutton.text)

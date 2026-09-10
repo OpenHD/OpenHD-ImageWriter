@@ -14,10 +14,12 @@
 #include "config.h"
 #include "powersaveblocker.h"
 #include "drivelistmodel.h"
+#include "writeprogresswatchdog.h"
 
 class QQmlApplicationEngine;
 class DownloadThread;
 class UpdateUploadThread;
+class RockchipFlashThread;
 class QNetworkReply;
 class QWinTaskbarButton;
 class QTranslator;
@@ -110,6 +112,8 @@ public:
                                        const QString &destinationFileName,
                                        const QByteArray &expectedSha256);
     Q_INVOKABLE QString getDestination() const;
+    Q_INVOKABLE bool isOhdFile(const QUrl &url) const;
+    QString findFatPartition(const QString &device) const;
 
     /* Helpers for reading and writing configuration files on target devices */
     Q_INVOKABLE QVariantList listTextFilesOnDevice(const QString &device) const;
@@ -189,9 +193,11 @@ protected:
     DriveListModel _drivelist;
     QQmlApplicationEngine *_engine;
     QTimer _polltimer, _networkchecktimer;
+    WriteProgressWatchdog _writeWatchdog;
     PowerSaveBlocker _powersave;
     DownloadThread *_thread;
     UpdateUploadThread *_updateThread;
+    RockchipFlashThread *_rockchipThread;
     bool _verifyEnabled, _multipleFilesInZip, _cachingEnabled, _embeddedMode, _online;
     QSettings _settings;
     QMap<QString,QString> _translations;

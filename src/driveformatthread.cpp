@@ -4,13 +4,16 @@
  */
 
 #include "driveformatthread.h"
-#include "dependencies/drivelist/src/drivelist.hpp"
+#include "diskformatter.h"
+#include "drivelist/drivelist.h"
 #include "dependencies/mountutils/src/mountutils.hpp"
 #include <regex>
 #include <QDebug>
 #include <QProcess>
-#include <QTemporaryFile>
-#include <QCoreApplication>
+
+#ifdef Q_OS_WIN
+#include "windows/windowsdiskpreparation.h"
+#endif
 
 #ifdef Q_OS_LINUX
 #include "linux/udisks2api.h"
@@ -36,73 +39,71 @@ void DriveFormatThread::run()
 
     if (std::regex_match(_device.constData(), m, windriveregex))
     {
-        QByteArray nr = QByteArray::fromStdString(m[1]);
-
-        qDebug() << "Formatting Windows drive #" << nr << "(" << _device << ")";
-
-        QProcess proc;
-        QByteArray diskpartCmds =
-                "select disk "+nr+"\r\n"
-                "clean\r\n"
-                "create partition primary\r\n"
-                "select partition 1\r\n"
-                "set id=0e\r\n"
-                "assign\r\n";
-        proc.start("diskpart");
-        proc.waitForStarted();
-        proc.write(diskpartCmds);
-        proc.closeWriteChannel();
-        proc.waitForFinished();
-
-        QByteArray output = proc.readAllStandardError();
-        qDebug() << output;
-        qDebug() << "Done running diskpart. Exit status code =" << proc.exitCode();
-
-        if (proc.exitCode())
+        const auto devices = Drivelist::ListStorageDevices();
+        const QByteArray target = _device.toLower();
+        const Drivelist::DeviceDescriptor *targetDevice = nullptr;
+        if (!devices.empty() && devices.front().device == "__error__")
         {
-            emit error(tr("Error partitioning: %1").arg(QString(output)));
+            emit error(tr("Cannot enumerate the target drive: %1")
+                       .arg(QString::fromStdString(devices.front().error)));
+            return;
         }
-        else
+        for (const Drivelist::DeviceDescriptor &device : devices)
         {
-            auto l = Drivelist::ListStorageDevices();
-            QByteArray devlower = _device.toLower();
-            for (auto i : l)
+            if (QByteArray::fromStdString(device.device).toLower() == target)
             {
-                if (QByteArray::fromStdString(i.device).toLower() == devlower && i.mountpoints.size() == 1)
-                {
-                    QByteArray driveLetter = QByteArray::fromStdString(i.mountpoints.front());
-                    if (driveLetter.endsWith("\\"))
-                        driveLetter.chop(1);
-                    qDebug() << "Drive letter of device:" << driveLetter;
-
-                    QProcess f32format;
-                    QStringList args;
-                    args << "-y" << driveLetter;
-                    f32format.start(QCoreApplication::applicationDirPath()+"/fat32format.exe", args);
-                    if (!f32format.waitForStarted())
-                    {
-                        emit error(tr("Error starting fat32format"));
-                        return;
-                    }
-
-                    //f32format.write("y\r\n");
-                    f32format.closeWriteChannel();
-                    f32format.waitForFinished(120000);
-
-                    if (f32format.exitStatus() || f32format.exitCode())
-                    {
-                        emit error(tr("Error running fat32format: %1").arg(QString(f32format.readAll())));
-                    }
-                    else
-                    {
-                        emit success();
-                    }
-                    return;
-                }
+                targetDevice = &device;
+                break;
             }
-
-            emit error(tr("Error determining new drive letter"));
         }
+        if (!targetDevice)
+        {
+            emit error(tr("The selected storage device is no longer available."));
+            return;
+        }
+        if (targetDevice->isSystem)
+        {
+            emit error(tr("Refusing to format a system drive."));
+            return;
+        }
+
+        WindowsDiskPreparation::LockedVolumes lockedVolumes;
+        QString nativeError;
+        if (!lockedVolumes.lockAndDismount(targetDevice->mountpoints, &nativeError))
+        {
+            emit error(tr("Cannot lock the target volumes: %1").arg(nativeError));
+            return;
+        }
+        if (!WindowsDiskPreparation::clearPartitionTable(
+                QString::fromUtf8(_device), &nativeError))
+        {
+            emit error(nativeError);
+            return;
+        }
+
+        DiskFormatter formatter;
+        const DiskFormatError formatResult =
+            formatter.formatFat32(QString::fromUtf8(_device), QByteArray("SDCARD"));
+        if (formatResult != DiskFormatError::Success)
+        {
+            emit error(tr("Error formatting: %1")
+                       .arg(DiskFormatter::errorMessage(formatResult)));
+            return;
+        }
+        lockedVolumes.release();
+        if (!WindowsDiskPreparation::rescanDisk(QString::fromUtf8(_device), &nativeError))
+        {
+            emit error(nativeError);
+            return;
+        }
+        const QString mountpoint = WindowsDiskPreparation::ensureDriveLetter(
+            QString::fromUtf8(_device), 10000, &nativeError);
+        if (mountpoint.isEmpty())
+        {
+            emit error(tr("Error determining new drive letter: %1").arg(nativeError));
+            return;
+        }
+        emit success();
     }
     else
     {

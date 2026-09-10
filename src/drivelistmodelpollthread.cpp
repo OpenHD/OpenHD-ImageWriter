@@ -8,27 +8,29 @@
  */
 
 DriveListModelPollThread::DriveListModelPollThread(QObject *parent)
-    : QThread(parent), _terminate(false)
+    : QThread(parent)
 {
     qRegisterMetaType< std::vector<Drivelist::DeviceDescriptor> >( "std::vector<Drivelist::DeviceDescriptor>" );
+    qRegisterMetaType< std::vector<RockchipDeviceDescriptor> >( "std::vector<RockchipDeviceDescriptor>" );
 }
 
 DriveListModelPollThread::~DriveListModelPollThread()
 {
-    _terminate = true;
-    if (!wait(2000)) {
-        terminate();
-    }
+    stop();
+    wait();
 }
 
 void DriveListModelPollThread::stop()
 {
-    _terminate = true;
+    _terminate.store(true);
+    _wakeCondition.wakeAll();
 }
 
 void DriveListModelPollThread::start()
 {
-    _terminate = false;
+    if (isRunning())
+        return;
+    _terminate.store(false);
     QThread::start();
 }
 
@@ -36,12 +38,17 @@ void DriveListModelPollThread::run()
 {
     QElapsedTimer t1;
 
-    while (!_terminate)
+    while (!_terminate.load())
     {
         t1.start();
         emit newDriveList( Drivelist::ListStorageDevices() );
+        if (_terminate.load())
+            break;
+        emit newRockchipDeviceList( listRockchipUsbDevices() );
         if (t1.elapsed() > 1000)
             qDebug() << "Enumerating drives took a long time:" << t1.elapsed()/1000.0 << "seconds";
-        QThread::sleep(1);
+        QMutexLocker locker(&_waitMutex);
+        if (!_terminate.load())
+            _wakeCondition.wait(&_waitMutex, 1000);
     }
 }

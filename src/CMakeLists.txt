@@ -10,8 +10,8 @@ OPTION (ENABLE_CHECK_VERSION "Check for version updates" ON)
 OPTION (ENABLE_TELEMETRY "Enable sending telemetry" ON)
 
 project(OpenHDImageWriter LANGUAGES CXX C)
-set(IMAGER_VERSION_MAJOR 3)
-set(IMAGER_VERSION_MINOR 1)
+set(IMAGER_VERSION_MAJOR 4)
+set(IMAGER_VERSION_MINOR 0)
 set(IMAGER_VERSION_PATCH 0)
 set(IMAGER_VERSION_STR "${IMAGER_VERSION_MAJOR}.${IMAGER_VERSION_MINOR}.${IMAGER_VERSION_PATCH}")
 set(IMAGER_VERSION_CSV "${IMAGER_VERSION_MAJOR},${IMAGER_VERSION_MINOR},${IMAGER_VERSION_PATCH},0")
@@ -23,17 +23,19 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 # Adding headers explicity so they are displayed in Qt Creator
-set(HEADERS config.h certificatevalidator.h imagewriter.h networkaccessmanagerfactory.h nan.h drivelistitem.h drivelistmodel.h drivelistmodelpollthread.h driveformatthread.h powersaveblocker.h cli.h
+set(HEADERS config.h archivepathvalidator.h certificatevalidator.h blockbatcher.h curlnetworkconfig.h curlretrypolicy.h diskformatter.h drivesafetypolicy.h drivelist/drivelist.h file_operations.h ringbuffer.h writeprogresswatchdog.h openhdimagecustomizer.h openhdstorageselector.h openhdstorageservice.h imagewriter.h networkaccessmanagerfactory.h nan.h drivelistitem.h drivelistmodel.h drivelistmodelpollthread.h rockchipdevice.h driveformatthread.h powersaveblocker.h cli.h
     downloadthread.h downloadextractthread.h localfileextractthread.h downloadstatstelemetry.h updateuploadthread.h dependencies/mountutils/src/mountutils.hpp dependencies/sha256crypt/sha256crypt.h)
 
 # Add dependencies
 if (APPLE)
     set_source_files_properties("icons/openhdimagewriter.icns" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
-    set(DEPENDENCIES acceleratedcryptographichash.cpp mac/macfile.cpp mac/macfile.h dependencies/mountutils/src/darwin/functions.cpp
-        dependencies/drivelist/src/darwin/list.mm dependencies/drivelist/src/darwin/REDiskList.m icons/openhdimagewriter.icns)
-    enable_language(OBJC C)
+    set(FILE_OPERATIONS_PLATFORM_SOURCE mac/file_operations_macos.cpp)
+    set(DEPENDENCIES acceleratedcryptographichash.cpp ${FILE_OPERATIONS_PLATFORM_SOURCE} mac/macfile.cpp mac/macfile.h dependencies/mountutils/src/darwin/functions.cpp
+        drivelist/drivelist_darwin.mm icons/openhdimagewriter.icns)
+    enable_language(OBJC OBJCXX C)
 elseif (UNIX)
-    set(DEPENDENCIES dependencies/mountutils/src/linux/functions.cpp linux/linuxdrivelist.cpp)
+    set(FILE_OPERATIONS_PLATFORM_SOURCE linux/file_operations_linux.cpp)
+    set(DEPENDENCIES ${FILE_OPERATIONS_PLATFORM_SOURCE} dependencies/mountutils/src/linux/functions.cpp drivelist/drivelist_linux.cpp)
     find_package(OpenSSL REQUIRED)
     find_package(Qt5DBus)
     if(Qt5DBus_FOUND)
@@ -60,11 +62,12 @@ elseif (UNIX)
         set(DEPENDENCIES ${DEPENDENCIES} acceleratedcryptographichash.cpp)
     endif()
 elseif (WIN32)
-    set(DEPENDENCIES acceleratedcryptographichash.cpp dependencies/mountutils/src/windows/functions.cpp dependencies/drivelist/src/windows/list.cpp
-        windows/winfile.cpp windows/winfile.h
+    set(FILE_OPERATIONS_PLATFORM_SOURCE windows/file_operations_windows.cpp)
+    set(DEPENDENCIES acceleratedcryptographichash.cpp ${FILE_OPERATIONS_PLATFORM_SOURCE} dependencies/mountutils/src/windows/functions.cpp drivelist/drivelist_windows.cpp
+        windows/windowsdiskpreparation.cpp windows/windowsdiskpreparation.h
         windows/openhdimagewriter.rc)
     find_package(Qt5WinExtras REQUIRED)
-    set(EXTRALIBS setupapi wlanapi Qt5::WinExtras)
+    set(EXTRALIBS setupapi shell32 ole32 wlanapi Qt5::WinExtras)
 endif()
 
 include_directories(BEFORE .)
@@ -88,8 +91,8 @@ if (NOT atomicbuiltin)
         endif()
 endif()
 
-set(SOURCES "main.cpp" "certificatevalidator.cpp" "imagewriter.cpp" "networkaccessmanagerfactory.cpp"
-    "drivelistitem.cpp" "drivelistmodel.cpp" "drivelistmodelpollthread.cpp" "downloadthread.cpp" "downloadextractthread.cpp"
+set(SOURCES "main.cpp" "archivepathvalidator.cpp" "certificatevalidator.cpp" "blockbatcher.cpp" "curlnetworkconfig.cpp" "curlretrypolicy.cpp" "diskformatter.cpp" "drivesafetypolicy.cpp" "file_operations.cpp" "ringbuffer.cpp" "writeprogresswatchdog.cpp" "openhdimagecustomizer.cpp" "openhdstorageselector.cpp" "openhdstorageservice.cpp" "imagewriter.cpp" "networkaccessmanagerfactory.cpp"
+    "drivelistitem.cpp" "drivelistmodel.cpp" "drivelistmodelpollthread.cpp" "rockchipdevice.cpp" "rockchipflashthread.cpp" "downloadthread.cpp" "downloadextractthread.cpp"
      "driveformatthread.cpp" "localfileextractthread.cpp" "powersaveblocker.cpp" "downloadstatstelemetry.cpp" "updateuploadthread.cpp" "qml.qrc" "dependencies/sha256crypt/sha256crypt.c" "cli.cpp")
 
 find_package(Qt5 COMPONENTS Core Quick LinguistTools Svg OPTIONAL_COMPONENTS Widgets)
@@ -187,10 +190,6 @@ if (WIN32)
     set(LibArchive_LIBRARIES archive_static)
     set(LibArchive_INCLUDE_DIR dependencies/libarchive-3.5.2/libarchive)
 
-    # Bundled fat32format
-    add_subdirectory(dependencies/fat32format)
-    add_dependencies(${PROJECT_NAME} fat32format)
-
     # Strip debug symbols
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
@@ -208,7 +207,7 @@ if (WIN32)
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-            "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe" "${CMAKE_BINARY_DIR}/dependencies/fat32format/fat32format.exe"
+            "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe"
             "${CMAKE_SOURCE_DIR}/../license.txt" "${CMAKE_SOURCE_DIR}/windows/openhdimagewriter.cmd"
             "${CMAKE_BINARY_DIR}/deploy")
 
@@ -337,8 +336,9 @@ elseif(APPLE)
     find_library(Cocoa Cocoa)
     find_library(CoreFoundation CoreFoundation)
     find_library(DiskArbitration DiskArbitration)
+    find_library(IOKit IOKit)
     find_library(Security Security)
-    set(EXTRALIBS ${EXTRALIBS} ${CoreFoundation} ${DiskArbitration} ${Security} ${Cocoa})
+    set(EXTRALIBS ${EXTRALIBS} ${CoreFoundation} ${DiskArbitration} ${IOKit} ${Security} ${Cocoa})
     set_target_properties(${PROJECT_NAME} PROPERTIES MACOSX_BUNDLE YES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/mac/Info.plist.in)
 
     find_program(MACDEPLOYQT "macdeployqt" PATHS "${Qt5_DIR}/../../../bin")
@@ -414,4 +414,31 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     ${OPENSSL_LIBRARIES}
     ${ATOMIC_LIBRARY}
     ${EXTRALIBS})
+endif()
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(openhd_backend_tests
+        test/openhdbackend_test.cpp
+        archivepathvalidator.cpp
+        blockbatcher.cpp
+        curlretrypolicy.cpp
+        diskformatter.cpp
+        drivesafetypolicy.cpp
+        file_operations.cpp
+        ${FILE_OPERATIONS_PLATFORM_SOURCE}
+        ringbuffer.cpp
+        writeprogresswatchdog.cpp
+        openhdimagecustomizer.cpp
+        openhdstorageselector.cpp
+        certificatevalidator.cpp)
+    target_include_directories(openhd_backend_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CURL_INCLUDE_DIR}
+        ${OPENSSL_INCLUDE_DIR})
+    target_link_libraries(openhd_backend_tests PRIVATE Qt5::Core)
+    if(NOT APPLE)
+        target_link_libraries(openhd_backend_tests PRIVATE ${OPENSSL_LIBRARIES})
+    endif()
+    add_test(NAME openhd_backend_characterization COMMAND openhd_backend_tests)
 endif()

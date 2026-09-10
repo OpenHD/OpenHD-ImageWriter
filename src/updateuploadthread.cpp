@@ -29,15 +29,28 @@ UpdateUploadThread::UpdateUploadThread(const QString &sourceFile, const QString 
 {
 }
 
+void UpdateUploadThread::cancel()
+{
+    _cancelled = true;
+}
+
 void UpdateUploadThread::run()
 {
-    QFileInfo sourceInfo(_source);
+    QString localSource = _source;
     const QUrl sourceUrl = QUrl::fromUserInput(_source);
+    if (sourceUrl.isValid() && sourceUrl.isLocalFile())
+    {
+        localSource = sourceUrl.toLocalFile();
+    }
+    QFileInfo sourceInfo(localSource);
     const bool isRemoteSource = sourceUrl.isValid() && sourceUrl.scheme().startsWith(QStringLiteral("http"), Qt::CaseInsensitive) && !sourceInfo.exists();
 
-    qDebug() << "Starting update upload from" << _source << "to" << _mountpoint << "(remote:" << isRemoteSource << ")";
+    qDebug() << "Starting update upload from" << localSource << "to" << _mountpoint << "(remote:" << isRemoteSource << ")";
 
     emit status(tr("Checking update package..."));
+
+    if (_cancelled)
+        return;
 
     if (!isRemoteSource && (!sourceInfo.exists() || !sourceInfo.isFile()))
     {
@@ -51,15 +64,47 @@ void UpdateUploadThread::run()
         return;
     }
 
-    QDir destinationDir(_mountpoint);
-    if (!_targetSubdirectory.isEmpty())
+    QString destinationFileName = _destinationFileName;
+    if (destinationFileName.isEmpty())
+        destinationFileName = isRemoteSource ? sourceUrl.fileName() : sourceInfo.fileName();
+    if (destinationFileName.isEmpty())
+        destinationFileName = QStringLiteral("update.zip");
+    if (QFileInfo(destinationFileName).fileName() != destinationFileName)
     {
-        if (QDir::isAbsolutePath(_targetSubdirectory) || _targetSubdirectory.contains(QStringLiteral("..")) ||
-            (!destinationDir.exists(_targetSubdirectory) && !destinationDir.mkpath(_targetSubdirectory)) ||
-            !destinationDir.cd(_targetSubdirectory))
+        emit error(tr("Invalid update destination filename."));
+        return;
+    }
+
+    QString targetSubdir = _targetSubdirectory;
+    // .ohd update files belong directly on the root of the FAT32 partition
+    if (destinationFileName.endsWith(QStringLiteral(".ohd"), Qt::CaseInsensitive) && targetSubdir == QStringLiteral("openhd"))
+    {
+        targetSubdir.clear();
+    }
+
+    QDir destinationDir(_mountpoint);
+    if (!targetSubdir.isEmpty())
+    {
+        if (QDir::isAbsolutePath(targetSubdir) || targetSubdir.contains(QStringLiteral("..")) ||
+            (!destinationDir.exists(targetSubdir) && !destinationDir.mkpath(targetSubdir)) ||
+            !destinationDir.cd(targetSubdir))
         {
             emit error(tr("Unable to access update destination folder."));
             return;
+        }
+    }
+
+    // If writing a .ohd update, clean up any older/stale .ohd files to prevent boot ambiguity and free space
+    if (destinationFileName.endsWith(QStringLiteral(".ohd"), Qt::CaseInsensitive))
+    {
+        const QStringList oldOhdFiles = destinationDir.entryList(QStringList() << QStringLiteral("*.ohd"), QDir::Files);
+        for (const QString &oldFile : oldOhdFiles)
+        {
+            if (oldFile.compare(destinationFileName, Qt::CaseInsensitive) != 0)
+            {
+                qDebug() << "Removing older .ohd update file:" << oldFile;
+                destinationDir.remove(oldFile);
+            }
         }
     }
 
@@ -88,16 +133,6 @@ void UpdateUploadThread::run()
         return;
     }
 
-    QString destinationFileName = _destinationFileName;
-    if (destinationFileName.isEmpty())
-        destinationFileName = isRemoteSource ? sourceUrl.fileName() : sourceInfo.fileName();
-    if (destinationFileName.isEmpty())
-        destinationFileName = QStringLiteral("update.zip");
-    if (QFileInfo(destinationFileName).fileName() != destinationFileName)
-    {
-        emit error(tr("Invalid update destination filename."));
-        return;
-    }
     const QString destinationPath = destinationDir.filePath(destinationFileName);
     QSaveFile destination(destinationPath);
     if (!destination.open(QIODevice::WriteOnly))
@@ -110,6 +145,11 @@ void UpdateUploadThread::run()
 
     QCryptographicHash packageHash(QCryptographicHash::Sha256);
     auto finalizeCopy = [this, &destination, &packageHash]() {
+        if (_cancelled)
+        {
+            destination.cancelWriting();
+            return false;
+        }
         const QByteArray actualSha256 = packageHash.result().toHex().toLower();
         if (!_expectedSha256.isEmpty() && actualSha256 != _expectedSha256)
         {
@@ -208,6 +248,14 @@ void UpdateUploadThread::run()
             emit status(tr("Downloading update"));
         });
         connect(reply, &QNetworkReply::readyRead, &loop, [&]() {
+            if (_cancelled)
+            {
+                reply->abort();
+                destination.cancelWriting();
+                loop.quit();
+                return;
+            }
+
             const QByteArray data = reply->readAll();
             if (data.isEmpty())
                 return;
@@ -257,6 +305,13 @@ void UpdateUploadThread::run()
         }
         downloadTimeout.stop();
 
+        if (_cancelled)
+        {
+            destination.cancelWriting();
+            reply->deleteLater();
+            return;
+        }
+
         if (reply->error() != QNetworkReply::NoError)
         {
             emit error(tr("Unable to download update package."));
@@ -277,7 +332,7 @@ void UpdateUploadThread::run()
         return;
     }
 
-    QFile sourceFile(_source);
+    QFile sourceFile(localSource);
     if (!sourceFile.open(QIODevice::ReadOnly))
     {
         emit error(tr("Unable to read update archive."));
@@ -293,6 +348,13 @@ void UpdateUploadThread::run()
 
     while (!sourceFile.atEnd())
     {
+        if (_cancelled)
+        {
+            destination.cancelWriting();
+            emit status(tr("Cancelled"));
+            return;
+        }
+
         const qint64 bytesRead = sourceFile.read(buffer.data(), buffer.size());
         if (bytesRead <= 0)
         {

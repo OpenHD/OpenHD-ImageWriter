@@ -41,6 +41,10 @@ Popup {
     property string camera2IpCameraAddress: "192.168.144.108"
     property string camera2IpCameraPipeline: "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
     property int ipCameraBitrate: 2
+    property bool displayForceMode: false
+    property int displayWidth: 1920
+    property int displayHeight: 1080
+    property int displayRefreshHz: 60
     property string mode
     property string hotSpot
     property string beep
@@ -131,6 +135,35 @@ Popup {
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+                GroupBox {
+                    title: qsTr("Ground display")
+                    Layout.fillWidth: true
+                    visible: bootType === "Ground"
+
+                    ColumnLayout {
+                        spacing: 8
+                        ImCheckBox {
+                            text: qsTr("Force HDMI resolution and refresh rate")
+                            checked: displayForceMode
+                            onClicked: displayForceMode = checked
+                        }
+                        Label {
+                            text: qsTr("Use this when a monitor is not detected reliably. Automatic EDID detection remains the default.")
+                            wrapMode: Text.WordWrap
+                            Layout.maximumWidth: 520
+                        }
+                        GridLayout {
+                            columns: 2
+                            enabled: displayForceMode
+                            Label { text: qsTr("Width") }
+                            SpinBox { from: 320; to: 7680; value: displayWidth; onValueModified: displayWidth = value }
+                            Label { text: qsTr("Height") }
+                            SpinBox { from: 240; to: 4320; value: displayHeight; onValueModified: displayHeight = value }
+                            Label { text: qsTr("Refresh rate (Hz)") }
+                            SpinBox { from: 20; to: 240; value: displayRefreshHz; onValueModified: displayRefreshHz = value }
                         }
                     }
                 }
@@ -857,6 +890,13 @@ Popup {
         camera2IpCameraPipeline = imageWriter.getValue("camera2IpCameraPipeline") || "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
         var savedIpCameraBitrate = parseInt(imageWriter.getValue("ipCameraBitrate"))
         ipCameraBitrate = savedIpCameraBitrate >= 1 && savedIpCameraBitrate <= 20 ? savedIpCameraBitrate : 2
+        displayForceMode = imageWriter.getBoolSetting("displayForceMode")
+        var savedDisplayWidth = parseInt(imageWriter.getValue("displayWidth"))
+        var savedDisplayHeight = parseInt(imageWriter.getValue("displayHeight"))
+        var savedDisplayRefreshHz = parseInt(imageWriter.getValue("displayRefreshHz"))
+        displayWidth = savedDisplayWidth >= 320 && savedDisplayWidth <= 7680 ? savedDisplayWidth : 1920
+        displayHeight = savedDisplayHeight >= 240 && savedDisplayHeight <= 4320 ? savedDisplayHeight : 1080
+        displayRefreshHz = savedDisplayRefreshHz >= 20 && savedDisplayRefreshHz <= 240 ? savedDisplayRefreshHz : 60
         mode = imageWriter.getValue("mode")
         hotSpot = imageWriter.getValue("hotSpot")
         beep = imageWriter.getBoolSetting("beep")
@@ -1006,6 +1046,10 @@ Popup {
         imageWriter.setSetting("camera2IpCameraAddress", camera2IpCameraAddress)
         imageWriter.setSetting("camera2IpCameraPipeline", camera2IpCameraPipeline)
         imageWriter.setSetting("ipCameraBitrate", ipCameraBitrate)
+        imageWriter.setSetting("displayForceMode", displayForceMode)
+        imageWriter.setSetting("displayWidth", displayWidth)
+        imageWriter.setSetting("displayHeight", displayHeight)
+        imageWriter.setSetting("displayRefreshHz", displayRefreshHz)
         imageWriter.setSetting("mode", mode)
         imageWriter.setSetting("hotSpot" , hotSpot)
         imageWriter.setSetting("beep", beep)

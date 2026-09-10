@@ -1,0 +1,67 @@
+name: Backend tests
+
+on:
+  push:
+    branches: [release, dev-release, testing]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build qtbase5-dev libssl-dev
+      - name: Configure
+        run: cmake -S src/test -B build-src-tests -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build-src-tests
+      - name: Test
+        run: ctest --test-dir build-src-tests --output-on-failure
+
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          arch: clang_64
+          setup-python: false
+      - name: Configure
+        run: cmake -S src/test -B build-src-tests -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build-src-tests --parallel
+      - name: Test
+        run: ctest --test-dir build-src-tests --output-on-failure
+
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          arch: win32_msvc2019
+          setup-python: false
+      - name: Install OpenSSL
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://download.firedaemon.com/FireDaemon-OpenSSL/openssl-1.1.1w.zip" -OutFile openssl.zip
+          Expand-Archive openssl.zip -DestinationPath openssl111
+      - name: Configure
+        shell: pwsh
+        run: |
+          $opensslRoot = (Get-ChildItem -Directory openssl111 | Select-Object -First 1).FullName + "\x86"
+          cmake -S src/test -B build-src-tests -A Win32 -DOPENSSL_ROOT_DIR="$opensslRoot"
+      - name: Build
+        run: cmake --build build-src-tests --config Release --parallel
+      - name: Test
+        shell: pwsh
+        run: |
+          $opensslRoot = (Get-ChildItem -Directory openssl111 | Select-Object -First 1).FullName + "\x86"
+          $env:PATH = "$env:QT_ROOT_DIR\bin;$opensslRoot\bin;$env:PATH"
+          ctest --test-dir build-src-tests -C Release --output-on-failure

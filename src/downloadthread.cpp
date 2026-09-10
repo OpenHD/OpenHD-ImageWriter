@@ -4,10 +4,15 @@
  */
 
 #include "downloadthread.h"
-#include "certificatevalidator.h"
 #include "config.h"
+#include "curlnetworkconfig.h"
+#include "curlretrypolicy.h"
+#ifdef Q_OS_WIN
+#include "windows/windowsdiskpreparation.h"
+#endif
+#include "openhdimagecustomizer.h"
 #include "dependencies/mountutils/src/mountutils.hpp"
-#include "dependencies/drivelist/src/drivelist.hpp"
+#include "drivelist/drivelist.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -20,60 +25,56 @@
 #include <QDebug>
 #include <QProcess>
 #include <QSettings>
-#include <QJsonObject>
-#include <QJsonDocument>
 #include <QtConcurrent/QtConcurrent>
-#include <QtNetwork/QNetworkProxy>
 
 #ifdef Q_OS_LINUX
 #include <sys/ioctl.h>
 #include <linux/fs.h>
 #include "linux/udisks2api.h"
 #endif
+#ifdef Q_OS_DARWIN
+#include "mac/macfile.h"
+#endif
 
 using namespace std;
-
-bool useSettings;
-bool justUpdate;
-
-QByteArray DownloadThread::_proxy;
-int DownloadThread::_curlCount = 0;
 
 QSettings settings;
 
 DownloadThread::DownloadThread(const QByteArray &url, const QByteArray &localfilename, const QByteArray &expectedHash, QObject *parent) :
     QThread(parent), _startOffset(0), _lastDlTotal(0), _lastDlNow(0), _verifyTotal(0), _lastVerifyNow(0), _bytesWritten(0), _lastFailureOffset(0), _sectorsStart(-1), _url(url), _filename(localfilename), _expectedHash(expectedHash),
-    _firstBlock(nullptr), _cancelled(false), _successful(false), _verifyEnabled(false), _cacheEnabled(false), _lastModified(0), _serverTime(0),  _lastFailureTime(0),
-    _inputBufferSize(0), _file(NULL), _writehash(OSLIST_HASH_ALGORITHM), _verifyhash(OSLIST_HASH_ALGORITHM)
+    _firstBlock(nullptr), _cancelled(false), _deviceOperationActive(false),
+    _watchdogRecoveryRequested(false), _successful(false), _verifyEnabled(false), _cacheEnabled(false), _lastModified(0), _serverTime(0),  _lastFailureTime(0),
+    _inputBufferSize(0), _lastFileError(FileError::Success), _file(FileOperations::create()),
+    _writehash(OSLIST_HASH_ALGORITHM), _verifyhash(OSLIST_HASH_ALGORITHM)
 {
-    if (!_curlCount)
-        curl_global_init(CURL_GLOBAL_DEFAULT);
-    _curlCount++;
+    _writeBatcher.reset(new BlockBatcher(
+        IMAGEWRITER_BLOCKSIZE,
+        [this](const quint8 *data, std::size_t size) { return _writeBatch(data, size); }));
+    CurlNetworkConfig::ensureInitialized();
     _ejectEnabled = false;
 }
 
 DownloadThread::~DownloadThread()
 {
     _cancelled = true;
+    _file->cancel();
     wait();
-    if (_file.isOpen())
-        _file.close();
+    if (_file->isOpen())
+        _file->close();
 
     if (_firstBlock)
         qFreeAligned(_firstBlock);
 
-    if (!--_curlCount)
-        curl_global_cleanup();
 }
 
 void DownloadThread::setProxy(const QByteArray &proxy)
 {
-    _proxy = proxy;
+    CurlNetworkConfig::instance().setProxy(proxy);
 }
 
 QByteArray DownloadThread::proxy()
 {
-    return _proxy;
+    return CurlNetworkConfig::instance().proxy();
 }
 
 void DownloadThread::setUserAgent(const QByteArray &ua)
@@ -138,69 +139,50 @@ bool DownloadThread::_openAndPrepareDevice()
         unmount_disk(_filename.constData());
     }
 
-    _file.setFileName(_filename);
-
 #ifdef Q_OS_WIN
     qDebug() << "device" << _filename;
+    WindowsDiskPreparation::LockedVolumes lockedVolumes;
 
     std::regex windriveregex("\\\\\\\\.\\\\PHYSICALDRIVE([0-9]+)", std::regex_constants::icase);
     std::cmatch m;
 
     if (std::regex_match(_filename.constData(), m, windriveregex))
     {
-
-        _nr = QByteArray::fromStdString(m[1]);
-
-        if (!_nr.isEmpty()) {
-            qDebug() << "Removing partition table from Windows drive #" << _nr << "(" << _filename << ")";
-
-            QProcess proc;
-            proc.start("diskpart");
-            proc.waitForStarted();
-            proc.write("select disk "+_nr+"\r\n"
-                                              "clean\r\n"
-                                              "rescan\r\n");
-            proc.closeWriteChannel();
-            proc.waitForFinished();
-
-            if (proc.exitCode())
-            {
-                emit error(tr("Error running diskpart: %1").arg(QString(proc.readAllStandardError())));
-                return false;
-            }
-        }
-    }
-
-    auto l = Drivelist::ListStorageDevices();
-    QByteArray devlower = _filename.toLower();
-    QByteArray driveLetter;
-    for (auto i : l)
-    {
-        if (QByteArray::fromStdString(i.device).toLower() == devlower)
+        const auto devices = Drivelist::ListStorageDevices();
+        const QByteArray target = _filename.toLower();
+        const Drivelist::DeviceDescriptor *targetDevice = nullptr;
+        if (!devices.empty() && devices.front().device == "__error__")
         {
-            if (i.mountpoints.size() == 1)
+            emit error(tr("Cannot safely enumerate target volumes: %1")
+                       .arg(QString::fromStdString(devices.front().error)));
+            return false;
+        }
+        for (const Drivelist::DeviceDescriptor &device : devices)
+        {
+            if (QByteArray::fromStdString(device.device).toLower() == target)
             {
-                driveLetter = QByteArray::fromStdString(i.mountpoints.front());
-                if (driveLetter.endsWith("\\"))
-                    driveLetter.chop(1);
-            }
-            else if (i.mountpoints.size() > 1)
-            {
-                emit error(tr("Error removing existing partitions"));
-                return false;
-            }
-            else
-            {
-                qDebug() << "Device no longer has any volumes. Nothing to lock.";
+                targetDevice = &device;
+                break;
             }
         }
-    }
+        if (!targetDevice)
+        {
+            emit error(tr("The selected storage device is no longer available."));
+            return false;
+        }
 
-    if (!driveLetter.isEmpty())
-    {
-        _volumeFile.setFileName("\\\\.\\"+driveLetter);
-        if (_volumeFile.open(QIODevice::ReadWrite))
-            _volumeFile.lockVolume();
+        QString preparationError;
+        if (!lockedVolumes.lockAndDismount(targetDevice->mountpoints, &preparationError))
+        {
+            emit error(tr("Cannot lock the target volumes: %1").arg(preparationError));
+            return false;
+        }
+        if (!WindowsDiskPreparation::clearPartitionTable(
+                QString::fromUtf8(_filename), &preparationError))
+        {
+            emit error(preparationError);
+            return false;
+        }
     }
 
 #endif
@@ -208,22 +190,27 @@ bool DownloadThread::_openAndPrepareDevice()
 #ifdef Q_OS_DARWIN
     _filename.replace("/dev/disk", "/dev/rdisk");
 
-    auto authopenresult = _file.authOpen(_filename);
-
-    if (authopenresult == _file.authOpenCancelled) {
-        /* User cancelled authentication */
-        emit error(tr("Authentication cancelled"));
-        return false;
-    } else if (authopenresult == _file.authOpenError) {
-        QString msg = tr("Error running authopen to gain access to disk device '%1'").arg(QString(_filename));
-        msg += "<br>"+tr("Please verify if 'Raspberry Pi Imager' is allowed access to 'removable volumes' in privacy settings (under 'files and folders' or alternatively give it 'full disk access').");
-        QStringList args("x-apple.systempreferences:com.apple.preference.security?Privacy_RemovableVolume");
-        QProcess::execute("open", args);
-        emit error(msg);
-        return false;
+    _lastFileError = _file->openDevice(QString::fromUtf8(_filename), true);
+    if (_lastFileError != FileError::Success)
+    {
+        MacFile authorizedFile;
+        const auto authopenresult = authorizedFile.authOpen(_filename);
+        if (authopenresult == MacFile::authOpenCancelled) {
+            emit error(tr("Authentication cancelled"));
+            return false;
+        } else if (authopenresult == MacFile::authOpenError ||
+                   (_lastFileError = _file->adoptNativeHandle(authorizedFile.handle(), false, true)) != FileError::Success) {
+            QString msg = tr("Error running authopen to gain access to disk device '%1'").arg(QString(_filename));
+            msg += "<br>"+tr("Please verify if 'Raspberry Pi Imager' is allowed access to 'removable volumes' in privacy settings (under 'files and folders' or alternatively give it 'full disk access').");
+            QStringList args("x-apple.systempreferences:com.apple.preference.security?Privacy_RemovableVolume");
+            QProcess::execute("open", args);
+            emit error(msg);
+            return false;
+        }
     }
 #else
-    if (!_file.open(QIODevice::ReadWrite | QIODevice::Unbuffered))
+    _lastFileError = _file->openDevice(QString::fromUtf8(_filename), true);
+    if (_lastFileError != FileError::Success)
     {
 #ifdef Q_OS_LINUX
 #ifndef QT_NO_DBUS
@@ -233,16 +220,27 @@ bool DownloadThread::_openAndPrepareDevice()
         int fd = udisks.authOpen(_filename);
         if (fd != -1)
         {
-            _file.open(fd, QIODevice::ReadWrite | QIODevice::Unbuffered, QFileDevice::AutoCloseHandle);
+            _lastFileError = _file->adoptNativeHandle(fd, true, true);
         }
-        else
 #endif
+        if (_lastFileError != FileError::Success)
         {
-            emit error(tr("Cannot open storage device '%1'.").arg(QString(_filename)));
+            emit error(tr("Cannot open storage device '%1': %2.")
+                       .arg(QString(_filename), fileErrorMessage(_lastFileError)));
             return false;
         }
+#else
+        emit error(tr("Cannot open storage device '%1': %2.")
+                   .arg(QString(_filename), fileErrorMessage(_lastFileError)));
+        return false;
 #endif
     }
+#endif
+
+#ifdef Q_OS_WIN
+    // The physical drive handle now prevents competing writers. Releasing the
+    // volume handles here also restores their mount-manager bindings later.
+    lockedVolumes.release();
 #endif
 
 #ifdef Q_OS_LINUX
@@ -270,7 +268,7 @@ bool DownloadThread::_openAndPrepareDevice()
         {
             /* DISCARD/TRIM the SD card */
             uint64_t devsize, range[2];
-            int fd = _file.handle();
+            int fd = static_cast<int>(_file->nativeHandle());
 
             if (::ioctl(fd, BLKGETSIZE64, &devsize) == -1) {
                 qDebug() << "Error getting device/sector size with BLKGETSIZE64 ioctl():" << strerror(errno);
@@ -297,34 +295,49 @@ bool DownloadThread::_openAndPrepareDevice()
 
 #ifndef Q_OS_WIN
     // Zero out MBR
-    qint64 knownsize = _file.size();
+    quint64 knownsize = 0;
+    if (_file->size(knownsize) != FileError::Success)
+    {
+        emit error(tr("Cannot determine storage device size."));
+        return false;
+    }
     QByteArray emptyMB(1024*1024, 0);
 
     emit preparationStatusUpdate(tr("zeroing out first and last MB of drive"));
     qDebug() << "Zeroing out first and last MB of drive";
     _timer.start();
 
-    if (!_file.write(emptyMB.data(), emptyMB.size()) || !_file.flush())
+    std::size_t zeroed = 0;
+    if (!_performDeviceWrite(reinterpret_cast<const quint8 *>(emptyMB.constData()),
+                             static_cast<std::size_t>(emptyMB.size()), zeroed) ||
+        !_flushDevice())
     {
-        emit error(tr("Write error while zero'ing out MBR"));
+        if (!_cancelled)
+            emit error(tr("Write error while zero'ing out MBR"));
         return false;
     }
 
     // Zero out last part of card (may have GPT backup table)
-    if (knownsize > emptyMB.size())
+    if (knownsize > static_cast<quint64>(emptyMB.size()))
     {
-        if (!_file.seek(knownsize-emptyMB.size())
-            || !_file.write(emptyMB.data(), emptyMB.size())
-            || !_file.flush()
-            || !::fsync(_file.handle()))
+        zeroed = 0;
+        if ((_lastFileError = _file->seek(knownsize-static_cast<quint64>(emptyMB.size()))) != FileError::Success ||
+            !_performDeviceWrite(reinterpret_cast<const quint8 *>(emptyMB.constData()),
+                                 static_cast<std::size_t>(emptyMB.size()), zeroed) ||
+            !_flushDevice())
         {
-            emit error(tr("Write error while trying to zero out last part of card.<br>"
-                          "Card could be advertising wrong capacity (possible counterfeit)."));
+            if (!_cancelled)
+                emit error(tr("Write error while trying to zero out last part of card.<br>"
+                              "Card could be advertising wrong capacity (possible counterfeit)."));
             return false;
         }
     }
     emptyMB.clear();
-    _file.seek(0);
+    if ((_lastFileError = _file->seek(0)) != FileError::Success)
+    {
+        emit error(tr("Cannot seek to the start of the storage device."));
+        return false;
+    }
     qDebug() << "Done zeroing out start and end of drive. Took" << _timer.elapsed() / 1000 << "seconds";
 #endif
 
@@ -352,81 +365,67 @@ void DownloadThread::run()
 
     char errorBuf[CURL_ERROR_SIZE] = {0};
     _c = curl_easy_init();
-    curl_easy_setopt(_c, CURLOPT_NOSIGNAL, 1);
+    if (!_c)
+    {
+        _onDownloadError(tr("Unable to initialize the download engine"));
+        return;
+    }
+    CurlNetworkConfig &networkConfig = CurlNetworkConfig::instance();
+    networkConfig.detectSystemProxy(QUrl::fromEncoded(_url));
+    networkConfig.applyLargeFileSettings(_c, _useragent, errorBuf);
     curl_easy_setopt(_c, CURLOPT_WRITEFUNCTION, &DownloadThread::_curl_write_callback);
     curl_easy_setopt(_c, CURLOPT_WRITEDATA, this);
     curl_easy_setopt(_c, CURLOPT_XFERINFOFUNCTION, &DownloadThread::_curl_xferinfo_callback);
     curl_easy_setopt(_c, CURLOPT_PROGRESSDATA, this);
     curl_easy_setopt(_c, CURLOPT_NOPROGRESS, 0);
     curl_easy_setopt(_c, CURLOPT_URL, _url.constData());
-    curl_easy_setopt(_c, CURLOPT_FOLLOWLOCATION, 1);
-    curl_easy_setopt(_c, CURLOPT_MAXREDIRS, 10);
-    curl_easy_setopt(_c, CURLOPT_ERRORBUFFER, errorBuf);
-    curl_easy_setopt(_c, CURLOPT_FAILONERROR, 1);
     curl_easy_setopt(_c, CURLOPT_HEADERFUNCTION, &DownloadThread::_curl_header_callback);
     curl_easy_setopt(_c, CURLOPT_HEADERDATA, this);
-    curl_easy_setopt(_c, CURLOPT_CONNECTTIMEOUT, 30);
-    curl_easy_setopt(_c, CURLOPT_LOW_SPEED_TIME, 60);
-    curl_easy_setopt(_c, CURLOPT_LOW_SPEED_LIMIT, 100);
     if (_inputBufferSize)
         curl_easy_setopt(_c, CURLOPT_BUFFERSIZE, _inputBufferSize);
-
-    if (!_useragent.isEmpty())
-        curl_easy_setopt(_c, CURLOPT_USERAGENT, _useragent.constData());
-
-    if (_proxy.isEmpty())
-    {
-#ifndef QT_NO_NETWORKPROXY
-        /* Ask OS for proxy information. */
-        QNetworkProxyQuery npq{QUrl{_url}};
-        QList<QNetworkProxy> proxyList = QNetworkProxyFactory::systemProxyForQuery(npq);
-        if (!proxyList.isEmpty())
-        {
-            QNetworkProxy proxy = proxyList.first();
-            if (proxy.type() != proxy.NoProxy)
-            {
-                QUrl proxyUrl;
-
-                proxyUrl.setScheme(proxy.type() == proxy.Socks5Proxy ? "socks5h" : "http");
-                proxyUrl.setHost(proxy.hostName());
-                proxyUrl.setPort(proxy.port());
-                qDebug() << "Using proxy server:" << proxyUrl;
-
-                if (!proxy.user().isEmpty())
-                {
-                    proxyUrl.setUserName(proxy.user());
-                    proxyUrl.setPassword(proxy.password());
-                }
-
-                _proxy = proxyUrl.toEncoded();
-            }
-        }
-#endif
-    }
-
-    if (!_proxy.isEmpty())
-        curl_easy_setopt(_c, CURLOPT_PROXY, _proxy.constData());
 
     emit preparationStatusUpdate(tr("starting download"));
     _timer.start();
     CURLcode ret = curl_easy_perform(_c);
 
-    /* Deal with badly configured HTTP servers that terminate the connection quickly
-       if connections stalls for some seconds while kernel commits buffers to slow SD card.
-       And also reconnect if we detect from our end that transfer stalled for more than one minute */
-    while (ret == CURLE_PARTIAL_FILE || ret == CURLE_OPERATION_TIMEDOUT || (ret == CURLE_RECV_ERROR && _lastDlNow != _lastFailureOffset) )
+    CurlRetryPolicy retryPolicy;
+    while (!_cancelled)
     {
+        const bool transferAdvanced = _lastDlNow != _lastFailureOffset;
+        const CurlRetryPolicy::Action retryAction = retryPolicy.next(ret, transferAdvanced);
+        if (retryAction == CurlRetryPolicy::Action::Stop)
+            break;
+
         time_t t = time(NULL);
-        qDebug() << "HTTP connection lost. Time:" << t;
+        qWarning() << "Download interrupted:" << curl_easy_strerror(ret)
+                   << "retry" << retryPolicy.retryCount() << "at offset" << _lastDlNow;
+
+        if (retryAction == CurlRetryPolicy::Action::RetryWithHttp11)
+        {
+            qWarning() << "Retrying download with HTTP/1.1";
+            curl_easy_setopt(_c, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+        }
+        else if (retryAction == CurlRetryPolicy::Action::RetryWithIPv4)
+        {
+            qWarning() << "Retrying download with IPv4";
+            curl_easy_setopt(_c, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+        }
 
         /* If last failure happened less than 5 seconds ago, something else may
            be wrong. Sleep some time to prevent hammering server */
         if (t - _lastFailureTime < 5)
         {
-            qDebug() << "Sleeping 5 seconds";
-            ::sleep(5);
+            qDebug() << "Backing off for 5 seconds";
+            for (int waited = 0; waited < 50 && !_cancelled; ++waited)
+                QThread::msleep(100);
         }
         _lastFailureTime = t;
+
+        if (_cancelled)
+        {
+            ret = CURLE_ABORTED_BY_CALLBACK;
+            break;
+        }
 
         _startOffset = _lastDlNow;
         _lastFailureOffset = _lastDlNow;
@@ -435,7 +434,14 @@ void DownloadThread::run()
         ret = curl_easy_perform(_c);
     }
 
+    char *primaryIp = nullptr;
+    char *effectiveUrl = nullptr;
+    curl_easy_getinfo(_c, CURLINFO_PRIMARY_IP, &primaryIp);
+    curl_easy_getinfo(_c, CURLINFO_EFFECTIVE_URL, &effectiveUrl);
+    const QString primaryIpText = primaryIp ? QString::fromUtf8(primaryIp) : QString();
+    const QString effectiveUrlText = effectiveUrl ? QString::fromUtf8(effectiveUrl) : QString();
     curl_easy_cleanup(_c);
+    _c = nullptr;
 
     switch (ret)
     {
@@ -448,14 +454,14 @@ void DownloadThread::run()
         deleteDownloadedFile();
 
 #ifdef Q_OS_WIN
-        if (_file.errorCode() == ERROR_ACCESS_DENIED)
+        if (_lastFileError == FileError::AccessDenied)
         {
             QString msg = tr("Access denied error while writing file to disk.");
             QSettings registry("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\Controlled Folder Access",
                                QSettings::Registry64Format);
             if (registry.value("EnableControlledFolderAccess").toInt() == 1)
             {
-                msg += "<br>"+tr("Controlled Folder Access seems to be enabled. Please add both openhdimagewriter.exe and fat32format.exe to the list of allowed apps and try again.");
+                msg += "<br>"+tr("Controlled Folder Access seems to be enabled. Please add openhdimagewriter.exe to the list of allowed apps and try again.");
             }
             _onDownloadError(msg);
         }
@@ -477,9 +483,10 @@ void DownloadThread::run()
         else
             errorMsg += errorBuf;
 
-        char *ipstr;
-        if (curl_easy_getinfo(_c, CURLINFO_PRIMARY_IP, &ipstr) == CURLE_OK && ipstr && ipstr[0])
-            errorMsg += QString(" - Server IP: ")+ipstr;
+        if (!primaryIpText.isEmpty())
+            errorMsg += QString(" - Server IP: ") + primaryIpText;
+        if (!effectiveUrlText.isEmpty() && effectiveUrlText != QString::fromUtf8(_url))
+            errorMsg += QString(" - Effective URL: ") + effectiveUrlText;
 
         _onDownloadError(tr("Error downloading: %1").arg(errorMsg));
     }
@@ -536,6 +543,70 @@ void DownloadThread::_hashData(const char *buf, size_t len)
     _writehash.addData(buf, len);
 }
 
+bool DownloadThread::_writeBatch(const quint8 *data, std::size_t size)
+{
+    std::size_t written = 0;
+    const bool succeeded = _performDeviceWrite(data, size, written);
+    _bytesWritten += written;
+    if (!succeeded)
+    {
+        qDebug() << "Write error:" << fileErrorMessage(_lastFileError)
+                 << "while writing batch:" << size << "written:" << written;
+        return false;
+    }
+    return true;
+}
+
+bool DownloadThread::_performDeviceWrite(const quint8 *data, std::size_t size,
+                                         std::size_t &bytesWritten)
+{
+    bytesWritten = 0;
+    for (int attempt = 0; attempt < 2 && bytesWritten < size; ++attempt)
+    {
+        std::size_t currentWrite = 0;
+        _deviceOperationActive.store(true);
+        _lastFileError = _file->writeSequential(data + bytesWritten, size - bytesWritten,
+                                                currentWrite);
+        _deviceOperationActive.store(false);
+        bytesWritten += currentWrite;
+        if (_lastFileError == FileError::Success && bytesWritten == size)
+            return true;
+
+        const bool watchdogCancelled =
+            _lastFileError == FileError::Cancelled &&
+            _watchdogRecoveryRequested.exchange(false) && !_cancelled.load();
+        if (!watchdogCancelled)
+            break;
+        qWarning() << "Retrying interrupted device write in compatibility mode at byte"
+                   << bytesWritten << "of" << size;
+        _file->resetCancellation();
+    }
+    if (_lastFileError == FileError::Success)
+        _lastFileError = FileError::IoError;
+    return false;
+}
+
+bool DownloadThread::_flushDevice()
+{
+    for (int attempt = 0; attempt < 2; ++attempt)
+    {
+        _deviceOperationActive.store(true);
+        _lastFileError = _file->flush();
+        _deviceOperationActive.store(false);
+        if (_lastFileError == FileError::Success)
+            return true;
+
+        const bool watchdogCancelled =
+            _lastFileError == FileError::Cancelled &&
+            _watchdogRecoveryRequested.exchange(false) && !_cancelled.load();
+        if (!watchdogCancelled)
+            return false;
+        qWarning() << "Retrying interrupted device flush in compatibility mode";
+        _file->resetCancellation();
+    }
+    return false;
+}
+
 size_t DownloadThread::_writeFile(const char *buf, size_t len)
 {
     if (_cancelled)
@@ -545,10 +616,16 @@ size_t DownloadThread::_writeFile(const char *buf, size_t len)
     {
         _writehash.addData(buf, len);
         _firstBlock = (char *) qMallocAligned(len, 4096);
+        if (!_firstBlock)
+        {
+            _lastFileError = FileError::IoError;
+            return 0;
+        }
         _firstBlockSize = len;
         ::memcpy(_firstBlock, buf, len);
 
-        return _file.seek(len) ? len : 0;
+        _lastFileError = _file->seek(static_cast<quint64>(len));
+        return _lastFileError == FileError::Success ? len : 0;
     }
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     QFuture<void> wh = QtConcurrent::run(&DownloadThread::_hashData, this, buf, len);
@@ -556,16 +633,10 @@ size_t DownloadThread::_writeFile(const char *buf, size_t len)
     QFuture<void> wh = QtConcurrent::run(this, &DownloadThread::_hashData, buf, len);
 #endif
 
-    qint64 written = _file.write(buf, len);
-    _bytesWritten += written;
-
-    if ((size_t) written != len)
-    {
-        qDebug() << "Write error:" << _file.errorString() << "while writing len:" << len;
-    }
+    const bool accepted = _writeBatcher->append(reinterpret_cast<const quint8 *>(buf), len);
 
     wh.waitForFinished();
-    return (written < 0) ? 0 : written;
+    return accepted ? len : 0;
 }
 
 bool DownloadThread::_progress(curl_off_t dltotal, curl_off_t dlnow, curl_off_t /*ultotal*/, curl_off_t /*ulnow*/)
@@ -593,7 +664,22 @@ void DownloadThread::_header(const string &header)
 void DownloadThread::cancelDownload()
 {
     _cancelled = true;
+    _file->cancel();
     //deleteDownloadedFile();
+}
+
+bool DownloadThread::deviceOperationActive() const
+{
+    return _deviceOperationActive.load();
+}
+
+void DownloadThread::requestWriteRecovery()
+{
+    if (!_cancelled.load() && _deviceOperationActive.load())
+    {
+        _watchdogRecoveryRequested.store(true);
+        _file->cancel();
+    }
 }
 
 QByteArray DownloadThread::data()
@@ -620,13 +706,9 @@ void DownloadThread::deleteDownloadedFile()
 {
     if (!_filename.isEmpty())
     {
-        _file.close();
+        _file->close();
         if (_cachefile.isOpen())
             _cachefile.remove();
-#ifdef Q_OS_WIN
-        _volumeFile.close();
-#endif
-
         if (!_filename.startsWith("/dev/") && !_filename.startsWith("\\\\.\\"))
         {
             //_file.remove();
@@ -675,16 +757,21 @@ void DownloadThread::_onDownloadError(const QString &msg)
 
 void DownloadThread::_closeFiles()
 {
-    _file.close();
-#ifdef Q_OS_WIN
-    _volumeFile.close();
-#endif
+    _file->close();
     if (_cachefile.isOpen())
         _cachefile.close();
 }
 
 void DownloadThread::_writeComplete()
 {
+    if (!_writeBatcher->flush())
+    {
+        if (!_cancelled)
+            DownloadThread::_onDownloadError(tr("Error writing final block to storage"));
+        _closeFiles();
+        return;
+    }
+
     QByteArray computedHash = _writehash.result().toHex();
     qDebug() << "Hash of uncompressed image:" << computedHash;
     if (!_expectedHash.isEmpty() && _expectedHash != computedHash)
@@ -702,20 +789,13 @@ void DownloadThread::_writeComplete()
         emit cacheFileUpdated(computedHash);
     }
 
-    if (!_file.flush())
+    if (!_flushDevice())
     {
-        DownloadThread::_onDownloadError(tr("Error writing to storage (while flushing)"));
+        if (!_cancelled)
+            DownloadThread::_onDownloadError(tr("Error writing to storage (while flushing)"));
         _closeFiles();
         return;
     }
-
-#ifndef Q_OS_WIN
-    if (::fsync(_file.handle()) != 0) {
-        DownloadThread::_onDownloadError(tr("Error writing to storage (while fsync)"));
-        _closeFiles();
-        return;
-    }
-#endif
 
     qDebug() << "Write done in" << _timer.elapsed() / 1000 << "seconds";
 
@@ -731,13 +811,17 @@ void DownloadThread::_writeComplete()
     if (_firstBlock)
     {
         qDebug() << "Writing first block (which we skipped at first)";
-        _file.seek(0);
-        if (!_file.write(_firstBlock, _firstBlockSize) || !_file.flush())
+        std::size_t written = 0;
+        if ((_lastFileError = _file->seek(0)) != FileError::Success ||
+            !_performDeviceWrite(reinterpret_cast<const quint8 *>(_firstBlock),
+                                 _firstBlockSize, written) ||
+            !_flushDevice())
         {
             qFreeAligned(_firstBlock);
             _firstBlock = nullptr;
 
-            DownloadThread::_onDownloadError(tr("Error writing first block (partition table)"));
+            if (!_cancelled)
+                DownloadThread::_onDownloadError(tr("Error writing first block (partition table)"));
             return;
         }
         _bytesWritten += _firstBlockSize;
@@ -753,11 +837,9 @@ void DownloadThread::_writeComplete()
 #endif
     QSettings settings_;
 
-    useSettings = settings_.value("useSettings").toBool();
-    justUpdate = settings_.value("justUpdate").toBool();
+    const bool useSettings = settings_.value("useSettings").toBool();
     // qDebug() << "This is the Debug Filename" << _filename;
     // qDebug() << "This is the Debug Settings" << useSettings;
-    // qDebug() << "This is the Debug Update" << justUpdate;
 
     if (!useSettings)
         eject_disk(_filename.constData());
@@ -777,39 +859,57 @@ void DownloadThread::_writeComplete()
 bool DownloadThread::_verify()
 {
     char *verifyBuf = (char *) qMallocAligned(IMAGEWRITER_VERIFY_BLOCKSIZE, 4096);
+    if (!verifyBuf)
+    {
+        DownloadThread::_onDownloadError(tr("Unable to allocate verification buffer."));
+        return false;
+    }
     _lastVerifyNow = 0;
-    _verifyTotal = _file.pos();
+    _verifyTotal = _file->position();
     QElapsedTimer t1;
     t1.start();
 
 #ifdef Q_OS_LINUX
     /* Make sure we are reading from the drive and not from cache */
-    //fcntl(_file.handle(), F_SETFL, O_DIRECT | fcntl(_file.handle(), F_GETFL));
-    posix_fadvise(_file.handle(), 0, 0, POSIX_FADV_DONTNEED);
+    //fcntl(_file->nativeHandle(), F_SETFL, O_DIRECT | fcntl(_file->nativeHandle(), F_GETFL));
+    posix_fadvise(static_cast<int>(_file->nativeHandle()), 0, 0, POSIX_FADV_DONTNEED);
 #endif
 
     if (!_firstBlock)
     {
-        _file.seek(0);
+        _lastFileError = _file->seek(0);
     }
     else
     {
         _verifyhash.addData(_firstBlock, _firstBlockSize);
-        _file.seek(_firstBlockSize);
+        _lastFileError = _file->seek(_firstBlockSize);
         _lastVerifyNow += _firstBlockSize;
+    }
+    if (_lastFileError != FileError::Success)
+    {
+        qFreeAligned(verifyBuf);
+        DownloadThread::_onDownloadError(tr("Error seeking on storage during verification."));
+        return false;
     }
 
     while (_verifyEnabled && _lastVerifyNow < _verifyTotal && !_cancelled)
     {
-        qint64 lenRead = _file.read(verifyBuf, qMin((qint64) IMAGEWRITER_VERIFY_BLOCKSIZE, (qint64) (_verifyTotal-_lastVerifyNow) ));
-        if (lenRead == -1)
+        std::size_t lenRead = 0;
+        const std::size_t requested = static_cast<std::size_t>(qMin(
+            static_cast<quint64>(IMAGEWRITER_VERIFY_BLOCKSIZE),
+            static_cast<quint64>(_verifyTotal-_lastVerifyNow)));
+        _lastFileError = _file->readSequential(reinterpret_cast<quint8 *>(verifyBuf), requested, lenRead);
+        if (_lastFileError != FileError::Success || lenRead == 0)
         {
+            qFreeAligned(verifyBuf);
+            if (_cancelled)
+                return true;
             DownloadThread::_onDownloadError(tr("Error reading from storage.<br>"
                                                 "SD card may be broken."));
             return false;
         }
 
-        _verifyhash.addData(verifyBuf, lenRead);
+        _verifyhash.addData(verifyBuf, static_cast<int>(lenRead));
         _lastVerifyNow += lenRead;
     }
     qFreeAligned(verifyBuf);
@@ -873,15 +973,12 @@ bool DownloadThread::_customizeImage()
     emit preparationStatusUpdate(tr("Waiting for FAT partition to be mounted"));
 
 #ifdef Q_OS_WIN
-    qDebug() << "Running diskpart rescan";
-    QProcess proc;
-    proc.setProcessChannelMode(proc.MergedChannels);
-    proc.start("diskpart");
-    proc.waitForStarted();
-    proc.write("rescan\r\n");
-    proc.closeWriteChannel();
-    proc.waitForFinished();
-    qDebug() << proc.readAll();
+    QString nativeError;
+    if (!WindowsDiskPreparation::rescanDisk(QString::fromUtf8(_filename), &nativeError))
+    {
+        _onDownloadError(nativeError);
+        return false;
+    }
 #endif
 
     /* See if OS auto-mounted the device */
@@ -900,26 +997,16 @@ bool DownloadThread::_customizeImage()
     }
 
 #ifdef Q_OS_WIN
-    if (mountpoints.empty() && !_nr.isEmpty()) {
-        qDebug() << "Windows did not assign drive letter automatically. Ask diskpart to do so manually.";
-        proc.start("diskpart");
-        proc.waitForStarted();
-        proc.write("select disk "+_nr+"\r\n"
-                                          "select partition 1\r\n"
-                                          "assign\r\n");
-        proc.closeWriteChannel();
-        proc.waitForFinished();
-        qDebug() << proc.readAll();
-
-        auto l = Drivelist::ListStorageDevices();
-        for (auto i : l)
+    if (mountpoints.empty())
+    {
+        const QString mountpoint = WindowsDiskPreparation::ensureDriveLetter(
+            QString::fromUtf8(_filename), 7000, &nativeError);
+        if (mountpoint.isEmpty())
         {
-            if (QByteArray::fromStdString(i.device).toLower() == devlower && i.mountpoints.size())
-            {
-                mountpoints = i.mountpoints;
-                break;
-            }
+            _onDownloadError(nativeError);
+            return false;
         }
+        mountpoints.push_back(mountpoint.toStdString());
     }
 #endif
 
@@ -1123,370 +1210,49 @@ bool DownloadThread::_customizeImage()
         }
     }
 
-    /* Here is the start of the OpenHD settings routine
-         */
-
-    if (justUpdate) {
+    QSettings settings_;
+    if (settings_.value("justUpdate").toBool())
         qDebug() << "Writing OpenHD-Update";
-        qDebug() << justUpdate;
-    }
 
-    if (useSettings) {
-      qDebug() << "Writing OpenHD-Settings";
-      QSettings settings_;
-
-      QString cameraName = settings_.value("camera").toString();
-      QString camera2Name = settings_.value("camera2").toString();
-      QString cameraResolutionValue =
-          settings_.value("cameraResolution").toString().trimmed();
-      QString camera2ResolutionValue =
-          settings_.value("camera2Resolution").toString().trimmed();
-      const QString cameraPort =
-          settings_.value("cameraPort", "cam1").toString() == "cam0" ? "cam0"
-                                                                       : "cam1";
-      const QString camera2Port =
-          settings_.value("camera2Port", "cam0").toString() == "cam1" ? "cam1"
-                                                                        : "cam0";
-      const QString defaultIpCameraPipeline = QStringLiteral(
-          "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay");
-      QString ipCameraAddress =
-          settings_.value("ipCameraAddress", "192.168.144.108")
-              .toString()
-              .trimmed();
-      QString ipCameraPipeline =
-          settings_.value("ipCameraPipeline", defaultIpCameraPipeline)
-              .toString()
-              .trimmed();
-      QString camera2IpCameraAddress =
-          settings_.value("camera2IpCameraAddress", "192.168.144.108")
-              .toString()
-              .trimmed();
-      QString camera2IpCameraPipeline =
-          settings_.value("camera2IpCameraPipeline", defaultIpCameraPipeline)
-              .toString()
-              .trimmed();
-      int ipCameraBitrate =
-          qBound(1, settings_.value("ipCameraBitrate", 2).toInt(), 20);
-      QString sbcValue = settings_.value("sbc").toString();
-      QString modeValue = settings_.value("mode").toString();
-      QString hotspot = settings_.value("hotspot").toString();
-      QString bootType = settings_.value("bootType").toString();
-      const QString imageFileName =
-          settings_.value("fileName").toString().toLower();
-      if (imageFileName.contains("x20")) {
-        bootType = "Air";
-      } else if (imageFileName.contains("lite") ||
-                 imageFileName.contains("minimal")) {
-        // Lite images do not contain the Air-side video stack.
-        bootType = "Ground";
-      }
-      QString qopenhdConfPath = settings_.value("qopenhdConfPath").toString();
-      QString premiumCertificatePath =
-          settings_.value("premiumCertificatePath").toString();
-      QString languageValue = settings_.value("language").toString();
-      QString tokenValue = settings_.value("token").toString();
-
-      QJsonObject openhdSettings;
-
-      auto mapCameraNameToValue =
-          [&](const QString &cameraNameToMap) -> QString {
-        QString cameraValue;
-        if (cameraNameToMap.isEmpty())
-          return cameraValue;
-
-        qDebug() << "Camera found" << cameraNameToMap;
-
-        if (sbcValue == "rpi") {
-          // RaspberryPi
-          if (cameraNameToMap == "OV5647") {
-            cameraValue = "30";
-          } else if (cameraNameToMap == "IMX219") {
-            cameraValue = "31";
-          } else if (cameraNameToMap == "IMX708") {
-            cameraValue = "32";
-          } else if (cameraNameToMap == "IMX477") {
-            cameraValue = "33";
-          } else if (cameraNameToMap == "HDMI") {
-            cameraValue = "20";
-          }
-          // Arducam
-          else if (cameraNameToMap == "SkyMasterHDR708") {
-            cameraValue = "40";
-          } else if (cameraNameToMap == "SkyVisionPro519") {
-            cameraValue = "41";
-          } else if (cameraNameToMap == "IMX477m") {
-            cameraValue = "42";
-          } else if (cameraNameToMap == "IMX462") {
-            cameraValue = "43";
-          } else if (cameraNameToMap == "IMX327") {
-            cameraValue = "44";
-          } else if (cameraNameToMap == "IMX290") {
-            cameraValue = "45";
-          } else if (cameraNameToMap == "IMX462MINI") {
-            cameraValue = "46";
-          } else if (cameraNameToMap == "IMX662") {
-            cameraValue = "47";
-          }
-          // Veye
-          else if (cameraNameToMap == "2MPCAMERAS") {
-            cameraValue = "60";
-          } else if (cameraNameToMap == "CSIMX307") {
-            cameraValue = "61";
-          } else if (cameraNameToMap == "CSSC137") {
-            cameraValue = "62";
-          } else if (cameraNameToMap == "MVCAM") {
-            cameraValue = "63";
-          }
-        } else if (sbcValue == "zero3w") {
-          if (cameraNameToMap == "HDMI") {
-            cameraValue = "90";
-          }
-          if (cameraNameToMap == "IMX462") {
-            cameraValue = "94";
-          }
-          if (cameraNameToMap == "IMX519") {
-            cameraValue = "95";
-          }
-          if (cameraNameToMap == "IMX219") {
-            cameraValue = "92";
-          } else if (cameraNameToMap == "OV5647") {
-            cameraValue = "91";
-          } else if (cameraNameToMap == "IMX708") {
-            cameraValue = "93";
-          } else if (cameraNameToMap == "VEYE") {
-            cameraValue = "97";
-          } else if (cameraNameToMap == "OHD-JAGUAR") {
-            cameraValue = "96";
-          }
-        } else if ((sbcValue == "rock-5b") || (sbcValue == "rock-5a") ||
-                   (sbcValue == "radxa-cm5")) {
-          if (cameraNameToMap == "HDMI") {
-            cameraValue = "80";
-          }
-          if (cameraNameToMap == "IMX219") {
-            cameraValue = "82";
-          } else if (cameraNameToMap == "OV5647") {
-            cameraValue = "81";
-          } else if (cameraNameToMap == "IMX708") {
-            cameraValue = "83";
-          } else if (cameraNameToMap == "IMX462") {
-            cameraValue = "84";
-          } else if (cameraNameToMap == "IMX415") {
-            cameraValue = "85";
-          } else if (cameraNameToMap == "IMX477") {
-            cameraValue = "86";
-          } else if (cameraNameToMap == "IMX519") {
-            cameraValue = "87";
-          } else if (cameraNameToMap == "OHD-JAGUAR") {
-            cameraValue = "88";
-          }
+    qDebug() << "Writing OpenHD-Settings";
+    const OpenHDImageCustomizer::Result customizationResult =
+        OpenHDImageCustomizer::apply(folder, settings_);
+    if (!customizationResult.succeeded())
+    {
+        QString message;
+        switch (customizationResult.error)
+        {
+        case OpenHDImageCustomizer::Error::CreateDirectory:
+            message = tr("Error creating openhd folder on FAT partition");
+            break;
+        case OpenHDImageCustomizer::Error::WriteSettings:
+            message = tr("Error writing settings.json on FAT partition");
+            break;
+        case OpenHDImageCustomizer::Error::QOpenHDConfigNotFound:
+            message = tr("QOpenHD.conf not found at the selected path.");
+            break;
+        case OpenHDImageCustomizer::Error::ReplaceQOpenHDConfig:
+            message = tr("Error replacing existing QOpenHD.conf on FAT partition");
+            break;
+        case OpenHDImageCustomizer::Error::CopyQOpenHDConfig:
+            message = tr("Error copying QOpenHD.conf to FAT partition");
+            break;
+        case OpenHDImageCustomizer::Error::InvalidCertificate:
+            message = tr("Premium certificate is invalid: %1").arg(customizationResult.detail);
+            break;
+        case OpenHDImageCustomizer::Error::ReplaceCertificate:
+            message = tr("Error replacing existing premium certificate on FAT partition");
+            break;
+        case OpenHDImageCustomizer::Error::CopyCertificate:
+            message = tr("Error copying premium certificate to FAT partition");
+            break;
+        case OpenHDImageCustomizer::Error::None:
+            break;
         }
 
-        if (cameraNameToMap == "FILESRC") {
-          cameraValue = "4";
-        } else if (cameraNameToMap == "IP-CAMERA") {
-          cameraValue = "3";
-        } else if (cameraNameToMap == "EXTERNAL") {
-          cameraValue = "2";
-        } else if (cameraNameToMap == "USB") {
-          cameraValue = "10";
-        } else if (cameraNameToMap == "TESTPATTERN") {
-          cameraValue = "0";
-        } else if (cameraNameToMap == "INFIRAY") {
-          cameraValue = "11";
-        } else if (cameraNameToMap == "INFIRAY_T2") {
-          cameraValue = "12";
-        } else if (cameraNameToMap == "INFIRAY_X2") {
-          cameraValue = "13";
-        } else if (cameraNameToMap == "INFIRAY_P2_PRO") {
-          cameraValue = "14";
-        } else if (cameraNameToMap == "FLIR_VUE" ||
-                   cameraNameToMap == "FLIR VUE") {
-          cameraValue = "15";
-        } else if (cameraNameToMap == "FLIR_BOSON" ||
-                   cameraNameToMap == "FLIR BOSON") {
-          cameraValue = "16";
-        } else if (cameraNameToMap == "HDZERO") {
-          cameraValue = "70";
-        } else if (cameraNameToMap == "RUNCAM_V1") {
-          cameraValue = "71";
-        } else if (cameraNameToMap == "RUNCAM_V2") {
-          cameraValue = "72";
-        } else if (cameraNameToMap == "RUNCAM_V3") {
-          cameraValue = "73";
-        } else if (cameraNameToMap == "RUNCAM_NANO_90") {
-          cameraValue = "74";
-        } else if (cameraNameToMap == "OHD-JAGUAR-X21") {
-          cameraValue = "76";
-        } else if (cameraNameToMap == "OPENIPC") {
-          cameraValue = "110";
-        } else if (cameraNameToMap == "XAVIER-IMX577") {
-          cameraValue = "101";
-        } else if (cameraNameToMap == "ORQA-HORNET") {
-          cameraValue = "122";
-        } else if (cameraNameToMap == "ORQA-JAGUAR") {
-          cameraValue = "123";
-        } else if (cameraNameToMap == "ORQA-REKINDLE") {
-          cameraValue = "124";
-        } else if (cameraNameToMap == "ROCKCHIP-RV") {
-          cameraValue = "125";
-        } else if (sbcValue == "x20" && cameraNameToMap == "OHD-JAGUAR") {
-          cameraValue = "75";
-        } else if ((sbcValue == "qcs405" || sbcValue == "qrb5165") &&
-                   cameraNameToMap == "IMX577") {
-          cameraValue = "120";
-        } else if ((sbcValue == "qcs405" || sbcValue == "qrb5165") &&
-                   cameraNameToMap == "OV9282") {
-          cameraValue = "121";
-        }
-
-        return cameraValue;
-      };
-
-      const QString cameraValue = mapCameraNameToValue(cameraName);
-      if (!cameraName.isEmpty()) {
-        if (!cameraValue.isEmpty())
-          openhdSettings.insert("camera", cameraValue);
-      }
-
-      QString camera2Value = mapCameraNameToValue(camera2Name);
-      if (camera2Value.isEmpty()) {
-        camera2Value = "255";
-      }
-      openhdSettings.insert("camera2", camera2Value);
-
-      if (!cameraName.isEmpty() && !cameraResolutionValue.isEmpty()) {
-        openhdSettings.insert("camera_resolution_fps", cameraResolutionValue);
-      }
-
-      if (camera2Value != "255" && !camera2ResolutionValue.isEmpty()) {
-        openhdSettings.insert("camera2_resolution_fps", camera2ResolutionValue);
-      }
-      const auto isRpiCsiCameraType = [](const QString& value) {
-        bool ok = false;
-        const int cameraType = value.toInt(&ok);
-        return ok && cameraType >= 20 && cameraType <= 69;
-      };
-      if (sbcValue == "rpi" && isRpiCsiCameraType(cameraValue)) {
-        openhdSettings.insert("camera_port", cameraPort);
-      }
-      if (sbcValue == "rpi" && isRpiCsiCameraType(camera2Value)) {
-        openhdSettings.insert("camera2_port", camera2Port);
-      }
-
-      if (cameraValue == "3") {
-        openhdSettings.insert("ip_camera_address", ipCameraAddress);
-        openhdSettings.insert("ip_camera_pipeline", ipCameraPipeline);
-      }
-      if (camera2Value == "3") {
-        openhdSettings.insert("camera2_ip_camera_address",
-                              camera2IpCameraAddress);
-        openhdSettings.insert("camera2_ip_camera_pipeline",
-                              camera2IpCameraPipeline);
-      }
-      if (cameraValue == "3" || camera2Value == "3") {
-        openhdSettings.insert("ip_camera_bitrate_mbits", ipCameraBitrate);
-      }
-
-      if (!sbcValue.isEmpty()) {
-        openhdSettings.insert("sbc", sbcValue);
-      }
-
-      if (modeValue == "debug") {
-        openhdSettings.insert("debug", true);
-      }
-
-      if (bootType == "Air") {
-        openhdSettings.insert("role", "air");
-      } else if (bootType == "Ground") {
-        openhdSettings.insert("role", "ground");
-      }
-
-      openhdSettings.insert("language", languageValue);
-      openhdSettings.insert("token", tokenValue);
-
-      // Always write settings.json if useSettings is true, even if empty
-      QDir openhdDir(folder + "/openhd");
-      if (!openhdDir.exists() && !openhdDir.mkpath(".")) {
-        emit error(tr("Error creating openhd folder on FAT partition"));
+        emit error(message);
         return false;
-      }
-
-      QFile settingsFile(openhdDir.filePath("settings.json"));
-      if (settingsFile.open(QIODevice::WriteOnly)) {
-        QJsonDocument doc(openhdSettings);
-        settingsFile.write(doc.toJson());
-        settingsFile.close();
-      } else {
-        emit error(tr("Error writing settings.json on FAT partition"));
-        return false;
-      }
-
-      if (!qopenhdConfPath.isEmpty()) {
-        if (qopenhdConfPath.startsWith("file:")) {
-          qopenhdConfPath = QUrl(qopenhdConfPath).toLocalFile();
-        }
-        QFileInfo confInfo(qopenhdConfPath);
-        if (!confInfo.exists() || !confInfo.isFile()) {
-          emit error(tr("QOpenHD.conf not found at the selected path."));
-          return false;
-        }
-
-        QDir openhdDir(folder + "/openhd");
-        if (!openhdDir.exists() && !openhdDir.mkpath(".")) {
-          emit error(tr("Error creating openhd folder on FAT partition"));
-          return false;
-        }
-
-        QString targetConfPath = openhdDir.filePath("QOpenHD.conf");
-        if (QFileInfo::exists(targetConfPath) &&
-            !QFile::remove(targetConfPath)) {
-          emit error(
-              tr("Error replacing existing QOpenHD.conf on FAT partition"));
-          return false;
-        }
-
-        if (!QFile::copy(qopenhdConfPath, targetConfPath)) {
-          emit error(tr("Error copying QOpenHD.conf to FAT partition"));
-          return false;
-        }
-      }
-
-      if (!premiumCertificatePath.isEmpty()) {
-        if (premiumCertificatePath.startsWith("file:")) {
-          premiumCertificatePath = QUrl(premiumCertificatePath).toLocalFile();
-        }
-        const QString certificateError =
-            CertificateValidator::validatePremiumCertificateFile(
-                premiumCertificatePath);
-        if (!certificateError.isEmpty()) {
-          emit error(
-              tr("Premium certificate is invalid: %1").arg(certificateError));
-          return false;
-        }
-
-        QDir openhdDir(folder + "/openhd");
-        if (!openhdDir.exists() && !openhdDir.mkpath(".")) {
-          emit error(tr("Error creating openhd folder on FAT partition"));
-          return false;
-        }
-
-        const QString targetCertificatePath =
-            openhdDir.filePath("premium_certificate.ohdcert");
-        if (QFileInfo::exists(targetCertificatePath) &&
-            !QFile::remove(targetCertificatePath)) {
-          emit error(tr(
-              "Error replacing existing premium certificate on FAT partition"));
-          return false;
-        }
-
-        if (!QFile::copy(premiumCertificatePath, targetCertificatePath)) {
-          emit error(tr("Error copying premium certificate to FAT partition"));
-          return false;
-        }
-      }
     }
-
     emit finalizing();
 
 #ifdef Q_OS_LINUX

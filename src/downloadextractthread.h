@@ -7,8 +7,7 @@
  */
 
 #include "downloadthread.h"
-#include <deque>
-#include <condition_variable>
+#include "ringbuffer.h"
 #include <QtConcurrent/QtConcurrent>
 
 class _extractThreadClass;
@@ -36,17 +35,15 @@ protected:
     char *_abuf[2];
     size_t _abufsize;
     _extractThreadClass *_extractThread;
-    std::deque<QByteArray> _queue;
     static const int MAX_QUEUE_SIZE;
-    std::mutex _queueMutex;
-    std::condition_variable _cv;
+    RingBuffer _inputRingBuffer;
     bool _ethreadStarted, _isImage;
     AcceleratedCryptographicHash _inputHash;
     int _activeBuf;
     bool _writeThreadStarted;
+    bool _readSlotAcquired;
     QFuture<size_t> _writeFuture;
 
-    QByteArray _popQueue();
     void _pushQueue(const char *data, size_t len);
     void _cancelExtract();
     virtual size_t _writeData(const char *buf, size_t len);

@@ -7,7 +7,11 @@
  */
 
 #include <QThread>
-#include "dependencies/drivelist/src/drivelist.hpp"
+#include <QMutex>
+#include <QWaitCondition>
+#include <atomic>
+#include "drivelist/drivelist.h"
+#include "rockchipdevice.h"
 
 class DriveListModelPollThread : public QThread
 {
@@ -19,11 +23,14 @@ public:
     void stop();
 
 protected:
-    bool _terminate;
+    std::atomic<bool> _terminate{false};
+    QMutex _waitMutex;
+    QWaitCondition _wakeCondition;
     virtual void run() override;
 
 signals:
     void newDriveList(std::vector<Drivelist::DeviceDescriptor> list);
+    void newRockchipDeviceList(std::vector<RockchipDeviceDescriptor> list);
 };
 
 #endif // DRIVELISTMODELPOLLTHREAD_H

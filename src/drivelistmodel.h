@@ -24,12 +24,13 @@ public:
     void stopPolling();
 
     enum driveListRoles {
-        deviceRole = Qt::UserRole + 1, descriptionRole, sizeRole, isUsbRole, isScsiRole, isReadOnlyRole, mountpointsRole
+        deviceRole = Qt::UserRole + 1, descriptionRole, sizeRole, isUsbRole, isScsiRole, isReadOnlyRole, mountpointsRole,
+        isMaskromRole, usbVendorIdRole, usbProductIdRole, isLoaderRole, socNameRole, boardNameRole
     };
 
 public slots:
     void processDriveList(std::vector<Drivelist::DeviceDescriptor> l);
-
+    void processRockchipDeviceList(std::vector<RockchipDeviceDescriptor> l);
 protected:
     QMap<QString,DriveListItem *> _drivelist;
     QHash<int, QByteArray> _rolenames;

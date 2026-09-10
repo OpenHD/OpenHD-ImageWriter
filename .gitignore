@@ -6,3 +6,5 @@ CMakeCache.txt
 /src/build
 /openssl111
 openssl-1.1.1w.zip
+/build-codex
+/build-codex-tests

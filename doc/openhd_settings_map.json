@@ -392,6 +392,18 @@
     "primaryDefault": "cam1",
     "secondaryDefault": "cam0"
   },
+  "groundDisplay": {
+    "_comment": "Optional forced HDMI mode. Sysutils applies it to the DRM boot argument and OpenHD Glide, then reboots. Omit or set display_force_mode=false to retain automatic EDID mode selection.",
+    "enabledKey": "display_force_mode",
+    "widthKey": "display_width",
+    "heightKey": "display_height",
+    "refreshKey": "display_refresh_hz",
+    "connectorKey": "display_connector",
+    "defaultConnector": "HDMI-A-1",
+    "widthRange": [320, 7680],
+    "heightRange": [240, 4320],
+    "refreshRangeHz": [20, 240]
+  },
   "qopenhdConf": {
     "_comment": "Optional full configuration file copied verbatim when provided by the user.",
     "file": "openhd/QOpenHD.conf"

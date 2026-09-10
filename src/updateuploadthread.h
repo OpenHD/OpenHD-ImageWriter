@@ -7,6 +7,7 @@
 #define UPDATEUPLOADTHREAD_H
 
 #include <QThread>
+#include <atomic>
 
 class UpdateUploadThread : public QThread
 {
@@ -15,6 +16,7 @@ public:
     UpdateUploadThread(const QString &sourceFile, const QString &targetMountpoint,
                        const QString &targetSubdirectory, const QString &destinationFileName,
                        const QByteArray &expectedSha256, QObject *parent = nullptr);
+    void cancel();
 
 signals:
     void progress(qreal percentage);
@@ -31,6 +33,7 @@ private:
     QString _targetSubdirectory;
     QString _destinationFileName;
     QByteArray _expectedSha256;
+    std::atomic<bool> _cancelled{false};
 };
 
 #endif // UPDATEUPLOADTHREAD_H

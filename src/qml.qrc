@@ -43,5 +43,6 @@
         <file>icons/donate.svg</file>
         <file>icons/dev.svg</file>
         <file alias="doc/openhd_settings_map.json">../doc/openhd_settings_map.json</file>
+        <file>rockchip/MiniLoaderAll.bin</file>
     </qresource>
 </RCC>

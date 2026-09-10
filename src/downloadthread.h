@@ -15,14 +15,8 @@
 #include <time.h>
 #include <curl/curl.h>
 #include "acceleratedcryptographichash.h"
-
-#ifdef Q_OS_WIN
-#include "windows/winfile.h"
-#endif
-#ifdef Q_OS_DARWIN
-#include "mac/macfile.h"
-#endif
-
+#include "blockbatcher.h"
+#include "file_operations.h"
 
 class DownloadThread : public QThread
 {
@@ -117,6 +111,8 @@ public:
     uint64_t verifyNow();
     uint64_t verifyTotal();
     uint64_t bytesWritten();
+    bool deviceOperationActive() const;
+    void requestWriteRecovery();
 
     virtual bool isImage();
     size_t _writeFile(const char *buf, size_t len);
@@ -134,6 +130,10 @@ protected:
     virtual void _onDownloadError(const QString &msg);
 
     void _hashData(const char *buf, size_t len);
+    bool _performDeviceWrite(const quint8 *data, std::size_t size,
+                             std::size_t &bytesWritten);
+    bool _flushDevice();
+    bool _writeBatch(const quint8 *data, std::size_t size);
     void _writeComplete();
     bool _verify();
     int _authopen(const QByteArray &filename);
@@ -163,21 +163,17 @@ protected:
     QByteArray _url, _useragent, _buf, _filename, _lastError, _expectedHash, _config, _cmdline, _initFormat;
     char *_firstBlock;
     size_t _firstBlockSize;
-    static QByteArray _proxy;
-    static int _curlCount;
-    bool _cancelled, _successful, _verifyEnabled, _cacheEnabled, _ejectEnabled;
+    std::atomic<bool> _cancelled;
+    std::atomic<bool> _deviceOperationActive;
+    std::atomic<bool> _watchdogRecoveryRequested;
+    bool _successful, _verifyEnabled, _cacheEnabled, _ejectEnabled;
     time_t _lastModified, _serverTime, _lastFailureTime;
     QElapsedTimer _timer;
     int _inputBufferSize;
+    FileError _lastFileError;
+    std::unique_ptr<FileOperations> _file;
+    std::unique_ptr<BlockBatcher> _writeBatcher;
 
-#ifdef Q_OS_WIN
-    WinFile _file, _volumeFile;
-    QByteArray _nr;
-#elif defined(Q_OS_DARWIN)
-    MacFile _file;
-#else
-    QFile _file;
-#endif
     QFile _cachefile;
 
     AcceleratedCryptographicHash _writehash, _verifyhash;
