@@ -105,7 +105,10 @@ public:
     Q_INVOKABLE QString getSSID();
     Q_INVOKABLE QString getPSK(const QString &ssid);
 
-    Q_INVOKABLE void startUpdateUpload(const QString &sourceFile, const QString &device);
+    Q_INVOKABLE void startUpdateUpload(const QString &sourceFile, const QString &device,
+                                       const QString &targetSubdirectory,
+                                       const QString &destinationFileName,
+                                       const QByteArray &expectedSha256);
     Q_INVOKABLE QString getDestination() const;
 
     /* Helpers for reading and writing configuration files on target devices */

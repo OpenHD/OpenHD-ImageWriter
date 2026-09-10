@@ -828,7 +828,10 @@ void ImageWriter::setVerifyEnabled(bool verify)
         _thread->setVerifyEnabled(verify);
 }
 
-void ImageWriter::startUpdateUpload(const QString &sourceFile, const QString &device)
+void ImageWriter::startUpdateUpload(const QString &sourceFile, const QString &device,
+                                    const QString &targetSubdirectory,
+                                    const QString &destinationFileName,
+                                    const QByteArray &expectedSha256)
 {
     QString targetDevice = device.isEmpty() ? _dst : device;
     if (sourceFile.isEmpty())
@@ -845,6 +848,7 @@ void ImageWriter::startUpdateUpload(const QString &sourceFile, const QString &de
     QByteArray targetDeviceLower = targetDevice.toLower().toLatin1();
     auto devices = Drivelist::ListStorageDevices();
     QString mountpoint;
+    QString fallbackMountpoint;
 
     for (auto &d : devices)
     {
@@ -861,7 +865,11 @@ void ImageWriter::startUpdateUpload(const QString &sourceFile, const QString &de
                     mountpoint = mount;
                     break;
                 }
+                if (targetSubdirectory.isEmpty() && fallbackMountpoint.isEmpty() && QFileInfo(mount).isDir())
+                    fallbackMountpoint = mount;
             }
+            if (mountpoint.isEmpty())
+                mountpoint = fallbackMountpoint;
             break;
         }
     }
@@ -880,7 +888,8 @@ void ImageWriter::startUpdateUpload(const QString &sourceFile, const QString &de
         _updateThread = nullptr;
     }
 
-    _updateThread = new UpdateUploadThread(sourceFile, mountpoint, this);
+    _updateThread = new UpdateUploadThread(sourceFile, mountpoint, targetSubdirectory,
+                                           destinationFileName, expectedSha256, this);
     connect(_updateThread, &UpdateUploadThread::progress, this, &ImageWriter::onUpdateUploadProgress);
     connect(_updateThread, &UpdateUploadThread::status, this, &ImageWriter::onUpdateUploadStatus);
     connect(_updateThread, &UpdateUploadThread::error, this, &ImageWriter::onUpdateUploadError);

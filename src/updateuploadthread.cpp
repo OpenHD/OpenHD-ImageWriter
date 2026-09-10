@@ -6,6 +6,7 @@
 #include "updateuploadthread.h"
 
 #include <QDebug>
+#include <QCryptographicHash>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QEventLoop>
@@ -19,8 +20,12 @@
 #include <QTimer>
 #include <QUrl>
 
-UpdateUploadThread::UpdateUploadThread(const QString &sourceFile, const QString &targetMountpoint, QObject *parent)
-    : QThread(parent), _source(sourceFile), _mountpoint(targetMountpoint)
+UpdateUploadThread::UpdateUploadThread(const QString &sourceFile, const QString &targetMountpoint,
+                                       const QString &targetSubdirectory, const QString &destinationFileName,
+                                       const QByteArray &expectedSha256, QObject *parent)
+    : QThread(parent), _source(sourceFile), _mountpoint(targetMountpoint),
+      _targetSubdirectory(targetSubdirectory), _destinationFileName(destinationFileName),
+      _expectedSha256(expectedSha256.trimmed().toLower())
 {
 }
 
@@ -47,12 +52,16 @@ void UpdateUploadThread::run()
     }
 
     QDir destinationDir(_mountpoint);
-    if (!destinationDir.exists("openhd") && !destinationDir.mkpath("openhd"))
+    if (!_targetSubdirectory.isEmpty())
     {
-        emit error(tr("Unable to access OpenHD settings folder."));
-        return;
+        if (QDir::isAbsolutePath(_targetSubdirectory) || _targetSubdirectory.contains(QStringLiteral("..")) ||
+            (!destinationDir.exists(_targetSubdirectory) && !destinationDir.mkpath(_targetSubdirectory)) ||
+            !destinationDir.cd(_targetSubdirectory))
+        {
+            emit error(tr("Unable to access update destination folder."));
+            return;
+        }
     }
-    destinationDir.cd("openhd");
 
     QStorageInfo storageInfo(destinationDir);
     if (!storageInfo.isValid() || !storageInfo.isReady())
@@ -79,7 +88,16 @@ void UpdateUploadThread::run()
         return;
     }
 
-    const QString destinationFileName = sourceInfo.fileName().isEmpty() ? QStringLiteral("update.zip") : sourceInfo.fileName();
+    QString destinationFileName = _destinationFileName;
+    if (destinationFileName.isEmpty())
+        destinationFileName = isRemoteSource ? sourceUrl.fileName() : sourceInfo.fileName();
+    if (destinationFileName.isEmpty())
+        destinationFileName = QStringLiteral("update.zip");
+    if (QFileInfo(destinationFileName).fileName() != destinationFileName)
+    {
+        emit error(tr("Invalid update destination filename."));
+        return;
+    }
     const QString destinationPath = destinationDir.filePath(destinationFileName);
     QSaveFile destination(destinationPath);
     if (!destination.open(QIODevice::WriteOnly))
@@ -90,7 +108,14 @@ void UpdateUploadThread::run()
 
     emit status(tr("Preparing to copy update..."));
 
-    auto finalizeCopy = [this, &destination]() {
+    QCryptographicHash packageHash(QCryptographicHash::Sha256);
+    auto finalizeCopy = [this, &destination, &packageHash]() {
+        const QByteArray actualSha256 = packageHash.result().toHex().toLower();
+        if (!_expectedSha256.isEmpty() && actualSha256 != _expectedSha256)
+        {
+            emit error(tr("Update checksum verification failed."));
+            return false;
+        }
         if (!destination.commit())
         {
             emit error(tr("Unable to finalize upload."));
@@ -205,6 +230,7 @@ void UpdateUploadThread::run()
                 return;
             }
 
+            packageHash.addData(data);
             downloadedBytes += data.size();
             if (requiredBytes > 0)
             {
@@ -280,6 +306,7 @@ void UpdateUploadThread::run()
             return;
         }
 
+        packageHash.addData(buffer.constData(), bytesRead);
         written += bytesRead;
         if (total > 0)
         {

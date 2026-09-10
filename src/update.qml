@@ -24,7 +24,11 @@ Rectangle {
 
     property var mainWindow: null
     property url updateManifestUrl: "https://github.com/OpenHD/OpenHD-ImageWriter/releases/download/Json/OpenHD-Update.json"
+    property url x21UpdateManifestUrl: "https://dl.cloudsmith.io/public/openhd/dev-release/raw/files/openhd-x21b-updates.json"
     property string selectedUpdateSource: ""
+    property string selectedUpdateSubdirectory: "openhd"
+    property string selectedUpdateFilename: ""
+    property string selectedUpdateSha256: ""
     property double downloadSpeedMbit: 0
     property double lastDownloadBytes: 0
     property double lastDownloadTimestamp: 0
@@ -1182,7 +1186,8 @@ Rectangle {
             osbutton.enabled = false
             dstbutton.enabled = false
             imageWriter.setVerifyEnabled(false)
-            imageWriter.startUpdateUpload(selectedUpdateSource, "")
+            imageWriter.startUpdateUpload(selectedUpdateSource, "", selectedUpdateSubdirectory,
+                                          selectedUpdateFilename, selectedUpdateSha256)
         }
 
         function askForConfirmation()
@@ -1414,6 +1419,9 @@ Rectangle {
         imageWriter.setSetting("justUpdate", "")
         imageWriter.setSetting("qopenhdConfPath", "")
         selectedUpdateSource = ""
+        selectedUpdateSubdirectory = "openhd"
+        selectedUpdateFilename = ""
+        selectedUpdateSha256 = ""
     }
 
     function resetWorkflowAfterSuccess() {
@@ -1486,6 +1494,9 @@ Rectangle {
         }
         imageWriter.setSrc(normalized)
         selectedUpdateSource = normalized
+        selectedUpdateSubdirectory = "openhd"
+        selectedUpdateFilename = ""
+        selectedUpdateSha256 = ""
         osbutton.text = imageWriter.srcFileName()
         ospopup.close()
         if (imageWriter.readyToWrite()) {
@@ -1617,6 +1628,10 @@ Rectangle {
         httpRequest(updateManifestUrl, function (x) {
             populateOsList(JSON.parse(x.responseText))
         }, loadLocalUpdates)
+
+        httpRequest(x21UpdateManifestUrl, function (x) {
+            populateOsList(JSON.parse(x.responseText))
+        }, function() { console.log("X21 update catalog is not available") })
     }
 
     Timer {
@@ -1727,6 +1742,9 @@ Rectangle {
         } else {
             imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, ospopup.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : "")
             selectedUpdateSource = d.url
+            selectedUpdateSubdirectory = (typeof(d.update_destination) != "undefined" && d.update_destination === "root") ? "" : "openhd"
+            selectedUpdateFilename = typeof(d.update_filename) != "undefined" ? d.update_filename : ""
+            selectedUpdateSha256 = typeof(d.update_sha256) != "undefined" ? d.update_sha256 : ""
             osbutton.text = d.name
             ospopup.close()
             if (imageWriter.readyToWrite()) {

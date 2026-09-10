@@ -12,7 +12,9 @@ class UpdateUploadThread : public QThread
 {
     Q_OBJECT
 public:
-    UpdateUploadThread(const QString &sourceFile, const QString &targetMountpoint, QObject *parent = nullptr);
+    UpdateUploadThread(const QString &sourceFile, const QString &targetMountpoint,
+                       const QString &targetSubdirectory, const QString &destinationFileName,
+                       const QByteArray &expectedSha256, QObject *parent = nullptr);
 
 signals:
     void progress(qreal percentage);
@@ -26,6 +28,9 @@ protected:
 private:
     QString _source;
     QString _mountpoint;
+    QString _targetSubdirectory;
+    QString _destinationFileName;
+    QByteArray _expectedSha256;
 };
 
 #endif // UPDATEUPLOADTHREAD_H
