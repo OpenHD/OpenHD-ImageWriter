@@ -63,6 +63,9 @@ ApplicationWindow {
 
     function openFeature(name) {
         if (name === currentView) {
+            var current = currentFeature()
+            if (current && current.returnToOverview)
+                current.returnToOverview()
             return
         }
 
@@ -72,6 +75,9 @@ ApplicationWindow {
             transientMessageTimer.restart()
             return
         }
+
+        if (activeFeature && activeFeature.returnToOverview)
+            activeFeature.returnToOverview()
 
         statusMessage = ""
         transientMessage = ""

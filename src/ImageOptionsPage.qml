@@ -11,18 +11,13 @@ import Qt.labs.settings 1.0
 import QtQuick.Dialogs 1.3
 import "qmlcomponents"
 
-Popup {
-    id: popup
-    //x: 62
-    x: (parent.width-width)/2
-    y: 16
-    //width: parent.width-125
-    width: Math.min(760, parent.width-32)
-    height: parent.height-32
-    padding: 0
-    modal: true
-    dim: true
-    closePolicy: Popup.CloseOnEscape
+Rectangle {
+    id: page
+    anchors.fill: parent
+    visible: false
+    z: 20
+    color: "#0c202c"
+    focus: visible
     property bool initialized: false
 
     property var settingsMap: ({})
@@ -60,66 +55,57 @@ Popup {
     property string qopenhdConfPath: ""
     property string premiumCertificatePath: ""
     property string premiumCertificateError: ""
-    background: Rectangle {
-        radius: 10
-        color: "#102633"
-        border.color: "#31515f"
-    }
-
-    // background of title
-    Rectangle {
-        color: "#102633"
-        anchors.right: parent.right
-        anchors.top: parent.top
-        height: 35
-        width: parent.width
-    }
-    // line under title
-    Rectangle {
-        color: "#294754"
-        width: parent.width
-        y: 35
-        implicitHeight: 1
-    }
-
     ColumnLayout {
-        spacing: 10
-        anchors.fill: parent
+        width: Math.min(parent.width - (parent.width < 720 ? 36 : 72), 1040)
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.topMargin: parent.width < 720 ? 24 : 30
+        anchors.bottomMargin: 20
+        spacing: 18
 
-        Text {
-            id: popupheader
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
+        RowLayout {
             Layout.fillWidth: true
-            Layout.topMargin: 10
-            font.family: roboto.name
-            font.bold: true
-            text: qsTr("Advanced options")
-            color: "#f3f7fa"
-            font.pixelSize: 18
+
+            PageHeader {
+                Layout.fillWidth: true
+                title: qsTr("Configure image")
+                subtitle: qsTr("Set the device role, cameras, display, networking, and optional configuration files.")
+            }
+
+            Button {
+                text: qsTr("Back")
+                flat: true
+                onClicked: page.close()
+            }
+        }
+
+        TabBar {
+            id: settingsTabs
+            Layout.fillWidth: true
+
+            TabButton { text: qsTr("General") }
+            TabButton { text: qsTr("Cameras") }
+            TabButton { text: qsTr("Files and certificates") }
         }
 
         ScrollView {
             id: popupbody
             font.family: roboto.name
-            //Layout.maximumWidth: popup.width-30
+            //Layout.maximumWidth: page.width-30
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.leftMargin: 25
-            Layout.rightMargin: 25
-            Layout.topMargin: 10
+            Layout.leftMargin: 0
+            Layout.rightMargin: 0
+            Layout.topMargin: 0
             clip: true
             ScrollBar.vertical.policy: ScrollBar.AlwaysOn
 
             ColumnLayout {
-                GroupBox {
-                    label: RowLayout {
-                        Label {
-                            text: parent.parent.title
-                        }
-                    }
-
+                SettingsSection {
+                    title: qsTr("Device role")
                     Layout.fillWidth: true
+                    visible: settingsTabs.currentIndex === 0
 
                     ColumnLayout {
                         spacing: -10
@@ -148,10 +134,10 @@ Popup {
                         }
                     }
                 }
-                GroupBox {
+                SettingsSection {
                     title: qsTr("Ground display")
                     Layout.fillWidth: true
-                    visible: bootType === "Ground"
+                    visible: settingsTabs.currentIndex === 0 && bootType === "Ground"
 
                     ColumnLayout {
                         spacing: 8
@@ -177,17 +163,18 @@ Popup {
                         }
                     }
                 }
-                GroupBox {
+                SettingsSection {
                     title: qsTr("Camera Settings")
                     id: cameraSettings
                     Layout.fillWidth: true
+                    visible: settingsTabs.currentIndex === 1
 
                     ColumnLayout {
                         spacing: 8
                         Repeater {
                             id: cameraGroupRepeater
                             model: settingsMap.camera && settingsMap.camera.sbcGroups ? settingsMap.camera.sbcGroups : []
-                            delegate: GroupBox {
+                            delegate: SettingsSection {
                                 property var groupData: modelData
                                 title: qsTr("Camera Settings")
                                 Layout.fillWidth: true
@@ -501,7 +488,7 @@ Popup {
                                             }
                                         }
 
-                                        console.log("[OptionsPopup] camera options rebuilt for vendor", cameraGroup.selectedVendor ? cameraGroup.selectedVendor.id : "none", "->", cameraOptionsModel.count, "entries")
+                                        console.log("[ImageOptionsPage] camera options rebuilt for vendor", cameraGroup.selectedVendor ? cameraGroup.selectedVendor.id : "none", "->", cameraOptionsModel.count, "entries")
 
                                         var targetIndex = 0
                                         for (var idx = 0; idx < cameraOptionsModel.count; idx++) {
@@ -520,7 +507,7 @@ Popup {
                                             var vendor = cameraGroup.vendorList[i]
                                             vendorModel.append({ displayName: vendor.displayName, vendorIndex: i })
                                         }
-                                        console.log("[OptionsPopup] vendor list rebuilt for boot", bootType, "sbc", sbc, "->", vendorModel.count, "vendors")
+                                        console.log("[ImageOptionsPage] vendor list rebuilt for boot", bootType, "sbc", sbc, "->", vendorModel.count, "vendors")
                                         if (vendorModel.count > 0) {
                                             var index = vendorSelector.currentIndex >= 0 ? vendorSelector.currentIndex : 0
                                             var foundVendor = false
@@ -551,7 +538,7 @@ Popup {
                             }
                         }
 
-                        GroupBox {
+                        SettingsSection {
                             title: qsTr("Raspberry Pi 5 Camera Connectors")
                             Layout.fillWidth: true
                             visible: bootType === "Air" && sbc === "rpi" &&
@@ -589,7 +576,7 @@ Popup {
                             }
                         }
 
-                        GroupBox {
+                        SettingsSection {
                             title: qsTr("IP Camera Setup")
                             Layout.fillWidth: true
                             visible: bootType === "Air" && (camera === "IP-CAMERA" || camera2 === "IP-CAMERA")
@@ -650,10 +637,11 @@ Popup {
                         }
                     }
                 }
-                GroupBox {
+                SettingsSection {
                     title: qsTr("Misc Settings")
                     id: miscSettings
                     Layout.fillWidth: true
+                    visible: settingsTabs.currentIndex === 0
                     ColumnLayout {
                         spacing: -10
 
@@ -709,9 +697,10 @@ Popup {
                     }
                 }
 
-                GroupBox {
+                SettingsSection {
                     title: qsTr("QOpenHD.conf")
                     Layout.fillWidth: true
+                    visible: settingsTabs.currentIndex === 2
 
                     ColumnLayout {
                         spacing: 8
@@ -748,9 +737,10 @@ Popup {
                     }
                 }
 
-                GroupBox {
+                SettingsSection {
                     title: qsTr("Premium Certificate")
                     Layout.fillWidth: true
+                    visible: settingsTabs.currentIndex === 2
 
                     ColumnLayout {
                         spacing: 8
@@ -801,21 +791,25 @@ Popup {
         }
 
         RowLayout {
-            Layout.alignment: Qt.AlignCenter | Qt.AlignBottom
-            Layout.bottomMargin: 6
-            spacing: 16
+            Layout.fillWidth: true
+            Layout.bottomMargin: 0
+            spacing: 12
 
-            ImButton {
-                text: qsTr("SAVE")
-                onClicked: {
-                    applySettings()
-                    popup.close()
-                }
-                Material.foreground: activeFocus ? "#d1dcfb" : "#ffffff"
-                Material.background: "#2C3E50"
+            Item { Layout.fillWidth: true }
+
+            Button {
+                text: qsTr("Cancel")
+                flat: true
+                onClicked: page.close()
             }
 
-            Text { text: " " }
+            Button {
+                text: qsTr("Save and return")
+                onClicked: {
+                    applySettings()
+                    page.close()
+                }
+            }
         }
     }
 
@@ -876,7 +870,7 @@ Popup {
     }
 
     function initialize() {
-        console.log("[OptionsPopup] initialize() called")
+        console.log("[ImageOptionsPage] initialize() called")
         loadSettingsMap()
         var settings = imageWriter.getSavedCustomizationSettings()
 
@@ -885,7 +879,7 @@ Popup {
         if (!bootType && settingsMap.bootType && settingsMap.bootType.options && settingsMap.bootType.options.length > 0) {
             bootType = settingsMap.bootType.options[0].id
         }
-        console.log("[OptionsPopup] bootType:", bootType)
+        console.log("[ImageOptionsPage] bootType:", bootType)
         fileName = imageWriter.srcFileName();
         sbc = imageWriter.getValue("sbc")
         camera= imageWriter.getValue("camera")
@@ -932,7 +926,7 @@ Popup {
         // Detect the platform and the role capabilities from all current image
         // naming schemes. Lite/minimal images intentionally have no Air stack.
         imageWriter.setSetting("fileName", fileName)
-        console.log("[OptionsPopup] src file:", fileName)
+        console.log("[ImageOptionsPage] src file:", fileName)
         var normalizedFileName = fileName.toLowerCase()
         supportsAir = normalizedFileName.indexOf("lite") === -1 && normalizedFileName.indexOf("minimal") === -1
         supportsGround = normalizedFileName.indexOf("x20") === -1
@@ -1017,20 +1011,31 @@ Popup {
         imageWriter.setSetting("sbc", sbc)
         imageWriter.setSetting("bootType", bootType)
 
-        console.log("[OptionsPopup] detected SBC:", sbc)
-        console.log("[OptionsPopup] saved camera:", camera)
-        console.log("[OptionsPopup] saved camera2:", camera2)
-        console.log("[OptionsPopup] saved cameraResolution:", cameraResolution)
-        console.log("[OptionsPopup] saved camera2Resolution:", camera2Resolution)
+        console.log("[ImageOptionsPage] detected SBC:", sbc)
+        console.log("[ImageOptionsPage] saved camera:", camera)
+        console.log("[ImageOptionsPage] saved camera2:", camera2)
+        console.log("[ImageOptionsPage] saved cameraResolution:", cameraResolution)
+        console.log("[ImageOptionsPage] saved camera2Resolution:", camera2Resolution)
 
         initialized = true
     }
 
-    function openPopup() {
+    function openPage() {
         initialize()
         open()
         popupbody.forceActiveFocus()
     }
+
+    function open() {
+        visible = true
+        forceActiveFocus()
+    }
+
+    function close() {
+        visible = false
+    }
+
+    Keys.onEscapePressed: close()
 
     function applySettings()
     {
@@ -1102,7 +1107,7 @@ Popup {
         try {
             settingsMap = JSON.parse(xhr.responseText)
             settingsMapLoaded = true
-            console.log("[OptionsPopup] settings map loaded with keys:", Object.keys(settingsMap))
+            console.log("[ImageOptionsPage] settings map loaded with keys:", Object.keys(settingsMap))
         } catch (e) {
             console.log("Failed to load OpenHD settings map: " + e)
         }

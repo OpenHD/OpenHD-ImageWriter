@@ -29,9 +29,33 @@ Rectangle {
     property double writeSpeedMB: 0
     property double lastWriteBytes: 0
     property double lastWriteTimestamp: 0
+    property bool selectingImage: false
+    property bool selectingTarget: false
+    property bool reviewingOperation: false
     readonly property bool operationInProgress: progressBar.visible
 
     function navigateBack() {
+        if (selectingImage) {
+            selectingImage = false
+            return
+        }
+
+        if (selectingTarget) {
+            selectingTarget = false
+            imageWriter.stopDriveListPolling()
+            return
+        }
+
+        if (reviewingOperation) {
+            reviewingOperation = false
+            return
+        }
+
+        if (optionsPage.visible) {
+            optionsPage.close()
+            return
+        }
+
         if (progressBar.visible) {
             quitpopup.openPopup()
             return
@@ -56,7 +80,7 @@ Rectangle {
         sequences: ["Shift+Ctrl+X", "Shift+Meta+X"]
         context: Qt.ApplicationShortcut
         onActivated: {
-            optionspopup.openPopup()
+            optionsPage.openPage()
         }
     }
 
@@ -164,10 +188,10 @@ Rectangle {
 
                     Text {
                         text: {
-                            if (typeof optionspopup.fileName !== "undefined" && optionspopup.fileName.length > 45) {
-                                return optionspopup.fileName.substring(0, optionspopup.fileName.length - 7);
-                            }else if (typeof optionspopup.fileName !== "undefined" && optionspopup.fileName.length > 1){
-                                return optionspopup.fileName.substring(0, optionspopup.fileName.length);
+                            if (typeof optionsPage.fileName !== "undefined" && optionsPage.fileName.length > 45) {
+                                return optionsPage.fileName.substring(0, optionsPage.fileName.length - 7);
+                            }else if (typeof optionsPage.fileName !== "undefined" && optionsPage.fileName.length > 1){
+                                return optionsPage.fileName.substring(0, optionsPage.fileName.length);
                             }else {
                                 return "Error";
                             }
@@ -185,7 +209,7 @@ Rectangle {
                 //     }
 
                 //     Text {
-                //         text: optionspopup.sbc
+                //         text: optionsPage.sbc
                 //         font.bold: false
                 //         color: "grey"
 
@@ -198,7 +222,7 @@ Rectangle {
                         font.bold: true
                     }
                     Text {
-                        text: optionspopup.bootType + "  " + optionspopup.mode
+                        text: optionsPage.bootType + "  " + optionsPage.mode
                         font.bold: false
                         color: "grey"
                     }
@@ -210,7 +234,7 @@ Rectangle {
                         font.bold: true
                     }
                     Text {
-                        text: optionspopup.camera
+                        text: optionsPage.camera
                         font.bold: false
                         color: "grey"
                     }
@@ -222,7 +246,7 @@ Rectangle {
                         font.bold: true
                     }
                     Text {
-                        text: optionspopup.camera2
+                        text: optionsPage.camera2
                         font.bold: false
                         color: "grey"
                     }
@@ -234,7 +258,7 @@ Rectangle {
                         font.bold: true
                     }
                     Text {
-                        text: optionspopup.cameraResolution
+                        text: optionsPage.cameraResolution
                         font.bold: false
                         color: "grey"
                     }
@@ -246,7 +270,7 @@ Rectangle {
                         font.bold: true
                     }
                     Text {
-                        text: optionspopup.camera2Resolution
+                        text: optionsPage.camera2Resolution
                         font.bold: false
                         color: "grey"
                     }
@@ -275,6 +299,8 @@ Rectangle {
     Flickable {
         id: modernWorkflow
         anchors.fill: parent
+        visible: !selectingImage && !selectingTarget && !reviewingOperation && !optionsPage.visible
+        enabled: visible
         contentWidth: width
         contentHeight: modernContent.implicitHeight + 72
         clip: true
@@ -359,12 +385,7 @@ Rectangle {
                     description: qsTr("Choose an official release or select a local image file.")
                     actionText: qsTr("Choose image")
                     iconSource: "icons/ui/image.svg"
-                    onClicked: {
-                        ospopup.open()
-                        osswipeview.currentItem.forceActiveFocus()
-                        resetOpenHdSettingsForNewImage()
-                        optionspopup.initialized = false
-                    }
+                    onClicked: openImageSelector()
                 }
 
                 ActionCard {
@@ -376,8 +397,7 @@ Rectangle {
                     iconSource: "icons/ui/drive.svg"
                     onClicked: {
                         imageWriter.startDriveListPolling()
-                        dstpopup.open()
-                        dstlist.forceActiveFocus()
+                        selectingTarget = true
                     }
                 }
 
@@ -495,10 +515,99 @@ Rectangle {
 
                 Button {
                     text: qsTr("Configure")
-                    onClicked: optionspopup.openPopup()
+                    onClicked: optionsPage.openPage()
                 }
             }
         }
+    }
+
+    ImageSelectionPage {
+        id: imageSelectionPage
+        anchors.fill: parent
+        visible: selectingImage
+        enabled: visible
+        z: 2
+        sourceModel: osswipeview.currentItem ? osswipeview.currentItem.model : osmodel
+        rootLevel: osswipeview.currentIndex === 0
+        categoryName: ospopup.categorySelected
+        onItemSelected: selectOSitem(item)
+        onCloseRequested: selectingImage = false
+    }
+
+    DeviceSelectionPage {
+        anchors.fill: parent
+        visible: selectingTarget
+        enabled: visible
+        z: 2
+        deviceModel: driveListModel
+        title: qsTr("Choose a target device")
+        subtitle: qsTr("Select the SD card, USB drive, or supported OpenHD device to overwrite.")
+        onDeviceSelected: {
+            selectDstItem(device)
+            selectingTarget = false
+            imageWriter.stopDriveListPolling()
+        }
+        onBackRequested: {
+            selectingTarget = false
+            imageWriter.stopDriveListPolling()
+        }
+        onRefreshRequested: {
+            imageWriter.stopDriveListPolling()
+            imageWriter.startDriveListPolling()
+        }
+    }
+
+    OperationReviewPage {
+        anchors.fill: parent
+        visible: reviewingOperation
+        enabled: visible
+        z: 2
+        title: qsTr("Review image write")
+        subtitle: qsTr("Make sure the selected image and destination are correct.")
+        sourceName: osbutton.text
+        targetName: dstbutton.text
+        confirmText: qsTr("Erase target and write")
+        onBackRequested: reviewingOperation = false
+        onConfirmed: {
+            reviewingOperation = false
+            startWriteNow()
+        }
+    }
+
+    function openImageSelector() {
+        while (osswipeview.currentIndex > 0)
+            osswipeview.decrementCurrentIndex()
+        ospopup.categorySelected = ""
+        resetOpenHdSettingsForNewImage()
+        optionsPage.initialized = false
+        selectingImage = true
+    }
+
+    function returnToOverview() {
+        selectingImage = false
+        selectingTarget = false
+        reviewingOperation = false
+        imageWriter.stopDriveListPolling()
+        if (optionsPage.visible)
+            optionsPage.close()
+    }
+
+    function startWriteNow() {
+        langbar.visible = false
+        writebutton.enabled = false
+        cancelwritebutton.enabled = true
+        cancelwritebutton.visible = true
+        cancelverifybutton.enabled = true
+        resetDownloadTracking()
+        progressText.text = qsTr("Preparing to write...")
+        progressText.visible = true
+        progressBar.visible = true
+        progressBar.indeterminate = true
+        progressBar.Material.accent = "#ffffff"
+        osbutton.enabled = false
+        dstbutton.enabled = false
+        imageWriter.setVerifyEnabled(true)
+        imageWriter.startWrite()
     }
 
     ColumnLayout {
@@ -592,7 +701,7 @@ Rectangle {
                             ospopup.open()
                             osswipeview.currentItem.forceActiveFocus()
                             resetOpenHdSettingsForNewImage()
-                            optionspopup.initialized = false
+                            optionsPage.initialized = false
                         }
                         Accessible.ignored: ospopup.visible || dstpopup.visible
                         Accessible.description: qsTr("Select this button to change the operating system")
@@ -654,10 +763,10 @@ Rectangle {
                                 }
                             }
                             use_settings=imageWriter.getValue("useSettings")
-                            if (!optionspopup.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
-                                usesavedsettingspopup.openPopup()
+                            if (!optionsPage.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
+                                optionsPage.openPage()
                             } else {
-                                confirmwritepopup.askForConfirmation()
+                                reviewingOperation = true
                             }
                         }
                     }
@@ -690,10 +799,10 @@ Rectangle {
                                 }
                             }
                             use_settings=imageWriter.getValue("useSettings")
-                            if (!optionspopup.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
-                                usesavedsettingspopup.openPopup()
+                            if (!optionsPage.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
+                                optionsPage.openPage()
                             } else {
-                                confirmwritepopup.askForConfirmation()
+                                reviewingOperation = true
                             }
                         }
                     }
@@ -750,7 +859,7 @@ Rectangle {
                         padding: 5
                         id: customizebutton
                         onClicked: {
-                            optionspopup.openPopup()
+                            optionsPage.openPage()
                         }
                         visible: !progressBar.visible && !cancelwritebutton.visible && !cancelverifybutton.visible
                         Accessible.description: qsTr("Select this button to configure Settings")
@@ -1412,58 +1521,6 @@ Rectangle {
     }
 
     MsgPopup {
-        id: confirmwritepopup
-        continueButton: false
-        yesButton: true
-        noButton: true
-        title: qsTr("Warning")
-        onYes: {
-            langbar.visible = false
-            writebutton.enabled = false
-            cancelwritebutton.enabled = true
-            cancelwritebutton.visible = true
-            cancelverifybutton.enabled = true
-            resetDownloadTracking()
-            progressText.text = qsTr("Preparing to write...");
-            progressText.visible = true
-            progressBar.visible = true
-            progressBar.indeterminate = true
-            progressBar.Material.accent = "#ffffff"
-            osbutton.enabled = false
-            dstbutton.enabled = false
-            imageWriter.setVerifyEnabled(true)
-            imageWriter.startWrite()
-        }
-
-        function askForConfirmation()
-        {
-            var isRockusb = (imageWriter.dst().indexOf("rockusb:") === 0);
-            if (imageWriter.isOhdFile(imageWriter.src())) {
-                if (isRockusb) {
-                    text = qsTr("The update (.ohd) will be flashed directly to the board over Rockchip USB.<br><br>Are you sure you want to continue?")
-                } else {
-                    text = qsTr("The update package (.ohd) will be copied to the FAT32 partition on <b>%1</b>.<br><br>Are you sure you want to continue?").arg(dstbutton.text)
-                }
-                openPopup()
-                return
-            }
-            var bootType=imageWriter.getValue("bootType");
-            if(bootType==="Ground"){
-            text = qsTr("All existing data on <b>%1</b> will be erased.<br><b>This Device will boot as Groundstation!</b><br>Are you sure you want to continue?").arg(dstbutton.text)
-            openPopup()
-            }
-            else if(bootType==="Air"){
-            text = qsTr("All existing data on <b>%1</b> will be erased.<br><b>This Device will boot as Air!</b><br>Are you sure you want to continue?").arg(dstbutton.text)
-            openPopup()
-            }
-            else{
-            text = qsTr("All existing data on <b>%1</b> will be erased.<br><br>Are you sure you want to continue?").arg(dstbutton.text)
-            openPopup()
-            }
-        }
-    }
-
-    MsgPopup {
         id: updatepopup
         continueButton: false
         yesButton: true
@@ -1476,24 +1533,8 @@ Rectangle {
         }
     }
 
-    OptionsPopup {
-        id: optionspopup
-    }
-
-    UseSavedSettingsPopup {
-        id: usesavedsettingspopup
-        onYes: {
-            optionspopup.initialize()
-            optionspopup.applySettings()
-            confirmwritepopup.askForConfirmation()
-        }
-        onNo: {
-            imageWriter.clearSavedCustomizationSettings()
-            confirmwritepopup.askForConfirmation()
-        }
-        onEditSettings: {
-            optionspopup.openPopup()
-        }
+    ImageOptionsPage {
+        id: optionsPage
     }
 
     function resetDownloadTracking() {
@@ -1661,7 +1702,7 @@ Rectangle {
 
     function resetWorkflowAfterSuccess() {
         resetOpenHdSettingsForNewImage()
-        optionspopup.initialized = false
+        optionsPage.initialized = false
         imageWriter.setSrc("")
         imageWriter.setDst("")
         osbutton.text = qsTr("CHOOSE OS")
@@ -1724,6 +1765,7 @@ Rectangle {
         imageWriter.setSrc(normalized)
         osbutton.text = imageWriter.srcFileName()
         ospopup.close()
+        selectingImage = false
         if (imageWriter.readyToWrite()) {
             writebutton.enabled = true
         }
@@ -1955,6 +1997,7 @@ Rectangle {
             imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, ospopup.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : "")
             osbutton.text = d.name
             ospopup.close()
+            selectingImage = false
             if (imageWriter.readyToWrite()) {
                 writebutton.enabled = true
             }

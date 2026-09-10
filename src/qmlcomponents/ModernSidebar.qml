@@ -21,14 +21,15 @@ Rectangle {
 
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 58
+            Layout.preferredHeight: root.compact ? 58 : 68
 
             Image {
-                width: 30
-                height: 30
+                width: root.compact ? 30 : parent.width
+                height: root.compact ? 30 : 60
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                source: "../icons/openhdimagewriter.ico"
+                source: root.compact ? "../icons/openhdimagewriter.ico"
+                                     : "../icons/openhd_imagewriter_logo_v4.png"
                 fillMode: Image.PreserveAspectFit
             }
 
@@ -37,7 +38,7 @@ Rectangle {
                 anchors.leftMargin: 42
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                visible: !root.compact
+                visible: false
                 text: qsTr("OpenHD ImageWriter")
                 color: "#f4f8fb"
                 elide: Text.ElideRight

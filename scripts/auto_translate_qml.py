@@ -13,9 +13,8 @@ QML_FILES = [
     os.path.join(ROOT, "src", "flash.qml"),
     os.path.join(ROOT, "src", "update.qml"),
     os.path.join(ROOT, "src", "configure.qml"),
-    os.path.join(ROOT, "src", "OptionsPopup.qml"),
+    os.path.join(ROOT, "src", "ImageOptionsPage.qml"),
     os.path.join(ROOT, "src", "MsgPopup.qml"),
-    os.path.join(ROOT, "src", "UseSavedSettingsPopup.qml"),
 ]
 
 LANG_TS = {

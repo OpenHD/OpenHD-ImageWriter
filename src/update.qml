@@ -35,10 +35,34 @@ Rectangle {
     property double writeSpeedMB: 0
     property double lastWriteBytes: 0
     property double lastWriteTimestamp: 0
+    property bool selectingImage: false
+    property bool selectingTarget: false
+    property bool reviewingOperation: false
     readonly property bool operationInProgress: progressBar.visible
     property bool returnHomeAfterPopupClose: false
 
     function navigateBack() {
+        if (selectingImage) {
+            selectingImage = false
+            return
+        }
+
+        if (selectingTarget) {
+            selectingTarget = false
+            imageWriter.stopDriveListPolling()
+            return
+        }
+
+        if (reviewingOperation) {
+            reviewingOperation = false
+            return
+        }
+
+        if (optionsPage.visible) {
+            optionsPage.close()
+            return
+        }
+
         if (progressBar.visible) {
             quitpopup.openPopup()
             return
@@ -47,6 +71,43 @@ Rectangle {
         if (mainWindow && mainWindow.showHome) {
             mainWindow.showHome()
         }
+    }
+
+    function openUpdateSelector() {
+        while (osswipeview.currentIndex > 0)
+            osswipeview.decrementCurrentIndex()
+        ospopup.categorySelected = ""
+        resetOpenHdSettingsForNewImage()
+        optionsPage.initialized = false
+        selectingImage = true
+    }
+
+    function returnToOverview() {
+        selectingImage = false
+        selectingTarget = false
+        reviewingOperation = false
+        imageWriter.stopDriveListPolling()
+        if (optionsPage.visible)
+            optionsPage.close()
+    }
+
+    function startUpdateNow() {
+        langbar.visible = false
+        writebutton.enabled = false
+        cancelwritebutton.enabled = true
+        cancelwritebutton.visible = true
+        cancelverifybutton.enabled = true
+        resetDownloadTracking()
+        progressText.text = qsTr("Preparing update transfer...")
+        progressText.visible = true
+        progressBar.visible = true
+        progressBar.indeterminate = true
+        progressBar.Material.accent = "#ffffff"
+        osbutton.enabled = false
+        dstbutton.enabled = false
+        imageWriter.setVerifyEnabled(false)
+        imageWriter.startUpdateUpload(selectedUpdateSource, "", selectedUpdateSubdirectory,
+                                      selectedUpdateFilename, selectedUpdateSha256)
     }
 
     Shortcut {
@@ -63,7 +124,7 @@ Rectangle {
         sequences: ["Shift+Ctrl+X", "Shift+Meta+X"]
         context: Qt.ApplicationShortcut
         onActivated: {
-            optionspopup.openPopup()
+            optionsPage.openPage()
         }
     }
 
@@ -171,10 +232,10 @@ Rectangle {
 
                     Text {
                         text: {
-                            if (typeof optionspopup.fileName !== "undefined" && optionspopup.fileName.length > 45) {
-                                return optionspopup.fileName.substring(0, optionspopup.fileName.length - 7);
-                            }else if (typeof optionspopup.fileName !== "undefined" && optionspopup.fileName.length > 1){
-                                return optionspopup.fileName.substring(0, optionspopup.fileName.length);
+                            if (typeof optionsPage.fileName !== "undefined" && optionsPage.fileName.length > 45) {
+                                return optionsPage.fileName.substring(0, optionsPage.fileName.length - 7);
+                            }else if (typeof optionsPage.fileName !== "undefined" && optionsPage.fileName.length > 1){
+                                return optionsPage.fileName.substring(0, optionsPage.fileName.length);
                             }else {
                                 return "Error";
                             }
@@ -192,7 +253,7 @@ Rectangle {
                 //     }
 
                 //     Text {
-                //         text: optionspopup.sbc
+                //         text: optionsPage.sbc
                 //         font.bold: false
                 //         color: "grey"
 
@@ -205,7 +266,7 @@ Rectangle {
                         font.bold: true
                     }
                     Text {
-                        text: optionspopup.bootType + "  " + optionspopup.mode
+                        text: optionsPage.bootType + "  " + optionsPage.mode
                         font.bold: false
                         color: "grey"
                     }
@@ -217,7 +278,7 @@ Rectangle {
                         font.bold: true
                     }
                     Text {
-                        text: optionspopup.camera
+                        text: optionsPage.camera
                         font.bold: false
                         color: "grey"
                     }
@@ -229,7 +290,7 @@ Rectangle {
                         font.bold: true
                     }
                     Text {
-                        text: optionspopup.camera2
+                        text: optionsPage.camera2
                         font.bold: false
                         color: "grey"
                     }
@@ -241,7 +302,7 @@ Rectangle {
                         font.bold: true
                     }
                     Text {
-                        text: optionspopup.cameraResolution
+                        text: optionsPage.cameraResolution
                         font.bold: false
                         color: "grey"
                     }
@@ -253,7 +314,7 @@ Rectangle {
                         font.bold: true
                     }
                     Text {
-                        text: optionspopup.camera2Resolution
+                        text: optionsPage.camera2Resolution
                         font.bold: false
                         color: "grey"
                     }
@@ -282,6 +343,8 @@ Rectangle {
     Flickable {
         id: modernWorkflow
         anchors.fill: parent
+        visible: !selectingImage && !selectingTarget && !reviewingOperation && !optionsPage.visible
+        enabled: visible
         contentWidth: width
         contentHeight: modernContent.implicitHeight + 72
         clip: true
@@ -317,12 +380,7 @@ Rectangle {
                     description: qsTr("Choose a current OpenHD release or select a local update package.")
                     actionText: qsTr("Choose update")
                     iconSource: "icons/ui/update.svg"
-                    onClicked: {
-                        ospopup.open()
-                        osswipeview.currentItem.forceActiveFocus()
-                        resetOpenHdSettingsForNewImage()
-                        optionspopup.initialized = false
-                    }
+                    onClicked: openUpdateSelector()
                 }
 
                 ActionCard {
@@ -334,8 +392,7 @@ Rectangle {
                     iconSource: "icons/ui/drive.svg"
                     onClicked: {
                         imageWriter.startDriveListPolling()
-                        dstpopup.open()
-                        dstlist.forceActiveFocus()
+                        selectingTarget = true
                     }
                 }
 
@@ -451,9 +508,66 @@ Rectangle {
 
                 Button {
                     text: qsTr("Configure")
-                    onClicked: optionspopup.openPopup()
+                    onClicked: optionsPage.openPage()
                 }
             }
+        }
+    }
+
+    ImageSelectionPage {
+        anchors.fill: parent
+        visible: selectingImage
+        enabled: visible
+        z: 2
+        sourceModel: osswipeview.currentItem ? osswipeview.currentItem.model : osmodel
+        rootLevel: osswipeview.currentIndex === 0
+        categoryName: ospopup.categorySelected
+        pageTitle: qsTr("Choose an update")
+        pageSubtitle: qsTr("Select an official release or a local update package.")
+        nestedSubtitle: qsTr("Choose the update release to install.")
+        userDefinedTitle: qsTr("Local package")
+        onItemSelected: selectOSitem(item)
+        onCloseRequested: selectingImage = false
+    }
+
+    DeviceSelectionPage {
+        anchors.fill: parent
+        visible: selectingTarget
+        enabled: visible
+        z: 2
+        deviceModel: driveListModel
+        title: qsTr("Choose an update target")
+        subtitle: qsTr("Select the device or storage that should receive the update.")
+        onDeviceSelected: {
+            selectDstItem(device)
+            selectingTarget = false
+            imageWriter.stopDriveListPolling()
+        }
+        onBackRequested: {
+            selectingTarget = false
+            imageWriter.stopDriveListPolling()
+        }
+        onRefreshRequested: {
+            imageWriter.stopDriveListPolling()
+            imageWriter.startDriveListPolling()
+        }
+    }
+
+    OperationReviewPage {
+        anchors.fill: parent
+        visible: reviewingOperation
+        enabled: visible
+        z: 2
+        title: qsTr("Review device update")
+        subtitle: qsTr("Make sure the selected update and destination are correct.")
+        sourceName: osbutton.text
+        targetName: dstbutton.text
+        confirmText: qsTr("Install update")
+        updateOperation: true
+        onBackRequested: reviewingOperation = false
+        onConfirmed: {
+            reviewingOperation = false
+            startUpdateNow()
         }
     }
 
@@ -549,7 +663,7 @@ Rectangle {
                             ospopup.open()
                             osswipeview.currentItem.forceActiveFocus()
                             resetOpenHdSettingsForNewImage()
-                            optionspopup.initialized = false
+                            optionsPage.initialized = false
                         }
                         Accessible.ignored: ospopup.visible || dstpopup.visible
                         Accessible.description: qsTr("Select this button to change the operating system")
@@ -610,10 +724,10 @@ Rectangle {
                                 }
                             }
                             use_settings=imageWriter.getValue("useSettings")
-                            if (!optionspopup.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
-                                usesavedsettingspopup.openPopup()
+                            if (!optionsPage.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
+                                optionsPage.openPage()
                             } else {
-                                confirmwritepopup.askForConfirmation()
+                                reviewingOperation = true
                             }
                         }
                     }
@@ -646,10 +760,10 @@ Rectangle {
                                 }
                             }
                             use_settings=imageWriter.getValue("useSettings")
-                            if (!optionspopup.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
-                                usesavedsettingspopup.openPopup()
+                            if (!optionsPage.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
+                                optionsPage.openPage()
                             } else {
-                                confirmwritepopup.askForConfirmation()
+                                reviewingOperation = true
                             }
                         }
                     }
@@ -706,7 +820,7 @@ Rectangle {
                         padding: 5
                         id: customizebutton
                         onClicked: {
-                            optionspopup.openPopup()
+                            optionsPage.openPage()
                         }
                         visible: true
                         Accessible.description: qsTr("Select this button to configure Settings")
@@ -1383,60 +1497,6 @@ Rectangle {
     }
 
     MsgPopup {
-        id: confirmwritepopup
-        continueButton: false
-        yesButton: true
-        noButton: true
-        title: qsTr("Warning")
-        onYes: {
-            langbar.visible = false
-            writebutton.enabled = false
-            cancelwritebutton.enabled = true
-            cancelwritebutton.visible = true
-            cancelverifybutton.enabled = true
-            resetDownloadTracking()
-            progressText.text = qsTr("Preparing update transfer...");
-            progressText.visible = true
-            progressBar.visible = true
-            progressBar.indeterminate = true
-            progressBar.Material.accent = "#ffffff"
-            osbutton.enabled = false
-            dstbutton.enabled = false
-            imageWriter.setVerifyEnabled(false)
-            imageWriter.startUpdateUpload(selectedUpdateSource, "", selectedUpdateSubdirectory,
-                                          selectedUpdateFilename, selectedUpdateSha256)
-        }
-
-        function askForConfirmation()
-        {
-            var isRockusb = (imageWriter.dst().indexOf("rockusb:") === 0);
-            if (isRockusb) {
-                text = qsTr("The update (.ohd) will be flashed directly to the board over Rockchip USB.<br><br>Are you sure you want to continue?")
-                openPopup()
-                return
-            }
-            if (imageWriter.isOhdFile(imageWriter.src()) || selectedUpdateSource.toLowerCase().indexOf(".ohd") !== -1) {
-                text = qsTr("The update package (.ohd) will be copied to the FAT32 partition on <b>%1</b>.<br><br>Are you sure you want to continue?").arg(dstbutton.text)
-                openPopup()
-                return
-            }
-            var bootType=imageWriter.getValue("bootType");
-            if(bootType==="Ground"){
-            text = qsTr("The update package will be copied to <b>%1</b>.<br><b>This Device will boot as Groundstation!</b><br>Are you sure you want to continue?").arg(dstbutton.text)
-            openPopup()
-            }
-            else if(bootType==="Air"){
-            text = qsTr("The update package will be copied to <b>%1</b>.<br><b>This Device will boot as Air!</b><br>Are you sure you want to continue?").arg(dstbutton.text)
-            openPopup()
-            }
-            else{
-            text = qsTr("The update package will be copied to <b>%1</b>.<br><br>Are you sure you want to continue?").arg(dstbutton.text)
-            openPopup()
-            }
-        }
-    }
-
-    MsgPopup {
         id: updatepopup
         continueButton: false
         yesButton: true
@@ -1449,24 +1509,8 @@ Rectangle {
         }
     }
 
-    OptionsPopup {
-        id: optionspopup
-    }
-
-    UseSavedSettingsPopup {
-        id: usesavedsettingspopup
-        onYes: {
-            optionspopup.initialize()
-            optionspopup.applySettings()
-            confirmwritepopup.askForConfirmation()
-        }
-        onNo: {
-            imageWriter.clearSavedCustomizationSettings()
-            confirmwritepopup.askForConfirmation()
-        }
-        onEditSettings: {
-            optionspopup.openPopup()
-        }
+    ImageOptionsPage {
+        id: optionsPage
     }
 
     function resetDownloadTracking() {
@@ -1654,7 +1698,7 @@ Rectangle {
 
     function resetWorkflowAfterSuccess() {
         resetOpenHdSettingsForNewImage()
-        optionspopup.initialized = false
+        optionsPage.initialized = false
         imageWriter.setSrc("")
         imageWriter.setDst("")
         osbutton.text = qsTr("CHOOSE UPDATE")
@@ -1738,6 +1782,7 @@ Rectangle {
         selectedUpdateSha256 = ""
         osbutton.text = imageWriter.srcFileName()
         ospopup.close()
+        selectingImage = false
         if (imageWriter.readyToWrite()) {
             writebutton.enabled = true
         }
@@ -1986,6 +2031,7 @@ Rectangle {
             selectedUpdateSha256 = typeof(d.update_sha256) != "undefined" ? d.update_sha256 : ""
             osbutton.text = d.name
             ospopup.close()
+            selectingImage = false
             if (imageWriter.readyToWrite()) {
                 writebutton.enabled = true
             }

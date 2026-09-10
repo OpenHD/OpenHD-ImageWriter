@@ -30,9 +30,9 @@ Item {
 
                 Image {
                     anchors.centerIn: parent
-                    width: Math.min(parent.width * 0.62, 470)
+                    width: Math.min(parent.width * 0.78, 620)
                     height: parent.height
-                    source: "../icons/logo_stacked_imager.png"
+                    source: "../icons/openhd_imagewriter_logo_v4.png"
                     fillMode: Image.PreserveAspectFit
                 }
             }

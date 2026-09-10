@@ -24,11 +24,12 @@ Rectangle {
     property var mainWindow: null
 
     property bool driveSelected: false
+    property bool selectingTarget: false
     property string selectedDevice: ""
     property string selectedMountpoint: ""
     property string openhdRoot: ""
 
-    // Settings map and values reused from OptionsPopup
+    // Settings map and values shared with the image configuration page.
     property var settingsMap: ({})
     property bool settingsMapLoaded: false
     property string bootType: ""
@@ -70,6 +71,12 @@ Rectangle {
     }
 
     function navigateBack() {
+        if (selectingTarget) {
+            selectingTarget = false
+            imageWriter.stopDriveListPolling()
+            return
+        }
+
         if (mainWindow && mainWindow.showHome) {
             mainWindow.showHome()
         }
@@ -107,6 +114,8 @@ Rectangle {
         id: bg
         spacing: 0
         anchors.fill: parent
+        visible: !selectingTarget
+        enabled: visible
 
         Rectangle {
             Layout.fillWidth: true
@@ -193,8 +202,7 @@ ImButton {
                             Layout.fillWidth: true
                             onClicked: {
                                 imageWriter.startDriveListPolling()
-                                dstpopup.open()
-                                dstlist.forceActiveFocus()
+                                selectingTarget = true
                             }
                         }
                     }
@@ -232,7 +240,7 @@ ImButton {
                         width: settingsScroll.width - settingsScroll.leftPadding - settingsScroll.rightPadding
                         spacing: 16
 
-                        GroupBox {
+                        SettingsSection {
                             title: qsTr("Boot Mode")
                             Layout.fillWidth: true
 
@@ -261,7 +269,7 @@ ImButton {
                             }
                         }
 
-                        GroupBox {
+                        SettingsSection {
                             title: qsTr("Camera")
                             Layout.fillWidth: true
                             Layout.minimumHeight: 80
@@ -595,7 +603,7 @@ ImButton {
                             }
                         }
 
-                        GroupBox {
+                        SettingsSection {
                             title: qsTr("Raspberry Pi 5 Camera Connectors")
                             Layout.fillWidth: true
                             visible: bootType === "Air" && sbc === "rpi" &&
@@ -633,7 +641,7 @@ ImButton {
                             }
                         }
 
-                        GroupBox {
+                        SettingsSection {
                             title: qsTr("Ground display")
                             Layout.fillWidth: true
                             visible: bootType === "Ground"
@@ -658,7 +666,7 @@ ImButton {
                             }
                         }
 
-                        GroupBox {
+                        SettingsSection {
                             title: qsTr("IP Camera Setup")
                             Layout.fillWidth: true
                             visible: bootType === "Air" && (camera === "IP-CAMERA" || camera2 === "IP-CAMERA")
@@ -712,7 +720,7 @@ ImButton {
                             }
                         }
 
-                        GroupBox {
+                        SettingsSection {
                             title: qsTr("Misc Settings")
                             Layout.fillWidth: true
 
@@ -747,7 +755,7 @@ ImButton {
                             }
                         }
 
-                        GroupBox {
+                        SettingsSection {
                             title: qsTr("QOpenHD.conf")
                             Layout.fillWidth: true
 
@@ -793,7 +801,7 @@ ImButton {
                             }
                         }
 
-                        GroupBox {
+                        SettingsSection {
                             title: qsTr("Premium Certificate")
                             Layout.fillWidth: true
 
@@ -862,6 +870,34 @@ ImButton {
                 }
             }
         }
+    }
+
+    DeviceSelectionPage {
+        anchors.fill: parent
+        visible: selectingTarget
+        enabled: visible
+        z: 2
+        deviceModel: driveListModel
+        title: qsTr("Choose configuration storage")
+        subtitle: qsTr("Select the OpenHD SD card or USB storage whose settings you want to edit.")
+        onDeviceSelected: {
+            selectDstItem(device)
+            selectingTarget = false
+            imageWriter.stopDriveListPolling()
+        }
+        onBackRequested: {
+            selectingTarget = false
+            imageWriter.stopDriveListPolling()
+        }
+        onRefreshRequested: {
+            imageWriter.stopDriveListPolling()
+            imageWriter.startDriveListPolling()
+        }
+    }
+
+    function returnToOverview() {
+        selectingTarget = false
+        imageWriter.stopDriveListPolling()
     }
 
     Popup {
