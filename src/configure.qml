@@ -15,7 +15,7 @@ import "qmlcomponents"
 Rectangle {
     id: window
     anchors.fill: parent
-    color: "#34495E"
+    color: "#0c202c"
 
     FontLoader { id: roboto;      source: "fonts/Roboto-Regular.ttf" }
     FontLoader { id: robotoLight; source: "fonts/Roboto-Light.ttf" }
@@ -109,7 +109,7 @@ Rectangle {
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: driveSelected ? 0 : window.height / 2
+            Layout.preferredHeight: driveSelected ? 0 : Math.max(130, Math.min(210, window.height * 0.3))
             visible: !driveSelected
             color: "transparent"
 ImButton {
@@ -143,22 +143,23 @@ ImButton {
                 anchors.centerIn: parent
                 source: "icons/logo_stacked_imager.png"
                 fillMode: Image.PreserveAspectFit
-                width: parent.width * 0.7
-                height: parent.height
+                width: Math.min(parent.width * 0.62, 480)
+                height: parent.height - 16
             }
         }
 
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.preferredHeight: driveSelected ? window.height : window.height / 2
-            color: "#2C3E50"
+            Layout.preferredHeight: driveSelected ? window.height : window.height * 0.7
+            color: "#0c202c"
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.topMargin: driveSelected ? 16 : -100
-                anchors.leftMargin: 50
-                anchors.rightMargin: 50
+                anchors.topMargin: driveSelected ? 16 : 24
+                anchors.bottomMargin: 20
+                anchors.leftMargin: window.width < 700 ? 20 : 40
+                anchors.rightMargin: window.width < 700 ? 20 : 40
                 spacing: 12
 
                 RowLayout {

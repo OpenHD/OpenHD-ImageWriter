@@ -9,6 +9,10 @@ import QtQuick.Layouts 1.0
 import QtQuick.Controls.Material 2.2
 
 RadioButton {
+    font.family: roboto.name
+    font.pixelSize: 13
+    Material.foreground: "#e7f0f5"
+    Material.accent: "#168df3"
     Keys.onEnterPressed: toggle()
     Keys.onReturnPressed: toggle()
 }

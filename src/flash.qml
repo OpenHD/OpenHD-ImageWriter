@@ -16,7 +16,7 @@ import "qmlcomponents"
 Rectangle {
     id: window
     anchors.fill: parent
-    color: "#34495E"
+    color: "#0c202c"
 
     FontLoader {id: roboto;      source: "fonts/Roboto-Regular.ttf"}
     FontLoader {id: robotoLight; source: "fonts/Roboto-Light.ttf"}
@@ -273,14 +273,15 @@ Rectangle {
     ColumnLayout {
         id: bg
         spacing: 0
-
-
+        anchors.fill: parent
 
         Rectangle {
             Component.onCompleted: {
                     resetOpenHdSettingsForNewImage()
                 }
-            implicitHeight: window.height/2
+            Layout.fillWidth: true
+            Layout.preferredHeight: Math.max(150, Math.min(220, window.height * 0.32))
+            color: "transparent"
 
             ImButton {
                 padding: 5
@@ -314,29 +315,30 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                 fillMode: Image.PreserveAspectFit
                 source: "icons/logo_stacked_imager.png"
-                width: window.width
-                height: window.height/2
+                width: Math.min(window.width * 0.62, 480)
+                height: parent.height - 20
             }
         }
 
 
         Rectangle {
-            color: "#2C3E50"
-            implicitWidth: window.width
-            implicitHeight: window.height/2
+            color: "#0c202c"
+            Layout.fillWidth: true
+            Layout.fillHeight: true
 
             GridLayout {
                 id: gridLayout
-                rowSpacing: 25
+                rowSpacing: 16
 
                 anchors.fill: parent
-                anchors.topMargin: 25
-                anchors.rightMargin: 50
-                anchors.leftMargin: 50
+                anchors.topMargin: 20
+                anchors.bottomMargin: 20
+                anchors.rightMargin: window.width < 700 ? 20 : 40
+                anchors.leftMargin: window.width < 700 ? 20 : 40
 
                 rows: 6
-                columns: 3
-                columnSpacing: 25
+                columns: window.width >= 760 ? 3 : 1
+                columnSpacing: 16
 
                 ColumnLayout {
                     id: columnLayout
@@ -467,7 +469,7 @@ Rectangle {
 
                 ColumnLayout {
                     id: columnLayout3
-                    Layout.columnSpan: 3
+                    Layout.columnSpan: gridLayout.columns
                     Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
 
                     Text {
@@ -528,7 +530,7 @@ Rectangle {
                 }
 
                 Text {
-                    Layout.columnSpan: 3
+                    Layout.columnSpan: gridLayout.columns
                     color: "#ffffff"
                     font.pixelSize: 18
                     font.family: roboto.name
@@ -537,7 +539,7 @@ Rectangle {
                 }
 
                 Text {
-                    Layout.columnSpan: 3
+                    Layout.columnSpan: gridLayout.columns
                     color: "#ffffff"
                     font.pixelSize: 18
                     font.family: roboto.name
@@ -547,7 +549,7 @@ Rectangle {
 
                 RowLayout {
                     id: langbar
-                    Layout.columnSpan: 3
+                    Layout.columnSpan: gridLayout.columns
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
                     Layout.bottomMargin: 5
                     spacing: 10

@@ -37,6 +37,9 @@
         <file>qmlcomponents/ImButton.qml</file>
         <file>qmlcomponents/ImCheckBox.qml</file>
         <file>qmlcomponents/ImRadioButton.qml</file>
+        <file>qmlcomponents/ModernSidebar.qml</file>
+        <file>qmlcomponents/FeatureCard.qml</file>
+        <file>qmlcomponents/ModernHome.qml</file>
         <file>OptionsPopup.qml</file>
         <file>icons/OpenHD-advanced.webp</file>
         <file>icons/OpenHD-old.webp</file>

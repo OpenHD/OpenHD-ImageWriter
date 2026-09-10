@@ -6,31 +6,36 @@
 import QtQuick 2.9
 import QtQuick.Window 2.2
 import QtQuick.Controls 2.2
-import QtQuick.Layouts 1.0
+import QtQuick.Layouts 1.3
 import QtQuick.Controls.Material 2.2
 import "qmlcomponents"
 
 ApplicationWindow {
     id: window
     visible: true
-    color: "#34495E"
+    color: "#071721"
 
-    width: imageWriter.isEmbeddedMode() ? -1 : 680
-    height: imageWriter.isEmbeddedMode() ? -1 : 400
-    minimumWidth: imageWriter.isEmbeddedMode() ? -1 : 680
-    minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 400
+    width: imageWriter.isEmbeddedMode() ? -1 : 1100
+    height: imageWriter.isEmbeddedMode() ? -1 : 700
+    minimumWidth: imageWriter.isEmbeddedMode() ? -1 : 720
+    minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 500
 
     title: qsTr("OpenHD ImageWriter v%1").arg(imageWriter.constantVersion())
+    Material.theme: Material.Dark
+    Material.accent: "#168df3"
+    Material.primary: "#0b1c27"
+    font.family: roboto.name
 
     FontLoader { id: roboto; source: "fonts/Roboto-Regular.ttf" }
     FontLoader { id: robotoBold; source: "fonts/Roboto-Bold.ttf" }
 
     property string currentView: "home"
     property string statusMessage: ""
+    property bool compactNavigation: width < 900
+    property int navigationWidth: compactNavigation ? 68 : 216
 
     Component.onCompleted: {
-        var hasOpenHdCard = imageWriter.hasOpenHdSettingsCard()
-        if (!hasOpenHdCard) {
+        if (!imageWriter.hasOpenHdSettingsCard()) {
             openFeature("flash")
         }
     }
@@ -124,14 +129,95 @@ ApplicationWindow {
         forwardIfAvailable("fetchOSlist", [])
     }
 
+    Rectangle {
+        anchors.fill: parent
+        color: "#071721"
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#0c2230"
+            opacity: 0.32
+        }
+    }
+
+    ModernSidebar {
+        id: sidebar
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: window.navigationWidth
+        currentView: window.currentView
+        onNavigate: window.openFeature(view)
+        onLanguageRequested: window.openLanguagePopup()
+
+        Behavior on width {
+            NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+        }
+    }
+
+    Rectangle {
+        id: contentSurface
+        anchors.left: sidebar.right
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        color: "#0c202c"
+        clip: true
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#071721"
+            opacity: 0.22
+        }
+
+        ModernHome {
+            anchors.fill: parent
+            visible: currentView === "home"
+            enabled: visible
+            statusMessage: window.statusMessage
+            onFeatureRequested: window.openFeature(view)
+        }
+
+        Loader {
+            id: flashLoader
+            anchors.fill: parent
+            source: "flash.qml"
+            active: true
+            visible: currentView === "flash"
+            enabled: visible
+            onLoaded: item.mainWindow = window
+        }
+
+        Loader {
+            id: updateLoader
+            anchors.fill: parent
+            source: "update.qml"
+            active: true
+            visible: currentView === "update"
+            enabled: visible
+            onLoaded: item.mainWindow = window
+        }
+
+        Loader {
+            id: configureLoader
+            anchors.fill: parent
+            source: "configure.qml"
+            active: true
+            visible: currentView === "configure"
+            enabled: visible
+            onLoaded: item.mainWindow = window
+        }
+    }
+
     Popup {
         id: languagePopup
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
-        width: 360
-        height: 200
+        x: Math.round((window.width - width) / 2)
+        y: Math.round((window.height - height) / 2)
+        width: Math.min(420, window.width - 48)
+        height: 230
         padding: 0
         modal: true
+        dim: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
         onOpened: {
@@ -139,284 +225,77 @@ ApplicationWindow {
             languageSelector.currentIndex = languageSelector.find(currentLang)
         }
 
-        Rectangle {
-            color: "#f5f5f5"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: 35
-            width: parent.width
-        }
-        Rectangle {
-            color: "#afafaf"
-            width: parent.width
-            y: 35
-            implicitHeight: 1
+        background: Rectangle {
+            radius: 10
+            color: "#102633"
+            border.color: "#31505f"
+            border.width: 1
         }
 
-        Text {
-            text: "X"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: 25
-            anchors.topMargin: 10
-            font.family: roboto.name
-            font.bold: true
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: languagePopup.close()
-            }
-        }
-
-        ColumnLayout {
-            spacing: 16
-            anchors.fill: parent
-            anchors.topMargin: 12
-            anchors.leftMargin: 20
-            anchors.rightMargin: 20
-            anchors.bottomMargin: 12
-
-            Text {
-                text: qsTr("Language settings")
-                Layout.fillWidth: true
-                horizontalAlignment: Text.AlignHCenter
-                font.family: robotoBold.name
-                font.bold: true
-            }
+        contentItem: ColumnLayout {
+            spacing: 14
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 12
+                Layout.leftMargin: 22
+                Layout.rightMargin: 12
+                Layout.topMargin: 16
 
-                Text {
-                    text: qsTr("Language")
-                    font.family: roboto.name
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 3
+
+                    Text {
+                        text: qsTr("Language")
+                        color: "#f4f8fb"
+                        font.family: robotoBold.name
+                        font.bold: true
+                        font.pixelSize: 20
+                    }
+
+                    Text {
+                        text: qsTr("Choose the language used by ImageWriter.")
+                        color: "#9fb3c0"
+                        font.pixelSize: 12
+                    }
                 }
 
-                ComboBox {
-                    id: languageSelector
-                    font.family: roboto.name
-                    model: imageWriter.getTranslations()
-                    Layout.fillWidth: true
-                    currentIndex: -1
-                    onActivated: {
-                        imageWriter.changeLanguage(editText)
-                        imageWriter.setSetting("language", editText)
-                    }
+                ToolButton {
+                    text: "×"
+                    font.pixelSize: 22
+                    onClicked: languagePopup.close()
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.leftMargin: 22
+                Layout.rightMargin: 22
+                Layout.preferredHeight: 1
+                color: "#294654"
+            }
+
+            ComboBox {
+                id: languageSelector
+                Layout.fillWidth: true
+                Layout.leftMargin: 22
+                Layout.rightMargin: 22
+                currentIndex: -1
+                model: imageWriter.getTranslations()
+                onActivated: {
+                    imageWriter.changeLanguage(editText)
+                    imageWriter.setSetting("language", editText)
                 }
             }
 
             Item { Layout.fillHeight: true }
 
-            ImButton {
-                text: qsTr("CLOSE")
-                Layout.alignment: Qt.AlignHCenter
+            Button {
+                Layout.alignment: Qt.AlignRight
+                Layout.rightMargin: 22
+                Layout.bottomMargin: 18
+                text: qsTr("Done")
                 onClicked: languagePopup.close()
-            }
-        }
-    }
-
-    Loader {
-        id: flashLoader
-        anchors.fill: parent
-        source: "flash.qml"
-        active: true
-        visible: currentView === "flash"
-        enabled: visible
-        onLoaded: item.mainWindow = window
-    }
-
-    Loader {
-        id: updateLoader
-        anchors.fill: parent
-        source: "update.qml"
-        active: true
-        visible: currentView === "update"
-        enabled: visible
-        onLoaded: item.mainWindow = window
-    }
-
-    Loader {
-        id: configureLoader
-        anchors.fill: parent
-        source: "configure.qml"
-        active: true
-        visible: currentView === "configure"
-        enabled: visible
-        onLoaded: item.mainWindow = window
-    }
-
-    Item {
-        id: homeView
-        anchors.fill: parent
-        visible: currentView === "home"
-
-        ColumnLayout {
-            id: bg
-            spacing: 0
-            anchors.fill: parent
-
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: window.height / 2
-                color: "transparent"
-ImButton {
-                padding: 5
-                id: donatebutton
-                onClicked: {
-                    Qt.openUrlExternally("https://opencollective.com/openhd");
-                }
-                visible: imageWriter.getValue("developer") !== "Kugelrund"
-                Accessible.description: qsTr("Donate")
-                contentItem: Image {
-                    source: "icons/donate.svg"
-                    fillMode: Image.PreserveAspectFit
-                }
-            }
-            ImButton {
-                padding: 5
-                id: developerButton
-                onClicked: {
-                    Qt.openUrlExternally("https://openhdfpv.org");
-                }
-                visible: imageWriter.getValue("developer") == "Kugelrund"
-                Accessible.description: qsTr("DEV")
-                contentItem: Image {
-                    source: "icons/dev.svg"
-                    fillMode: Image.PreserveAspectFit
-                }
-            }
-                Image {
-                    id: logo
-                    anchors.centerIn: parent
-                    source: "icons/logo_stacked_imager.png"
-                    fillMode: Image.PreserveAspectFit
-
-                    // Scale relative to the top half area
-                    width: parent.width * 0.7
-                    height: parent.height
-                }
-            }
-
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: window.height / 2
-                color: "#2C3E50"
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 50
-                    anchors.rightMargin: 50
-                    anchors.topMargin: -125
-                    spacing: 24
-
-                    RowLayout {
-                        spacing: 16
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.fillWidth: true
-
-                        ColumnLayout {
-                            spacing: 4
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: 150
-
-                            Text {
-                                text: qsTr(" ")
-                                color: "#fff"
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 17
-                                Layout.preferredWidth: 100
-                                font.pixelSize: 12
-                                font.family: robotoBold.name
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-
-                            ImButton {
-                                text: qsTr("FLASH")
-                                Layout.fillWidth: true
-                                Layout.preferredWidth: 150
-                                onClicked: openFeature("flash")
-                            }
-                        }
-
-                        ColumnLayout {
-                            spacing: 4
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: 150
-
-                            Text {
-                                text: qsTr(" ")
-                                color: "#fff"
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 17
-                                Layout.preferredWidth: 100
-                                font.pixelSize: 12
-                                font.family: robotoBold.name
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-
-                            ImButton {
-                                text: qsTr("UPDATE")
-                                Layout.fillWidth: true
-                                Layout.preferredWidth: 150
-                                onClicked: openFeature("update")
-                            }
-                        }
-
-                        ColumnLayout {
-                            spacing: 4
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: 150
-
-                            Text {
-                                text: qsTr(" ")
-                                color: "#fff"
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 17
-                                Layout.preferredWidth: 100
-                                font.pixelSize: 12
-                                font.family: robotoBold.name
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-
-                            ImButton {
-                                text: qsTr("CONFIGURE")
-                                Layout.fillWidth: true
-                                Layout.preferredWidth: 150
-                                onClicked: openFeature("configure")
-                            }
-                        }
-                    }
-
-                    Label {
-                        text: statusMessage
-                        color: "#ffdf6d"
-                        visible: statusMessage !== ""
-                        wrapMode: Text.WordWrap
-                        horizontalAlignment: Text.AlignHCenter
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.fillWidth: true
-                    }
-                }
-
-                ImButton {
-                    id: homeSettingsButton
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    anchors.rightMargin: 50
-                    anchors.bottomMargin: 55
-                    padding: 5
-                    onClicked: openLanguagePopup()
-                    Accessible.description: qsTr("Select this button to configure language")
-                    contentItem: Image {
-                        source: "icons/ic_cog_red.svg"
-                        fillMode: Image.PreserveAspectFit
-                    }
-                }
             }
         }
     }
