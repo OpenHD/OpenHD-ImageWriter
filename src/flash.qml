@@ -29,6 +29,7 @@ Rectangle {
     property double writeSpeedMB: 0
     property double lastWriteBytes: 0
     property double lastWriteTimestamp: 0
+    readonly property bool operationInProgress: progressBar.visible
 
     function navigateBack() {
         if (progressBar.visible) {

@@ -31,6 +31,7 @@ ApplicationWindow {
 
     property string currentView: "home"
     property string statusMessage: ""
+    property string transientMessage: ""
     property bool compactNavigation: width < 900
     property int navigationWidth: compactNavigation ? 68 : 216
 
@@ -61,12 +62,24 @@ ApplicationWindow {
     }
 
     function openFeature(name) {
+        if (name === currentView) {
+            return
+        }
+
+        var activeFeature = currentFeature()
+        if (activeFeature && activeFeature.operationInProgress) {
+            transientMessage = qsTr("Finish or cancel the current operation before leaving this page.")
+            transientMessageTimer.restart()
+            return
+        }
+
         statusMessage = ""
+        transientMessage = ""
         currentView = name
     }
 
     function showHome() {
-        currentView = "home"
+        openFeature("home")
     }
 
     function openLanguagePopup() {
@@ -207,6 +220,37 @@ ApplicationWindow {
             enabled: visible
             onLoaded: item.mainWindow = window
         }
+
+        Rectangle {
+            anchors.top: parent.top
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.topMargin: 18
+            width: Math.min(noticeText.implicitWidth + 36, parent.width - 36)
+            height: noticeText.implicitHeight + 22
+            radius: 7
+            color: "#3b3010"
+            border.color: "#b58c16"
+            visible: transientMessage !== ""
+            z: 100
+
+            Text {
+                id: noticeText
+                anchors.fill: parent
+                anchors.margins: 11
+                text: transientMessage
+                color: "#ffe49a"
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                font.pixelSize: 12
+            }
+        }
+    }
+
+    Timer {
+        id: transientMessageTimer
+        interval: 4000
+        onTriggered: transientMessage = ""
     }
 
     Popup {
