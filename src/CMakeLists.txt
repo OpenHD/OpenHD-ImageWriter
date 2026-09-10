@@ -67,7 +67,7 @@ elseif (WIN32)
         windows/windowsdiskpreparation.cpp windows/windowsdiskpreparation.h
         windows/openhdimagewriter.rc)
     find_package(Qt5WinExtras REQUIRED)
-    set(EXTRALIBS setupapi shell32 ole32 wlanapi Qt5::WinExtras)
+    set(EXTRALIBS setupapi shell32 ole32 dwmapi wlanapi Qt5::WinExtras)
 endif()
 
 include_directories(BEFORE .)

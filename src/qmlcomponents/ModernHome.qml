@@ -64,7 +64,7 @@ Item {
                 FeatureCard {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 178
-                    glyph: "▣"
+                    iconSource: "../icons/ui/image.svg"
                     title: qsTr("Write an image")
                     description: qsTr("Choose an OpenHD image and write it safely to an SD card, USB drive, or supported device.")
                     onClicked: root.featureRequested("flash")
@@ -73,7 +73,7 @@ Item {
                 FeatureCard {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 178
-                    glyph: "↧"
+                    iconSource: "../icons/ui/update.svg"
                     title: qsTr("Update a device")
                     description: qsTr("Download a current OpenHD release and install an update directly on the selected target.")
                     onClicked: root.featureRequested("update")
@@ -82,7 +82,7 @@ Item {
                 FeatureCard {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 178
-                    glyph: "⚙"
+                    iconSource: "../icons/ui/settings.svg"
                     title: qsTr("Configure media")
                     description: qsTr("Prepare device roles, cameras, networking, and advanced OpenHD settings before first boot.")
                     onClicked: root.featureRequested("configure")

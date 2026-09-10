@@ -69,6 +69,7 @@ Rectangle {
 
     ToolButton {
         id: backButton
+        visible: false
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.topMargin: 8
@@ -278,11 +279,190 @@ Rectangle {
     }
 
 
+    Flickable {
+        id: modernWorkflow
+        anchors.fill: parent
+        contentWidth: width
+        contentHeight: modernContent.implicitHeight + 72
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+        ColumnLayout {
+            id: modernContent
+            width: Math.min(modernWorkflow.width - (modernWorkflow.width < 700 ? 40 : 72), 1040)
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: modernWorkflow.width < 700 ? 24 : 38
+            spacing: 24
+
+            PageHeader {
+                Layout.fillWidth: true
+                title: progressBar.visible ? qsTr("Updating device") : qsTr("Update an OpenHD device")
+                subtitle: progressBar.visible
+                          ? qsTr("Keep the target connected until the update is complete.")
+                          : qsTr("Select an update package and target device, then start the installation.")
+            }
+
+            GridLayout {
+                Layout.fillWidth: true
+                visible: !progressBar.visible
+                columns: width >= 840 ? 3 : 1
+                rowSpacing: 14
+                columnSpacing: 14
+
+                ActionCard {
+                    Layout.fillWidth: true
+                    text: osbutton.text === qsTr("CHOOSE UPDATE") ? qsTr("No update selected") : osbutton.text
+                    eyebrow: qsTr("Update package")
+                    description: qsTr("Choose a current OpenHD release or select a local update package.")
+                    actionText: qsTr("Choose update")
+                    iconSource: "icons/ui/update.svg"
+                    onClicked: {
+                        ospopup.open()
+                        osswipeview.currentItem.forceActiveFocus()
+                        resetOpenHdSettingsForNewImage()
+                        optionspopup.initialized = false
+                    }
+                }
+
+                ActionCard {
+                    Layout.fillWidth: true
+                    text: dstbutton.text === qsTr("CHOOSE STORAGE") ? qsTr("No target selected") : dstbutton.text
+                    eyebrow: qsTr("Target device")
+                    description: qsTr("Select the device or storage that should receive the update.")
+                    actionText: qsTr("Choose target")
+                    iconSource: "icons/ui/drive.svg"
+                    onClicked: {
+                        imageWriter.startDriveListPolling()
+                        dstpopup.open()
+                        dstlist.forceActiveFocus()
+                    }
+                }
+
+                ActionCard {
+                    Layout.fillWidth: true
+                    text: writebutton.enabled ? qsTr("Ready to update") : qsTr("Complete the selections")
+                    eyebrow: qsTr("Final step")
+                    description: qsTr("Review the package and target before starting the update.")
+                    actionText: qsTr("Review and update")
+                    iconSource: "icons/ui/write.svg"
+                    primaryAction: true
+                    enabled: writebutton.enabled
+                    onClicked: writebutton.clicked()
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: progressPanelContent.implicitHeight + 40
+                visible: progressBar.visible
+                radius: 10
+                color: "#0e2734"
+                border.color: "#294754"
+
+                ColumnLayout {
+                    id: progressPanelContent
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: 20
+                    spacing: 14
+
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: progressText.text
+                            color: "#edf5f9"
+                            font.pixelSize: 14
+                            font.bold: true
+                            wrapMode: Text.WordWrap
+                        }
+
+                        Text {
+                            text: Math.round(progressBar.value * 100) + "%"
+                            color: "#5bb4ff"
+                            font.pixelSize: 18
+                            font.bold: true
+                        }
+                    }
+
+                    ProgressBar {
+                        Layout.fillWidth: true
+                        value: progressBar.value
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: qsTr("Do not remove or disconnect the target.")
+                            color: "#8299a7"
+                            font.pixelSize: 11
+                        }
+
+                        Button {
+                            visible: cancelwritebutton.visible
+                            enabled: cancelwritebutton.enabled
+                            text: qsTr("Cancel")
+                            onClicked: cancelwritebutton.clicked()
+                        }
+
+                        Button {
+                            visible: cancelverifybutton.visible
+                            enabled: cancelverifybutton.enabled
+                            text: qsTr("Skip verification")
+                            onClicked: cancelverifybutton.clicked()
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+                visible: !progressBar.visible
+                color: "#213d4a"
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                visible: !progressBar.visible
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 2
+
+                    Text {
+                        text: qsTr("Update options")
+                        color: "#dbe7ed"
+                        font.pixelSize: 13
+                        font.bold: true
+                    }
+
+                    Text {
+                        text: qsTr("Adjust package-specific settings before installing.")
+                        color: "#8198a5"
+                        font.pixelSize: 11
+                    }
+                }
+
+                Button {
+                    text: qsTr("Configure")
+                    onClicked: optionspopup.openPopup()
+                }
+            }
+        }
+    }
+
     ColumnLayout {
         id: bg
         spacing: 0
         anchors.fill: parent
-        anchors.fill: parent
+        opacity: 0
+        z: -1
 
 
 
@@ -638,17 +818,22 @@ Rectangle {
      */
     Popup {
         id: ospopup
-        x: 50
-        y: 25
-        width: parent.width-100
-        height: parent.height-50
+        x: parent.width < 700 ? 16 : 36
+        y: parent.height < 560 ? 16 : 28
+        width: parent.width - (parent.width < 700 ? 32 : 72)
+        height: parent.height - (parent.height < 560 ? 32 : 56)
         padding: 0
         closePolicy: Popup.NoAutoClose
         property string categorySelected : ""
+        background: Rectangle {
+            radius: 10
+            color: "#102633"
+            border.color: "#31515f"
+        }
 
         // background of title
         Rectangle {
-            color: "#f5f5f5"
+            color: "#102633"
             anchors.right: parent.right
             anchors.top: parent.top
             height: 35
@@ -656,7 +841,7 @@ Rectangle {
         }
         // line under title
         Rectangle {
-            color: "#afafaf"
+            color: "#294754"
             width: parent.width
             y: 35
             implicitHeight: 1
@@ -664,6 +849,7 @@ Rectangle {
 
         Text {
             text: "X"
+            color: "#dce8ef"
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.rightMargin: 25
@@ -684,13 +870,15 @@ Rectangle {
             spacing: 10
 
             Text {
-                text: qsTr("Operating System")
+                text: qsTr("Choose an update")
+                color: "#f3f7fa"
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 Layout.fillWidth: true
                 Layout.topMargin: 10
                 font.family: roboto.name
                 font.bold: true
+                font.pixelSize: 17
             }
 
             Item {
@@ -707,10 +895,10 @@ Rectangle {
                         model: osmodel
                         currentIndex: -1
                         delegate: osdelegate
-                        width: window.width-100
-                        height: window.height-100
+                        width: ospopup.width
+                        height: ospopup.height-52
                         boundsBehavior: Flickable.StopAtBounds
-                        highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
+                        highlight: Rectangle { color: "#17415a"; radius: 7 }
                         ScrollBar.vertical: ScrollBar {
                             width: 10
                             policy: oslist.contentHeight > oslist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
@@ -815,7 +1003,7 @@ Rectangle {
         id: osdelegate
 
         Item {
-            width: window.width-100
+            width: ospopup.width
             height: contentLayout.implicitHeight + 24
             Accessible.name: name+".\n"+description
 
@@ -841,7 +1029,7 @@ Rectangle {
             Rectangle {
                 id: bgrect
                 anchors.fill: parent
-                color: "#f5f5f5"
+                color: "#173746"
                 visible: mouseOver && parent.ListView.view.currentIndex !== index
                 property bool mouseOver: false
             }
@@ -849,7 +1037,7 @@ Rectangle {
                 id: borderrect
                 implicitHeight: 1
                 implicitWidth: parent.width
-                color: "#dcdcdc"
+                color: "#294754"
                 y: parent.height
             }
 
@@ -880,6 +1068,7 @@ Rectangle {
                         spacing: 12
                         Text {
                             text: name
+                            color: "#eef5f9"
                             elide: Text.ElideRight
                             font.family: roboto.name
                             font.bold: true
@@ -904,13 +1093,13 @@ Rectangle {
                         font.family: roboto.name
                         text: description
                         wrapMode: Text.WordWrap
-                        color: "#1a1a1a"
+                        color: "#a9bbc5"
                     }
 
                     Text {
                         Layout.fillWidth: true
                         elide: Text.ElideRight
-                        color: "#646464"
+                        color: "#748d9a"
                         font.weight: Font.Light
                         visible: typeof(release_date) == "string" && release_date
                         text: qsTr("Released: %1").arg(release_date)
@@ -952,17 +1141,22 @@ Rectangle {
      */
     Popup {
         id: dstpopup
-        x: 50
-        y: 25
-        width: parent.width-100
-        height: parent.height-50
+        x: parent.width < 700 ? 16 : 36
+        y: parent.height < 560 ? 16 : 28
+        width: parent.width - (parent.width < 700 ? 32 : 72)
+        height: parent.height - (parent.height < 560 ? 32 : 56)
         padding: 0
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         onClosed: imageWriter.stopDriveListPolling()
+        background: Rectangle {
+            radius: 10
+            color: "#102633"
+            border.color: "#31515f"
+        }
 
         // background of title
         Rectangle {
-            color: "#f5f5f5"
+            color: "#102633"
             anchors.right: parent.right
             anchors.top: parent.top
             height: 35
@@ -970,7 +1164,7 @@ Rectangle {
         }
         // line under title
         Rectangle {
-            color: "#afafaf"
+            color: "#294754"
             width: parent.width
             y: 35
             implicitHeight: 1
@@ -978,6 +1172,7 @@ Rectangle {
 
         Text {
             text: "X"
+            color: "#dce8ef"
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.rightMargin: 25
@@ -998,13 +1193,15 @@ Rectangle {
             spacing: 10
 
             Text {
-                text: qsTr("Storage")
+                text: qsTr("Choose a target")
+                color: "#f3f7fa"
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 Layout.fillWidth: true
                 Layout.topMargin: 10
                 font.family: roboto.name
                 font.bold: true
+                font.pixelSize: 17
             }
 
             Item {
@@ -1016,10 +1213,10 @@ Rectangle {
                     id: dstlist
                     model: driveListModel
                     delegate: dstdelegate
-                    width: window.width-100
-                    height: window.height-100
+                    width: dstpopup.width
+                    height: dstpopup.height-52
                     boundsBehavior: Flickable.StopAtBounds
-                    highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
+                    highlight: Rectangle { color: "#17415a"; radius: 7 }
                     ScrollBar.vertical: ScrollBar {
                         width: 10
                         policy: dstlist.contentHeight > dstlist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
@@ -1045,8 +1242,8 @@ Rectangle {
     Component {
         id: dstdelegate
         Item {
-            width: window.width-100
-            height: 60
+            width: dstpopup.width
+            height: 72
             Accessible.name: {
                 if (isMaskrom)
                     return description + ". " + qsTr("Recovery mode (MaskROM)")
@@ -1067,7 +1264,7 @@ Rectangle {
             Rectangle {
                 id: dstbgrect
                 anchors.fill: parent
-                color: "#f5f5f5"
+                color: "#173746"
                 visible: mouseOver && parent.ListView.view.currentIndex !== index
                 property bool mouseOver: false
 
@@ -1077,7 +1274,7 @@ Rectangle {
                 id: dstborderrect
                 implicitHeight: 1
                 implicitWidth: parent.width
-                color: "#dcdcdc"
+                color: "#294754"
                 y: parent.height
             }
 
@@ -1100,6 +1297,7 @@ Rectangle {
 
                     Text {
                         textFormat: Text.StyledText
+                        color: "#dce8ef"
                         height: parent.parent.parent.height
                         verticalAlignment: Text.AlignVCenter
                         font.family: roboto.name

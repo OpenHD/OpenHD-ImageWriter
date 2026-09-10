@@ -4,7 +4,7 @@ import QtQuick.Controls 2.2
 Button {
     id: root
 
-    property string glyph: ""
+    property url iconSource
     property string title: ""
     property string description: ""
 
@@ -32,12 +32,12 @@ Button {
             anchors.topMargin: 18
             color: root.hovered ? "#0d84ff" : "#1b394a"
 
-            Text {
+            Image {
                 anchors.centerIn: parent
-                text: root.glyph
-                color: "white"
-                font.pixelSize: 27
-                font.bold: true
+                width: 28
+                height: 28
+                source: root.iconSource
+                fillMode: Image.PreserveAspectFit
             }
         }
 

@@ -16,33 +16,25 @@ Rectangle {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: root.compact ? 8 : 12
-        spacing: 6
+        anchors.margins: root.compact ? 9 : 14
+        spacing: 7
 
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 50
+            Layout.preferredHeight: 58
 
-            Rectangle {
-                width: 28
-                height: 28
-                radius: 14
+            Image {
+                width: 30
+                height: 30
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                color: "#0d84ff"
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "O"
-                    color: "white"
-                    font.bold: true
-                    font.pixelSize: 13
-                }
+                source: "../icons/openhdimagewriter.ico"
+                fillMode: Image.PreserveAspectFit
             }
 
             Text {
                 anchors.left: parent.left
-                anchors.leftMargin: 40
+                anchors.leftMargin: 42
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 visible: !root.compact
@@ -56,42 +48,43 @@ Rectangle {
 
         Repeater {
             model: [
-                { "view": "home", "glyph": "⌂", "label": qsTr("Home") },
-                { "view": "flash", "glyph": "▣", "label": qsTr("Write image") },
-                { "view": "update", "glyph": "↧", "label": qsTr("Update device") },
-                { "view": "configure", "glyph": "⚙", "label": qsTr("Configure media") }
+                { "view": "home", "icon": "../icons/ui/home.svg", "label": qsTr("Home") },
+                { "view": "flash", "icon": "../icons/ui/image.svg", "label": qsTr("Write image") },
+                { "view": "update", "icon": "../icons/ui/update.svg", "label": qsTr("Update device") },
+                { "view": "configure", "icon": "../icons/ui/settings.svg", "label": qsTr("Configure media") }
             ]
 
             delegate: Button {
                 id: navButton
                 Layout.fillWidth: true
-                Layout.preferredHeight: 44
+                Layout.preferredHeight: 42
                 hoverEnabled: true
                 padding: 0
                 onClicked: root.navigate(modelData.view)
 
                 background: Rectangle {
-                    radius: 6
+                    radius: 7
                     color: root.currentView === modelData.view
-                           ? "#075fab"
+                           ? "#0b64ad"
                            : (navButton.hovered ? "#132e3e" : "transparent")
-                    border.color: root.currentView === modelData.view ? "#168df3" : "transparent"
+                    border.color: root.currentView === modelData.view ? "#188fe9" : "transparent"
                 }
 
                 contentItem: Item {
-                    Text {
-                        width: root.compact ? parent.width : 34
+                    Image {
+                        width: 20
+                        height: 20
                         anchors.left: parent.left
+                        anchors.leftMargin: root.compact ? (parent.width - width) / 2 : 10
                         anchors.verticalCenter: parent.verticalCenter
-                        text: modelData.glyph
-                        color: root.currentView === modelData.view ? "white" : "#c7d7e2"
-                        horizontalAlignment: Text.AlignHCenter
-                        font.pixelSize: 18
+                        source: modelData.icon
+                        fillMode: Image.PreserveAspectFit
+                        opacity: root.currentView === modelData.view ? 1 : 0.78
                     }
 
                     Text {
                         anchors.left: parent.left
-                        anchors.leftMargin: 38
+                        anchors.leftMargin: 42
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         visible: !root.compact
@@ -124,19 +117,20 @@ Rectangle {
             }
 
             contentItem: Item {
-                Text {
-                    width: root.compact ? parent.width : 34
+                Image {
+                    width: 20
+                    height: 20
                     anchors.left: parent.left
+                    anchors.leftMargin: root.compact ? (parent.width - width) / 2 : 10
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "文"
-                    color: "#c7d7e2"
-                    horizontalAlignment: Text.AlignHCenter
-                    font.pixelSize: 15
+                    source: "../icons/ui/language.svg"
+                    fillMode: Image.PreserveAspectFit
+                    opacity: 0.78
                 }
 
                 Text {
                     anchors.left: parent.left
-                    anchors.leftMargin: 38
+                    anchors.leftMargin: 42
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     visible: !root.compact

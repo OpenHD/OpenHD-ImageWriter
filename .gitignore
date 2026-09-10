@@ -8,3 +8,4 @@ CMakeCache.txt
 openssl-1.1.1w.zip
 /build-codex
 /build-codex-tests
+/build-ui-verify-win32

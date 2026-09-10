@@ -15,11 +15,13 @@ Popup {
     id: popup
     //x: 62
     x: (parent.width-width)/2
-    y: 10
+    y: 16
     //width: parent.width-125
-    width: popupbody.implicitWidth+60
-    height: parent.height-20
+    width: Math.min(760, parent.width-32)
+    height: parent.height-32
     padding: 0
+    modal: true
+    dim: true
     closePolicy: Popup.CloseOnEscape
     property bool initialized: false
 
@@ -58,10 +60,15 @@ Popup {
     property string qopenhdConfPath: ""
     property string premiumCertificatePath: ""
     property string premiumCertificateError: ""
+    background: Rectangle {
+        radius: 10
+        color: "#102633"
+        border.color: "#31515f"
+    }
 
     // background of title
     Rectangle {
-        color: "#f5f5f5"
+        color: "#102633"
         anchors.right: parent.right
         anchors.top: parent.top
         height: 35
@@ -69,7 +76,7 @@ Popup {
     }
     // line under title
     Rectangle {
-        color: "#afafaf"
+        color: "#294754"
         width: parent.width
         y: 35
         implicitHeight: 1
@@ -88,6 +95,8 @@ Popup {
             font.family: roboto.name
             font.bold: true
             text: qsTr("Advanced options")
+            color: "#f3f7fa"
+            font.pixelSize: 18
         }
 
         ScrollView {
@@ -97,6 +106,7 @@ Popup {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.leftMargin: 25
+            Layout.rightMargin: 25
             Layout.topMargin: 10
             clip: true
             ScrollBar.vertical.policy: ScrollBar.AlwaysOn

@@ -39,8 +39,27 @@ static QTextStream cerr(stderr);
 #endif
 
 #ifdef Q_OS_WIN
+#include <windows.h>
+#include <dwmapi.h>
+
 static void consoleMsgHandler(QtMsgType, const QMessageLogContext &, const QString &str) {
     cerr << str << endl;
+}
+
+static void enableDarkTitleBar(QWindow *window)
+{
+    if (!window)
+        return;
+
+    const BOOL enabled = TRUE;
+    const HWND handle = reinterpret_cast<HWND>(window->winId());
+    constexpr DWORD immersiveDarkMode = 20;
+    if (FAILED(DwmSetWindowAttribute(handle, immersiveDarkMode, &enabled, sizeof(enabled))))
+    {
+        // Windows 10 builds before 20H1 used attribute 19.
+        constexpr DWORD legacyImmersiveDarkMode = 19;
+        DwmSetWindowAttribute(handle, legacyImmersiveDarkMode, &enabled, sizeof(enabled));
+    }
 }
 #endif
 
@@ -255,6 +274,9 @@ int main(int argc, char *argv[])
         return -1;
 
     QObject *qmlwindow = engine.rootObjects().value(0);
+#ifdef Q_OS_WIN
+    enableDarkTitleBar(qobject_cast<QWindow *>(qmlwindow));
+#endif
     qmlwindow->connect(&imageWriter, SIGNAL(downloadProgress(QVariant,QVariant)), qmlwindow, SLOT(onDownloadProgress(QVariant,QVariant)));
     qmlwindow->connect(&imageWriter, SIGNAL(writeProgress(QVariant,QVariant)), qmlwindow, SLOT(onWriteProgress(QVariant,QVariant)));
     qmlwindow->connect(&imageWriter, SIGNAL(verifyProgress(QVariant,QVariant)), qmlwindow, SLOT(onVerifyProgress(QVariant,QVariant)));

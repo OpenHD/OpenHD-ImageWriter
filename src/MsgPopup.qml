@@ -11,12 +11,19 @@ import "qmlcomponents"
 
 Popup {
     id: msgpopup
-    x: 75
+    x: (parent.width-width)/2
     y: (parent.height-height)/2
-    width: parent.width-150
-    height: msgpopupbody.implicitHeight+175
+    width: Math.min(560, parent.width-32)
+    height: Math.min(parent.height-32, msgpopupbody.implicitHeight+185)
     padding: 0
+    modal: true
+    dim: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+    background: Rectangle {
+        radius: 10
+        color: "#102633"
+        border.color: "#31515f"
+    }
 
     property alias title: msgpopupheader.text
     property alias text: msgpopupbody.text
@@ -33,7 +40,7 @@ Popup {
 
     // background of title
     Rectangle {
-        color: "#f5f5f5"
+        color: "#102633"
         anchors.right: parent.right
         anchors.top: parent.top
         height: 35
@@ -41,7 +48,7 @@ Popup {
     }
     // line under title
     Rectangle {
-        color: "#afafaf"
+        color: "#294754"
         width: parent.width
         y: 35
         implicitHeight: 1
@@ -50,6 +57,7 @@ Popup {
     Text {
         id: msgx
         text: "X"
+        color: "#dce8ef"
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.rightMargin: 25
@@ -78,6 +86,8 @@ Popup {
             Layout.topMargin: 10
             font.family: roboto.name
             font.bold: true
+            color: "#f3f7fa"
+            font.pixelSize: 17
         }
 
         Text {
@@ -86,6 +96,7 @@ Popup {
             wrapMode: Text.Wrap
             textFormat: Text.StyledText
             font.family: roboto.name
+            color: "#b8c7d0"
             Layout.maximumWidth: msgpopup.width-50
             Layout.fillHeight: true
             Layout.leftMargin: 25
@@ -95,6 +106,7 @@ Popup {
 
         RowLayout {
             Layout.alignment: Qt.AlignCenter | Qt.AlignBottom
+            Layout.bottomMargin: 14
             spacing: 20
 
 

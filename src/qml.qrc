@@ -40,6 +40,15 @@
         <file>qmlcomponents/ModernSidebar.qml</file>
         <file>qmlcomponents/FeatureCard.qml</file>
         <file>qmlcomponents/ModernHome.qml</file>
+        <file>qmlcomponents/PageHeader.qml</file>
+        <file>qmlcomponents/ActionCard.qml</file>
+        <file>icons/ui/home.svg</file>
+        <file>icons/ui/image.svg</file>
+        <file>icons/ui/drive.svg</file>
+        <file>icons/ui/write.svg</file>
+        <file>icons/ui/update.svg</file>
+        <file>icons/ui/settings.svg</file>
+        <file>icons/ui/language.svg</file>
         <file>OptionsPopup.qml</file>
         <file>icons/OpenHD-advanced.webp</file>
         <file>icons/OpenHD-old.webp</file>

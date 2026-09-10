@@ -77,6 +77,7 @@ Rectangle {
 
     ToolButton {
         id: backButton
+        visible: false
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.topMargin: 8
@@ -109,8 +110,8 @@ Rectangle {
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: driveSelected ? 0 : Math.max(130, Math.min(210, window.height * 0.3))
-            visible: !driveSelected
+            Layout.preferredHeight: 0
+            visible: false
             color: "transparent"
 ImButton {
                 padding: 5
@@ -156,11 +157,19 @@ ImButton {
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.topMargin: driveSelected ? 16 : 24
+                anchors.topMargin: window.width < 700 ? 24 : 38
                 anchors.bottomMargin: 20
                 anchors.leftMargin: window.width < 700 ? 20 : 40
                 anchors.rightMargin: window.width < 700 ? 20 : 40
-                spacing: 12
+                spacing: 18
+
+                PageHeader {
+                    Layout.fillWidth: true
+                    title: qsTr("Configure OpenHD media")
+                    subtitle: driveSelected
+                              ? qsTr("Adjust the settings that will be written to the selected OpenHD storage.")
+                              : qsTr("Select an OpenHD storage device to inspect and configure its settings.")
+                }
 
                 RowLayout {
                     spacing: 16
@@ -171,11 +180,16 @@ ImButton {
                         spacing: 4
                         Layout.fillWidth: true
 
-                        ImButton {
+                        ActionCard {
                             id: dstbutton
-                            text: driveSelected ? selectedDevice : qsTr("CHOOSE STORAGE")
-                            Layout.minimumHeight: 40
-                            Layout.preferredWidth: 100
+                            text: driveSelected ? selectedDevice : qsTr("No storage selected")
+                            eyebrow: qsTr("Configuration target")
+                            description: driveSelected
+                                         ? qsTr("Settings will be saved to this OpenHD storage device.")
+                                         : qsTr("Choose the SD card or USB storage containing OpenHD.")
+                            actionText: driveSelected ? qsTr("Change target") : qsTr("Choose storage")
+                            iconSource: "icons/ui/drive.svg"
+                            Layout.preferredHeight: 142
                             Layout.fillWidth: true
                             onClicked: {
                                 imageWriter.startDriveListPolling()
@@ -209,8 +223,8 @@ ImButton {
                     }
                     background: Rectangle {
                         radius: 10
-                        color: "#ECF0F1"
-                        border.color: "#C7D0D9"
+                        color: "#0e2734"
+                        border.color: "#294754"
                         border.width: 1
                     }
                     ColumnLayout {
@@ -852,23 +866,28 @@ ImButton {
 
     Popup {
         id: dstpopup
-        x: 50
-        y: 25
-        width: parent.width - 100
-        height: parent.height - 50
+        x: parent.width < 700 ? 16 : 36
+        y: parent.height < 560 ? 16 : 28
+        width: parent.width - (parent.width < 700 ? 32 : 72)
+        height: parent.height - (parent.height < 560 ? 32 : 56)
         padding: 0
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         onClosed: imageWriter.stopDriveListPolling()
+        background: Rectangle {
+            radius: 10
+            color: "#102633"
+            border.color: "#31515f"
+        }
 
         Rectangle {
-            color: "#f5f5f5"
+            color: "#102633"
             anchors.right: parent.right
             anchors.top: parent.top
             height: 35
             width: parent.width
         }
         Rectangle {
-            color: "#afafaf"
+            color: "#294754"
             width: parent.width
             y: 35
             implicitHeight: 1
@@ -876,6 +895,7 @@ ImButton {
 
         Text {
             text: "X"
+            color: "#dce8ef"
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.rightMargin: 25
@@ -894,14 +914,15 @@ ImButton {
             spacing: 10
 
             Text {
-                //not this
-                text: qsTr("Storage")
+                text: qsTr("Choose configuration storage")
+                color: "#f3f7fa"
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 Layout.fillWidth: true
                 Layout.topMargin: 10
                 font.family: roboto.name
                 font.bold: true
+                font.pixelSize: 17
             }
 
             Item {
@@ -913,10 +934,10 @@ ImButton {
                     id: dstlist
                     model: driveListModel
                     delegate: dstdelegate
-                    width: window.width - 100
-                    height: window.height - 100
+                    width: dstpopup.width
+                    height: dstpopup.height - 52
                     boundsBehavior: Flickable.StopAtBounds
-                    highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
+                    highlight: Rectangle { color: "#17415a"; radius: 7 }
                     ScrollBar.vertical: ScrollBar {
                         width: 10
                         policy: dstlist.contentHeight > dstlist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
@@ -942,8 +963,8 @@ ImButton {
     Component {
         id: dstdelegate
         Item {
-            width: window.width - 100
-            height: 60
+            width: dstpopup.width
+            height: 72
             Accessible.name: {
                 var txt = description + " - " + (size/1000000000).toFixed(1) + " gigabytes"
                 if (mountpoints.length > 0) {
@@ -962,7 +983,7 @@ ImButton {
             Rectangle {
                 id: dstbgrect
                 anchors.fill: parent
-                color: "#f5f5f5"
+                color: "#173746"
                 visible: mouseOver && parent.ListView.view.currentIndex !== index
                 property bool mouseOver: false
 
@@ -972,7 +993,7 @@ ImButton {
                 id: dstborderrect
                 implicitHeight: 1
                 implicitWidth: parent.width
-                color: "#dcdcdc"
+                color: "#294754"
                 y: parent.height
             }
 
@@ -995,6 +1016,7 @@ ImButton {
 
                     Text {
                         textFormat: Text.StyledText
+                        color: "#dce8ef"
                         height: parent.parent.parent.height
                         verticalAlignment: Text.AlignVCenter
                         font.family: roboto.name
