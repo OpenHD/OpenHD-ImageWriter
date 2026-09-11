@@ -1425,15 +1425,18 @@ bool ImageWriter::getBoolSetting(const QString &key)
 
 QString ImageWriter::getValue(const QString &key)
 {
-         return _settings.value(key).toString();
+    return _settings.value(key).toString();
 }
 
 void ImageWriter::setSetting(const QString &key, const QVariant &value)
 {
     _settings.setValue(key, value);
     _settings.sync();
-    // DEBUG
-    std::cout << "Setting changed: " << key.toStdString() << " -> " << value.toString().toStdString() << std::endl;
+    const bool sensitive = key.contains(QStringLiteral("token"), Qt::CaseInsensitive) ||
+                           key.contains(QStringLiteral("password"), Qt::CaseInsensitive) ||
+                           key.contains(QStringLiteral("secret"), Qt::CaseInsensitive);
+    qDebug() << "Setting changed:" << key << "->"
+             << (sensitive ? QStringLiteral("<redacted>") : value.toString());
 
 }
 

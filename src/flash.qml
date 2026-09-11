@@ -386,6 +386,13 @@ Rectangle {
         property bool rootLevel: osswipeview.currentIndex === 0
         property string categoryName: imageCatalog.categorySelected
         property int activeTab: 0
+        property bool githubDevLoading: false
+        property string githubDevError: ""
+        property int githubDevImageCount: 0
+        property int githubDevRequestId: 0
+
+        readonly property string githubArtifactsApi:
+            "https://openhd.tech/api/imagewriter/github/artifacts"
 
         readonly property int sourceCount:
             sourceModel ? sourceModel.count : 0
@@ -417,6 +424,9 @@ Rectangle {
             if (s.indexOf("radxa") >= 0)
                 return "icons/platforms/radxa.svg"
 
+            if (s.indexOf("rock5") >= 0)
+                return "icons/platforms/radxa.svg"
+
             if (s.indexOf("x86") >= 0 ||
                 s.indexOf("evo") >= 0 ||
                 s.indexOf("desktop") >= 0 ||
@@ -430,6 +440,120 @@ Rectangle {
                 return "icons/platforms/openhd.svg"
 
             return "icons/platforms/generic-sbc.svg"
+        }
+
+        function githubArtifactKey(name) {
+            return String(name || "").toLowerCase()
+                    .replace(/-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}$/, "")
+        }
+
+        function isFlashableGithubArtifact(name) {
+            var value = String(name || "").toLowerCase()
+            if (value.indexOf("x21b") >= 0)
+                return false
+            return value.indexOf("openhd-image-") === 0 ||
+                   value.indexOf("openhd-lite-image-") === 0 ||
+                   value.indexOf("openhd-rpi5-") === 0
+        }
+
+        function clearGithubDevImages() {
+            for (var i = osmodel.count - 3; i >= 0; --i) {
+                var entryUrl = String(osmodel.get(i).url || "")
+                if (entryUrl.indexOf(githubArtifactsApi) === 0)
+                    osmodel.remove(i)
+            }
+            githubDevImageCount = 0
+        }
+
+        function githubApiRequest(url, callback) {
+            var xhr = new XMLHttpRequest()
+            xhr.timeout = 15000
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState !== xhr.DONE)
+                    return
+                if (xhr.status !== 200) {
+                    callback(null, xhr.status)
+                    return
+                }
+                try {
+                    callback(JSON.parse(xhr.responseText), xhr.status)
+                } catch (e) {
+                    callback(null, -1)
+                }
+            }
+            xhr.open("GET", url)
+            xhr.send()
+        }
+
+        function githubRequestError(status) {
+            githubDevLoading = false
+            githubDevError = status === 401
+                    ? qsTr("Sign in to FleetControl before loading developer images.")
+                    : status === 409
+                      ? qsTr("Link a GitHub account under FleetControl > My Account first.")
+                    : status === -1
+                      ? qsTr("GitHub returned invalid workflow data.")
+                      : qsTr("FleetControl could not load GitHub developer artifacts (HTTP %1).").arg(status)
+        }
+
+        function populateGithubDevImages(response) {
+            githubDevLoading = false
+            var artifacts = response.artifacts || []
+            artifacts.sort(function(a, b) {
+                return String(b.created_at || "").localeCompare(String(a.created_at || ""))
+            })
+
+            var latest = {}
+            for (var i = 0; i < artifacts.length; ++i) {
+                var artifact = artifacts[i]
+                if (!isFlashableGithubArtifact(artifact.name))
+                    continue
+
+                var key = githubArtifactKey(artifact.name)
+                if (latest[key])
+                    continue
+                latest[key] = true
+
+                var created = String(artifact.created_at || "").substring(0, 10)
+                osmodel.insert(osmodel.count - 2, {
+                    "url": String(artifact.archive_download_url),
+                    "icon": "",
+                    "extract_size": 0,
+                    "image_download_size": Number(artifact.size_in_bytes || 0),
+                    "extract_sha256": "",
+                    "contains_multiple_files": false,
+                    "release_date": created,
+                    "subitems_url": "",
+                    "subitems_json": "",
+                    "name": String(artifact.name),
+                    "description": qsTr("Latest dev-release image from GitHub Actions - %1").arg(created),
+                    "tooltip": "",
+                    "website": String(artifact.url || ""),
+                    "init_format": "systemd"
+                })
+                githubDevImageCount++
+            }
+
+            if (githubDevImageCount === 0)
+                githubDevError = qsTr("No current dev-release image artifacts were found.")
+        }
+
+        function refreshGithubDevImages() {
+            var requestId = ++githubDevRequestId
+            clearGithubDevImages()
+            githubDevError = ""
+
+            githubDevLoading = true
+            githubApiRequest(githubArtifactsApi,
+                             function(response, status) {
+                if (requestId !== githubDevRequestId)
+                    return
+                if (!response) {
+                    githubRequestError(status)
+                    return
+                }
+                populateGithubDevImages(response)
+            })
         }
 
         function goBack() {
@@ -630,9 +754,46 @@ Rectangle {
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked:
+                                onClicked: {
                                     imageSelectionPage.activeTab = index
+                                    if (index === 1)
+                                        imageSelectionPage.refreshGithubDevImages()
+                                }
                             }
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                id: githubDeveloperSettings
+                anchors.top: releaseTabs.bottom
+                anchors.left: parent.left
+                anchors.topMargin: 8
+                width: parent.width
+                height: imageSelectionPage.rootLevel && imageSelectionPage.activeTab === 1 ? 58 : 0
+                visible: height > 0
+                radius: 5
+                color: "#102532"
+                border.width: 1
+                border.color: "#244456"
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 9
+                    spacing: 8
+
+                    TextField {
+                        id: githubConnectionInfo
+                        Layout.fillWidth: true
+                        readOnly: true
+                        text: qsTr("GitHub access is managed by your FleetControl account")
+                    }
+
+                    Button {
+                        text: qsTr("Open FleetControl")
+                        onClicked: {
+                            Qt.openUrlExternally("https://openhd.tech/")
                         }
                     }
                 }
@@ -647,7 +808,9 @@ Rectangle {
 
                 anchors.top:
                     imageSelectionPage.rootLevel
-                    ? releaseTabs.bottom
+                    ? (imageSelectionPage.activeTab === 1
+                       ? githubDeveloperSettings.bottom
+                       : releaseTabs.bottom)
                     : selectorHeader.bottom
 
                 anchors.left: parent.left
@@ -732,6 +895,37 @@ Rectangle {
                         // Remote / YAML generated entries
                         // -------------------------------------------------
 
+                        Item {
+                            width: imageListScroll.width
+                            height: visible ? 52 : 0
+                            visible: imageSelectionPage.rootLevel &&
+                                     imageSelectionPage.activeTab === 1 &&
+                                     (imageSelectionPage.githubDevLoading ||
+                                      imageSelectionPage.githubDevError.length > 0)
+
+                            Row {
+                                anchors.centerIn: parent
+                                spacing: 8
+
+                                BusyIndicator {
+                                    width: 18
+                                    height: 18
+                                    running: imageSelectionPage.githubDevLoading
+                                    visible: running
+                                }
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: imageSelectionPage.githubDevLoading
+                                          ? qsTr("Loading latest GitHub Actions images...")
+                                          : imageSelectionPage.githubDevError
+                                    color: imageSelectionPage.githubDevError.length > 0
+                                           ? "#efad73" : "#8aa3b2"
+                                    font.pixelSize: 11
+                                }
+                            }
+                        }
+
                         Repeater {
                             model: imageSelectionPage.mainItemCount
 
@@ -753,12 +947,16 @@ Rectangle {
                                     searchText.indexOf("dev") >= 0 ||
                                     searchText.indexOf("snapshot") >= 0
 
+                                readonly property bool githubArtifact:
+                                    entry && String(entry.url || "").indexOf(
+                                        imageSelectionPage.githubArtifactsApi) === 0
+
                                 visible:
                                     !imageSelectionPage.rootLevel ||
                                     (imageSelectionPage.activeTab === 0 &&
-                                     !developerEntry) ||
+                                     !developerEntry && !githubArtifact) ||
                                     (imageSelectionPage.activeTab === 1 &&
-                                     developerEntry)
+                                     githubArtifact)
 
                                 width: imageListScroll.width
                                 height: visible ? 52 : 0

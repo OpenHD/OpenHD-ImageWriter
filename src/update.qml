@@ -24,7 +24,7 @@ Rectangle {
 
     property var mainWindow: null
     property url updateManifestUrl: "https://github.com/OpenHD/OpenHD-ImageWriter/releases/download/Json/OpenHD-Update.json"
-    property url x21UpdateManifestUrl: "https://dl.cloudsmith.io/public/openhd/dev-release/raw/files/openhd-x21b-updates.json"
+    property url x21PackagesUrl: "https://api.cloudsmith.io/v1/packages/openhd/x21/?page_size=100"
     property string selectedUpdateSource: ""
     property string selectedUpdateSubdirectory: "openhd"
     property string selectedUpdateFilename: ""
@@ -1246,6 +1246,62 @@ Rectangle {
         }
     }
 
+    function x21Timestamp(value) {
+        var timestamp = String(value || "")
+        if (timestamp.length < 16)
+            return qsTr("Unknown date")
+        return timestamp.substring(0, 10) + " " + timestamp.substring(11, 19) + " UTC"
+    }
+
+    function populateX21Packages(packages) {
+        if (!(packages instanceof Array))
+            return
+
+        packages.sort(function(a, b) {
+            return String(b.uploaded_at || "").localeCompare(String(a.uploaded_at || ""))
+        })
+
+        var subitems = []
+        for (var i = 0; i < packages.length; ++i) {
+            var item = packages[i]
+            var filename = String(item.filename || item.name || "")
+            var lower = filename.toLowerCase()
+            var isUpdate = lower.endsWith(".ohd")
+            var isFirmware = lower.indexOf("firmware-") === 0 && lower.endsWith(".zip")
+            if (!isUpdate && !isFirmware)
+                continue
+
+            var uploaded = x21Timestamp(item.uploaded_at)
+            subitems.push({
+                "name": isUpdate
+                        ? qsTr("X21 update - %1").arg(uploaded)
+                        : qsTr("X21 firmware - %1").arg(uploaded),
+                "description": isUpdate
+                        ? qsTr("Update the X21 OHD partition (%1)").arg(filename)
+                        : qsTr("Complete X21 USB recovery firmware (%1)").arg(filename),
+                "icon": "",
+                "url": String(item.cdn_url || ""),
+                "image_download_size": Number(item.size || 0),
+                "extract_size": Number(item.size || 0),
+                "update_sha256": String(item.checksum_sha256 || ""),
+                "update_destination": isUpdate ? "root" : "openhd",
+                "update_filename": filename,
+                "release_date": String(item.uploaded_at || "").substring(0, 10)
+            })
+        }
+
+        if (subitems.length > 0) {
+            osmodel.insert(osmodel.count - 2, {
+                "name": "OpenHD X21",
+                "description": qsTr("Dated X21 update and recovery packages from Cloudsmith"),
+                "icon": "",
+                "subitems_url": "",
+                "subitems_json": JSON.stringify(subitems),
+                "url": ""
+            })
+        }
+    }
+
     function fetchOSlist() {
         function loadLocalUpdates() {
             httpRequest(Qt.resolvedUrl("OpenHD-Update.json"), function (local) {
@@ -1257,9 +1313,9 @@ Rectangle {
             populateOsList(JSON.parse(x.responseText))
         }, loadLocalUpdates)
 
-        httpRequest(x21UpdateManifestUrl, function (x) {
-            populateOsList(JSON.parse(x.responseText))
-        }, function() { console.log("X21 update catalog is not available") })
+        httpRequest(x21PackagesUrl, function (x) {
+            populateX21Packages(JSON.parse(x.responseText))
+        }, function() { console.log("X21 Cloudsmith package catalog is not available") })
     }
 
     Timer {
