@@ -81,6 +81,7 @@ Item {
             "hotSpot": imageWriter.getValue("hotSpot"),
             "beep": imageWriter.getBoolSetting("beep"),
             "eject": imageWriter.getBoolSetting("eject"),
+            "streamToFleetcontrol": typeof streamToPlatformSwitch !== "undefined" ? streamToPlatformSwitch.checked : false,
             "useSettings": true
         }
     }
@@ -170,6 +171,14 @@ Item {
                 accountName = response.account.displayName || response.account.username || qsTr("Operator")
                 accountRole = response.account.role || ""
                 loadProfiles()
+            } else {
+                var savedUser = imageWriter.getValue("fleetcontrol_username")
+                var savedPass = imageWriter.getValue("fleetcontrol_password")
+                if (savedUser && savedPass) {
+                    username = savedUser
+                    password = savedPass
+                    authenticate()
+                }
             }
         }
         xhr.open("GET", apiBaseUrl + "/api/session")
@@ -187,6 +196,7 @@ Item {
         message = ""
         var submittedPassword = password
         password = ""
+        var currentUsername = username.trim()
 
         var xhr = new XMLHttpRequest()
         xhr.onreadystatechange = function() {
@@ -194,12 +204,15 @@ Item {
                 return
 
             submitting = false
+            var passToSave = submittedPassword
             submittedPassword = ""
             var response = parseResponse(xhr)
             if (xhr.status >= 200 && xhr.status < 300 && response.ok && response.account) {
-                accountName = response.account.displayName || response.account.username || username
+                accountName = response.account.displayName || response.account.username || currentUsername
                 accountRole = response.account.role || ""
                 message = ""
+                imageWriter.setSetting("fleetcontrol_username", currentUsername)
+                imageWriter.setSetting("fleetcontrol_password", passToSave)
                 loadProfiles()
             } else if (xhr.status === 0) {
                 message = qsTr("Unable to reach the secure FleetControl gateway.")
@@ -210,7 +223,7 @@ Item {
         xhr.open("POST", apiBaseUrl + "/api/login")
         xhr.setRequestHeader("Content-Type", "application/json")
         xhr.timeout = 15000
-        xhr.send(JSON.stringify({ "username": username.trim(), "password": submittedPassword }))
+        xhr.send(JSON.stringify({ "username": currentUsername, "password": submittedPassword }))
     }
 
     function signOut() {
@@ -222,6 +235,8 @@ Item {
                 username = ""
                 password = ""
                 message = ""
+                imageWriter.setSetting("fleetcontrol_username", "")
+                imageWriter.setSetting("fleetcontrol_password", "")
                 profileModel.clear()
             }
         }
@@ -234,38 +249,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: "#05090d"
-    }
-
-    // Quiet technical grid borrowed from the FleetControl web login.
-    Grid {
-        anchors.fill: parent
-        rows: Math.ceil(height / 58)
-        columns: Math.ceil(width / 58)
-        opacity: 0.055
-
-        Repeater {
-            model: parent.rows * parent.columns
-            delegate: Rectangle {
-                width: 58
-                height: 58
-                color: "transparent"
-                border.width: 1
-                border.color: "#00a6f2"
-            }
-        }
-    }
-
-    Rectangle {
-        width: Math.min(parent.width * 0.62, 560)
-        height: width
-        radius: width / 2
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.rightMargin: -width * 0.12
-        color: "transparent"
-        border.width: 1
-        border.color: "#143342"
+        color: "#0d1b26"
     }
 
     ColumnLayout {
@@ -384,9 +368,10 @@ Item {
                 Layout.preferredHeight: 390
                 Layout.alignment: Qt.AlignHCenter
                 visible: !root.signedIn
-                color: "#0a171d"
+                color: "#152130"
                 border.width: 1
-                border.color: "#224554"
+                border.color: "#263a4d"
+                radius: 8
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -398,8 +383,8 @@ Item {
                         Layout.preferredWidth: 42
                         Layout.preferredHeight: 42
                         radius: 21
-                        color: "#092231"
-                        border.color: "#087bae"
+                        color: "#112a3b"
+                        border.color: "#1c4a6b"
 
                         Text {
                             anchors.centerIn: parent
@@ -567,17 +552,21 @@ Item {
                 Layout.preferredHeight: 420
                 Layout.alignment: Qt.AlignHCenter
                 visible: root.signedIn
-                color: "#09161d"
+                color: "#152130"
                 border.width: 1
-                border.color: "#224554"
+                border.color: "#263a4d"
+                radius: 8
 
                 ColumnLayout {
                     anchors.fill: parent
                     anchors.margins: 24
                     spacing: 14
 
-                    RowLayout {
+                    GridLayout {
                         Layout.fillWidth: true
+                        columns: root.width >= 780 ? 2 : 1
+                        rowSpacing: 16
+                        columnSpacing: 16
 
                         ColumnLayout {
                             Layout.fillWidth: true
@@ -605,25 +594,33 @@ Item {
                             }
                         }
 
-                        Button {
-                            text: qsTr("Refresh")
-                            onClicked: root.loadProfiles()
-                        }
+                        Flow {
+                            Layout.alignment: root.width >= 780 ? Qt.AlignRight | Qt.AlignTop : Qt.AlignLeft
+                            Layout.fillWidth: root.width < 780
+                            spacing: 8
 
-                        Button {
-                            text: qsTr("Save current settings")
-                            onClicked: {
-                                profileNameField.text = ""
-                                profileDescriptionField.text = ""
-                                saveMessage.text = ""
-                                saveProfilePopup.open()
+                            Button {
+                                text: qsTr("Refresh")
+                                implicitHeight: 36
+                                onClicked: root.loadProfiles()
                             }
-                        }
 
-                        Button {
-                            text: qsTr("Sign out")
-                            flat: true
-                            onClicked: root.signOut()
+                            Button {
+                                text: qsTr("Save current settings")
+                                implicitHeight: 36
+                                onClicked: {
+                                    profileNameField.text = ""
+                                    profileDescriptionField.text = ""
+                                    saveMessage.text = ""
+                                    saveProfilePopup.open()
+                                }
+                            }
+
+                            Button {
+                                text: qsTr("Sign out")
+                                implicitHeight: 36
+                                onClicked: root.signOut()
+                            }
                         }
                     }
 
@@ -644,8 +641,8 @@ Item {
                         delegate: Rectangle {
                             width: profilesList.width
                             height: 76
-                            color: "#0d2029"
-                            border.color: "#1d3e4b"
+                            color: "#152130"
+                            border.color: "#263a4d"
                             radius: 4
 
                             RowLayout {
@@ -658,8 +655,8 @@ Item {
                                     Layout.preferredWidth: 34
                                     Layout.preferredHeight: 34
                                     radius: 17
-                                    color: "#0b2b3a"
-                                    border.color: "#16678a"
+                                    color: "#112a3b"
+                                    border.color: "#1c4a6b"
 
                                     Text {
                                         anchors.centerIn: parent
@@ -773,8 +770,8 @@ Item {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
         background: Rectangle {
-            color: "#0b1d26"
-            border.color: "#285064"
+            color: "#152130"
+            border.color: "#263a4d"
             radius: 7
         }
 
@@ -809,6 +806,35 @@ Item {
                 placeholderText: qsTr("Description (optional)")
                 selectByMouse: true
                 onAccepted: root.saveCurrentProfile()
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 4
+
+                Switch {
+                    id: streamToPlatformSwitch
+                    text: qsTr("Stream video to FleetControl platform")
+                    checked: enabled
+                    enabled: accountRole.toLowerCase() !== "developer" && accountRole.toLowerCase() !== "tester"
+                    
+                    contentItem: Text {
+                        text: streamToPlatformSwitch.text
+                        color: streamToPlatformSwitch.enabled ? "#eff7f9" : "#576a75"
+                        font.pixelSize: 13
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: streamToPlatformSwitch.indicator.width + streamToPlatformSwitch.spacing
+                    }
+                }
+
+                Text {
+                    visible: !streamToPlatformSwitch.enabled
+                    text: qsTr("Platform streaming is not available for Developer or Tester licenses.")
+                    color: "#79929c"
+                    font.pixelSize: 10
+                    wrapMode: Text.WordWrap
+                    Layout.leftMargin: streamToPlatformSwitch.indicator.width + streamToPlatformSwitch.spacing
+                }
             }
 
             Text {
