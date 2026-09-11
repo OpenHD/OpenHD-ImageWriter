@@ -76,7 +76,7 @@ Rectangle {
     function openUpdateSelector() {
         while (osswipeview.currentIndex > 0)
             osswipeview.decrementCurrentIndex()
-        ospopup.categorySelected = ""
+        imageCatalog.categorySelected = ""
         resetOpenHdSettingsForNewImage()
         optionsPage.initialized = false
         selectingImage = true
@@ -148,197 +148,6 @@ Rectangle {
         }
         onClicked: navigateBack()
     }
-
-    Popup {
-        id: detailsPopup
-        x: 75
-        y: (parent.height - height) / 2
-        width: parent.width - 150
-        height: parent.implicitHeight + 275
-        padding: 0
-        modal: true
-        property bool objectVisible: false
-        visible: objectVisible
-
-        Rectangle {
-            color: "#f5f5f5"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: 35
-            width: parent.width
-        }
-        Rectangle {
-            color: "#afafaf"
-            width: parent.width
-            y: 35
-            implicitHeight: 1
-        }
-        Settings {
-            id: appSettings
-        }
-        Text {
-            id: msgx
-            text: "X"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: 25
-            anchors.topMargin: 10
-            font.family: roboto.name
-            font.bold: true
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    detailsPopup.close()
-                }
-            }
-        }
-
-        ColumnLayout {
-            spacing: 20
-            anchors.fill: parent
-
-            Text {
-                id: detailsPopupHeader
-                text: "List of applied settings and variables"
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                Layout.fillWidth: true
-                font.family: roboto.name
-                font.bold: true
-            }
-            Button{
-                id:refresh
-                visible:false
-                text: "button"
-                onClicked: {
-                    console.log(imageWriter.getValue("fileName"))
-                }
-            }
-
-            ColumnLayout {
-                id: detailsArea
-                spacing: 10
-                Layout.alignment: Qt.AlignVCenter
-                Layout.topMargin: -30
-                Layout.leftMargin: 20
-
-                RowLayout {
-                    Text {
-                        text: "Image Name:"
-                        font.bold: true
-                    }
-
-                    Text {
-                        text: {
-                            if (typeof optionsPage.fileName !== "undefined" && optionsPage.fileName.length > 45) {
-                                return optionsPage.fileName.substring(0, optionsPage.fileName.length - 7);
-                            }else if (typeof optionsPage.fileName !== "undefined" && optionsPage.fileName.length > 1){
-                                return optionsPage.fileName.substring(0, optionsPage.fileName.length);
-                            }else {
-                                return "Error";
-                            }
-                        }
-                        font.bold: false
-                        color: "grey"
-                    }
-                }
-
-
-                // RowLayout {
-                //     Text {
-                //         text: "sbc:"
-                //         font.bold: true
-                //     }
-
-                //     Text {
-                //         text: optionsPage.sbc
-                //         font.bold: false
-                //         color: "grey"
-
-                //     }
-                // }
-
-                RowLayout {
-                    Text {
-                        text: "Boot Type:"
-                        font.bold: true
-                    }
-                    Text {
-                        text: optionsPage.bootType + "  " + optionsPage.mode
-                        font.bold: false
-                        color: "grey"
-                    }
-                }
-
-                RowLayout {
-                    Text {
-                        text: "Camera:"
-                        font.bold: true
-                    }
-                    Text {
-                        text: optionsPage.camera
-                        font.bold: false
-                        color: "grey"
-                    }
-                }
-
-                RowLayout {
-                    Text {
-                        text: "Camera 2:"
-                        font.bold: true
-                    }
-                    Text {
-                        text: optionsPage.camera2
-                        font.bold: false
-                        color: "grey"
-                    }
-                }
-
-                RowLayout {
-                    Text {
-                        text: "Camera Res:"
-                        font.bold: true
-                    }
-                    Text {
-                        text: optionsPage.cameraResolution
-                        font.bold: false
-                        color: "grey"
-                    }
-                }
-
-                RowLayout {
-                    Text {
-                        text: "Camera 2 Res:"
-                        font.bold: true
-                    }
-                    Text {
-                        text: optionsPage.camera2Resolution
-                        font.bold: false
-                        color: "grey"
-                    }
-                }
-
-                RowLayout {
-                    Text {
-                        text: "Changelog:"
-                        font.bold: true
-                    }
-                    Text {
-                        text: "<a href='https://openhdfpv.org/2.5-evo.html'>changelogs</a>"
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: Qt.openUrlExternally("https://openhdfpv.org/2.5-evo.html")
-                        }
-                        font.bold:false
-                        color: "grey"
-                    }
-                }
-            }
-        }
-    }
-
 
     Flickable {
         id: modernWorkflow
@@ -521,7 +330,7 @@ Rectangle {
         z: 2
         sourceModel: osswipeview.currentItem ? osswipeview.currentItem.model : osmodel
         rootLevel: osswipeview.currentIndex === 0
-        categoryName: ospopup.categorySelected
+        categoryName: imageCatalog.categorySelected
         pageTitle: qsTr("Choose an update")
         pageSubtitle: qsTr("Select an official release or a local update package.")
         nestedSubtitle: qsTr("Choose the update release to install.")
@@ -660,12 +469,9 @@ Rectangle {
                         Layout.minimumHeight: 40
                         Layout.fillWidth: true
                         onClicked: {
-                            ospopup.open()
-                            osswipeview.currentItem.forceActiveFocus()
-                            resetOpenHdSettingsForNewImage()
-                            optionsPage.initialized = false
+                            openUpdateSelector()
                         }
-                        Accessible.ignored: ospopup.visible || dstpopup.visible
+                        Accessible.ignored: selectingImage || selectingTarget
                         Accessible.description: qsTr("Select this button to change the operating system")
                     }
                 }
@@ -683,10 +489,9 @@ Rectangle {
                         Layout.fillWidth: true
                         onClicked: {
                             imageWriter.startDriveListPolling()
-                            dstpopup.open()
-                            dstlist.forceActiveFocus()
+                            selectingTarget = true
                         }
-                        Accessible.ignored: ospopup.visible || dstpopup.visible
+                        Accessible.ignored: selectingImage || selectingTarget
                         Accessible.description: qsTr("Select this button to change the destination storage device")
                     }
                 }
@@ -706,7 +511,7 @@ Rectangle {
                         text: qsTr("WRITE")
                         Layout.minimumHeight: 40
                         Layout.fillWidth: true
-                        Accessible.ignored: ospopup.visible || dstpopup.visible
+                        Accessible.ignored: selectingImage || selectingTarget
                         Accessible.description: qsTr("Select this button to start writing the image")
                         enabled: false
                         onClicked: {
@@ -733,7 +538,7 @@ Rectangle {
                     }
                     ImButton {
                         id: updateButton
-                        visible:ospopup.visible
+                        visible: false
                         property var image_name
                         property var use_settings
                         property var bootType
@@ -742,7 +547,7 @@ Rectangle {
                         text: qsTr("UPDATE")
                         Layout.minimumHeight: 40
                         Layout.fillWidth: true
-                        Accessible.ignored: ospopup.visible || dstpopup.visible
+                        Accessible.ignored: selectingImage || selectingTarget
                         Accessible.description: qsTr("Select this button to start writing the image")
                         enabled: false
                         onClicked: {
@@ -927,108 +732,21 @@ Rectangle {
         }
     }
 
-    /*
-      Popup for OS selection
-     */
-    Popup {
-        id: ospopup
-        x: parent.width < 700 ? 16 : 36
-        y: parent.height < 560 ? 16 : 28
-        width: parent.width - (parent.width < 700 ? 32 : 72)
-        height: parent.height - (parent.height < 560 ? 32 : 56)
-        padding: 0
-        closePolicy: Popup.NoAutoClose
-        property string categorySelected : ""
-        background: Rectangle {
-            radius: 10
-            color: "#102633"
-            border.color: "#31515f"
-        }
+    // Nonvisual navigation state used by the full-page image catalog.
+    Item {
+        id: imageCatalog
+        visible: false
+        property string categorySelected: ""
 
-        // background of title
-        Rectangle {
-            color: "#102633"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: 35
-            width: parent.width
-        }
-        // line under title
-        Rectangle {
-            color: "#294754"
-            width: parent.width
-            y: 35
-            implicitHeight: 1
-        }
+        SwipeView {
+            id: osswipeview
+            visible: false
+            interactive: false
 
-        Text {
-            text: "X"
-            color: "#dce8ef"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: 25
-            anchors.topMargin: 10
-            font.family: roboto.name
-            font.bold: true
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    ospopup.close()
-                }
-            }
-        }
-
-        ColumnLayout {
-            spacing: 10
-
-            Text {
-                text: qsTr("Choose an update")
-                color: "#f3f7fa"
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                Layout.fillWidth: true
-                Layout.topMargin: 10
-                font.family: roboto.name
-                font.bold: true
-                font.pixelSize: 17
-            }
-
-            Item {
-                clip: true
-                Layout.preferredWidth: oslist.width
-                Layout.preferredHeight: oslist.height
-
-                SwipeView {
-                    id: osswipeview
-                    interactive: false
-
-                    ListView {
-                        id: oslist
-                        model: osmodel
-                        currentIndex: -1
-                        delegate: osdelegate
-                        width: ospopup.width
-                        height: ospopup.height-52
-                        boundsBehavior: Flickable.StopAtBounds
-                        highlight: Rectangle { color: "#17415a"; radius: 7 }
-                        ScrollBar.vertical: ScrollBar {
-                            width: 10
-                            policy: oslist.contentHeight > oslist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
-                        }
-                        Keys.onSpacePressed: {
-                            if (currentIndex != -1)
-                                selectOSitem(model.get(currentIndex), true)
-                        }
-                        Accessible.onPressAction: {
-                            if (currentIndex != -1)
-                                selectOSitem(model.get(currentIndex), true)
-                        }
-                        Keys.onEnterPressed: Keys.onSpacePressed(event)
-                        Keys.onReturnPressed: Keys.onSpacePressed(event)
-                    }
-                }
+            ListView {
+                id: oslist
+                model: osmodel
+                currentIndex: -1
             }
         }
     }
@@ -1055,30 +773,9 @@ Rectangle {
                     init_format: ""
                 }
             }
-
             currentIndex: -1
-            delegate: osdelegate
-            width: window.width-100
-            height: window.height-100
-            boundsBehavior: Flickable.StopAtBounds
-            highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
-            ScrollBar.vertical: ScrollBar {
-                width: 10
-                policy: parent.contentHeight > parent.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
-            }
-            Keys.onSpacePressed: {
-                if (currentIndex != -1)
-                    selectOSitem(model.get(currentIndex))
-            }
-            Accessible.onPressAction: {
-                if (currentIndex != -1)
-                    selectOSitem(model.get(currentIndex))
-            }
-            Keys.onEnterPressed: Keys.onSpacePressed(event)
-            Keys.onReturnPressed: Keys.onSpacePressed(event)
         }
     }
-
     ListModel {
         id: osmodel
 
@@ -1112,359 +809,6 @@ Rectangle {
             }
         }
     }
-
-    Component {
-        id: osdelegate
-
-        Item {
-            width: ospopup.width
-            height: contentLayout.implicitHeight + 24
-            Accessible.name: name+".\n"+description
-
-            MouseArea {
-                id: osMouseArea
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                hoverEnabled: true
-
-                onEntered: {
-                    bgrect.mouseOver = true
-                }
-
-                onExited: {
-                    bgrect.mouseOver = false
-                }
-
-                onClicked: {
-                    selectOSitem(model)
-                }
-            }
-
-            Rectangle {
-                id: bgrect
-                anchors.fill: parent
-                color: "#173746"
-                visible: mouseOver && parent.ListView.view.currentIndex !== index
-                property bool mouseOver: false
-            }
-            Rectangle {
-                id: borderrect
-                implicitHeight: 1
-                implicitWidth: parent.width
-                color: "#294754"
-                y: parent.height
-            }
-
-            RowLayout {
-                id: contentLayout
-                anchors {
-                    left: parent.left
-                    top: parent.top
-                    right: parent.right
-                    margins: 12
-                }
-                spacing: 12
-
-                Image {
-                    source: icon == "icons/ic_build_48px.svg" ? "icons/cat_misc_utility_images.png": icon
-                    Layout.preferredHeight: 40
-                    Layout.preferredWidth: 40
-                    sourceSize.width: 40
-                    sourceSize.height: 40
-                    fillMode: Image.PreserveAspectFit
-                    verticalAlignment: Image.AlignVCenter
-                    Layout.alignment: Qt.AlignVCenter
-                }
-                ColumnLayout {
-                    Layout.fillWidth: true
-
-                    RowLayout {
-                        spacing: 12
-                        Text {
-                            text: name
-                            color: "#eef5f9"
-                            elide: Text.ElideRight
-                            font.family: roboto.name
-                            font.bold: true
-                        }
-                        Image {
-                            source: "icons/ic_info_16px.png"
-                            Layout.preferredHeight: 16
-                            Layout.preferredWidth: 16
-                            visible: typeof(website) == "string" && website
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: Qt.openUrlExternally(website)
-                            }
-                        }
-                        Item {
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    Text {
-                        Layout.fillWidth: true
-                        font.family: roboto.name
-                        text: description
-                        wrapMode: Text.WordWrap
-                        color: "#a9bbc5"
-                    }
-
-                    Text {
-                        Layout.fillWidth: true
-                        elide: Text.ElideRight
-                        color: "#748d9a"
-                        font.weight: Font.Light
-                        visible: typeof(release_date) == "string" && release_date
-                        text: qsTr("Released: %1").arg(release_date)
-                    }
-                    Text {
-                        Layout.fillWidth: true
-                        elide: Text.ElideRight
-                        color: "#646464"
-                        font.weight: Font.Light
-                        visible: typeof(url) == "string" && url != "" && url != "internal://format"
-                        text: !url ? "" :
-                                     typeof(extract_sha256) != "undefined" && imageWriter.isCached(url,extract_sha256)
-                                     ? qsTr("Cached on your computer")
-                                     : url.startsWith("file://")
-                                       ? qsTr("Local file")
-                                       : qsTr("Online - %1 GB download").arg((image_download_size/1073741824).toFixed(1))
-                    }
-
-                    ToolTip {
-                        visible: osMouseArea.containsMouse && typeof(tooltip) == "string" && tooltip != ""
-                        delay: 1000
-                        text: typeof(tooltip) == "string" ? tooltip : ""
-                        clip: false
-                    }
-                }
-                Image {
-                    source: "icons/ic_chevron_right_40px.svg"
-                    visible: (typeof(subitems_json) == "string" && subitems_json != "") || (typeof(subitems_url) == "string" && subitems_url != "" && subitems_url != "internal://back")
-                    Layout.preferredHeight: 40
-                    Layout.preferredWidth: 40
-                    fillMode: Image.PreserveAspectFit
-                }
-            }
-        }
-    }
-
-    /*
-      Popup for storage device selection
-     */
-    Popup {
-        id: dstpopup
-        x: parent.width < 700 ? 16 : 36
-        y: parent.height < 560 ? 16 : 28
-        width: parent.width - (parent.width < 700 ? 32 : 72)
-        height: parent.height - (parent.height < 560 ? 32 : 56)
-        padding: 0
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        onClosed: imageWriter.stopDriveListPolling()
-        background: Rectangle {
-            radius: 10
-            color: "#102633"
-            border.color: "#31515f"
-        }
-
-        // background of title
-        Rectangle {
-            color: "#102633"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: 35
-            width: parent.width
-        }
-        // line under title
-        Rectangle {
-            color: "#294754"
-            width: parent.width
-            y: 35
-            implicitHeight: 1
-        }
-
-        Text {
-            text: "X"
-            color: "#dce8ef"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: 25
-            anchors.topMargin: 10
-            font.family: roboto.name
-            font.bold: true
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    dstpopup.close()
-                }
-            }
-        }
-
-        ColumnLayout {
-            spacing: 10
-
-            Text {
-                text: qsTr("Choose a target")
-                color: "#f3f7fa"
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                Layout.fillWidth: true
-                Layout.topMargin: 10
-                font.family: roboto.name
-                font.bold: true
-                font.pixelSize: 17
-            }
-
-            Item {
-                clip: true
-                Layout.preferredWidth: dstlist.width
-                Layout.preferredHeight: dstlist.height
-
-                ListView {
-                    id: dstlist
-                    model: driveListModel
-                    delegate: dstdelegate
-                    width: dstpopup.width
-                    height: dstpopup.height-52
-                    boundsBehavior: Flickable.StopAtBounds
-                    highlight: Rectangle { color: "#17415a"; radius: 7 }
-                    ScrollBar.vertical: ScrollBar {
-                        width: 10
-                        policy: dstlist.contentHeight > dstlist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
-                    }
-                    Keys.onSpacePressed: {
-                        if (currentIndex == -1)
-                            return
-                        selectDstItem(currentItem)
-                    }
-                    Accessible.onPressAction: {
-                        if (currentIndex == -1)
-                            return
-                        selectDstItem(currentItem)
-                    }
-                    Keys.onEnterPressed: Keys.onSpacePressed(event)
-                    Keys.onReturnPressed: Keys.onSpacePressed(event)
-                }
-
-            }
-        }
-    }
-
-    Component {
-        id: dstdelegate
-        Item {
-            width: dstpopup.width
-            height: 72
-            Accessible.name: {
-                if (isMaskrom)
-                    return description + ". " + qsTr("Recovery mode (MaskROM)")
-                if (isLoader)
-                    return description + ". " + qsTr("Loader mode")
-                var txt = description+" - "+(size/1000000000).toFixed(1)+" gigabytes"
-                if (mountpoints.length > 0) {
-                    txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))
-                }
-                return txt;
-            }
-            property string description: model.description
-            property string device: model.device
-            property string size: model.size
-            property bool isMaskrom: typeof(model.isMaskrom) != "undefined" && model.isMaskrom
-            property bool isLoader: typeof(model.isLoader) != "undefined" && model.isLoader
-
-            Rectangle {
-                id: dstbgrect
-                anchors.fill: parent
-                color: "#173746"
-                visible: mouseOver && parent.ListView.view.currentIndex !== index
-                property bool mouseOver: false
-
-            }
-
-            Rectangle {
-                id: dstborderrect
-                implicitHeight: 1
-                implicitWidth: parent.width
-                color: "#294754"
-                y: parent.height
-            }
-
-            Row {
-                leftPadding: 25
-
-                Column {
-                    width: 64
-
-                    Image {
-                        source: isUsb ? "icons/ic_usb_40px.svg" : isScsi ? "icons/ic_storage_40px.svg" : "icons/ic_sd_storage_40px.svg"
-                        verticalAlignment: Image.AlignVCenter
-                        height: parent.parent.parent.height
-                        fillMode: Image.Pad
-                    }
-                }
-
-                Column {
-                    width: parent.parent.width-64
-
-                    Text {
-                        textFormat: Text.StyledText
-                        color: "#dce8ef"
-                        height: parent.parent.parent.height
-                        verticalAlignment: Text.AlignVCenter
-                        font.family: roboto.name
-                        text: {
-                            if (isMaskrom) {
-                                return "<p><font size='4'>"+description+"</font></p>" +
-                                       "<font color='#28a745'>"+qsTr("Recovery mode (MaskROM) — will load bootloader and flash via Rockchip USB")+"</font>"
-                            }
-                            if (isLoader) {
-                                return "<p><font size='4'>"+description+"</font></p>" +
-                                       "<font color='#28a745'>"+qsTr("Loader mode — ready to flash firmware")+"</font>"
-                            }
-                            var sizeStr = (size/1000000000).toFixed(1)+" GB";
-                            var txt;
-                            if (isReadOnly) {
-                                txt = "<p><font size='4' color='grey'>"+description+" - "+sizeStr+"</font></p>"
-                                txt += "<font color='grey'>"
-                                if (mountpoints.length > 0) {
-                                    txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))+" "
-                                }
-                                txt += qsTr("[WRITE PROTECTED]")+"</font>"
-                            } else {
-                                txt = "<p><font size='4'>"+description+" - "+sizeStr+"</font></p>"
-                                if (mountpoints.length > 0) {
-                                    txt += "<font color='grey'>"+qsTr("Mounted as %1").arg(mountpoints.join(", "))+"</font>"
-                                }
-                            }
-                            return txt;
-                        }
-                    }
-                }
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                hoverEnabled: true
-
-                onEntered: {
-                    dstbgrect.mouseOver = true
-                }
-
-                onExited: {
-                    dstbgrect.mouseOver = false
-                }
-
-                onClicked: {
-                    selectDstItem(model)
-                }
-            }
-        }
-    }
-
 
     MsgPopup {
         id: msgpopup
@@ -1781,7 +1125,7 @@ Rectangle {
         }
         selectedUpdateSha256 = ""
         osbutton.text = imageWriter.srcFileName()
-        ospopup.close()
+        selectingImage = false
         selectingImage = false
         if (imageWriter.readyToWrite()) {
             writebutton.enabled = true
@@ -1977,16 +1321,16 @@ Rectangle {
 
             osswipeview.itemAt(osswipeview.currentIndex+1).currentIndex = (selectFirstSubitem === true) ? 0 : -1
             osswipeview.incrementCurrentIndex()
-            ospopup.categorySelected = d.name
+            imageCatalog.categorySelected = d.name
         } else if (typeof(d.subitems_url) == "string" && d.subitems_url !== "") {
             if (d.subitems_url === "internal://back")
             {
                 osswipeview.decrementCurrentIndex()
-                ospopup.categorySelected = ""
+                imageCatalog.categorySelected = ""
             }
             else
             {
-                ospopup.categorySelected = d.name
+                imageCatalog.categorySelected = d.name
                 var suburl = d.subitems_url
                 var m = newSublist()
 
@@ -2024,13 +1368,12 @@ Rectangle {
                 }
             }
         } else {
-            imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, ospopup.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : "")
+            imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, imageCatalog.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : "")
             selectedUpdateSource = d.url
             selectedUpdateSubdirectory = (typeof(d.update_destination) != "undefined" && d.update_destination === "root") ? "" : "openhd"
             selectedUpdateFilename = typeof(d.update_filename) != "undefined" ? d.update_filename : ""
             selectedUpdateSha256 = typeof(d.update_sha256) != "undefined" ? d.update_sha256 : ""
             osbutton.text = d.name
-            ospopup.close()
             selectingImage = false
             if (imageWriter.readyToWrite()) {
                 writebutton.enabled = true
@@ -2044,7 +1387,8 @@ Rectangle {
             return
         }
 
-        dstpopup.close()
+        selectingTarget = false
+        imageWriter.stopDriveListPolling()
         imageWriter.setDst(d.device, d.size)
         dstbutton.text = d.description
         if (imageWriter.readyToWrite()) {

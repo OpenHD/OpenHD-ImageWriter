@@ -1,4 +1,4 @@
-import QtQuick 2.9
+﻿import QtQuick 2.9
 import QtQuick.Controls 2.2
 
 Button {
@@ -11,62 +11,62 @@ Button {
     hoverEnabled: true
     padding: 0
 
+    // Keep FeatureCard in sync but ModernHome now uses its own inline Repeater cards.
+    // This component is no longer used by ModernHome but kept for potential other uses.
     background: Rectangle {
-        radius: 8
-        color: root.down ? "#17384a" : (root.hovered ? "#142f40" : "#102633")
-        border.color: root.hovered || root.activeFocus ? "#168df3" : "#294654"
+        radius: 10
+        color: root.down ? "#12202e" : (root.hovered ? "#1a2e40" : "#152130")
+        border.color: root.hovered || root.activeFocus ? "#2a6fa8" : "#1e3347"
         border.width: 1
-
-        Behavior on color { ColorAnimation { duration: 120 } }
+        Behavior on color { ColorAnimation { duration: 130 } }
+        Behavior on border.color { ColorAnimation { duration: 130 } }
     }
 
-    contentItem: Item {
-        Rectangle {
-            id: iconPlate
+    contentItem: Column {
+        spacing: 0
+        anchors.centerIn: parent
+        width: parent.width - 32
+
+        Item { width: 1; height: 32 }
+
+        Image {
             width: 54
             height: 54
-            radius: 10
-            anchors.left: parent.left
-            anchors.leftMargin: 18
-            anchors.top: parent.top
-            anchors.topMargin: 18
-            color: root.hovered ? "#0d84ff" : "#1b394a"
-
-            Image {
-                anchors.centerIn: parent
-                width: 28
-                height: 28
-                source: root.iconSource
-                fillMode: Image.PreserveAspectFit
-            }
+            anchors.horizontalCenter: parent.horizontalCenter
+            source: root.iconSource
+            fillMode: Image.PreserveAspectFit
+            opacity: root.hovered ? 1.0 : 0.88
+            Behavior on opacity { NumberAnimation { duration: 130 } }
         }
 
+        Item { width: 1; height: 18 }
+
         Text {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: 18
-            anchors.rightMargin: 18
-            anchors.top: iconPlate.bottom
-            anchors.topMargin: 14
+            width: parent.width
             text: root.title
-            color: "#f5f8fa"
-            wrapMode: Text.WordWrap
-            font.bold: true
+            color: "#e8f4fc"
             font.pixelSize: 16
+            font.bold: true
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
         }
 
+        Item { width: 1; height: 10 }
+
         Text {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: 18
-            anchors.rightMargin: 18
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 18
+            width: parent.width
             text: root.description
-            color: "#aebfca"
-            wrapMode: Text.WordWrap
+            color: "#7a9eb8"
             font.pixelSize: 12
-            lineHeight: 1.15
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            lineHeight: 1.3
         }
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        cursorShape: Qt.PointingHandCursor
+        onPressed: mouse.accepted = false
     }
 }

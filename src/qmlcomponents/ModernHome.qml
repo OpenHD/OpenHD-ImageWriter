@@ -8,105 +8,154 @@ Item {
     property string statusMessage: ""
     signal featureRequested(string view)
 
-    Flickable {
+    Rectangle {
         anchors.fill: parent
-        contentWidth: width
-        contentHeight: contentColumn.implicitHeight + 64
-        clip: true
-        boundsBehavior: Flickable.StopAtBounds
+        color: "#0d1b26"
+    }
 
-        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+    // Centered column containing logo + tagline + cards
+    ColumnLayout {
+        anchors.centerIn: parent
+        width: Math.min(parent.width - 40, 860)
+        spacing: 0
 
-        ColumnLayout {
-            id: contentColumn
-            width: Math.min(parent.width - 64, 980)
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 30
-            spacing: 22
+        // ─── Logo ──────────────────────────────────────────────────────────
+        Image {
+            Layout.alignment: Qt.AlignHCenter
+            Layout.preferredWidth:  Math.min(parent.width - 40, 360)
+            Layout.preferredHeight: Math.round(Layout.preferredWidth * (793 / 1983))
+            sourceSize.width: 720
+            source: "../icons/openhd_imagewriter_logo_v4.png"
+            fillMode: Image.PreserveAspectFit
+            smooth: true
+            antialiasing: true
+        }
 
-            Item {
-                Layout.fillWidth: true
-                Layout.preferredHeight: Math.max(150, Math.min(230, root.height * 0.34))
+        Item { Layout.preferredHeight: 18 }
 
-                Image {
-                    anchors.centerIn: parent
-                    width: Math.min(parent.width * 0.78, 620)
-                    height: parent.height
-                    source: "../icons/openhd_imagewriter_logo_v4.png"
-                    fillMode: Image.PreserveAspectFit
+        // ─── Tagline ───────────────────────────────────────────────────────
+        Text {
+            Layout.alignment: Qt.AlignHCenter
+            text: qsTr("Open Source FPV for Everyone")
+            color: "#8fafc4"
+            font.pixelSize: 15
+            font.letterSpacing: 0.3
+        }
+
+        Item { Layout.preferredHeight: 36 }
+
+        // ─── Cards ─────────────────────────────────────────────────────────
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 16
+
+            Repeater {
+                model: [
+                    {
+                        "view": "flash",
+                        "icon": "../icons/ui/drive.svg",
+                        "title": qsTr("Write image"),
+                        "desc":  qsTr("Write OpenHD to an SD card, USB drive, or supported device.")
+                    },
+                    {
+                        "view": "update",
+                        "icon": "../icons/ui/update.svg",
+                        "title": qsTr("Update device"),
+                        "desc":  qsTr("Download current OpenHD images and update your device.")
+                    },
+                    {
+                        "view": "configure",
+                        "icon": "../icons/ui/settings.svg",
+                        "title": qsTr("Configure media"),
+                        "desc":  qsTr("Adjust device roles, camera settings, WiFi, and advanced parameters.")
+                    }
+                ]
+
+                delegate: Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 220
+                    radius: 10
+                    color: cardMouse.containsMouse ? "#1a2e40" : "#152130"
+                    border.color: cardMouse.containsMouse ? "#2a6fa8" : "#1e3347"
+                    border.width: 1
+
+                    Behavior on color { ColorAnimation { duration: 130 } }
+                    Behavior on border.color { ColorAnimation { duration: 130 } }
+
+                    ColumnLayout {
+                        anchors.centerIn: parent
+                        width: parent.width - 32
+                        spacing: 0
+
+                        Image {
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.preferredWidth: 36
+                            Layout.preferredHeight: 36
+                            sourceSize.width: 72
+                            sourceSize.height: 72
+                            source: modelData.icon
+                            fillMode: Image.PreserveAspectFit
+                            opacity: cardMouse.containsMouse ? 1.0 : 0.88
+                            Behavior on opacity { NumberAnimation { duration: 130 } }
+                        }
+
+                        Item { Layout.preferredHeight: 18 }
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: modelData.title
+                            color: "#e8f4fc"
+                            font.pixelSize: 16
+                            font.bold: true
+                            horizontalAlignment: Text.AlignHCenter
+                            wrapMode: Text.WordWrap
+                        }
+
+                        Item { Layout.preferredHeight: 10 }
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: modelData.desc
+                            color: "#7a9eb8"
+                            font.pixelSize: 12
+                            horizontalAlignment: Text.AlignHCenter
+                            wrapMode: Text.WordWrap
+                            lineHeight: 1.3
+                        }
+                    }
+
+                    MouseArea {
+                        id: cardMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.featureRequested(modelData.view)
+                    }
                 }
             }
+        }
 
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 5
+        // ─── Status message ────────────────────────────────────────────────
+        Item { Layout.preferredHeight: 16; visible: root.statusMessage !== "" }
 
-                Text {
-                    text: qsTr("What would you like to do?")
-                    color: "#f4f8fb"
-                    font.bold: true
-                    font.pixelSize: 22
-                }
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: statusText.implicitHeight + 20
+            visible: root.statusMessage !== ""
+            radius: 7
+            color: "#2a2412"
+            border.color: "#6a5518"
 
-                Text {
-                    text: qsTr("Write, update, and configure OpenHD media from one place.")
-                    color: "#9fb3c0"
-                    font.pixelSize: 13
-                }
-            }
-
-            GridLayout {
-                Layout.fillWidth: true
-                columns: width >= 760 ? 3 : (width >= 480 ? 2 : 1)
-                columnSpacing: 14
-                rowSpacing: 14
-
-                FeatureCard {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 178
-                    iconSource: "../icons/ui/image.svg"
-                    title: qsTr("Write an image")
-                    description: qsTr("Choose an OpenHD image and write it safely to an SD card, USB drive, or supported device.")
-                    onClicked: root.featureRequested("flash")
-                }
-
-                FeatureCard {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 178
-                    iconSource: "../icons/ui/update.svg"
-                    title: qsTr("Update a device")
-                    description: qsTr("Download a current OpenHD release and install an update directly on the selected target.")
-                    onClicked: root.featureRequested("update")
-                }
-
-                FeatureCard {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 178
-                    iconSource: "../icons/ui/settings.svg"
-                    title: qsTr("Configure media")
-                    description: qsTr("Prepare device roles, cameras, networking, and advanced OpenHD settings before first boot.")
-                    onClicked: root.featureRequested("configure")
-                }
-            }
-
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: statusText.implicitHeight + 24
-                visible: root.statusMessage !== ""
-                radius: 6
-                color: "#332d16"
-                border.color: "#806b1c"
-
-                Text {
-                    id: statusText
-                    anchors.fill: parent
-                    anchors.margins: 12
-                    text: root.statusMessage
-                    color: "#ffe28a"
-                    wrapMode: Text.WordWrap
-                    verticalAlignment: Text.AlignVCenter
-                    font.pixelSize: 12
-                }
+            Text {
+                id: statusText
+                anchors.fill: parent
+                anchors.margins: 10
+                text: root.statusMessage
+                color: "#ffe08a"
+                wrapMode: Text.WordWrap
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                font.pixelSize: 12
             }
         }
     }

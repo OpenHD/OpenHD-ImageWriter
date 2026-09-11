@@ -1,4 +1,4 @@
-/*
+﻿/*
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (C) 2020 Raspberry Pi Ltd
  */
@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
     }
 
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 #ifdef Q_OS_WIN
     // prefer ANGLE (DirectX) over desktop OpenGL
     QCoreApplication::setAttribute(Qt::AA_UseOpenGLES);

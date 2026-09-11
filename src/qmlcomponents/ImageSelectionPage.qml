@@ -1,186 +1,372 @@
-import QtQuick 2.9
+﻿import QtQuick 2.9
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
 Item {
     id: root
 
-    property var sourceModel: null
+    // ─── Public API ───────────────────────────────────────────────────────────
+    property var  sourceModel: null
     property bool rootLevel: true
     property string categoryName: ""
-    property string pageTitle: qsTr("Choose an image")
-    property string pageSubtitle: qsTr("Select the device or image you want to write.")
+    property string pageTitle:      qsTr("Choose an image")
+    property string pageSubtitle:   qsTr("Select the device or image you want to write.")
     property string nestedSubtitle: qsTr("Choose the OpenHD release to use for this device.")
-    property string userDefinedTitle: qsTr("User defined")
-    property string formatTitle: qsTr("Erase / Format")
-    readonly property bool narrow: width < 720
-    readonly property int sourceCount: sourceModel ? sourceModel.count : 0
-    readonly property int itemOffset: rootLevel ? 0 : 1
-    readonly property int mainItemCount: Math.max(0, sourceCount - (rootLevel ? 2 : 1))
+    property string userDefinedTitle: qsTr("Use custom image")
+    property string formatTitle:      qsTr("Erase / Format")
+
+    // Tab index (Official=0, Developer=1, Local=2) — only at root level
+    property int activeTab: 0
+
+    readonly property bool narrow: width < 520
+    readonly property int  sourceCount:    sourceModel ? sourceModel.count : 0
+    readonly property int  itemOffset:     rootLevel ? 0 : 1
+    readonly property int  mainItemCount:  Math.max(0, sourceCount - (rootLevel ? 2 : 1))
 
     signal itemSelected(var item)
     signal closeRequested()
 
     focus: visible
-    onVisibleChanged: {
-        if (visible)
-            forceActiveFocus()
-    }
+    onVisibleChanged: { if (visible) forceActiveFocus() }
 
     function itemAt(displayIndex) {
         return sourceModel ? sourceModel.get(displayIndex + itemOffset) : null
     }
-
     function utilityAt(offsetFromEnd) {
         return sourceModel ? sourceModel.get(sourceCount - offsetFromEnd) : null
     }
-
     function goBack() {
-        if (rootLevel) {
-            closeRequested()
-        } else if (sourceModel && sourceModel.count > 0) {
+        if (rootLevel)      closeRequested()
+        else if (sourceModel && sourceModel.count > 0)
             itemSelected(sourceModel.get(0))
-        }
+    }
+
+    // ─── Platform icon resolver ───────────────────────────────────────────────
+    // Maps keywords found in entry names/descriptions to bundled platform icons.
+    // YAML icon fields are intentionally ignored here; the application controls presentation.
+    function platformIcon(name, desc) {
+        var s = (name + " " + (desc || "")).toLowerCase()
+        if (s.indexOf("raspberry") >= 0)        return "../icons/platforms/raspberrypi.svg"
+        if (s.indexOf("radxa") >= 0)            return "../icons/platforms/radxa.svg"
+        if (s.indexOf("x86") >= 0
+         || s.indexOf("evo") >= 0
+         || s.indexOf("desktop") >= 0
+         || s.indexOf("intel") >= 0
+         || s.indexOf("amd") >= 0
+         || s.indexOf("laptop") >= 0
+         || s.indexOf("computer") >= 0)         return "../icons/platforms/x86.svg"
+        if (s.indexOf("openhd") >= 0
+         || s.indexOf("custom hardware") >= 0)  return "../icons/platforms/openhd.svg"
+        return "../icons/platforms/generic-sbc.svg"
     }
 
     Keys.onEscapePressed: goBack()
 
-    Flickable {
-        id: pageScroll
-        anchors.fill: parent
-        contentWidth: width
-        contentHeight: pageContent.implicitHeight + (root.narrow ? 40 : 70)
-        boundsBehavior: Flickable.StopAtBounds
-        clip: true
-        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+    // ─── Background ───────────────────────────────────────────────────────────
+    Rectangle { anchors.fill: parent; color: "#0d1b26" }
 
-        ColumnLayout {
-            id: pageContent
-            width: Math.min(pageScroll.width - (root.narrow ? 36 : 72), 1150)
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: root.narrow ? 24 : 30
-            spacing: 20
+    // ─── Back breadcrumb (sub-category only) ──────────────────────────────────
+    Item {
+        id: breadcrumb
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: !root.rootLevel ? 36 : 0
+        visible: !root.rootLevel
 
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 16
+        Row {
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
+            anchors.leftMargin: 14
+            spacing: 4
 
-                PageHeader {
-                    Layout.fillWidth: true
-                    title: root.rootLevel || root.categoryName.length === 0
-                           ? root.pageTitle
-                           : root.categoryName
-                    subtitle: root.rootLevel
-                              ? root.pageSubtitle
-                              : root.nestedSubtitle
-                }
+            Text {
+                text: "‹"
+                color: "#4a9eff"
+                font.pixelSize: 16
+                anchors.verticalCenter: parent.verticalCenter
+            }
+            Text {
+                text: qsTr("Back")
+                color: "#4a9eff"
+                font.pixelSize: 13
+                anchors.verticalCenter: parent.verticalCenter
 
-                Button {
-                    text: root.rootLevel ? qsTr("Back to setup") : qsTr("Back")
-                    flat: true
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -6
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: root.goBack()
                 }
             }
+        }
+    }
 
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 8
+    // ─── Page header ──────────────────────────────────────────────────────────
+    Item {
+        id: pageHeader
+        anchors.top: breadcrumb.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: 16
+        anchors.rightMargin: 16
+        height: headerCol.implicitHeight + 20
+
+        Column {
+            id: headerCol
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 3
+
+            Text {
+                text: root.rootLevel || root.categoryName.length === 0
+                      ? root.pageTitle
+                      : root.categoryName
+                color: "#ddeaf5"
+                font.pixelSize: 20
+                font.bold: true
+            }
+
+            Text {
+                text: root.rootLevel ? root.pageSubtitle : root.nestedSubtitle
+                color: "#6b8da4"
+                font.pixelSize: 13
+            }
+        }
+    }
+
+    // ─── Segmented tab control ────────────────────────────────────────────────
+    Item {
+        id: tabBar
+        anchors.top: pageHeader.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: 16
+        anchors.rightMargin: 16
+        height: root.rootLevel ? 36 : 0
+        visible: root.rootLevel
+
+        // Outer container — the segmented pill
+        Rectangle {
+            id: tabPill
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            height: 34
+            radius: 6
+            color: "#0b1720"
+            border.color: "#1e3347"
+            border.width: 1
+            width: tabRow.implicitWidth + 2
+
+            Row {
+                id: tabRow
+                anchors.centerIn: parent
+                spacing: 0
 
                 Repeater {
-                    model: root.mainItemCount
+                    model: [
+                        qsTr("Official Releases"),
+                        qsTr("Developer Versions"),
+                        qsTr("Local Images")
+                    ]
 
-                    SelectionRow {
-                        property var entry: root.itemAt(index)
-                        Layout.fillWidth: true
-                        compact: root.narrow
-                        title: entry ? entry.name : ""
-                        description: entry ? entry.description : ""
-                        iconSource: root.resolveIcon(entry ? entry.icon : "")
-                        onClicked: {
-                            if (entry)
-                                root.itemSelected(entry)
+                    delegate: Item {
+                        width: tabText.implicitWidth + 20
+                        height: 34
+
+                        // Active tab fill
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: 2
+                            radius: 5
+                            color: "#1a6ab0"
+                            visible: root.activeTab === index
                         }
-                    }
-                }
 
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 108
-                    visible: root.mainItemCount === 0
-                    radius: 8
-                    color: "#0e2532"
-                    border.color: "#294754"
-
-                    Row {
-                        anchors.centerIn: parent
-                        spacing: 12
-
-                        BusyIndicator {
-                            width: 28
-                            height: 28
-                            running: parent.parent.visible
+                        // Divider between inactive tabs
+                        Rectangle {
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            anchors.topMargin: 6
+                            anchors.bottomMargin: 6
+                            width: 1
+                            color: "#1e3347"
+                            visible: index < 2 && root.activeTab !== index && root.activeTab !== (index + 1)
                         }
 
                         Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: qsTr("Loading available images...")
-                            color: "#9fb3bf"
+                            id: tabText
+                            anchors.centerIn: parent
+                            text: modelData
+                            color: root.activeTab === index ? "#ffffff" : "#6b8da4"
                             font.pixelSize: 13
+                            font.bold: root.activeTab === index
                         }
-                    }
-                }
-            }
 
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 1
-                Layout.topMargin: 2
-                visible: root.rootLevel
-                color: "#294754"
-            }
-
-            GridLayout {
-                Layout.fillWidth: true
-                visible: root.rootLevel && root.sourceCount >= 2
-                columns: width >= 680 ? 2 : 1
-                columnSpacing: 12
-                rowSpacing: 12
-
-                SelectionRow {
-                    property var entry: root.utilityAt(1)
-                    Layout.fillWidth: true
-                    compact: true
-                    title: entry ? root.userDefinedTitle : ""
-                    description: entry ? entry.description : ""
-                    iconSource: root.resolveIcon(entry ? entry.icon : "")
-                    onClicked: {
-                        if (entry)
-                            root.itemSelected(entry)
-                    }
-                }
-
-                SelectionRow {
-                    property var entry: root.utilityAt(2)
-                    Layout.fillWidth: true
-                    compact: true
-                    title: entry ? root.formatTitle : ""
-                    description: entry ? entry.description : ""
-                    iconSource: root.resolveIcon(entry ? entry.icon : "")
-                    onClicked: {
-                        if (entry)
-                            root.itemSelected(entry)
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.activeTab = index
+                        }
                     }
                 }
             }
         }
     }
 
-    function resolveIcon(value) {
-        if (!value || value.length === 0)
-            return "../icons/ui/image.svg"
-        if (value.indexOf("qrc:") === 0 || value.indexOf("file:") === 0
-                || value.indexOf("http:") === 0 || value.indexOf("https:") === 0)
-            return value
-        return "../" + value
+    // ─── Spacer between tab and list ─────────────────────────────────────────
+    Item {
+        id: spacer
+        anchors.top: tabBar.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 8
+    }
+
+    // ─── Grouped list panel ───────────────────────────────────────────────────
+    Rectangle {
+        id: listPanel
+        anchors.top: spacer.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.leftMargin: 16
+        anchors.rightMargin: 16
+        anchors.bottomMargin: 12
+        radius: 6
+        color: "#0f2030"
+        border.color: "#1e3347"
+        border.width: 1
+        clip: true
+
+        Flickable {
+            id: listScroll
+            anchors.fill: parent
+            contentWidth: width
+            contentHeight: listContent.implicitHeight
+            boundsBehavior: Flickable.StopAtBounds
+            clip: true
+            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+            Column {
+                id: listContent
+                width: listScroll.width
+
+                // Loading indicator
+                Item {
+                    width: listScroll.width
+                    height: 60
+                    visible: root.mainItemCount === 0
+
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: 10
+
+                        BusyIndicator {
+                            width: 20; height: 20
+                            running: parent.parent.visible
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: qsTr("Loading available images...")
+                            color: "#6b8da4"
+                            font.pixelSize: 13
+                        }
+                    }
+                }
+
+                // Main platform rows (from remote JSON)
+                Repeater {
+                    id: mainRepeater
+                    model: root.mainItemCount
+
+                    delegate: Item {
+                        property var entry: root.itemAt(index)
+                        // Visibility based on active tab
+                        // Tab 0 = Official: show items that don't look like dev/local
+                        // Tab 1 = Developer: items whose name/desc mentions beta/dev/nightly
+                        // Tab 2 = Local: not shown here (handled by utility rows below)
+                        readonly property bool matchesOfficialTab: {
+                            if (!entry) return false
+                            var n = (entry.name + " " + (entry.description || "")).toLowerCase()
+                            return n.indexOf("beta") < 0 && n.indexOf("nightly") < 0
+                                && n.indexOf("dev") < 0 && n.indexOf("snapshot") < 0
+                        }
+                        readonly property bool matchesDeveloperTab: {
+                            if (!entry) return false
+                            var n = (entry.name + " " + (entry.description || "")).toLowerCase()
+                            return n.indexOf("beta") >= 0 || n.indexOf("nightly") >= 0
+                                || n.indexOf("dev") >= 0 || n.indexOf("snapshot") >= 0
+                        }
+
+                        visible: !root.rootLevel ||
+                                 (root.activeTab === 0 && (matchesOfficialTab || !matchesDeveloperTab)) ||
+                                 (root.activeTab === 1 && matchesDeveloperTab) ||
+                                 root.activeTab === 2
+                        height: visible ? selRow.implicitHeight : 0
+
+                        SelectionRow {
+                            id: selRow
+                            width: parent.width
+                            visible: parent.visible
+                            title: entry ? entry.name : ""
+                            description: entry ? entry.description : ""
+                            iconSource: root.platformIcon(
+                                            entry ? entry.name : "",
+                                            entry ? entry.description : "")
+                            showSeparator: index < root.mainItemCount - 1 || root.sourceCount >= 2
+                            onClicked: {
+                                if (entry) root.itemSelected(entry)
+                            }
+                        }
+                    }
+                }
+
+                // ─── Utility section: "Use custom" + "Erase/Format" ───────────
+                // These appear in the "Local Images" tab at root level
+                Item {
+                    width: listScroll.width
+                    height: (root.rootLevel && root.sourceCount >= 2 &&
+                             (root.activeTab === 2 || !root.rootLevel)) ? divLine.height : 0
+                    visible: height > 0
+
+                    Rectangle {
+                        id: divLine
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.leftMargin: 60
+                        height: 1
+                        color: "#1e3347"
+                    }
+                }
+
+                Repeater {
+                    model: (root.rootLevel && root.sourceCount >= 2 &&
+                            (root.activeTab === 2 || !root.rootLevel)) ? 2 : 0
+
+                    delegate: Item {
+                        property var entry: index === 0 ? root.utilityAt(1) : root.utilityAt(2)
+                        property string utTitle: index === 0 ? root.userDefinedTitle : root.formatTitle
+                        width: listScroll.width
+                        height: utRow.implicitHeight
+
+                        SelectionRow {
+                            id: utRow
+                            width: parent.width
+                            title: entry ? utTitle : ""
+                            description: entry ? entry.description : ""
+                            iconSource: index === 0 ? "../icons/use_custom.png" : "../icons/erase.png"
+                            showSeparator: index === 0
+                            onClicked: {
+                                if (entry) root.itemSelected(entry)
+                            }
+                        }
+                    }
+                }
+
+                // Bottom padding inside panel
+                Item { width: 1; height: 4 }
+            }
+        }
     }
 }

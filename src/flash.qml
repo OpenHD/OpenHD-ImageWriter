@@ -29,25 +29,32 @@ Rectangle {
     property double writeSpeedMB: 0
     property double lastWriteBytes: 0
     property double lastWriteTimestamp: 0
-    property bool selectingImage: false
+    property bool selectingImage: true
     property bool selectingTarget: false
     property bool reviewingOperation: false
     readonly property bool operationInProgress: progressBar.visible
 
     function navigateBack() {
         if (selectingImage) {
+            // At root image selection: go back to home overview
             selectingImage = false
+            if (mainWindow && mainWindow.showHome) {
+                mainWindow.showHome()
+            }
             return
         }
 
         if (selectingTarget) {
             selectingTarget = false
+            selectingImage = true
             imageWriter.stopDriveListPolling()
             return
         }
 
         if (reviewingOperation) {
             reviewingOperation = false
+            selectingTarget = true
+            imageWriter.startDriveListPolling()
             return
         }
 
@@ -105,201 +112,10 @@ Rectangle {
         onClicked: navigateBack()
     }
 
-    Popup {
-        id: detailsPopup
-        x: 75
-        y: (parent.height - height) / 2
-        width: parent.width - 150
-        height: parent.implicitHeight + 275
-        padding: 0
-        modal: true
-        property bool objectVisible: false
-        visible: objectVisible
-
-        Rectangle {
-            color: "#f5f5f5"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: 35
-            width: parent.width
-        }
-        Rectangle {
-            color: "#afafaf"
-            width: parent.width
-            y: 35
-            implicitHeight: 1
-        }
-        Settings {
-            id: appSettings
-        }
-        Text {
-            id: msgx
-            text: "X"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: 25
-            anchors.topMargin: 10
-            font.family: roboto.name
-            font.bold: true
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    detailsPopup.close()
-                }
-            }
-        }
-
-        ColumnLayout {
-            spacing: 20
-            anchors.fill: parent
-
-            Text {
-                id: detailsPopupHeader
-                text: "List of applied settings and variables"
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                Layout.fillWidth: true
-                font.family: roboto.name
-                font.bold: true
-            }
-            Button{
-                id:refresh
-                visible:false
-                text: "button"
-                onClicked: {
-                    console.log(imageWriter.getValue("fileName"))
-                }
-            }
-
-            ColumnLayout {
-                id: detailsArea
-                spacing: 10
-                Layout.alignment: Qt.AlignVCenter
-                Layout.topMargin: -30
-                Layout.leftMargin: 20
-
-                RowLayout {
-                    Text {
-                        text: "Image Name:"
-                        font.bold: true
-                    }
-
-                    Text {
-                        text: {
-                            if (typeof optionsPage.fileName !== "undefined" && optionsPage.fileName.length > 45) {
-                                return optionsPage.fileName.substring(0, optionsPage.fileName.length - 7);
-                            }else if (typeof optionsPage.fileName !== "undefined" && optionsPage.fileName.length > 1){
-                                return optionsPage.fileName.substring(0, optionsPage.fileName.length);
-                            }else {
-                                return "Error";
-                            }
-                        }
-                        font.bold: false
-                        color: "grey"
-                    }
-                }
-
-
-                // RowLayout {
-                //     Text {
-                //         text: "sbc:"
-                //         font.bold: true
-                //     }
-
-                //     Text {
-                //         text: optionsPage.sbc
-                //         font.bold: false
-                //         color: "grey"
-
-                //     }
-                // }
-
-                RowLayout {
-                    Text {
-                        text: "Boot Type:"
-                        font.bold: true
-                    }
-                    Text {
-                        text: optionsPage.bootType + "  " + optionsPage.mode
-                        font.bold: false
-                        color: "grey"
-                    }
-                }
-
-                RowLayout {
-                    Text {
-                        text: "Camera:"
-                        font.bold: true
-                    }
-                    Text {
-                        text: optionsPage.camera
-                        font.bold: false
-                        color: "grey"
-                    }
-                }
-
-                RowLayout {
-                    Text {
-                        text: "Camera 2:"
-                        font.bold: true
-                    }
-                    Text {
-                        text: optionsPage.camera2
-                        font.bold: false
-                        color: "grey"
-                    }
-                }
-
-                RowLayout {
-                    Text {
-                        text: "Camera Res:"
-                        font.bold: true
-                    }
-                    Text {
-                        text: optionsPage.cameraResolution
-                        font.bold: false
-                        color: "grey"
-                    }
-                }
-
-                RowLayout {
-                    Text {
-                        text: "Camera 2 Res:"
-                        font.bold: true
-                    }
-                    Text {
-                        text: optionsPage.camera2Resolution
-                        font.bold: false
-                        color: "grey"
-                    }
-                }
-
-                RowLayout {
-                    Text {
-                        text: "Changelog:"
-                        font.bold: true
-                    }
-                    Text {
-                        text: "<a href='https://openhdfpv.org/2.5-evo.html'>changelogs</a>"
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: Qt.openUrlExternally("https://openhdfpv.org/2.5-evo.html")
-                        }
-                        font.bold:false
-                        color: "grey"
-                    }
-                }
-            }
-        }
-    }
-
-
     Flickable {
         id: modernWorkflow
         anchors.fill: parent
-        visible: !selectingImage && !selectingTarget && !reviewingOperation && !optionsPage.visible
+        visible: progressBar.visible && !selectingImage && !selectingTarget && !reviewingOperation && !optionsPage.visible
         enabled: visible
         contentWidth: width
         contentHeight: modernContent.implicitHeight + 72
@@ -521,17 +337,685 @@ Rectangle {
         }
     }
 
-    ImageSelectionPage {
+    // =====================================================================
+    // V3-STYLE IMAGE SELECTION
+    //
+    // Kept directly in flash.qml so the Write Image page does not depend on
+    // a separate visual component. The existing osmodel / nested list logic
+    // remains the source of truth.
+    // =====================================================================
+
+    Item {
         id: imageSelectionPage
+
         anchors.fill: parent
         visible: selectingImage
         enabled: visible
         z: 2
-        sourceModel: osswipeview.currentItem ? osswipeview.currentItem.model : osmodel
-        rootLevel: osswipeview.currentIndex === 0
-        categoryName: ospopup.categorySelected
-        onItemSelected: selectOSitem(item)
-        onCloseRequested: selectingImage = false
+        focus: visible
+
+        property var sourceModel:
+            osswipeview.currentItem
+            ? osswipeview.currentItem.model
+            : osmodel
+
+        property bool rootLevel: osswipeview.currentIndex === 0
+        property string categoryName: imageCatalog.categorySelected
+        property int activeTab: 0
+
+        readonly property int sourceCount:
+            sourceModel ? sourceModel.count : 0
+
+        readonly property int itemOffset:
+            rootLevel ? 0 : 1
+
+        readonly property int mainItemCount:
+            Math.max(0, sourceCount - (rootLevel ? 2 : 1))
+
+        function itemAt(displayIndex) {
+            return sourceModel
+                   ? sourceModel.get(displayIndex + itemOffset)
+                   : null
+        }
+
+        function utilityAt(offsetFromEnd) {
+            return sourceModel
+                   ? sourceModel.get(sourceCount - offsetFromEnd)
+                   : null
+        }
+
+        function platformIcon(name, description) {
+            var s = ((name || "") + " " + (description || "")).toLowerCase()
+
+            if (s.indexOf("raspberry") >= 0)
+                return "icons/platforms/raspberrypi.svg"
+
+            if (s.indexOf("radxa") >= 0)
+                return "icons/platforms/radxa.svg"
+
+            if (s.indexOf("x86") >= 0 ||
+                s.indexOf("evo") >= 0 ||
+                s.indexOf("desktop") >= 0 ||
+                s.indexOf("intel") >= 0 ||
+                s.indexOf("amd") >= 0 ||
+                s.indexOf("computer") >= 0)
+                return "icons/platforms/x86.svg"
+
+            if (s.indexOf("openhd") >= 0 ||
+                s.indexOf("custom hardware") >= 0)
+                return "icons/platforms/openhd.svg"
+
+            return "icons/platforms/generic-sbc.svg"
+        }
+
+        function goBack() {
+            if (rootLevel) {
+                if (mainWindow && mainWindow.showHome)
+                    mainWindow.showHome()
+                return
+            }
+
+            if (sourceModel && sourceModel.count > 0)
+                selectOSitem(sourceModel.get(0))
+        }
+
+        Keys.onEscapePressed: goBack()
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#0c202c"
+        }
+
+        // Keep the complete selector compact and left aligned like ImageWriter v3.
+        Item {
+            id: selectorContent
+
+            anchors.top: parent.top
+            anchors.left: parent.left
+
+            anchors.topMargin: 10
+            anchors.leftMargin: 14
+
+            width: Math.min(parent.width - 28, 760)
+            height: parent.height - 20
+
+            // -------------------------------------------------------------
+            // Back link for nested release lists
+            // -------------------------------------------------------------
+
+            Item {
+                id: selectorBreadcrumb
+
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+
+                height: imageSelectionPage.rootLevel ? 0 : 26
+                visible: !imageSelectionPage.rootLevel
+
+                Row {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 4
+
+                    Text {
+                        text: "‹"
+                        color: "#57aafa"
+                        font.pixelSize: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: qsTr("Back")
+                        color: "#57aafa"
+                        font.pixelSize: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: imageSelectionPage.goBack()
+                }
+            }
+
+            // -------------------------------------------------------------
+            // Header
+            // -------------------------------------------------------------
+
+            Column {
+                id: selectorHeader
+
+                anchors.top: selectorBreadcrumb.bottom
+                anchors.left: parent.left
+
+                spacing: 2
+
+                Text {
+                    text:
+                        imageSelectionPage.rootLevel ||
+                        imageSelectionPage.categoryName.length === 0
+                        ? qsTr("Choose an image")
+                        : imageSelectionPage.categoryName
+
+                    color: "#f0f5f8"
+
+                    font.pixelSize: 20
+                    font.bold: true
+                }
+
+                Text {
+                    text:
+                        imageSelectionPage.rootLevel
+                        ? qsTr("Select the device or image you want to write.")
+                        : qsTr("Choose the OpenHD release to use for this device.")
+
+                    color: "#8ea7b7"
+
+                    font.pixelSize: 12
+                }
+            }
+
+            // -------------------------------------------------------------
+            // Segmented tabs
+            // -------------------------------------------------------------
+
+            Rectangle {
+                id: releaseTabs
+
+                anchors.top: selectorHeader.bottom
+                anchors.left: parent.left
+
+                anchors.topMargin: 8
+
+                width: parent.width
+                height: imageSelectionPage.rootLevel ? 36 : 0
+
+                visible: imageSelectionPage.rootLevel
+
+                radius: 5
+
+                color: "#102533"
+
+                border.width: 1
+                border.color: "#244456"
+
+                Row {
+                    anchors.fill: parent
+                    spacing: 0
+
+                    Repeater {
+                        model: [
+                            qsTr("Official Releases"),
+                            qsTr("Developer Versions"),
+                            qsTr("Local Images")
+                        ]
+
+                        delegate: Item {
+                            width: releaseTabs.width / 3
+                            height: releaseTabs.height
+
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.margins: 1
+
+                                radius: 4
+
+                                color:
+                                    imageSelectionPage.activeTab === index
+                                    ? "#1769a6"
+                                    : "transparent"
+                            }
+
+                            Rectangle {
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+
+                                anchors.topMargin: 6
+                                anchors.bottomMargin: 6
+
+                                width: 1
+
+                                color: "#244456"
+
+                                visible:
+                                    index < 2 &&
+                                    imageSelectionPage.activeTab !== index &&
+                                    imageSelectionPage.activeTab !== index + 1
+                            }
+
+                            Text {
+                                anchors.centerIn: parent
+
+                                text: modelData
+
+                                color:
+                                    imageSelectionPage.activeTab === index
+                                    ? "#ffffff"
+                                    : "#b5c4ce"
+
+                                font.pixelSize: 12
+                                font.bold:
+                                    imageSelectionPage.activeTab === index
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked:
+                                    imageSelectionPage.activeTab = index
+                            }
+                        }
+                    }
+                }
+            }
+
+            // -------------------------------------------------------------
+            // Grouped image list
+            // -------------------------------------------------------------
+
+            Rectangle {
+                id: imageListPanel
+
+                anchors.top:
+                    imageSelectionPage.rootLevel
+                    ? releaseTabs.bottom
+                    : selectorHeader.bottom
+
+                anchors.left: parent.left
+
+                anchors.topMargin:
+                    imageSelectionPage.rootLevel ? 8 : 10
+
+                width: parent.width
+
+                /*
+                 * The v3 list ended immediately after its rows rather than
+                 * stretching down the whole window.
+                 */
+                height: Math.min(
+                    imageListContent.implicitHeight + 2,
+                    selectorContent.height - y
+                )
+
+                radius: 5
+
+                color: "#102532"
+
+                border.width: 1
+                border.color: "#244456"
+
+                clip: true
+
+                Flickable {
+                    id: imageListScroll
+
+                    anchors.fill: parent
+
+                    contentWidth: width
+                    contentHeight: imageListContent.implicitHeight
+
+                    boundsBehavior: Flickable.StopAtBounds
+                    clip: true
+
+                    ScrollBar.vertical: ScrollBar {
+                        policy:
+                            imageListContent.implicitHeight > imageListPanel.height
+                            ? ScrollBar.AsNeeded
+                            : ScrollBar.AlwaysOff
+                    }
+
+                    Column {
+                        id: imageListContent
+                        width: imageListScroll.width
+
+                        // Loading placeholder
+                        Item {
+                            width: imageListScroll.width
+                            height: 52
+
+                            visible:
+                                imageSelectionPage.rootLevel &&
+                                imageSelectionPage.mainItemCount === 0 &&
+                                imageSelectionPage.activeTab !== 2
+
+                            Row {
+                                anchors.centerIn: parent
+                                spacing: 8
+
+                                BusyIndicator {
+                                    width: 18
+                                    height: 18
+                                    running: parent.parent.visible
+                                }
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    text: qsTr("Loading available images...")
+
+                                    color: "#8aa3b2"
+                                    font.pixelSize: 12
+                                }
+                            }
+                        }
+
+                        // -------------------------------------------------
+                        // Remote / YAML generated entries
+                        // -------------------------------------------------
+
+                        Repeater {
+                            model: imageSelectionPage.mainItemCount
+
+                            delegate: Item {
+                                id: remoteEntryContainer
+
+                                property var entry:
+                                    imageSelectionPage.itemAt(index)
+
+                                readonly property string searchText:
+                                    entry
+                                    ? ((entry.name || "") + " " +
+                                       (entry.description || "")).toLowerCase()
+                                    : ""
+
+                                readonly property bool developerEntry:
+                                    searchText.indexOf("beta") >= 0 ||
+                                    searchText.indexOf("nightly") >= 0 ||
+                                    searchText.indexOf("dev") >= 0 ||
+                                    searchText.indexOf("snapshot") >= 0
+
+                                visible:
+                                    !imageSelectionPage.rootLevel ||
+                                    (imageSelectionPage.activeTab === 0 &&
+                                     !developerEntry) ||
+                                    (imageSelectionPage.activeTab === 1 &&
+                                     developerEntry)
+
+                                width: imageListScroll.width
+                                height: visible ? 52 : 0
+
+                                Button {
+                                    id: remoteEntryButton
+
+                                    anchors.fill: parent
+
+                                    padding: 0
+                                    hoverEnabled: true
+
+                                    background: Rectangle {
+                                        color:
+                                            remoteEntryButton.down
+                                            ? "#183747"
+                                            : remoteEntryButton.hovered
+                                              ? "#15303f"
+                                              : "transparent"
+
+                                        Behavior on color {
+                                            ColorAnimation {
+                                                duration: 70
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                            anchors.bottom: parent.bottom
+
+                                            height: 1
+                                            color: "#24404f"
+                                        }
+                                    }
+
+                                    contentItem: Item {
+                                        Image {
+                                            id: platformImage
+
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: 12
+                                            anchors.verticalCenter: parent.verticalCenter
+
+                                            width: 36
+                                            height: 36
+
+                                            sourceSize.width: 72
+                                            sourceSize.height: 72
+
+                                            source:
+                                                imageSelectionPage.platformIcon(
+                                                    remoteEntryContainer.entry
+                                                    ? remoteEntryContainer.entry.name
+                                                    : "",
+                                                    remoteEntryContainer.entry
+                                                    ? remoteEntryContainer.entry.description
+                                                    : ""
+                                                )
+
+                                            fillMode: Image.PreserveAspectFit
+                                            smooth: true
+                                            antialiasing: true
+                                        }
+
+                                        Column {
+                                            anchors.left: platformImage.right
+                                            anchors.leftMargin: 10
+
+                                            anchors.right: entryChevron.left
+                                            anchors.rightMargin: 8
+
+                                            anchors.verticalCenter: parent.verticalCenter
+
+                                            spacing: 2
+
+                                            Text {
+                                                width: parent.width
+
+                                                text:
+                                                    remoteEntryContainer.entry
+                                                    ? remoteEntryContainer.entry.name
+                                                    : ""
+
+                                                color: "#f1f5f8"
+
+                                                font.pixelSize: 13
+                                                font.weight: Font.DemiBold
+
+                                                elide: Text.ElideRight
+                                            }
+
+                                            Text {
+                                                width: parent.width
+
+                                                text:
+                                                    remoteEntryContainer.entry
+                                                    ? remoteEntryContainer.entry.description
+                                                    : ""
+
+                                                color: "#9aafbc"
+
+                                                font.pixelSize: 11
+
+                                                elide: Text.ElideRight
+                                                visible: text.length > 0
+                                            }
+                                        }
+
+                                        Text {
+                                            id: entryChevron
+
+                                            anchors.right: parent.right
+                                            anchors.rightMargin: 12
+                                            anchors.verticalCenter: parent.verticalCenter
+
+                                            text: "›"
+
+                                            color:
+                                                remoteEntryButton.hovered
+                                                ? "#ffffff"
+                                                : "#c8d5dc"
+
+                                            font.pixelSize: 21
+                                            font.weight: Font.Light
+                                        }
+                                    }
+
+                                    onClicked: {
+                                        if (remoteEntryContainer.entry)
+                                            selectOSitem(
+                                                remoteEntryContainer.entry
+                                            )
+                                    }
+                                }
+                            }
+                        }
+
+                        // -------------------------------------------------
+                        // Local Images tab
+                        // -------------------------------------------------
+
+                        Repeater {
+                            model:
+                                imageSelectionPage.rootLevel &&
+                                imageSelectionPage.sourceCount >= 2 &&
+                                imageSelectionPage.activeTab === 2
+                                ? 2
+                                : 0
+
+                            delegate: Item {
+                                id: utilityContainer
+
+                                property var entry:
+                                    index === 0
+                                    ? imageSelectionPage.utilityAt(1)
+                                    : imageSelectionPage.utilityAt(2)
+
+                                width: imageListScroll.width
+                                height: 52
+
+                                Button {
+                                    id: utilityButton
+
+                                    anchors.fill: parent
+
+                                    padding: 0
+                                    hoverEnabled: true
+
+                                    background: Rectangle {
+                                        color:
+                                            utilityButton.down
+                                            ? "#183747"
+                                            : utilityButton.hovered
+                                              ? "#15303f"
+                                              : "transparent"
+
+                                        Rectangle {
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                            anchors.bottom: parent.bottom
+
+                                            height: 1
+                                            color: "#24404f"
+                                            visible: index === 0
+                                        }
+                                    }
+
+                                    contentItem: Item {
+                                        Image {
+                                            id: utilityImage
+
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: 12
+                                            anchors.verticalCenter: parent.verticalCenter
+
+                                            width: 34
+                                            height: 34
+
+                                            source:
+                                                index === 0
+                                                ? "icons/use_custom.png"
+                                                : "icons/erase.png"
+
+                                            fillMode: Image.PreserveAspectFit
+                                            smooth: true
+                                        }
+
+                                        Column {
+                                            anchors.left: utilityImage.right
+                                            anchors.leftMargin: 12
+
+                                            anchors.right: utilityChevron.left
+                                            anchors.rightMargin: 8
+
+                                            anchors.verticalCenter: parent.verticalCenter
+
+                                            spacing: 2
+
+                                            Text {
+                                                width: parent.width
+
+                                                text:
+                                                    index === 0
+                                                    ? qsTr("Use custom image")
+                                                    : qsTr("Erase / Format")
+
+                                                color: "#f1f5f8"
+
+                                                font.pixelSize: 13
+                                                font.weight: Font.DemiBold
+
+                                                elide: Text.ElideRight
+                                            }
+
+                                            Text {
+                                                width: parent.width
+
+                                                text:
+                                                    utilityContainer.entry
+                                                    ? utilityContainer.entry.description
+                                                    : ""
+
+                                                color: "#9aafbc"
+
+                                                font.pixelSize: 11
+
+                                                elide: Text.ElideRight
+                                            }
+                                        }
+
+                                        Text {
+                                            id: utilityChevron
+
+                                            anchors.right: parent.right
+                                            anchors.rightMargin: 12
+                                            anchors.verticalCenter: parent.verticalCenter
+
+                                            text: "›"
+
+                                            color:
+                                                utilityButton.hovered
+                                                ? "#ffffff"
+                                                : "#c8d5dc"
+
+                                            font.pixelSize: 21
+                                            font.weight: Font.Light
+                                        }
+                                    }
+
+                                    onClicked: {
+                                        if (utilityContainer.entry)
+                                            selectOSitem(
+                                                utilityContainer.entry
+                                            )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     DeviceSelectionPage {
@@ -544,11 +1028,10 @@ Rectangle {
         subtitle: qsTr("Select the SD card, USB drive, or supported OpenHD device to overwrite.")
         onDeviceSelected: {
             selectDstItem(device)
-            selectingTarget = false
-            imageWriter.stopDriveListPolling()
         }
         onBackRequested: {
             selectingTarget = false
+            selectingImage = true
             imageWriter.stopDriveListPolling()
         }
         onRefreshRequested: {
@@ -567,7 +1050,11 @@ Rectangle {
         sourceName: osbutton.text
         targetName: dstbutton.text
         confirmText: qsTr("Erase target and write")
-        onBackRequested: reviewingOperation = false
+        onBackRequested: {
+            reviewingOperation = false
+            selectingTarget = true
+            imageWriter.startDriveListPolling()
+        }
         onConfirmed: {
             reviewingOperation = false
             startWriteNow()
@@ -577,17 +1064,23 @@ Rectangle {
     function openImageSelector() {
         while (osswipeview.currentIndex > 0)
             osswipeview.decrementCurrentIndex()
-        ospopup.categorySelected = ""
+        imageCatalog.categorySelected = ""
         resetOpenHdSettingsForNewImage()
         optionsPage.initialized = false
         selectingImage = true
     }
 
     function returnToOverview() {
-        selectingImage = false
+        while (osswipeview.currentIndex > 0)
+            osswipeview.decrementCurrentIndex()
+
+        imageCatalog.categorySelected = ""
+        selectingImage = true
         selectingTarget = false
         reviewingOperation = false
+
         imageWriter.stopDriveListPolling()
+
         if (optionsPage.visible)
             optionsPage.close()
     }
@@ -698,12 +1191,9 @@ Rectangle {
                         Layout.minimumHeight: 40
                         Layout.fillWidth: true
                         onClicked: {
-                            ospopup.open()
-                            osswipeview.currentItem.forceActiveFocus()
-                            resetOpenHdSettingsForNewImage()
-                            optionsPage.initialized = false
+                            openImageSelector()
                         }
-                        Accessible.ignored: ospopup.visible || dstpopup.visible
+                        Accessible.ignored: selectingImage || selectingTarget
                         Accessible.description: qsTr("Select this button to change the operating system")
                     }
                 }
@@ -722,10 +1212,9 @@ Rectangle {
                         Layout.fillWidth: true
                         onClicked: {
                             imageWriter.startDriveListPolling()
-                            dstpopup.open()
-                            dstlist.forceActiveFocus()
+                            selectingTarget = true
                         }
-                        Accessible.ignored: ospopup.visible || dstpopup.visible
+                        Accessible.ignored: selectingImage || selectingTarget
                         Accessible.description: qsTr("Select this button to change the destination storage device")
                     }
                 }
@@ -745,7 +1234,7 @@ Rectangle {
                         text: qsTr("WRITE")
                         Layout.minimumHeight: 40
                         Layout.fillWidth: true
-                        Accessible.ignored: ospopup.visible || dstpopup.visible
+                        Accessible.ignored: selectingImage || selectingTarget
                         Accessible.description: qsTr("Select this button to start writing the image")
                         enabled: false
                         onClicked: {
@@ -772,7 +1261,7 @@ Rectangle {
                     }
                     ImButton {
                         id: updateButton
-                        visible:ospopup.visible
+                        visible: false
                         property var image_name
                         property var use_settings
                         property var bootType
@@ -781,7 +1270,7 @@ Rectangle {
                         text: qsTr("UPDATE")
                         Layout.minimumHeight: 40
                         Layout.fillWidth: true
-                        Accessible.ignored: ospopup.visible || dstpopup.visible
+                        Accessible.ignored: selectingImage || selectingTarget
                         Accessible.description: qsTr("Select this button to start writing the image")
                         enabled: false
                         onClicked: {
@@ -966,108 +1455,21 @@ Rectangle {
         }
     }
 
-    /*
-      Popup for OS selection
-     */
-    Popup {
-        id: ospopup
-        x: parent.width < 700 ? 16 : 36
-        y: parent.height < 560 ? 16 : 28
-        width: parent.width - (parent.width < 700 ? 32 : 72)
-        height: parent.height - (parent.height < 560 ? 32 : 56)
-        padding: 0
-        closePolicy: Popup.NoAutoClose
-        property string categorySelected : ""
-        background: Rectangle {
-            radius: 10
-            color: "#102633"
-            border.color: "#31515f"
-        }
+    // Nonvisual navigation state used by the full-page image catalog.
+    Item {
+        id: imageCatalog
+        visible: false
+        property string categorySelected: ""
 
-        // background of title
-        Rectangle {
-            color: "#102633"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: 35
-            width: parent.width
-        }
-        // line under title
-        Rectangle {
-            color: "#294754"
-            width: parent.width
-            y: 35
-            implicitHeight: 1
-        }
+        SwipeView {
+            id: osswipeview
+            visible: false
+            interactive: false
 
-        Text {
-            text: "X"
-            color: "#dce8ef"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: 25
-            anchors.topMargin: 10
-            font.family: roboto.name
-            font.bold: true
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    ospopup.close()
-                }
-            }
-        }
-
-        ColumnLayout {
-            spacing: 10
-
-            Text {
-                text: qsTr("Choose an image")
-                color: "#f3f7fa"
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                Layout.fillWidth: true
-                Layout.topMargin: 10
-                font.family: roboto.name
-                font.bold: true
-                font.pixelSize: 17
-            }
-
-            Item {
-                clip: true
-                Layout.preferredWidth: oslist.width
-                Layout.preferredHeight: oslist.height
-
-                SwipeView {
-                    id: osswipeview
-                    interactive: false
-
-                    ListView {
-                        id: oslist
-                        model: osmodel
-                        currentIndex: -1
-                        delegate: osdelegate
-                        width: ospopup.width
-                        height: ospopup.height-52
-                        boundsBehavior: Flickable.StopAtBounds
-                        highlight: Rectangle { color: "#17415a"; radius: 7 }
-                        ScrollBar.vertical: ScrollBar {
-                            width: 10
-                            policy: oslist.contentHeight > oslist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
-                        }
-                        Keys.onSpacePressed: {
-                            if (currentIndex != -1)
-                                selectOSitem(model.get(currentIndex), true)
-                        }
-                        Accessible.onPressAction: {
-                            if (currentIndex != -1)
-                                selectOSitem(model.get(currentIndex), true)
-                        }
-                        Keys.onEnterPressed: Keys.onSpacePressed(event)
-                        Keys.onReturnPressed: Keys.onSpacePressed(event)
-                    }
-                }
+            ListView {
+                id: oslist
+                model: osmodel
+                currentIndex: -1
             }
         }
     }
@@ -1094,30 +1496,9 @@ Rectangle {
                     init_format: ""
                 }
             }
-
             currentIndex: -1
-            delegate: osdelegate
-            width: window.width-100
-            height: window.height-100
-            boundsBehavior: Flickable.StopAtBounds
-            highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
-            ScrollBar.vertical: ScrollBar {
-                width: 10
-                policy: parent.contentHeight > parent.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
-            }
-            Keys.onSpacePressed: {
-                if (currentIndex != -1)
-                    selectOSitem(model.get(currentIndex))
-            }
-            Accessible.onPressAction: {
-                if (currentIndex != -1)
-                    selectOSitem(model.get(currentIndex))
-            }
-            Keys.onEnterPressed: Keys.onSpacePressed(event)
-            Keys.onReturnPressed: Keys.onSpacePressed(event)
         }
     }
-
     ListModel {
         id: osmodel
 
@@ -1151,359 +1532,6 @@ Rectangle {
             }
         }
     }
-
-    Component {
-        id: osdelegate
-
-        Item {
-            width: ospopup.width
-            height: contentLayout.implicitHeight + 24
-            Accessible.name: name+".\n"+description
-
-            MouseArea {
-                id: osMouseArea
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                hoverEnabled: true
-
-                onEntered: {
-                    bgrect.mouseOver = true
-                }
-
-                onExited: {
-                    bgrect.mouseOver = false
-                }
-
-                onClicked: {
-                    selectOSitem(model)
-                }
-            }
-
-            Rectangle {
-                id: bgrect
-                anchors.fill: parent
-                color: "#173746"
-                visible: mouseOver && parent.ListView.view.currentIndex !== index
-                property bool mouseOver: false
-            }
-            Rectangle {
-                id: borderrect
-                implicitHeight: 1
-                implicitWidth: parent.width
-                color: "#294754"
-                y: parent.height
-            }
-
-            RowLayout {
-                id: contentLayout
-                anchors {
-                    left: parent.left
-                    top: parent.top
-                    right: parent.right
-                    margins: 12
-                }
-                spacing: 12
-
-                Image {
-                    source: icon == "icons/ic_build_48px.svg" ? "icons/cat_misc_utility_images.png": icon
-                    Layout.preferredHeight: 40
-                    Layout.preferredWidth: 40
-                    sourceSize.width: 40
-                    sourceSize.height: 40
-                    fillMode: Image.PreserveAspectFit
-                    verticalAlignment: Image.AlignVCenter
-                    Layout.alignment: Qt.AlignVCenter
-                }
-                ColumnLayout {
-                    Layout.fillWidth: true
-
-                    RowLayout {
-                        spacing: 12
-                        Text {
-                            text: name
-                            color: "#eef5f9"
-                            elide: Text.ElideRight
-                            font.family: roboto.name
-                            font.bold: true
-                        }
-                        Image {
-                            source: "icons/ic_info_16px.png"
-                            Layout.preferredHeight: 16
-                            Layout.preferredWidth: 16
-                            visible: typeof(website) == "string" && website
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: Qt.openUrlExternally(website)
-                            }
-                        }
-                        Item {
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    Text {
-                        Layout.fillWidth: true
-                        font.family: roboto.name
-                        text: description
-                        wrapMode: Text.WordWrap
-                        color: "#a9bbc5"
-                    }
-
-                    Text {
-                        Layout.fillWidth: true
-                        elide: Text.ElideRight
-                        color: "#748d9a"
-                        font.weight: Font.Light
-                        visible: typeof(release_date) == "string" && release_date
-                        text: qsTr("Released: %1").arg(release_date)
-                    }
-                    Text {
-                        Layout.fillWidth: true
-                        elide: Text.ElideRight
-                        color: "#646464"
-                        font.weight: Font.Light
-                        visible: typeof(url) == "string" && url != "" && url != "internal://format"
-                        text: !url ? "" :
-                                     typeof(extract_sha256) != "undefined" && imageWriter.isCached(url,extract_sha256)
-                                     ? qsTr("Cached on your computer")
-                                     : url.startsWith("file://")
-                                       ? qsTr("Local file")
-                                       : qsTr("Online - %1 GB download").arg((image_download_size/1073741824).toFixed(1))
-                    }
-
-                    ToolTip {
-                        visible: osMouseArea.containsMouse && typeof(tooltip) == "string" && tooltip != ""
-                        delay: 1000
-                        text: typeof(tooltip) == "string" ? tooltip : ""
-                        clip: false
-                    }
-                }
-                Image {
-                    source: "icons/ic_chevron_right_40px.svg"
-                    visible: (typeof(subitems_json) == "string" && subitems_json != "") || (typeof(subitems_url) == "string" && subitems_url != "" && subitems_url != "internal://back")
-                    Layout.preferredHeight: 40
-                    Layout.preferredWidth: 40
-                    fillMode: Image.PreserveAspectFit
-                }
-            }
-        }
-    }
-
-    /*
-      Popup for storage device selection
-     */
-    Popup {
-        id: dstpopup
-        x: parent.width < 700 ? 16 : 36
-        y: parent.height < 560 ? 16 : 28
-        width: parent.width - (parent.width < 700 ? 32 : 72)
-        height: parent.height - (parent.height < 560 ? 32 : 56)
-        padding: 0
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        onClosed: imageWriter.stopDriveListPolling()
-        background: Rectangle {
-            radius: 10
-            color: "#102633"
-            border.color: "#31515f"
-        }
-
-        // background of title
-        Rectangle {
-            color: "#102633"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: 35
-            width: parent.width
-        }
-        // line under title
-        Rectangle {
-            color: "#294754"
-            width: parent.width
-            y: 35
-            implicitHeight: 1
-        }
-
-        Text {
-            text: "X"
-            color: "#dce8ef"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: 25
-            anchors.topMargin: 10
-            font.family: roboto.name
-            font.bold: true
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    dstpopup.close()
-                }
-            }
-        }
-
-        ColumnLayout {
-            spacing: 10
-
-            Text {
-                text: qsTr("Choose a target")
-                color: "#f3f7fa"
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                Layout.fillWidth: true
-                Layout.topMargin: 10
-                font.family: roboto.name
-                font.bold: true
-                font.pixelSize: 17
-            }
-
-            Item {
-                clip: true
-                Layout.preferredWidth: dstlist.width
-                Layout.preferredHeight: dstlist.height
-
-                ListView {
-                    id: dstlist
-                    model: driveListModel
-                    delegate: dstdelegate
-                    width: dstpopup.width
-                    height: dstpopup.height-52
-                    boundsBehavior: Flickable.StopAtBounds
-                    highlight: Rectangle { color: "#17415a"; radius: 7 }
-                    ScrollBar.vertical: ScrollBar {
-                        width: 10
-                        policy: dstlist.contentHeight > dstlist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
-                    }
-                    Keys.onSpacePressed: {
-                        if (currentIndex == -1)
-                            return
-                        selectDstItem(currentItem)
-                    }
-                    Accessible.onPressAction: {
-                        if (currentIndex == -1)
-                            return
-                        selectDstItem(currentItem)
-                    }
-                    Keys.onEnterPressed: Keys.onSpacePressed(event)
-                    Keys.onReturnPressed: Keys.onSpacePressed(event)
-                }
-
-            }
-        }
-    }
-
-    Component {
-        id: dstdelegate
-        Item {
-            width: dstpopup.width
-            height: 72
-            Accessible.name: {
-                if (isMaskrom)
-                    return description + ". " + qsTr("Detected in MaskROM mode")
-                if (isLoader)
-                    return description + ". " + qsTr("Detected in Loader mode")
-                var txt = description+" - "+(size/1000000000).toFixed(1)+" gigabytes"
-                if (mountpoints.length > 0) {
-                    txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))
-                }
-                return txt;
-            }
-            property string description: model.description
-            property string device: model.device
-            property string size: model.size
-            property bool isMaskrom: typeof(model.isMaskrom) != "undefined" && model.isMaskrom
-            property bool isLoader: typeof(model.isLoader) != "undefined" && model.isLoader
-
-            Rectangle {
-                id: dstbgrect
-                anchors.fill: parent
-                color: "#173746"
-                visible: mouseOver && parent.ListView.view.currentIndex !== index
-                property bool mouseOver: false
-
-            }
-
-            Rectangle {
-                id: dstborderrect
-                implicitHeight: 1
-                implicitWidth: parent.width
-                color: "#294754"
-                y: parent.height
-            }
-
-            Row {
-                leftPadding: 25
-
-                Column {
-                    width: 64
-
-                    Image {
-                        source: isUsb ? "icons/ic_usb_40px.svg" : isScsi ? "icons/ic_storage_40px.svg" : "icons/ic_sd_storage_40px.svg"
-                        verticalAlignment: Image.AlignVCenter
-                        height: parent.parent.parent.height
-                        fillMode: Image.Pad
-                    }
-                }
-
-                Column {
-                    width: parent.parent.width-64
-
-                    Text {
-                        textFormat: Text.StyledText
-                        color: "#dce8ef"
-                        height: parent.parent.parent.height
-                        verticalAlignment: Text.AlignVCenter
-                        font.family: roboto.name
-                        text: {
-                            if (isMaskrom) {
-                                return "<p><font size='4'>"+description+"</font></p>" +
-                                       "<font color='#28a745'>"+qsTr("Recovery mode (MaskROM) — will load bootloader and flash via Rockchip USB")+"</font>"
-                            }
-                            if (isLoader) {
-                                return "<p><font size='4'>"+description+"</font></p>" +
-                                       "<font color='#28a745'>"+qsTr("Loader mode — ready to flash firmware")+"</font>"
-                            }
-                            var sizeStr = (size/1000000000).toFixed(1)+" GB";
-                            var txt;
-                            if (isReadOnly) {
-                                txt = "<p><font size='4' color='grey'>"+description+" - "+sizeStr+"</font></p>"
-                                txt += "<font color='grey'>"
-                                if (mountpoints.length > 0) {
-                                    txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))+" "
-                                }
-                                txt += qsTr("[WRITE PROTECTED]")+"</font>"
-                            } else {
-                                txt = "<p><font size='4'>"+description+" - "+sizeStr+"</font></p>"
-                                if (mountpoints.length > 0) {
-                                    txt += "<font color='grey'>"+qsTr("Mounted as %1").arg(mountpoints.join(", "))+"</font>"
-                                }
-                            }
-                            return txt;
-                        }
-                    }
-                }
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                hoverEnabled: true
-
-                onEntered: {
-                    dstbgrect.mouseOver = true
-                }
-
-                onExited: {
-                    dstbgrect.mouseOver = false
-                }
-
-                onClicked: {
-                    selectDstItem(model)
-                }
-            }
-        }
-    }
-
 
     MsgPopup {
         id: msgpopup
@@ -1707,6 +1735,14 @@ Rectangle {
         imageWriter.setDst("")
         osbutton.text = qsTr("CHOOSE OS")
         dstbutton.text = qsTr("CHOOSE STORAGE")
+
+        while (osswipeview.currentIndex > 0)
+            osswipeview.decrementCurrentIndex()
+
+        imageCatalog.categorySelected = ""
+        selectingImage = true
+        selectingTarget = false
+        reviewingOperation = false
     }
 
     function onError(msg) {
@@ -1764,8 +1800,13 @@ Rectangle {
         }
         imageWriter.setSrc(normalized)
         osbutton.text = imageWriter.srcFileName()
-        ospopup.close()
+
         selectingImage = false
+        reviewingOperation = false
+
+        imageWriter.startDriveListPolling()
+        selectingTarget = true
+
         if (imageWriter.readyToWrite()) {
             writebutton.enabled = true
         }
@@ -1947,16 +1988,16 @@ Rectangle {
 
             osswipeview.itemAt(osswipeview.currentIndex+1).currentIndex = (selectFirstSubitem === true) ? 0 : -1
             osswipeview.incrementCurrentIndex()
-            ospopup.categorySelected = d.name
+            imageCatalog.categorySelected = d.name
         } else if (typeof(d.subitems_url) == "string" && d.subitems_url !== "") {
             if (d.subitems_url === "internal://back")
             {
                 osswipeview.decrementCurrentIndex()
-                ospopup.categorySelected = ""
+                imageCatalog.categorySelected = ""
             }
             else
             {
-                ospopup.categorySelected = d.name
+                imageCatalog.categorySelected = d.name
                 var suburl = d.subitems_url
                 var m = newSublist()
 
@@ -1994,10 +2035,15 @@ Rectangle {
                 }
             }
         } else {
-            imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, ospopup.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : "")
+            imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, imageCatalog.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : "")
             osbutton.text = d.name
-            ospopup.close()
+
             selectingImage = false
+            reviewingOperation = false
+
+            imageWriter.startDriveListPolling()
+            selectingTarget = true
+
             if (imageWriter.readyToWrite()) {
                 writebutton.enabled = true
             }
@@ -2010,11 +2056,17 @@ Rectangle {
             return
         }
 
-        dstpopup.close()
+        selectingTarget = false
+        imageWriter.stopDriveListPolling()
+
         imageWriter.setDst(d.device, d.size)
         dstbutton.text = d.description
+
         if (imageWriter.readyToWrite()) {
             writebutton.enabled = true
+            reviewingOperation = true
+        } else {
+            selectingImage = true
         }
     }
 }

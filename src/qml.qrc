@@ -23,6 +23,9 @@
         <file>icons/cat_misc_utility_images.png</file>
         <file>icons/cat_media_players.png</file>
         <file>icons/cat_emulation_and_games.png</file>
+        <file>icons/ui/website.svg</file>
+        <file>icons/ui/github.svg</file>
+        <file>icons/ui/donate.svg</file>
         <file>countries.txt</file>
         <file>timezones.txt</file>
         <file>icons/ic_info_16px.png</file>
@@ -47,6 +50,7 @@
         <file>qmlcomponents/DeviceSelectionPage.qml</file>
         <file>qmlcomponents/SettingsSection.qml</file>
         <file>qmlcomponents/OperationReviewPage.qml</file>
+        <file>qmlcomponents/LanguageSettingsPage.qml</file>
         <file>icons/ui/home.svg</file>
         <file>icons/ui/image.svg</file>
         <file>icons/ui/drive.svg</file>
@@ -54,11 +58,20 @@
         <file>icons/ui/update.svg</file>
         <file>icons/ui/settings.svg</file>
         <file>icons/ui/language.svg</file>
+        <file>icons/ui/info.svg</file>
+        <file>icons/ui/help.svg</file>
+        <file>icons/ui/device.svg</file>
         <file>ImageOptionsPage.qml</file>
         <file>icons/OpenHD-advanced.webp</file>
         <file>icons/OpenHD-old.webp</file>
         <file>icons/donate.svg</file>
         <file>icons/dev.svg</file>
+        <file>icons/platforms/raspberrypi.svg</file>
+        <file>icons/platforms/radxa.svg</file>
+        <file>icons/platforms/x86.svg</file>
+        <file>icons/platforms/openhd.svg</file>
+        <file>icons/platforms/generic-sbc.svg</file>
+        <file>icons/platforms/generic.svg</file>
         <file alias="doc/openhd_settings_map.json">../doc/openhd_settings_map.json</file>
         <file>rockchip/MiniLoaderAll.bin</file>
     </qresource>
