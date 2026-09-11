@@ -88,6 +88,10 @@ ApplicationWindow {
             return configureLoader.item
         }
 
+        if (currentView === "fleetcontrol") {
+            return fleetControlLoader.item
+        }
+
         return null
     }
 
@@ -133,6 +137,12 @@ ApplicationWindow {
 
     function openLanguagePage() {
         openFeature("language")
+    }
+
+    function writeWithFleetControlProfile(profileName) {
+        openFeature("flash")
+        if (flashLoader.item && flashLoader.item.prepareForFleetControlProfile)
+            flashLoader.item.prepareForFleetControlProfile(profileName)
     }
 
     function onDownloadProgress(now, total) {
@@ -637,6 +647,25 @@ ApplicationWindow {
             active: true
 
             visible: currentView === "configure"
+            enabled: visible
+
+            onLoaded:
+                item.mainWindow = window
+        }
+
+        // -----------------------------------------------------------------
+        // FleetControl
+        // -----------------------------------------------------------------
+
+        Loader {
+            id: fleetControlLoader
+
+            anchors.fill: parent
+
+            source: "qmlcomponents/FleetControlPage.qml"
+            active: currentView === "fleetcontrol"
+
+            visible: currentView === "fleetcontrol"
             enabled: visible
 
             onLoaded:

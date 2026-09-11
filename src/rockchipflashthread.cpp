@@ -4,7 +4,9 @@
  */
 
 #include "rockchipflashthread.h"
+#include "archivepathvalidator.h"
 #include "rockchipdevice.h"
+#include "rockchipfirmwarelayout.h"
 
 #include <QDebug>
 #include <QDir>
@@ -14,6 +16,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QSet>
 #include <QTemporaryDir>
 #include <archive.h>
 #include <archive_entry.h>
@@ -35,6 +38,8 @@ void RockchipFlashThread::cancel()
 
 bool RockchipFlashThread::extractZip(const QString &zipPath, const QString &destDir, QString *errorMsg)
 {
+    constexpr int MaxEntries = 512;
+    constexpr quint64 MaxExtractedBytes = 64ULL * 1024 * 1024 * 1024;
     struct archive *a = archive_read_new();
     archive_read_support_format_all(a);
     archive_read_support_filter_all(a);
@@ -48,26 +53,88 @@ bool RockchipFlashThread::extractZip(const QString &zipPath, const QString &dest
     }
 
     struct archive_entry *entry = nullptr;
-    while (archive_read_next_header(a, &entry) == ARCHIVE_OK)
+    int entryCount = 0;
+    quint64 extractedBytes = 0;
+    QSet<QString> extractedPaths;
+    int result = ARCHIVE_OK;
+    while ((result = archive_read_next_header(a, &entry)) == ARCHIVE_OK)
     {
         if (_cancelled)
             break;
 
-        QString entryPath = QString::fromUtf8(archive_entry_pathname(entry));
-        QString destFilePath = QDir(destDir).filePath(entryPath);
-
-        if (archive_entry_filetype(entry) == AE_IFDIR)
+        if (++entryCount > MaxEntries)
         {
-            QDir().mkpath(destFilePath);
+            if (errorMsg) *errorMsg = tr("Firmware archive contains too many entries.");
+            archive_read_close(a);
+            archive_read_free(a);
+            return false;
+        }
+
+        const char *rawPath = archive_entry_pathname_utf8(entry);
+        if (!rawPath)
+            rawPath = archive_entry_pathname(entry);
+        QString normalizedPath;
+        QString pathError;
+        if (!rawPath || !ArchivePathValidator::normalizeRelativePath(
+                    QString::fromUtf8(rawPath), normalizedPath, &pathError))
+        {
+            if (errorMsg) *errorMsg = pathError;
+            archive_read_close(a);
+            archive_read_free(a);
+            return false;
+        }
+
+        const auto fileType = archive_entry_filetype(entry);
+        if ((fileType != AE_IFDIR && fileType != AE_IFREG) ||
+            archive_entry_symlink(entry) || archive_entry_hardlink(entry))
+        {
+            if (errorMsg) *errorMsg = tr("Firmware archive contains a link or unsupported special file.");
+            archive_read_close(a);
+            archive_read_free(a);
+            return false;
+        }
+
+        const QString pathKey = normalizedPath.toLower();
+        if (extractedPaths.contains(pathKey))
+        {
+            if (errorMsg) *errorMsg = tr("Firmware archive contains duplicate paths.");
+            archive_read_close(a);
+            archive_read_free(a);
+            return false;
+        }
+        extractedPaths.insert(pathKey);
+
+        QString destFilePath = QDir(destDir).filePath(normalizedPath);
+
+        if (fileType == AE_IFDIR)
+        {
+            if (!QDir().mkpath(destFilePath))
+            {
+                if (errorMsg) *errorMsg = tr("Unable to create a firmware package directory.");
+                archive_read_close(a);
+                archive_read_free(a);
+                return false;
+            }
             continue;
         }
 
         QFileInfo fi(destFilePath);
-        QDir().mkpath(fi.path());
+        if (!QDir().mkpath(fi.path()))
+        {
+            if (errorMsg) *errorMsg = tr("Unable to create a firmware package directory.");
+            archive_read_close(a);
+            archive_read_free(a);
+            return false;
+        }
 
         QFile outFile(destFilePath);
         if (!outFile.open(QIODevice::WriteOnly))
-            continue;
+        {
+            if (errorMsg) *errorMsg = tr("Unable to extract %1.").arg(normalizedPath);
+            archive_read_close(a);
+            archive_read_free(a);
+            return false;
+        }
 
         char buffer[65536];
         la_ssize_t bytesRead = 0;
@@ -75,11 +142,35 @@ bool RockchipFlashThread::extractZip(const QString &zipPath, const QString &dest
         {
             if (_cancelled)
                 break;
-            outFile.write(buffer, bytesRead);
+            extractedBytes += static_cast<quint64>(bytesRead);
+            if (extractedBytes > MaxExtractedBytes || outFile.write(buffer, bytesRead) != bytesRead)
+            {
+                if (errorMsg) *errorMsg = extractedBytes > MaxExtractedBytes
+                        ? tr("Firmware archive is too large.")
+                        : tr("Unable to write extracted firmware data.");
+                outFile.close();
+                archive_read_close(a);
+                archive_read_free(a);
+                return false;
+            }
         }
         outFile.close();
+        if (bytesRead < 0)
+        {
+            if (errorMsg) *errorMsg = QString::fromUtf8(archive_error_string(a));
+            archive_read_close(a);
+            archive_read_free(a);
+            return false;
+        }
     }
 
+    if (result != ARCHIVE_EOF && !_cancelled)
+    {
+        if (errorMsg) *errorMsg = QString::fromUtf8(archive_error_string(a));
+        archive_read_close(a);
+        archive_read_free(a);
+        return false;
+    }
     archive_read_close(a);
     archive_read_free(a);
     return !_cancelled;
@@ -173,6 +264,25 @@ void RockchipFlashThread::run()
             emit error(tr("Failed to extract firmware zip: %1").arg(extractErr));
             return;
         }
+
+        QString layoutError;
+        QString firmwareDirectory;
+        if (!findRockchipFirmwareDirectory(extractedDir, firmwareDirectory, &layoutError))
+        {
+            emit error(tr("Invalid Rockchip firmware package: %1").arg(layoutError));
+            return;
+        }
+        extractedDir = firmwareDirectory;
+
+        const QFileInfo packageLoader(QDir(extractedDir).filePath(QStringLiteral("MiniLoaderAll.bin")));
+        if (!packageLoader.isFile() || !packageLoader.isReadable() || packageLoader.size() == 0)
+        {
+            emit error(tr("The selected firmware ZIP does not contain a readable MiniLoaderAll.bin."));
+            return;
+        }
+
+        emit preparationStatusUpdate(tr("Found ImageBuilder firmware in %1.")
+                                     .arg(QDir(tempDir.path()).relativeFilePath(extractedDir)));
     }
 
     if (_cancelled)
@@ -202,6 +312,11 @@ void RockchipFlashThread::run()
     if (!parameterData.isEmpty())
     {
         auto partitions = parseParameterTxt(parameterData);
+        if (partitions.isEmpty())
+        {
+            emit error(tr("The firmware package contains an invalid or empty parameter.txt."));
+            return;
+        }
         QDir d(extractedDir);
         for (const auto &part : partitions)
         {
@@ -221,6 +336,12 @@ void RockchipFlashThread::run()
             if (QFileInfo::exists(candidatePath))
             {
                 QFileInfo fi(candidatePath);
+                if (part.size > 0 && static_cast<quint64>(fi.size()) > static_cast<quint64>(part.size) * 512)
+                {
+                    emit error(tr("Firmware image %1 is larger than its %2 partition.")
+                               .arg(fi.fileName(), part.name));
+                    return;
+                }
                 FlashTarget target;
                 target.name = part.name;
                 target.lbaOffset = part.offset;
@@ -266,7 +387,7 @@ void RockchipFlashThread::run()
         }
     }
 
-    if (targets.isEmpty() && parameterData.isEmpty())
+    if (targets.isEmpty())
     {
         emit error(tr("No flashable partition images found in the selected package."));
         return;
@@ -302,9 +423,11 @@ void RockchipFlashThread::run()
         emit preparationStatusUpdate(tr("OpenHD X21 detected in MaskROM mode. Loading bootloader..."));
 
         QByteArray bootloader;
-        // Check if package contains MiniLoaderAll.bin
+        // Full ImageBuilder firmware ZIPs are self-contained. Their loader
+        // must match the firmware package and must never be substituted with
+        // the copy embedded in ImageWriter.
         QString customLoaderPath = QDir(extractedDir).filePath(QStringLiteral("MiniLoaderAll.bin"));
-        if (QFileInfo::exists(customLoaderPath))
+        if (QFileInfo(customLoaderPath).isFile())
         {
             QFile lf(customLoaderPath);
             if (lf.open(QIODevice::ReadOnly))
@@ -313,7 +436,13 @@ void RockchipFlashThread::run()
                 lf.close();
             }
         }
-        if (bootloader.isEmpty())
+
+        if (isZip && bootloader.isEmpty())
+        {
+            emit error(tr("The selected firmware ZIP does not contain a readable MiniLoaderAll.bin."));
+            return;
+        }
+        if (!isZip && bootloader.isEmpty())
         {
             bootloader = loadDefaultBootloader();
         }
@@ -322,6 +451,11 @@ void RockchipFlashThread::run()
         {
             emit error(tr("Failed to load Rockchip bootloader binary (MiniLoaderAll.bin)."));
             return;
+        }
+
+        if (isZip)
+        {
+            emit preparationStatusUpdate(tr("Loading MiniLoaderAll.bin from the selected firmware ZIP..."));
         }
 
         QString dlErr;
@@ -448,9 +582,12 @@ void RockchipFlashThread::run()
     emit preparationStatusUpdate(tr("Flashing complete. Rebooting OpenHD device..."));
     emit finalizing();
 
+    // Persistent writes are complete at this point. Notify the UI before the
+    // reset command because some Windows Rockusb drivers keep reset I/O
+    // pending while the device disconnects and re-enumerates.
+    emit success();
+
     QString resetErr;
     transport.resetDevice(&resetErr);
     transport.close();
-
-    emit success();
 }

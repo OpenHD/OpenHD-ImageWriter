@@ -35,6 +35,7 @@
 #include <QHostAddress>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QSaveFile>
 #include <QDateTime>
 #include <QDebug>
 #include <QVersionNumber>
@@ -72,10 +73,19 @@
 
 ImageWriter::ImageWriter(QObject *parent)
     : QObject(parent), _repo(QUrl(QString(OSLIST_URL))), _dlnow(0), _writenow(0), _verifynow(0),
-      _engine(nullptr), _thread(nullptr), _updateThread(nullptr), _rockchipThread(nullptr), _verifyEnabled(false), _cachingEnabled(false),
+      _engine(nullptr), _thread(nullptr), _updateThread(nullptr), _rockchipThread(nullptr),
+      _rpiBootProcess(nullptr), _rpiBootCancelled(false),
+      _verifyEnabled(false), _cachingEnabled(false),
       _embeddedMode(false), _online(false), _trans(nullptr)
 {
     connect(&_polltimer, SIGNAL(timeout()), SLOT(pollProgress()));
+    // Keep rpiboot waiting unobtrusively for supported Raspberry Pi devices.
+    // Delay startup until the application event loop can deliver QProcess
+    // notifications normally.
+    QTimer::singleShot(0, this, [this]() {
+        if (rpiBootAvailable())
+            startRpiBoot();
+    });
 
     QString platform;
     QString appDataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
@@ -212,6 +222,11 @@ ImageWriter::ImageWriter(QObject *parent)
 
 ImageWriter::~ImageWriter()
 {
+    if (_rpiBootProcess)
+    {
+        _rpiBootProcess->kill();
+        _rpiBootProcess->waitForFinished(2000);
+    }
     if (_updateThread)
     {
         _updateThread->quit();
@@ -379,7 +394,12 @@ void ImageWriter::startWrite()
         connect(_rockchipThread, &RockchipFlashThread::writeProgress, this, &ImageWriter::writeProgress);
         connect(_rockchipThread, &RockchipFlashThread::preparationStatusUpdate, this, &ImageWriter::preparationStatusUpdate);
         connect(_rockchipThread, &RockchipFlashThread::finalizing, this, &ImageWriter::onFinalizing);
-        connect(_rockchipThread, &RockchipFlashThread::success, this, &ImageWriter::onSuccess);
+        connect(_rockchipThread, &RockchipFlashThread::success, this, [this]() {
+            // Notify the flash page directly as well as legacy consumers that
+            // listen to ImageWriter::success through the root QML object.
+            emit rockchipWriteCompleted();
+            onSuccess();
+        });
         connect(_rockchipThread, &RockchipFlashThread::error, this, [this](QVariant msg) {
             onError(msg.toString());
         });
@@ -1470,6 +1490,155 @@ bool ImageWriter::hasSavedCustomizationSettings()
 bool ImageWriter::imageSupportsCustomization()
 {
     return !_initFormat.isEmpty();
+}
+
+QString ImageWriter::findRpiBootExecutable() const
+{
+    const QString applicationDirectory = QCoreApplication::applicationDirPath();
+    QStringList candidates;
+    candidates << QDir(applicationDirectory).filePath(QStringLiteral("rpiboot/rpiboot.exe"))
+               << QDir(applicationDirectory).filePath(QStringLiteral("rpiboot.exe"));
+
+#ifdef Q_OS_WIN
+    const QString programFilesX86 = qEnvironmentVariable("ProgramFiles(x86)");
+    const QString programFiles = qEnvironmentVariable("ProgramFiles");
+    if (!programFilesX86.isEmpty())
+        candidates << QDir(programFilesX86).filePath(QStringLiteral("Raspberry Pi/rpiboot.exe"));
+    if (!programFiles.isEmpty())
+        candidates << QDir(programFiles).filePath(QStringLiteral("Raspberry Pi/rpiboot.exe"));
+#endif
+
+    const QString fromPath = QStandardPaths::findExecutable(QStringLiteral("rpiboot"));
+    if (!fromPath.isEmpty())
+        candidates << fromPath;
+
+    for (const QString &candidate : candidates)
+    {
+        const QFileInfo info(candidate);
+        if (info.exists() && info.isFile() && info.isExecutable())
+            return info.absoluteFilePath();
+    }
+    return QString();
+}
+
+bool ImageWriter::rpiBootAvailable() const
+{
+    return !findRpiBootExecutable().isEmpty();
+}
+
+bool ImageWriter::rpiBootRunning() const
+{
+    return _rpiBootProcess && _rpiBootProcess->state() != QProcess::NotRunning;
+}
+
+void ImageWriter::startRpiBoot()
+{
+    if (rpiBootRunning())
+        return;
+
+    const QString executable = findRpiBootExecutable();
+    if (executable.isEmpty())
+    {
+        emit rpiBootError(tr("Raspberry Pi rpiboot is not installed. Install the official Raspberry Pi USB boot package first."));
+        return;
+    }
+
+    const QFileInfo executableInfo(executable);
+    const QString gadgetDirectory = QDir(executableInfo.absolutePath())
+            .filePath(QStringLiteral("mass-storage-gadget64"));
+
+    QStringList arguments;
+    if (QFileInfo(gadgetDirectory).isDir())
+        arguments << QStringLiteral("-d") << QDir::toNativeSeparators(gadgetDirectory);
+
+    _rpiBootCancelled = false;
+    _rpiBootProcess = new QProcess(this);
+    QProcess *process = _rpiBootProcess;
+    process->setWorkingDirectory(executableInfo.absolutePath());
+    process->setProcessChannelMode(QProcess::MergedChannels);
+
+    connect(process, &QProcess::readyReadStandardOutput, this, [this, process]() {
+        const QString output = QString::fromLocal8Bit(process->readAllStandardOutput()).trimmed();
+        if (!output.isEmpty())
+            emit rpiBootStatus(output.section(QLatin1Char('\n'), -1).trimmed());
+    });
+    connect(process, &QProcess::errorOccurred, this, [this, process](QProcess::ProcessError error) {
+        if (error != QProcess::FailedToStart || process != _rpiBootProcess)
+            return;
+        emit rpiBootError(tr("Could not start rpiboot: %1").arg(process->errorString()));
+        _rpiBootProcess = nullptr;
+        emit rpiBootRunningChanged();
+        process->deleteLater();
+    });
+    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [this, process](int exitCode, QProcess::ExitStatus exitStatus) {
+        if (process != _rpiBootProcess)
+            return;
+        const bool cancelled = _rpiBootCancelled;
+        _rpiBootProcess = nullptr;
+        emit rpiBootRunningChanged();
+        process->deleteLater();
+
+        if (cancelled)
+        {
+            emit rpiBootStatus(tr("Raspberry Pi USB boot cancelled."));
+        }
+        else if (exitStatus == QProcess::NormalExit && exitCode == 0)
+        {
+            emit rpiBootStatus(tr("Raspberry Pi storage exposed. Waiting for Windows to enumerate it..."));
+            emit rpiBootSuccess();
+        }
+        else
+        {
+            emit rpiBootError(tr("rpiboot failed with exit code %1. Check the USB boot jumper and Windows driver.").arg(exitCode));
+        }
+    });
+
+    // -l keeps the helper alive after serving a device, ready for the next
+    // compatible Pi, while consuming no meaningful resources when idle.
+    arguments.prepend(QStringLiteral("-l"));
+    emit rpiBootStatus(tr("Waiting in the background for Raspberry Pi USB boot devices..."));
+    process->start(executable, arguments);
+    if (process->state() != QProcess::NotRunning)
+    {
+        emit rpiBootRunningChanged();
+    }
+}
+
+void ImageWriter::cancelRpiBoot()
+{
+    if (!_rpiBootProcess)
+        return;
+    _rpiBootCancelled = true;
+    _rpiBootProcess->kill();
+}
+
+QString ImageWriter::stageFleetControlQOpenHDConfig(const QString &profileId,
+                                                     const QString &content) const
+{
+    if (content.isEmpty() || content.toUtf8().size() > 1024 * 1024)
+        return QString();
+
+    QString safeProfileId = profileId;
+    safeProfileId.replace(QRegularExpression("[^A-Za-z0-9_-]"), "_");
+    if (safeProfileId.isEmpty())
+        safeProfileId = "profile";
+
+    QDir profileDir(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation));
+    if (!profileDir.mkpath("fleetcontrol/" + safeProfileId) ||
+        !profileDir.cd("fleetcontrol/" + safeProfileId))
+        return QString();
+
+    const QString filePath = profileDir.filePath("QOpenHD.conf");
+    QSaveFile output(filePath);
+    if (!output.open(QIODevice::WriteOnly | QIODevice::Text))
+        return QString();
+
+    const QByteArray encoded = content.toUtf8();
+    if (output.write(encoded) != encoded.size() || !output.commit())
+        return QString();
+
+    return filePath;
 }
 
 QStringList ImageWriter::getTranslations()

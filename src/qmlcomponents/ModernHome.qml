@@ -16,7 +16,7 @@ Item {
     // Centered column containing logo + tagline + cards
     ColumnLayout {
         anchors.centerIn: parent
-        width: Math.min(parent.width - 40, 860)
+        width: Math.min(parent.width - 40, 900)
         spacing: 0
 
         // ─── Logo ──────────────────────────────────────────────────────────
@@ -45,9 +45,11 @@ Item {
         Item { Layout.preferredHeight: 36 }
 
         // ─── Cards ─────────────────────────────────────────────────────────
-        RowLayout {
+        GridLayout {
             Layout.fillWidth: true
-            spacing: 16
+            columns: width >= 820 ? 4 : 2
+            rowSpacing: 16
+            columnSpacing: 16
 
             Repeater {
                 model: [
@@ -66,14 +68,20 @@ Item {
                     {
                         "view": "configure",
                         "icon": "../icons/ui/settings.svg",
-                        "title": qsTr("Configure media"),
-                        "desc":  qsTr("Adjust device roles, camera settings, WiFi, and advanced parameters.")
+                        "title": qsTr("Configure OpenHD"),
+                        "desc":  qsTr("Adjust device roles, cameras, display, and advanced OpenHD settings.")
+                    },
+                    {
+                        "view": "fleetcontrol",
+                        "icon": "../icons/ui/fleetcontrol.svg",
+                        "title": qsTr("FleetControl"),
+                        "desc":  qsTr("Sign in to securely coordinate your aircraft, links, and missions.")
                     }
                 ]
 
                 delegate: Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 220
+                    Layout.preferredHeight: 176
                     radius: 10
                     color: cardMouse.containsMouse ? "#1a2e40" : "#152130"
                     border.color: cardMouse.containsMouse ? "#2a6fa8" : "#1e3347"
@@ -89,8 +97,8 @@ Item {
 
                         Image {
                             Layout.alignment: Qt.AlignHCenter
-                            Layout.preferredWidth: 36
-                            Layout.preferredHeight: 36
+                            Layout.preferredWidth: 32
+                            Layout.preferredHeight: 32
                             sourceSize.width: 72
                             sourceSize.height: 72
                             source: modelData.icon
@@ -99,7 +107,7 @@ Item {
                             Behavior on opacity { NumberAnimation { duration: 130 } }
                         }
 
-                        Item { Layout.preferredHeight: 18 }
+                        Item { Layout.preferredHeight: 13 }
 
                         Text {
                             Layout.fillWidth: true

@@ -32,7 +32,31 @@ Rectangle {
     property bool selectingImage: true
     property bool selectingTarget: false
     property bool reviewingOperation: false
+    property string fleetControlProfileName: ""
+    property bool completionHandled: false
     readonly property bool operationInProgress: progressBar.visible
+
+    Connections {
+        target: imageWriter
+        onRockchipWriteCompleted: {
+            if (!window.completionHandled && progressBar.visible)
+                window.onSuccess()
+        }
+    }
+
+    Timer {
+        id: rockchipFinalizationFallback
+        interval: 2000
+        repeat: false
+        onTriggered: {
+            // All partition writes are finished before finalizing is emitted.
+            // Do not remain at 100% if Windows drops the next notification
+            // while the board disconnects and re-enumerates.
+            if (!window.completionHandled && progressBar.visible &&
+                    imageWriter.dst().indexOf("rockusb:") === 0)
+                window.onSuccess()
+        }
+    }
 
     function navigateBack() {
         if (selectingImage) {
@@ -508,7 +532,9 @@ Rectangle {
                 Text {
                     text:
                         imageSelectionPage.rootLevel
-                        ? qsTr("Select the device or image you want to write.")
+                        ? (fleetControlProfileName.length > 0
+                           ? qsTr("FleetControl profile '%1' is active. Select the image to write.").arg(fleetControlProfileName)
+                           : qsTr("Select the device or image you want to write."))
                         : qsTr("Choose the OpenHD release to use for this device.")
 
                     color: "#8ea7b7"
@@ -1066,8 +1092,22 @@ Rectangle {
             osswipeview.decrementCurrentIndex()
         imageCatalog.categorySelected = ""
         resetOpenHdSettingsForNewImage()
+        fleetControlProfileName = ""
         optionsPage.initialized = false
         selectingImage = true
+    }
+
+    function prepareForFleetControlProfile(profileName) {
+        while (osswipeview.currentIndex > 0)
+            osswipeview.decrementCurrentIndex()
+
+        imageCatalog.categorySelected = ""
+        fleetControlProfileName = profileName || ""
+        optionsPage.initialized = false
+        selectingImage = true
+        selectingTarget = false
+        reviewingOperation = false
+        imageWriter.stopDriveListPolling()
     }
 
     function returnToOverview() {
@@ -1086,6 +1126,8 @@ Rectangle {
     }
 
     function startWriteNow() {
+        completionHandled = false
+        rockchipFinalizationFallback.stop()
         langbar.visible = false
         writebutton.enabled = false
         cancelwritebutton.enabled = true
@@ -1740,12 +1782,15 @@ Rectangle {
             osswipeview.decrementCurrentIndex()
 
         imageCatalog.categorySelected = ""
+        fleetControlProfileName = ""
         selectingImage = true
         selectingTarget = false
         reviewingOperation = false
     }
 
     function onError(msg) {
+        completionHandled = true
+        rockchipFinalizationFallback.stop()
         msgpopup.title = qsTr("Error")
         msgpopup.text = msg
         msgpopup.openPopup()
@@ -1753,6 +1798,20 @@ Rectangle {
     }
 
     function onSuccess() {
+        if (completionHandled)
+            return
+
+        completionHandled = true
+        rockchipFinalizationFallback.stop()
+
+        // Dismiss the busy page before opening the result dialog so no later
+        // UI operation can strand a completed write at Finalizing / 100%.
+        progressBar.visible = false
+        cancelwritebutton.enabled = false
+        cancelwritebutton.visible = false
+        cancelverifybutton.enabled = false
+        cancelverifybutton.visible = false
+
         if (imageWriter.isOhdFile(imageWriter.src())) {
             var isRockusb = (imageWriter.dst().indexOf("rockusb:") === 0);
             msgpopup.title = qsTr("Update complete!")
@@ -1813,11 +1872,20 @@ Rectangle {
     }
 
     function onCancelled() {
+        completionHandled = true
+        rockchipFinalizationFallback.stop()
         resetWriteButton()
     }
 
     function onFinalizing() {
         progressText.text = qsTr("Finalizing...")
+        cancelwritebutton.enabled = false
+        cancelwritebutton.visible = false
+        cancelverifybutton.enabled = false
+        cancelverifybutton.visible = false
+
+        if (imageWriter.dst().indexOf("rockusb:") === 0)
+            rockchipFinalizationFallback.restart()
     }
 
     function shuffle(arr) {

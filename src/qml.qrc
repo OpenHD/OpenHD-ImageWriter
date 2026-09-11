@@ -51,6 +51,7 @@
         <file>qmlcomponents/SettingsSection.qml</file>
         <file>qmlcomponents/OperationReviewPage.qml</file>
         <file>qmlcomponents/LanguageSettingsPage.qml</file>
+        <file>qmlcomponents/FleetControlPage.qml</file>
         <file>icons/ui/home.svg</file>
         <file>icons/ui/image.svg</file>
         <file>icons/ui/drive.svg</file>
@@ -61,6 +62,7 @@
         <file>icons/ui/info.svg</file>
         <file>icons/ui/help.svg</file>
         <file>icons/ui/device.svg</file>
+        <file>icons/ui/fleetcontrol.svg</file>
         <file>ImageOptionsPage.qml</file>
         <file>icons/OpenHD-advanced.webp</file>
         <file>icons/OpenHD-old.webp</file>

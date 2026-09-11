@@ -12,6 +12,7 @@
 #include "drivesafetypolicy.h"
 #include "diskformatter.h"
 #include "ringbuffer.h"
+#include "rockchipfirmwarelayout.h"
 #include "writeprogresswatchdog.h"
 
 #include <QCoreApplication>
@@ -451,6 +452,38 @@ bool testDiskFormatter()
            check(image.size() == imageSize, "Formatting changed the target size");
 }
 
+bool testRockchipFirmwareLayoutDiscovery()
+{
+    QTemporaryDir temporaryDirectory;
+    const QString nestedFirmware = temporaryDirectory.filePath("bundle/output/firmware");
+    if (!QDir().mkpath(nestedFirmware) ||
+        !writeFile(QDir(nestedFirmware).filePath("parameter.txt"), "CMDLINE:mtdparts=rk29xxnand:0x20@0x40(boot)\n") ||
+        !writeFile(QDir(nestedFirmware).filePath("boot.img"), QByteArray(512, '\0')))
+        return check(false, "Could not create nested firmware fixture");
+
+    QString detected;
+    QString error;
+    if (!check(findRockchipFirmwareDirectory(temporaryDirectory.path(), detected, &error),
+               "ImageBuilder output/firmware layout was not detected") ||
+        !check(QDir(detected).absolutePath() == QDir(nestedFirmware).absolutePath(),
+               "Wrong nested firmware directory was selected"))
+        return false;
+
+    QTemporaryDir flatPackage;
+    writeFile(flatPackage.filePath("parameter.txt"), "CMDLINE:mtdparts=rk29xxnand:0x20@0x40(boot)\n");
+    writeFile(flatPackage.filePath("boot.img"), QByteArray(512, '\0'));
+    if (!check(findRockchipFirmwareDirectory(flatPackage.path(), detected, &error),
+               "Flat Rockchip package was no longer detected") ||
+        !check(QDir(detected).absolutePath() == QDir(flatPackage.path()).absolutePath(),
+               "Flat firmware root was not selected"))
+        return false;
+
+    QTemporaryDir incompletePackage;
+    writeFile(incompletePackage.filePath("parameter.txt"), "partition table only");
+    return check(!findRockchipFirmwareDirectory(incompletePackage.path(), detected, &error),
+                 "A firmware directory without partition images was accepted");
+}
+
 } // namespace
 
 int main(int argc, char *argv[])
@@ -470,6 +503,7 @@ int main(int argc, char *argv[])
     failures += testArchivePathValidation() ? 0 : 1;
     failures += testDriveSafetyPolicy() ? 0 : 1;
     failures += testDiskFormatter() ? 0 : 1;
+    failures += testRockchipFirmwareLayoutDiscovery() ? 0 : 1;
 
     if (failures == 0)
         qInfo() << "All OpenHD backend characterization tests passed";

@@ -174,10 +174,10 @@ ImButton {
 
                 PageHeader {
                     Layout.fillWidth: true
-                    title: qsTr("Configure OpenHD media")
+                    title: qsTr("Configure OpenHD")
                     subtitle: driveSelected
-                              ? qsTr("Adjust the settings that will be written to the selected OpenHD storage.")
-                              : qsTr("Select an OpenHD storage device to inspect and configure its settings.")
+                              ? qsTr("Adjust the OpenHD settings stored on the selected device.")
+                              : qsTr("Select an OpenHD device to inspect and configure its settings.")
                 }
 
                 RowLayout {

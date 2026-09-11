@@ -23,7 +23,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 # Adding headers explicity so they are displayed in Qt Creator
-set(HEADERS config.h archivepathvalidator.h certificatevalidator.h blockbatcher.h curlnetworkconfig.h curlretrypolicy.h diskformatter.h drivesafetypolicy.h drivelist/drivelist.h file_operations.h ringbuffer.h writeprogresswatchdog.h openhdimagecustomizer.h openhdstorageselector.h openhdstorageservice.h imagewriter.h networkaccessmanagerfactory.h nan.h drivelistitem.h drivelistmodel.h drivelistmodelpollthread.h rockchipdevice.h driveformatthread.h powersaveblocker.h cli.h
+set(HEADERS config.h archivepathvalidator.h certificatevalidator.h blockbatcher.h curlnetworkconfig.h curlretrypolicy.h diskformatter.h drivesafetypolicy.h drivelist/drivelist.h file_operations.h ringbuffer.h writeprogresswatchdog.h openhdimagecustomizer.h openhdstorageselector.h openhdstorageservice.h imagewriter.h networkaccessmanagerfactory.h nan.h drivelistitem.h drivelistmodel.h drivelistmodelpollthread.h rockchipdevice.h rockchipfirmwarelayout.h driveformatthread.h powersaveblocker.h cli.h
     downloadthread.h downloadextractthread.h localfileextractthread.h downloadstatstelemetry.h updateuploadthread.h dependencies/mountutils/src/mountutils.hpp dependencies/sha256crypt/sha256crypt.h)
 
 # Add dependencies
@@ -92,7 +92,7 @@ if (NOT atomicbuiltin)
 endif()
 
 set(SOURCES "main.cpp" "archivepathvalidator.cpp" "certificatevalidator.cpp" "blockbatcher.cpp" "curlnetworkconfig.cpp" "curlretrypolicy.cpp" "diskformatter.cpp" "drivesafetypolicy.cpp" "file_operations.cpp" "ringbuffer.cpp" "writeprogresswatchdog.cpp" "openhdimagecustomizer.cpp" "openhdstorageselector.cpp" "openhdstorageservice.cpp" "imagewriter.cpp" "networkaccessmanagerfactory.cpp"
-    "drivelistitem.cpp" "drivelistmodel.cpp" "drivelistmodelpollthread.cpp" "rockchipdevice.cpp" "rockchipflashthread.cpp" "downloadthread.cpp" "downloadextractthread.cpp"
+    "drivelistitem.cpp" "drivelistmodel.cpp" "drivelistmodelpollthread.cpp" "rockchipdevice.cpp" "rockchipfirmwarelayout.cpp" "rockchipflashthread.cpp" "downloadthread.cpp" "downloadextractthread.cpp"
      "driveformatthread.cpp" "localfileextractthread.cpp" "powersaveblocker.cpp" "downloadstatstelemetry.cpp" "updateuploadthread.cpp" "qml.qrc" "dependencies/sha256crypt/sha256crypt.c" "cli.cpp")
 
 find_package(Qt5 COMPONENTS Core Quick LinguistTools Svg OPTIONAL_COMPONENTS Widgets)
@@ -430,6 +430,7 @@ if(BUILD_TESTING)
         writeprogresswatchdog.cpp
         openhdimagecustomizer.cpp
         openhdstorageselector.cpp
+        rockchipfirmwarelayout.cpp
         certificatevalidator.cpp)
     target_include_directories(openhd_backend_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}

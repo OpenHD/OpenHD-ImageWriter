@@ -213,6 +213,8 @@ std::vector<RockchipDeviceDescriptor> listRockchipUsbDevices()
 #include <QElapsedTimer>
 #include <QThread>
 #include <QtEndian>
+#include <atomic>
+#include <thread>
 
 namespace {
 
@@ -361,7 +363,11 @@ QList<RockchipPartition> parseParameterTxt(const QByteArray &paramContent)
         if (line.startsWith(QLatin1Char('#')) || !line.contains(QStringLiteral("mtdparts")))
             continue;
 
-        int colonIdx = line.indexOf(QLatin1Char(':'));
+        // A standard Rockchip line starts with
+        // "CMDLINE: mtdparts=rk29xxnand:".  Use the separator following the
+        // mtdparts device name, not the earlier CMDLINE separator.
+        const int mtdpartsIdx = line.indexOf(QStringLiteral("mtdparts="));
+        int colonIdx = line.indexOf(QLatin1Char(':'), mtdpartsIdx);
         if (colonIdx == -1)
             continue;
 
@@ -393,6 +399,8 @@ QList<RockchipPartition> parseParameterTxt(const QByteArray &paramContent)
                 size = sizeStr.startsWith(QStringLiteral("0x"), Qt::CaseInsensitive)
                         ? sizeStr.toUInt(&ok, 16)
                         : sizeStr.toUInt(&ok, 10);
+                if (!ok)
+                    continue;
             }
 
             RockchipPartition part;
@@ -553,6 +561,33 @@ bool waitForRockchipLoaderMode(int timeoutMs, RockchipDeviceDescriptor *outDescr
                 return true;
             }
         }
+
+#ifdef Q_OS_WIN
+        // The RV1126B MiniLoader used by the X21 has been observed to keep
+        // reporting bcdUSB 2.00 after a successful MaskROM download.  In
+        // that case the normal Rockchip odd/even discriminator cannot see
+        // the transition, but the loader's bulk pipes are ready.  This
+        // function is only called after downloadRockchipBootloader succeeds,
+        // so transport readiness is a safe Windows fallback for this PID.
+        if (timer.elapsed() >= 1000)
+        {
+            for (auto dev : devices)
+            {
+                if (dev.vendorId != RockchipVendorId || dev.productId != 0x110f)
+                    continue;
+
+                RockchipTransport transport;
+                if (transport.open())
+                {
+                    dev.isMaskrom = false;
+                    dev.isLoader = true;
+                    if (outDescriptor)
+                        *outDescriptor = dev;
+                    return true;
+                }
+            }
+        }
+#endif
     }
     return false;
 }
@@ -707,13 +742,64 @@ bool RockchipTransport::writeLBA(quint32 lba, quint16 sectorCount, const quint8 
 bool RockchipTransport::resetDevice(QString *errorMsg)
 {
 #ifdef Q_OS_WIN
-    if (_hDevice != INVALID_HANDLE_VALUE)
+    if (!isOpen())
     {
-        DWORD returned = 0;
-        DeviceIoControl(_hDevice, 0x220000, nullptr, 0, nullptr, 0, &returned, nullptr);
+        if (errorMsg)
+            *errorMsg = QStringLiteral("Rockchip transport is not open.");
+        return false;
     }
+
+    RockchipCBW cbw;
+    cbw.signature = 0x43425355;
+    cbw.tag = ++_tag;
+    cbw.transferLength = 0;
+    cbw.flags = 0x00;
+    cbw.lun = 0;
+    cbw.length = 0x06;
+    cbw.opcode = 0xFF; // DEVICE_RESET
+    cbw.subcode = 0;
+
+    // Some Rockusb driver versions leave a synchronous pipe write pending
+    // when DEVICE_RESET immediately disconnects the USB device. Bound that
+    // I/O so the flash worker can always report completion to the GUI.
+    std::atomic_bool resetWriteFinished(false);
+    const HANDLE resetPipe = _hWritePipe;
+    HANDLE resetThread = nullptr;
+    DuplicateHandle(GetCurrentProcess(), GetCurrentThread(),
+                    GetCurrentProcess(), &resetThread, 0, FALSE, DUPLICATE_SAME_ACCESS);
+    std::thread resetWatchdog([resetPipe, resetThread, &resetWriteFinished]() {
+        for (int elapsed = 0; elapsed < 2000 && !resetWriteFinished.load(); elapsed += 20)
+            QThread::msleep(20);
+        if (!resetWriteFinished.load())
+        {
+            if (resetThread)
+                CancelSynchronousIo(resetThread);
+            CancelIoEx(resetPipe, nullptr);
+        }
+    });
+
+    DWORD written = 0;
+    SetLastError(ERROR_SUCCESS);
+    const BOOL writeResult = WriteFile(_hWritePipe, &cbw, sizeof(cbw), &written, nullptr);
+    const DWORD writeError = writeResult ? ERROR_SUCCESS : GetLastError();
+    resetWriteFinished.store(true);
+    resetWatchdog.join();
+    if (resetThread)
+        CloseHandle(resetThread);
+
+    const bool resetSent = (writeResult && written == sizeof(cbw)) ||
+                           writeError == ERROR_OPERATION_ABORTED ||
+                           writeError == ERROR_DEVICE_NOT_CONNECTED ||
+                           writeError == ERROR_INVALID_HANDLE;
+    if (!resetSent && errorMsg)
+        *errorMsg = QStringLiteral("Failed sending Rockchip reset command (error %1).")
+                .arg(writeError);
+
+    // A successful DEVICE_RESET normally removes the USB device before a CSW
+    // can be read. Close immediately instead of waiting synchronously for a
+    // response that may never arrive from the old device instance.
     close();
-    return true;
+    return resetSent;
 #else
     if (errorMsg) *errorMsg = QStringLiteral("Unsupported.");
     return false;

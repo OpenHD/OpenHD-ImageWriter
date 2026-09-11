@@ -66,7 +66,12 @@ Rectangle {
                 {
                     "view": "configure",
                     "icon": "../icons/ui/settings.svg",
-                    "label": qsTr("Configure media")
+                    "label": qsTr("Configure OpenHD")
+                },
+                {
+                    "view": "fleetcontrol",
+                    "icon": "../icons/ui/fleetcontrol.svg",
+                    "label": qsTr("FleetControl")
                 }
             ]
 

@@ -21,12 +21,14 @@ class DownloadThread;
 class UpdateUploadThread;
 class RockchipFlashThread;
 class QNetworkReply;
+class QProcess;
 class QWinTaskbarButton;
 class QTranslator;
 
 class ImageWriter : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(bool rpiBootRunning READ rpiBootRunning NOTIFY rpiBootRunningChanged)
 public:
     explicit ImageWriter(QObject *parent = nullptr);
     virtual ~ImageWriter();
@@ -39,6 +41,16 @@ public:
 
     /* Set device to write to */
     Q_INVOKABLE void setDst(const QString &device, quint64 deviceSize = 0);
+
+    /* Return the active source and destination to QML status handlers. */
+    Q_INVOKABLE QUrl src() const { return _src; }
+    Q_INVOKABLE QString dst() const { return _dst; }
+
+    /* Expose Raspberry Pi Compute Module storage through rpiboot. */
+    Q_INVOKABLE bool rpiBootAvailable() const;
+    Q_INVOKABLE bool rpiBootRunning() const;
+    Q_INVOKABLE void startRpiBoot();
+    Q_INVOKABLE void cancelRpiBoot();
 
     /* Enable/disable verification */
     Q_INVOKABLE void setVerifyEnabled(bool verify);
@@ -132,6 +144,8 @@ public:
     Q_INVOKABLE void clearSavedCustomizationSettings();
     Q_INVOKABLE bool hasSavedCustomizationSettings();
     Q_INVOKABLE bool imageSupportsCustomization();
+    Q_INVOKABLE QString stageFleetControlQOpenHDConfig(const QString &profileId,
+                                                       const QString &content) const;
 
     Q_INVOKABLE QString crypt(const QByteArray &password);
     Q_INVOKABLE QString pbkdf2(const QByteArray &psk, const QByteArray &ssid);
@@ -155,6 +169,11 @@ signals:
     void verifyProgress(QVariant now, QVariant total);
     void error(QVariant msg);
     void success();
+    void rockchipWriteCompleted();
+    void rpiBootRunningChanged();
+    void rpiBootStatus(QVariant msg);
+    void rpiBootSuccess();
+    void rpiBootError(QVariant msg);
     void fileSelected(QVariant filename);
     void cancelled();
     void finalizing();
@@ -198,6 +217,8 @@ protected:
     DownloadThread *_thread;
     UpdateUploadThread *_updateThread;
     RockchipFlashThread *_rockchipThread;
+    QProcess *_rpiBootProcess;
+    bool _rpiBootCancelled;
     bool _verifyEnabled, _multipleFilesInZip, _cachingEnabled, _embeddedMode, _online;
     QSettings _settings;
     QMap<QString,QString> _translations;
@@ -207,6 +228,7 @@ protected:
 #endif
 
     void _parseCompressedFile();
+    QString findRpiBootExecutable() const;
 };
 
 #endif // IMAGEWRITER_H
