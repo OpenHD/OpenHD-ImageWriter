@@ -734,4 +734,16 @@
         <translation type="unfinished"></translation>
     </message>
 </context>
+    <context>
+        <name>LanguageSettingsPage</name>
+        <message><source>Language</source><translation>Language</translation></message>
+        <message><source>Choose the language used throughout OpenHD ImageWriter.</source><translation>Choose the language used throughout OpenHD ImageWriter.</translation></message>
+        <message><source>Application language</source><translation>Application language</translation></message>
+        <message><source>Select a language, then choose Apply.</source><translation>Select a language, then choose Apply.</translation></message>
+        <message><source>Apply</source><translation>Apply</translation></message>
+    </context>
+    <context>
+        <name>PageBackButton</name>
+        <message><source>Back</source><translation>Back</translation></message>
+    </context>
 </TS>

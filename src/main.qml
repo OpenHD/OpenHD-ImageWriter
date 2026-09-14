@@ -763,6 +763,7 @@ ApplicationWindow {
         // -----------------------------------------------------------------
 
         LanguageSettingsPage {
+            id: languageSettingsPage
             anchors.fill: parent
 
             visible: currentView === "language"
@@ -776,9 +777,11 @@ ApplicationWindow {
 
             onLanguageSelected: {
                 imageWriter.changeLanguage(language)
+                languageSettingsPage.currentLanguage =
+                    imageWriter.getCurrentLanguage()
                 imageWriter.setSetting(
                     "language",
-                    language
+                    languageSettingsPage.currentLanguage
                 )
             }
 
