@@ -15,13 +15,15 @@ import "qmlcomponents"
 Rectangle {
     id: window
     anchors.fill: parent
-    color: "#0c202c"
+    color: "#0d1b26"
 
     FontLoader { id: roboto;      source: "fonts/Roboto-Regular.ttf" }
     FontLoader { id: robotoLight; source: "fonts/Roboto-Light.ttf" }
     FontLoader { id: robotoBold;  source: "fonts/Roboto-Bold.ttf" }
 
     property var mainWindow: null
+    readonly property bool openHdDeviceAvailable:
+        mainWindow ? mainWindow.openHdDeviceAvailable : imageWriter.hasOpenHdSettingsCard()
 
     property bool driveSelected: false
     property bool selectingTarget: false
@@ -68,6 +70,22 @@ Rectangle {
         language = imageWriter.getValue("language")
         token = imageWriter.getValue("token")
         loadSettingsMap()
+        Qt.callLater(autoSelectOpenHdDrive)
+    }
+
+    onMainWindowChanged: Qt.callLater(autoSelectOpenHdDrive)
+
+    onOpenHdDeviceAvailableChanged: {
+        if (!openHdDeviceAvailable) {
+            selectingTarget = false
+            driveSelected = false
+            selectedDevice = ""
+            selectedMountpoint = ""
+            openhdRoot = ""
+            imageWriter.stopDriveListPolling()
+        } else {
+            Qt.callLater(autoSelectOpenHdDrive)
+        }
     }
 
     function navigateBack() {
@@ -162,7 +180,50 @@ ImButton {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.preferredHeight: driveSelected ? window.height : window.height * 0.7
-            color: "#0c202c"
+            color: "#0d1b26"
+
+            ColumnLayout {
+                anchors.centerIn: parent
+                width: Math.min(parent.width - 40, 760)
+                spacing: 18
+                visible: !window.openHdDeviceAvailable
+
+                PageHeader {
+                    Layout.fillWidth: true
+                    title: qsTr("Einstellungen")
+                    subtitle: qsTr("Sprache auswählen oder die OpenHD-Entwicklung unterstützen.")
+                }
+
+                GridLayout {
+                    Layout.fillWidth: true
+                    columns: width >= 620 ? 2 : 1
+                    columnSpacing: 16
+                    rowSpacing: 16
+
+                    ActionCard {
+                        Layout.fillWidth: true
+                        text: qsTr("Sprache")
+                        eyebrow: qsTr("Anwendung")
+                        description: qsTr("Die Sprache des OpenHD ImageWriter ändern.")
+                        actionText: qsTr("Sprache auswählen")
+                        iconSource: "icons/ui/language.svg"
+                        onClicked: {
+                            if (mainWindow && mainWindow.openLanguagePage)
+                                mainWindow.openLanguagePage()
+                        }
+                    }
+
+                    ActionCard {
+                        Layout.fillWidth: true
+                        text: qsTr("Donate")
+                        eyebrow: qsTr("OpenHD unterstützen")
+                        description: qsTr("Die Entwicklung von OpenHD mit einer Spende unterstützen.")
+                        actionText: qsTr("Spenden")
+                        iconSource: "icons/ui/donate.svg"
+                        onClicked: Qt.openUrlExternally("https://opencollective.com/openhd")
+                    }
+                }
+            }
 
             ColumnLayout {
                 anchors.fill: parent
@@ -171,10 +232,11 @@ ImButton {
                 anchors.leftMargin: window.width < 700 ? 20 : 40
                 anchors.rightMargin: window.width < 700 ? 20 : 40
                 spacing: 18
+                visible: false
 
                 PageHeader {
                     Layout.fillWidth: true
-                    title: qsTr("Configure OpenHD")
+                    title: qsTr("OpenHD Einstellungen")
                     subtitle: driveSelected
                               ? qsTr("Adjust the OpenHD settings stored on the selected device.")
                               : qsTr("Select an OpenHD device to inspect and configure its settings.")
@@ -773,12 +835,13 @@ ImButton {
                                 RowLayout {
                                     spacing: 8
 
-                                    Button {
+                                    ModernActionButton {
                                         text: qsTr("Choose File")
+                                        primary: true
                                         onClicked: qopenhdConfDialog.open()
                                     }
 
-                                    Button {
+                                    ModernActionButton {
                                         text: qsTr("Clear Selection")
                                         enabled: qopenhdConfPath.length > 0
                                         onClicked: qopenhdConfPath = ""
@@ -819,12 +882,13 @@ ImButton {
                                 RowLayout {
                                     spacing: 8
 
-                                    Button {
+                                    ModernActionButton {
                                         text: qsTr("Choose File")
+                                        primary: true
                                         onClicked: premiumCertificateDialog.open()
                                     }
 
-                                    Button {
+                                    ModernActionButton {
                                         text: qsTr("Clear Selection")
                                         enabled: premiumCertificatePath.length > 0
                                         onClicked: premiumCertificatePath = ""
@@ -895,9 +959,93 @@ ImButton {
         }
     }
 
+    ImageOptionsPage {
+        id: deviceOptionsPage
+        anchors.fill: parent
+        visible: window.openHdDeviceAvailable && driveSelected
+        enabled: visible
+        z: 20
+        existingDeviceMode: true
+        existingDeviceName: selectedDevice
+
+        onCloseRequested: navigateBack()
+        onConfigurationSaved: {
+            copyOptionsFromSharedPage()
+            writeSettingsToDrive()
+        }
+    }
+
     function returnToOverview() {
         selectingTarget = false
         imageWriter.stopDriveListPolling()
+    }
+
+    function autoSelectOpenHdDrive() {
+        if (!openHdDeviceAvailable || driveSelected)
+            return
+
+        var device = imageWriter.openHdSettingsDevice()
+        if (!device || !device.device)
+            return
+
+        selectDstItem(device)
+        copyOptionsToSharedPage()
+        deviceOptionsPage.initialize()
+        deviceOptionsPage.resetOptionsScroll()
+    }
+
+    function copyOptionsToSharedPage() {
+        var target = deviceOptionsPage
+        target.bootType = bootType
+        target.sbc = sbc
+        target.camera = camera
+        target.camera2 = camera2
+        target.cameraResolution = cameraResolution
+        target.camera2Resolution = camera2Resolution
+        target.cameraPort = cameraPort
+        target.camera2Port = camera2Port
+        target.ipCameraAddress = ipCameraAddress
+        target.ipCameraPipeline = ipCameraPipeline
+        target.camera2IpCameraAddress = camera2IpCameraAddress
+        target.camera2IpCameraPipeline = camera2IpCameraPipeline
+        target.ipCameraBitrate = ipCameraBitrate
+        target.displayForceMode = displayForceMode
+        target.displayWidth = displayWidth
+        target.displayHeight = displayHeight
+        target.displayRefreshHz = displayRefreshHz
+        target.mode = mode
+        target.hotSpot = hotSpot
+        target.beep = beep === true || beep === "true"
+        target.eject = eject === true || eject === "true"
+        target.qopenhdConfPath = qopenhdConfPath
+        target.premiumCertificatePath = premiumCertificatePath
+    }
+
+    function copyOptionsFromSharedPage() {
+        var source = deviceOptionsPage
+        bootType = source.bootType
+        sbc = source.sbc
+        camera = source.camera
+        camera2 = source.camera2
+        cameraResolution = source.cameraResolution
+        camera2Resolution = source.camera2Resolution
+        cameraPort = source.cameraPort
+        camera2Port = source.camera2Port
+        ipCameraAddress = source.ipCameraAddress
+        ipCameraPipeline = source.ipCameraPipeline
+        camera2IpCameraAddress = source.camera2IpCameraAddress
+        camera2IpCameraPipeline = source.camera2IpCameraPipeline
+        ipCameraBitrate = source.ipCameraBitrate
+        displayForceMode = source.displayForceMode
+        displayWidth = source.displayWidth
+        displayHeight = source.displayHeight
+        displayRefreshHz = source.displayRefreshHz
+        mode = source.mode
+        hotSpot = source.hotSpot
+        beep = source.beep
+        eject = source.eject
+        qopenhdConfPath = source.qopenhdConfPath
+        premiumCertificatePath = source.premiumCertificatePath
     }
 
     MsgPopup {

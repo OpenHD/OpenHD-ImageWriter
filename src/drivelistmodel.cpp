@@ -112,7 +112,8 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
 
             _drivelist[deviceNamePlusSize] = new DriveListItem(
                 candidate.device, safeDrive.description, i.size, safeDrive.usb,
-                safeDrive.scsi, i.isReadOnly, mountpoints, this);
+                safeDrive.scsi, i.isReadOnly, mountpoints, false, 0, 0, false,
+                QString(), QString(), this);
         }
     }
 

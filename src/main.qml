@@ -13,7 +13,9 @@ import "qmlcomponents"
 ApplicationWindow {
     id: window
 
-    visible: true
+    // main.cpp positions the window before showing it, avoiding a visible
+    // jump from the platform's default top-left position.
+    visible: false
 
     property bool embeddedMode: imageWriter.isEmbeddedMode()
 
@@ -60,6 +62,11 @@ ApplicationWindow {
     property string currentView: "home"
     property string statusMessage: ""
     property string transientMessage: ""
+    property bool openHdDeviceAvailable: false
+    property bool fleetControlSignedIn:
+        imageWriter.getBoolSetting("fleetcontrol_signed_in")
+    property bool fleetControlSessionChecking: false
+    readonly property string fleetControlApiBaseUrl: "https://openhd.tech"
 
     property bool compactNavigation: width < 700
     property int navigationWidth: compactNavigation ? 52 : 230
@@ -70,9 +77,22 @@ ApplicationWindow {
     property int titleBarHeight: embeddedMode ? 0 : 44
 
     Component.onCompleted: {
-        if (!imageWriter.hasOpenHdSettingsCard()) {
+        refreshOpenHdDeviceAvailability()
+        restoreFleetControlSession()
+        if (!openHdDeviceAvailable) {
             openFeature("flash")
         }
+    }
+
+    Timer {
+        interval: 2000
+        repeat: true
+        running: true
+        onTriggered: window.refreshOpenHdDeviceAvailability()
+    }
+
+    function refreshOpenHdDeviceAvailability() {
+        openHdDeviceAvailable = imageWriter.hasOpenHdSettingsCard()
     }
 
     function currentFeature() {
@@ -104,6 +124,11 @@ ApplicationWindow {
     }
 
     function openFeature(name) {
+        // The standalone update workflow is temporarily disabled. Keep the
+        // route guarded as well as hiding its navigation entries.
+        if (name === "update")
+            name = "home"
+
         if (name === currentView) {
             var current = currentFeature()
 
@@ -133,6 +158,78 @@ ApplicationWindow {
 
     function showHome() {
         openFeature("home")
+    }
+
+    function setFleetControlSignedIn(signedIn) {
+        var normalized = Boolean(signedIn)
+        if (fleetControlSignedIn === normalized)
+            return
+
+        fleetControlSignedIn = normalized
+        imageWriter.setSetting("fleetcontrol_signed_in", fleetControlSignedIn)
+    }
+
+    function fleetControlResponse(xhr) {
+        try {
+            return JSON.parse(xhr.responseText)
+        } catch (error) {
+            return ({})
+        }
+    }
+
+    function restoreFleetControlCredentials() {
+        var savedUser = imageWriter.getValue("fleetcontrol_username")
+        var savedPass = imageWriter.getValue("fleetcontrol_password")
+        if (!savedUser || !savedPass) {
+            fleetControlSessionChecking = false
+            setFleetControlSignedIn(false)
+            return
+        }
+
+        var xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return
+
+            fleetControlSessionChecking = false
+            var response = fleetControlResponse(xhr)
+            if (xhr.status !== 0 && xhr.status < 500)
+                setFleetControlSignedIn(xhr.status >= 200 && xhr.status < 300 &&
+                                        response.ok && response.account)
+        }
+        xhr.open("POST", fleetControlApiBaseUrl + "/api/login")
+        xhr.setRequestHeader("Content-Type", "application/json")
+        xhr.timeout = 15000
+        xhr.send(JSON.stringify({
+            "username": String(savedUser),
+            "password": String(savedPass)
+        }))
+    }
+
+    function restoreFleetControlSession() {
+        if (fleetControlSessionChecking)
+            return
+
+        fleetControlSessionChecking = true
+        var xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return
+
+            var response = fleetControlResponse(xhr)
+            if (xhr.status >= 200 && xhr.status < 300 && response.account) {
+                fleetControlSessionChecking = false
+                setFleetControlSignedIn(true)
+            } else if (xhr.status === 0 || xhr.status >= 500) {
+                // Keep the cached state during a temporary network/server outage.
+                fleetControlSessionChecking = false
+            } else {
+                restoreFleetControlCredentials()
+            }
+        }
+        xhr.open("GET", fleetControlApiBaseUrl + "/api/session")
+        xhr.timeout = 10000
+        xhr.send()
     }
 
     function openLanguagePage() {
@@ -290,24 +387,11 @@ ApplicationWindow {
              * Don't overlap the three window-control buttons.
              */
             anchors.rightMargin: 144
-
-            property real pressX: 0
-            property real pressY: 0
+            cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
 
             onPressed: {
-                pressX = mouse.x
-                pressY = mouse.y
-            }
-
-            onPositionChanged: {
-                if (!pressed)
-                    return
-
-                if (window.visibility === Window.Maximized)
-                    return
-
-                window.x += mouse.x - pressX
-                window.y += mouse.y - pressY
+                if (window.visibility !== Window.Maximized)
+                    window.startSystemMove()
             }
 
             onDoubleClicked: {
@@ -538,6 +622,7 @@ ApplicationWindow {
         width: window.navigationWidth
 
         currentView: window.currentView
+        openHdDeviceAvailable: window.openHdDeviceAvailable
 
         onNavigate: window.openFeature(view)
 
@@ -591,6 +676,7 @@ ApplicationWindow {
             enabled: visible
 
             statusMessage: window.statusMessage
+            openHdDeviceAvailable: window.openHdDeviceAvailable
 
             onFeatureRequested:
                 window.openFeature(view)
@@ -625,9 +711,9 @@ ApplicationWindow {
             anchors.fill: parent
 
             source: "update.qml"
-            active: true
+            active: false
 
-            visible: currentView === "update"
+            visible: false
             enabled: visible
 
             onLoaded:
@@ -745,6 +831,102 @@ ApplicationWindow {
 
                 font.pixelSize: 12
             }
+        }
+    }
+
+    // Frameless desktop windows do not receive native resize borders. These
+    // thin hit areas hand resizing back to the window manager, preserving
+    // snapping, minimum sizes, and the platform's normal resize behaviour.
+    Item {
+        id: resizeHandles
+
+        anchors.fill: parent
+        z: 2000
+        visible: !window.embeddedMode &&
+                 window.visibility !== Window.Maximized &&
+                 window.visibility !== Window.FullScreen
+
+        readonly property int handleSize: 6
+        readonly property int cornerSize: 12
+
+        MouseArea {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            width: resizeHandles.cornerSize
+            height: resizeHandles.cornerSize
+            cursorShape: Qt.SizeFDiagCursor
+            onPressed: window.startSystemResize(Qt.LeftEdge | Qt.TopEdge)
+        }
+
+        MouseArea {
+            anchors.right: parent.right
+            anchors.top: parent.top
+            width: resizeHandles.cornerSize
+            height: resizeHandles.cornerSize
+            cursorShape: Qt.SizeBDiagCursor
+            onPressed: window.startSystemResize(Qt.RightEdge | Qt.TopEdge)
+        }
+
+        MouseArea {
+            anchors.left: parent.left
+            anchors.bottom: parent.bottom
+            width: resizeHandles.cornerSize
+            height: resizeHandles.cornerSize
+            cursorShape: Qt.SizeBDiagCursor
+            onPressed: window.startSystemResize(Qt.LeftEdge | Qt.BottomEdge)
+        }
+
+        MouseArea {
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            width: resizeHandles.cornerSize
+            height: resizeHandles.cornerSize
+            cursorShape: Qt.SizeFDiagCursor
+            onPressed: window.startSystemResize(Qt.RightEdge | Qt.BottomEdge)
+        }
+
+        MouseArea {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.topMargin: resizeHandles.cornerSize
+            anchors.bottomMargin: resizeHandles.cornerSize
+            width: resizeHandles.handleSize
+            cursorShape: Qt.SizeHorCursor
+            onPressed: window.startSystemResize(Qt.LeftEdge)
+        }
+
+        MouseArea {
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.topMargin: resizeHandles.cornerSize
+            anchors.bottomMargin: resizeHandles.cornerSize
+            width: resizeHandles.handleSize
+            cursorShape: Qt.SizeHorCursor
+            onPressed: window.startSystemResize(Qt.RightEdge)
+        }
+
+        MouseArea {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.leftMargin: resizeHandles.cornerSize
+            anchors.rightMargin: resizeHandles.cornerSize
+            height: resizeHandles.handleSize
+            cursorShape: Qt.SizeVerCursor
+            onPressed: window.startSystemResize(Qt.TopEdge)
+        }
+
+        MouseArea {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: resizeHandles.cornerSize
+            anchors.rightMargin: resizeHandles.cornerSize
+            height: resizeHandles.handleSize
+            cursorShape: Qt.SizeVerCursor
+            onPressed: window.startSystemResize(Qt.BottomEdge)
         }
     }
 

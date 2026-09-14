@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 256 256"
+     role="img"
+     aria-labelledby="title"
+     shape-rendering="geometricPrecision">
+  <title id="title">Use custom image</title>
+
+  <g fill="none"
+     stroke="#FFFFFF"
+     stroke-width="12"
+     stroke-linecap="round"
+     stroke-linejoin="round">
+
+    <!-- Folder -->
+    <path d="
+      M 34 104
+      C 34 92 44 82 56 82
+      H 98
+      L 116 102
+      H 200
+      C 212 102 222 112 222 124
+      V 194
+      C 222 208 211 219 197 219
+      H 59
+      C 45 219 34 208 34 194
+      Z"/>
+
+    <!-- Image file -->
+    <path d="
+      M 126 38
+      H 180
+      L 214 72
+      V 126
+      H 126
+      Z"/>
+
+    <!-- Folded corner -->
+    <path d="M 180 38 V 72 H 214"/>
+
+    <!-- Small content line -->
+    <path d="M 151 98 H 187"/>
+  </g>
+</svg>

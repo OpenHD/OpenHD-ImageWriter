@@ -170,6 +170,8 @@ Item {
             if (xhr.status >= 200 && xhr.status < 300 && response.account) {
                 accountName = response.account.displayName || response.account.username || qsTr("Operator")
                 accountRole = response.account.role || ""
+                if (mainWindow && mainWindow.setFleetControlSignedIn)
+                    mainWindow.setFleetControlSignedIn(true)
                 loadProfiles()
             } else {
                 var savedUser = imageWriter.getValue("fleetcontrol_username")
@@ -178,7 +180,8 @@ Item {
                     username = savedUser
                     password = savedPass
                     authenticate()
-                }
+                } else if (mainWindow && mainWindow.setFleetControlSignedIn)
+                    mainWindow.setFleetControlSignedIn(false)
             }
         }
         xhr.open("GET", apiBaseUrl + "/api/session")
@@ -210,13 +213,19 @@ Item {
             if (xhr.status >= 200 && xhr.status < 300 && response.ok && response.account) {
                 accountName = response.account.displayName || response.account.username || currentUsername
                 accountRole = response.account.role || ""
+                if (mainWindow && mainWindow.setFleetControlSignedIn)
+                    mainWindow.setFleetControlSignedIn(true)
                 message = ""
                 imageWriter.setSetting("fleetcontrol_username", currentUsername)
                 imageWriter.setSetting("fleetcontrol_password", passToSave)
                 loadProfiles()
             } else if (xhr.status === 0) {
+                if (mainWindow && mainWindow.setFleetControlSignedIn)
+                    mainWindow.setFleetControlSignedIn(false)
                 message = qsTr("Unable to reach the secure FleetControl gateway.")
             } else {
+                if (mainWindow && mainWindow.setFleetControlSignedIn)
+                    mainWindow.setFleetControlSignedIn(false)
                 message = response.message || qsTr("Access denied. Check your credentials and try again.")
             }
         }
@@ -238,6 +247,8 @@ Item {
                 imageWriter.setSetting("fleetcontrol_username", "")
                 imageWriter.setSetting("fleetcontrol_password", "")
                 profileModel.clear()
+                if (mainWindow && mainWindow.setFleetControlSignedIn)
+                    mainWindow.setFleetControlSignedIn(false)
             }
         }
         xhr.open("POST", apiBaseUrl + "/api/logout")
@@ -502,7 +513,7 @@ Item {
                         wrapMode: Text.WordWrap
                     }
 
-                    Button {
+                    ModernActionButton {
                         id: submitButton
                         Layout.fillWidth: true
                         Layout.preferredHeight: 44
@@ -512,6 +523,7 @@ Item {
                                 ? qsTr("AUTHENTICATING")
                                 : qsTr("AUTHENTICATE") + "    \u2192"
                         enabled: !root.submitting && !root.checkingSession
+                        primary: !root.signedIn
                         onClicked: root.signedIn ? root.signOut() : root.authenticate()
 
                         background: Rectangle {
@@ -599,14 +611,15 @@ Item {
                             Layout.fillWidth: root.width < 780
                             spacing: 8
 
-                            Button {
+                            ModernActionButton {
                                 text: qsTr("Refresh")
                                 implicitHeight: 36
                                 onClicked: root.loadProfiles()
                             }
 
-                            Button {
+                            ModernActionButton {
                                 text: qsTr("Save current settings")
+                                primary: true
                                 implicitHeight: 36
                                 onClicked: {
                                     profileNameField.text = ""
@@ -616,7 +629,7 @@ Item {
                                 }
                             }
 
-                            Button {
+                            ModernActionButton {
                                 text: qsTr("Sign out")
                                 implicitHeight: 36
                                 onClicked: root.signOut()
@@ -690,8 +703,9 @@ Item {
                                     }
                                 }
 
-                                Button {
+                                ModernActionButton {
                                     text: qsTr("Apply and write")
+                                    primary: true
                                     onClicked: root.applyProfile(profileId,
                                                                  profileName,
                                                                  profileSettings,
@@ -850,15 +864,15 @@ Item {
 
                 Item { Layout.fillWidth: true }
 
-                Button {
+                ModernActionButton {
                     text: qsTr("Cancel")
-                    flat: true
                     enabled: !root.savingProfile
                     onClicked: saveProfilePopup.close()
                 }
 
-                Button {
+                ModernActionButton {
                     text: root.savingProfile ? qsTr("Saving...") : qsTr("Save profile")
+                    primary: true
                     enabled: !root.savingProfile
                     onClicked: root.saveCurrentProfile()
                 }

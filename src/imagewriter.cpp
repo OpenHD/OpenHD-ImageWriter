@@ -366,6 +366,11 @@ bool ImageWriter::hasOpenHdSettingsCard() const
     return OpenHDStorageService::hasSettingsCard();
 }
 
+QVariantMap ImageWriter::openHdSettingsDevice() const
+{
+    return OpenHDStorageService::settingsDevice();
+}
+
 /* Returns true if src and dst are set */
 bool ImageWriter::readyToWrite()
 {
@@ -403,7 +408,9 @@ void ImageWriter::startWrite()
         connect(_rockchipThread, &RockchipFlashThread::error, this, [this](QVariant msg) {
             onError(msg.toString());
         });
-        _rockchipThread->start();
+        // Image extraction/flashing can saturate a CPU core. Keep the GUI
+        // thread responsive for window movement, cancellation and repainting.
+        _rockchipThread->start(QThread::LowPriority);
         return;
     }
 
@@ -412,7 +419,7 @@ void ImageWriter::startWrite()
         DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), this);
         connect(dft, SIGNAL(success()), SLOT(onSuccess()));
         connect(dft, SIGNAL(error(QString)), SLOT(onError(QString)));
-        dft->start();
+        dft->start(QThread::LowPriority);
         return;
     }
 
@@ -431,17 +438,6 @@ void ImageWriter::startWrite()
     _settings.setValue("justUpdate", containsUpdate);
     _settings.sync();
 
-if (lowercaseurl.endsWith(".zip"))
-{
-    if (containsUpdate == true) 
-    {
-        qDebug() << "This is an OpenHD UpdateFile";
-    }
-    else 
-    {
-        emit error(tr("Please extract your Image before flashing"));
-    }
-}
     if (!_extrLen && _src.isLocalFile())
     {
         if (!compressed)
@@ -504,6 +500,7 @@ if (lowercaseurl.endsWith(".zip"))
                 _settings.remove("caching/lastDownloadSHA256");
                 _settings.sync();
                 _cachedFileHash.clear();
+                emit cacheChanged();
             }
             else
             {
@@ -534,13 +531,16 @@ if (lowercaseurl.endsWith(".zip"))
     {
         static_cast<DownloadExtractThread *>(_thread)->enableMultipleFileExtraction();
         DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), this);
-        connect(dft, SIGNAL(success()), _thread, SLOT(start()));
+        connect(dft, &DriveFormatThread::success, this, [this]() {
+            if (_thread)
+                _thread->start(QThread::LowPriority);
+        });
         connect(dft, SIGNAL(error(QString)), SLOT(onError(QString)));
-        dft->start();
+        dft->start(QThread::LowPriority);
     }
     else
     {
-        _thread->start();
+        _thread->start(QThread::LowPriority);
     }
 
     startProgressPolling();
@@ -551,6 +551,7 @@ void ImageWriter::onCacheFileUpdated(QByteArray sha256)
     _settings.setValue("caching/lastDownloadSHA256", sha256);
     _settings.sync();
     _cachedFileHash = sha256;
+    emit cacheChanged();
     qDebug() << "Done writing cache file";
 }
 
@@ -862,7 +863,7 @@ void ImageWriter::startUpdateUpload(const QString &sourceFile, const QString &de
             emit updateUploadError(msg.toString());
             onError(msg.toString());
         });
-        _rockchipThread->start();
+        _rockchipThread->start(QThread::LowPriority);
         return;
     }
 
@@ -908,7 +909,7 @@ void ImageWriter::startUpdateUpload(const QString &sourceFile, const QString &de
         emit updateUploadSuccess();
         onSuccess();
     });
-    _updateThread->start();
+    _updateThread->start(QThread::LowPriority);
 }
 
 /* Relay events from download thread to QML */
@@ -1430,6 +1431,9 @@ QString ImageWriter::getValue(const QString &key)
 
 void ImageWriter::setSetting(const QString &key, const QVariant &value)
 {
+    if (_settings.contains(key) && _settings.value(key) == value)
+        return;
+
     _settings.setValue(key, value);
     _settings.sync();
     const bool sensitive = key.contains(QStringLiteral("token"), Qt::CaseInsensitive) ||

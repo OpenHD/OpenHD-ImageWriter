@@ -3,6 +3,7 @@
         <file>main.qml</file>
         <file>flash.qml</file>
         <file>update.qml</file>
+        <file>catalog.js</file>
         <file>configure.qml</file>
         <file>qtquickcontrols2.conf</file>
         <file>icons/openhdimagewriter.ico</file>
@@ -44,18 +45,39 @@
         <file>qmlcomponents/FeatureCard.qml</file>
         <file>qmlcomponents/ModernHome.qml</file>
         <file>qmlcomponents/PageHeader.qml</file>
+        <file>qmlcomponents/PageBackButton.qml</file>
+        <file>qmlcomponents/SettingsTabButton.qml</file>
+        <file>qmlcomponents/ModernComboBox.qml</file>
+        <file>qmlcomponents/FileSelectionControl.qml</file>
+        <file>qmlcomponents/ModernActionButton.qml</file>
         <file>qmlcomponents/ActionCard.qml</file>
         <file>qmlcomponents/SelectionRow.qml</file>
         <file>qmlcomponents/ImageSelectionPage.qml</file>
+        <file>qmlcomponents/ImageCardGrid.qml</file>
         <file>qmlcomponents/DeviceSelectionPage.qml</file>
         <file>qmlcomponents/SettingsSection.qml</file>
         <file>qmlcomponents/OperationReviewPage.qml</file>
         <file>qmlcomponents/LanguageSettingsPage.qml</file>
         <file>qmlcomponents/FleetControlPage.qml</file>
         <file>icons/ui/home.svg</file>
+        <file>icons/ui/tab-download.svg</file>
+        <file>icons/ui/tab-code.svg</file>
         <file>icons/ui/image.svg</file>
         <file>icons/ui/drive.svg</file>
         <file>icons/ui/write.svg</file>
+        <file>icons/ui/review-write.svg</file>
+        <file>icons/ui/image-file.svg</file>
+        <file>icons/ui/storage-card.svg</file>
+        <file>icons/ui/configure-write.svg</file>
+        <file>icons/ui/sliders.svg</file>
+        <file>icons/ui/camera-settings.svg</file>
+        <file>icons/ui/files-settings.svg</file>
+        <file>icons/ui/device-role.svg</file>
+        <file>icons/ui/display-settings.svg</file>
+        <file>icons/ui/network-settings.svg</file>
+        <file>icons/ui/back-arrow.svg</file>
+        <file>icons/ui/custom-image-folder-file.svg</file>
+        <file>icons/ui/erase-format-trash.svg</file>
         <file>icons/ui/update.svg</file>
         <file>icons/ui/settings.svg</file>
         <file>icons/ui/language.svg</file>
@@ -68,12 +90,15 @@
         <file>icons/OpenHD-old.webp</file>
         <file>icons/donate.svg</file>
         <file>icons/dev.svg</file>
-        <file>icons/platforms/raspberrypi.svg</file>
-        <file>icons/platforms/radxa.svg</file>
-        <file>icons/platforms/x86.svg</file>
-        <file>icons/platforms/openhd.svg</file>
-        <file>icons/platforms/generic-sbc.svg</file>
-        <file>icons/platforms/generic.svg</file>
+        <file>icons/manufacturers/openhd-mono.svg</file>
+        <file>icons/manufacturers/raspberrypi-mono.svg</file>
+        <file>icons/manufacturers/radxa-mono.svg</file>
+        <file>icons/manufacturers/luckfox-mono.svg</file>
+        <file>icons/manufacturers/orangepi-mono.svg</file>
+        <file>icons/manufacturers/orqa-mono.svg</file>
+        <file>icons/manufacturers/uxv-mono.svg</file>
+        <file>icons/manufacturers/more-mono.svg</file>
+        <file>icons/manufacturers/x86-mono.svg</file>
         <file alias="doc/openhd_settings_map.json">../doc/openhd_settings_map.json</file>
         <file>rockchip/MiniLoaderAll.bin</file>
     </qresource>

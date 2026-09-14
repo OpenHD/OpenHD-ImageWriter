@@ -10,13 +10,14 @@ import QtQuick.Layouts 1.0
 import QtQuick.Controls.Material 2.2
 import Qt.labs.settings 1.0
 import "qmlcomponents"
+import "catalog.js" as Catalog
 
 
 
 Rectangle {
     id: window
     anchors.fill: parent
-    color: "#0c202c"
+    color: "#0d1b26"
 
     FontLoader {id: roboto;      source: "fonts/Roboto-Regular.ttf"}
     FontLoader {id: robotoLight; source: "fonts/Roboto-Light.ttf"}
@@ -169,7 +170,7 @@ Rectangle {
 
             PageHeader {
                 Layout.fillWidth: true
-                title: progressBar.visible ? qsTr("Updating device") : qsTr("Update an OpenHD device")
+                title: progressBar.visible ? qsTr("Updating device") : qsTr("OpenHD Updaten")
                 subtitle: progressBar.visible
                           ? qsTr("Keep the target connected until the update is complete.")
                           : qsTr("Select an update package and target device, then start the installation.")
@@ -269,14 +270,14 @@ Rectangle {
                             font.pixelSize: 11
                         }
 
-                        Button {
+                        ModernActionButton {
                             visible: cancelwritebutton.visible
                             enabled: cancelwritebutton.enabled
                             text: qsTr("Cancel")
                             onClicked: cancelwritebutton.clicked()
                         }
 
-                        Button {
+                        ModernActionButton {
                             visible: cancelverifybutton.visible
                             enabled: cancelverifybutton.enabled
                             text: qsTr("Skip verification")
@@ -315,8 +316,9 @@ Rectangle {
                     }
                 }
 
-                Button {
+                ModernActionButton {
                     text: qsTr("Configure")
+                    primary: true
                     onClicked: optionsPage.openPage()
                 }
             }
@@ -436,7 +438,7 @@ Rectangle {
 
 
         Rectangle {
-            color: "#0c202c"
+            color: "#0d1b26"
             Layout.fillWidth: true
             Layout.fillHeight: true
 
@@ -781,7 +783,7 @@ Rectangle {
 
         ListElement {
             url: "internal://format"
-            icon: "icons/erase.png"
+            icon: "icons/ui/erase-format-trash.svg"
             extract_size: 0
             image_download_size: 0
             extract_sha256: ""
@@ -798,7 +800,7 @@ Rectangle {
 
         ListElement {
             url: ""
-            icon: "icons/use_custom.png"
+            icon: "icons/ui/custom-image-folder-file.svg"
             name: qsTr("Use custom")
             description: qsTr("Select a custom .img from your computer")
         }
@@ -1164,39 +1166,13 @@ Rectangle {
     }
 
     function oslistFromJson(o) {
-        var oslist = false
-        var lang_country = Qt.locale().name
-        if ("os_list_"+lang_country in o) {
-            oslist = o["os_list_"+lang_country]
+        var oslist = Catalog.normalise(o, Qt.locale().name)
+        if (oslist === null) {
+            onError(qsTr("Error parsing image catalog"))
+            return false
         }
-        else if (lang_country.includes("_")) {
-            var lang = lang_country.substr(0, lang_country.indexOf("_"))
-            if ("os_list_"+lang in o) {
-                oslist = o["os_list_"+lang]
-            }
-        }
-
-        if (!oslist) {
-            if (!"os_list" in o) {
-                onError(qsTr("Error parsing os_list.json"))
-                return false
-            }
-
-            oslist = o["os_list"]
-        }
-
         checkForRandom(oslist)
-
-        /* Flatten subitems to subitems_json */
-        for (var i in oslist) {
-            var entry = oslist[i];
-            if ("subitems" in entry) {
-                entry["subitems_json"] = JSON.stringify(entry["subitems"])
-                delete entry["subitems"]
-            }
-        }
-
-        return oslist
+        return Catalog.flattenSubitems(oslist)
     }
 
     function selectNamedOS(name, collection)

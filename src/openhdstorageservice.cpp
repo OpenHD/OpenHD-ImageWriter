@@ -150,6 +150,11 @@ bool OpenHDStorageService::removeFile(const QString &filePath)
 
 bool OpenHDStorageService::hasSettingsCard()
 {
+    return !settingsDevice().isEmpty();
+}
+
+QVariantMap OpenHDStorageService::settingsDevice()
+{
     const auto devices = Drivelist::ListStorageDevices();
     const bool filterSystemDrives = DRIVELIST_FILTER_SYSTEM_DRIVES;
 
@@ -191,12 +196,18 @@ bool OpenHDStorageService::hasSettingsCard()
             if (QFileInfo::exists(settingsPath))
             {
                 qDebug() << "[OpenHDStorageService] OpenHD settings detected at" << settingsPath;
-                return true;
+                QVariantMap result;
+                result.insert(QStringLiteral("device"), QString::fromStdString(d.device));
+                result.insert(QStringLiteral("description"), QString::fromStdString(d.description));
+                result.insert(QStringLiteral("size"), QVariant::fromValue<qulonglong>(d.size));
+                result.insert(QStringLiteral("isReadOnly"), d.isReadOnly);
+                result.insert(QStringLiteral("mountpoints"), QStringList{mount});
+                return result;
             }
         }
     }
 
-    return false;
+    return {};
 }
 
 bool OpenHDStorageService::isOhdFile(const QUrl &url)

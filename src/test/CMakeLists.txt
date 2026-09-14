@@ -27,6 +27,7 @@ add_executable(openhd_backend_tests
     ../file_operations.cpp
     ${FILE_OPERATIONS_PLATFORM_SOURCE}
     ../ringbuffer.cpp
+    ../rockchipfirmwarelayout.cpp
     ../writeprogresswatchdog.cpp
     ../openhdimagecustomizer.cpp
     ../openhdstorageselector.cpp

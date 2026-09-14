@@ -36,15 +36,13 @@ Item {
                 subtitle: root.subtitle
             }
 
-            Button {
+            ModernActionButton {
                 text: qsTr("Refresh")
-                flat: true
                 onClicked: root.refreshRequested()
             }
 
-            Button {
-                text: qsTr("Back")
-                flat: true
+            PageBackButton {
+                compact: root.narrow
                 onClicked: root.backRequested()
             }
         }
@@ -87,8 +85,8 @@ Item {
             Layout.preferredHeight: 104
             visible: deviceList.count === 0
             radius: 8
-            color: "#0e2532"
-            border.color: "#294754"
+            color: "#152130"
+            border.color: "#263a4d"
 
             Column {
                 anchors.centerIn: parent

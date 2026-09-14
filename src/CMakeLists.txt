@@ -279,6 +279,7 @@ if (WIN32)
             "${CMAKE_CURRENT_SOURCE_DIR}/flash.qml"
             "${CMAKE_CURRENT_SOURCE_DIR}/configure.qml"
             "${CMAKE_CURRENT_SOURCE_DIR}/update.qml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/catalog.js"
             "${CMAKE_CURRENT_SOURCE_DIR}/MsgPopup.qml"
             "${CMAKE_CURRENT_SOURCE_DIR}/ImageOptionsPage.qml"
             "${CMAKE_CURRENT_SOURCE_DIR}/qtquickcontrols2.conf"
@@ -441,4 +442,10 @@ if(BUILD_TESTING)
         target_link_libraries(openhd_backend_tests PRIVATE ${OPENSSL_LIBRARIES})
     endif()
     add_test(NAME openhd_backend_characterization COMMAND openhd_backend_tests)
+
+    find_program(NODE_EXECUTABLE node)
+    if(NODE_EXECUTABLE)
+        add_test(NAME openhd_catalog_normalization
+            COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test/catalog_test.js")
+    endif()
 endif()

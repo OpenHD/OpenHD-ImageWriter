@@ -8,6 +8,9 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFileInfo>
+#include <QRegularExpression>
+
+#include <limits>
 
 namespace {
 
@@ -41,6 +44,101 @@ int layoutScore(const QString &relativeDirectory)
 
 } // namespace
 
+QList<RockchipPartition> parseBlockDeviceParts(const QByteArray &environmentContent)
+{
+    QList<RockchipPartition> partitions;
+    const QString text = QString::fromUtf8(environmentContent);
+    const int marker = text.indexOf(QStringLiteral("blkdevparts="));
+    if (marker == -1)
+        return partitions;
+
+    const int colon = text.indexOf(QLatin1Char(':'), marker);
+    if (colon == -1)
+        return partitions;
+
+    QString definition = text.mid(colon + 1);
+    const int lineEnd = definition.indexOf(QRegularExpression(QStringLiteral("[\\r\\n]")));
+    if (lineEnd != -1)
+        definition.truncate(lineEnd);
+
+    auto bytesToSectors = [](const QString &value, quint64 &sectors) {
+        QString number = value.trimmed();
+        quint64 multiplier = 1;
+        if (!number.isEmpty())
+        {
+            const QChar suffix = number.back().toUpper();
+            if (suffix == QLatin1Char('K') || suffix == QLatin1Char('M') || suffix == QLatin1Char('G'))
+            {
+                multiplier = suffix == QLatin1Char('K') ? 1024ULL
+                           : suffix == QLatin1Char('M') ? 1024ULL * 1024
+                                                       : 1024ULL * 1024 * 1024;
+                number.chop(1);
+            }
+        }
+
+        bool ok = false;
+        const quint64 numericValue = number.toULongLong(&ok, 0);
+        if (!ok || numericValue > (std::numeric_limits<quint64>::max)() / multiplier)
+            return false;
+        const quint64 bytes = numericValue * multiplier;
+        if ((bytes % 512) != 0)
+            return false;
+        sectors = bytes / 512;
+        return true;
+    };
+
+    quint64 nextOffset = 0;
+    const QStringList tokens = definition.split(QLatin1Char(','), Qt::SkipEmptyParts);
+    for (int tokenIndex = 0; tokenIndex < tokens.size(); ++tokenIndex)
+    {
+        const QString token = tokens.at(tokenIndex).trimmed();
+        const int openParen = token.indexOf(QLatin1Char('('));
+        const int closeParen = token.indexOf(QLatin1Char(')'), openParen + 1);
+        if (openParen <= 0 || closeParen != token.size() - 1)
+            return {};
+
+        const QString name = token.mid(openParen + 1, closeParen - openParen - 1).trimmed();
+        const QString sizeAndOffset = token.left(openParen).trimmed();
+        if (name.isEmpty() || sizeAndOffset.isEmpty())
+            return {};
+
+        const int at = sizeAndOffset.indexOf(QLatin1Char('@'));
+        const QString sizeText = at == -1 ? sizeAndOffset : sizeAndOffset.left(at).trimmed();
+        if (at != -1)
+        {
+            quint64 explicitOffset = 0;
+            if (!bytesToSectors(sizeAndOffset.mid(at + 1), explicitOffset))
+                return {};
+            nextOffset = explicitOffset;
+        }
+
+        quint64 size = 0;
+        if (sizeText != QStringLiteral("-") && !bytesToSectors(sizeText, size))
+            return {};
+        if (nextOffset > (std::numeric_limits<quint32>::max)() ||
+            size > (std::numeric_limits<quint32>::max)() ||
+            (size != 0 && nextOffset + size > (std::numeric_limits<quint32>::max)()))
+            return {};
+
+        RockchipPartition partition;
+        partition.name = name;
+        partition.offset = static_cast<quint32>(nextOffset);
+        partition.size = static_cast<quint32>(size);
+        partitions.append(partition);
+
+        if (size == 0)
+        {
+            if (tokenIndex != tokens.size() - 1)
+                return {};
+        }
+        else
+        {
+            nextOffset += size;
+        }
+    }
+    return partitions;
+}
+
 bool findRockchipFirmwareDirectory(const QString &extractionRoot,
                                    QString &firmwareDirectory,
                                    QString *errorMessage)
@@ -57,27 +155,27 @@ bool findRockchipFirmwareDirectory(const QString &extractionRoot,
     int bestScore = -1;
     bool ambiguous = false;
     QDirIterator iterator(extractionRoot,
-                          QStringList() << QStringLiteral("parameter.txt"),
+                          QStringList() << QStringLiteral("parameter.txt")
+                                        << QStringLiteral(".env.txt"),
                           QDir::Files | QDir::Readable,
                           QDirIterator::Subdirectories);
     while (iterator.hasNext())
     {
-        const QFileInfo parameter(iterator.next());
-        const QString relativeDirectory = root.relativeFilePath(parameter.absolutePath());
+        const QFileInfo metadata(iterator.next());
+        const QString relativeDirectory = root.relativeFilePath(metadata.absolutePath());
         const QString normalized = QDir::fromNativeSeparators(relativeDirectory);
-        if (normalized.split(QLatin1Char('/'), Qt::SkipEmptyParts).size() > 8 ||
-            !containsPartitionImage(parameter.absolutePath()))
+        if (!containsPartitionImage(metadata.absolutePath()))
             continue;
 
         const int score = layoutScore(normalized);
         if (score > bestScore)
         {
             bestScore = score;
-            firmwareDirectory = parameter.absolutePath();
+            firmwareDirectory = metadata.absolutePath();
             ambiguous = false;
         }
         else if (score == bestScore &&
-                 QDir(firmwareDirectory).absolutePath() != QDir(parameter.absolutePath()).absolutePath())
+                 QDir(firmwareDirectory).absolutePath() != QDir(metadata.absolutePath()).absolutePath())
         {
             ambiguous = true;
         }
@@ -86,7 +184,7 @@ bool findRockchipFirmwareDirectory(const QString &extractionRoot,
     if (firmwareDirectory.isEmpty())
     {
         if (errorMessage)
-            *errorMessage = QStringLiteral("The package does not contain parameter.txt together with partition images.");
+            *errorMessage = QStringLiteral("The package does not contain Rockchip partition metadata together with partition images.");
         return false;
     }
     if (ambiguous)

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-labelledby="title">
+  <title id="title">OpenHD monochrome white logo mark</title>
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="14">
+
+    <path d="M28 100 A72 72 0 0 1 100 28"/>
+    <path d="M49 100 A51 51 0 0 1 100 49"/>
+    <path d="M70 100 A30 30 0 0 1 100 70"/>
+
+
+    <path d="M100 172 A72 72 0 0 0 172 100"/>
+    <path d="M100 151 A51 51 0 0 0 151 100"/>
+    <path d="M100 130 A30 30 0 0 0 130 100"/>
+
+  </g>
+</svg>

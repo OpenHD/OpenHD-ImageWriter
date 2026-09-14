@@ -480,8 +480,39 @@ bool testRockchipFirmwareLayoutDiscovery()
 
     QTemporaryDir incompletePackage;
     writeFile(incompletePackage.filePath("parameter.txt"), "partition table only");
-    return check(!findRockchipFirmwareDirectory(incompletePackage.path(), detected, &error),
-                 "A firmware directory without partition images was accepted");
+    if (!check(!findRockchipFirmwareDirectory(incompletePackage.path(), detected, &error),
+               "A firmware directory without partition images was accepted"))
+        return false;
+
+    QTemporaryDir luckfoxPackage;
+    const QString luckfoxFirmware = luckfoxPackage.filePath("release/Luckfox_Aura_Buildroot_eMMC_260606");
+    const QByteArray environment =
+            "blkdevparts=mmcblk0:32K(env),512K@32K(idblock),4M(uboot),11M(boot),"
+            "1G(userdata),2G(oem),-(rootfs)\n";
+    if (!QDir().mkpath(luckfoxFirmware) ||
+        !writeFile(QDir(luckfoxFirmware).filePath(".env.txt"), environment) ||
+        !writeFile(QDir(luckfoxFirmware).filePath("boot.img"), QByteArray(512, '\0')))
+        return check(false, "Could not create Luckfox firmware fixture");
+
+    if (!check(findRockchipFirmwareDirectory(luckfoxPackage.path(), detected, &error),
+               "Nested Luckfox .env.txt layout was not detected") ||
+        !check(QDir(detected).absolutePath() == QDir(luckfoxFirmware).absolutePath(),
+               "Wrong Luckfox firmware directory was selected"))
+        return false;
+
+    const QList<RockchipPartition> partitions = parseBlockDeviceParts(environment);
+    return check(partitions.size() == 7, "Luckfox partition metadata was not parsed") &&
+           check(partitions.at(0).name == "env" && partitions.at(0).offset == 0 &&
+                     partitions.at(0).size == 0x40,
+                 "Luckfox env partition geometry is wrong") &&
+           check(partitions.at(1).name == "idblock" && partitions.at(1).offset == 0x40 &&
+                     partitions.at(1).size == 0x400,
+                 "Luckfox explicit partition offset is wrong") &&
+           check(partitions.at(3).name == "boot" && partitions.at(3).offset == 0x2440,
+                 "Luckfox implicit partition offsets are wrong") &&
+           check(partitions.at(6).name == "rootfs" && partitions.at(6).offset == 0x607c40 &&
+                     partitions.at(6).size == 0,
+                 "Luckfox trailing rootfs partition geometry is wrong");
 }
 
 } // namespace

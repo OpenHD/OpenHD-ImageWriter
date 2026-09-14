@@ -136,6 +136,7 @@ public:
     Q_INVOKABLE bool removeFile(const QString &filePath) const;
     Q_INVOKABLE QString validatePremiumCertificate(const QString &filePath) const;
     Q_INVOKABLE bool hasOpenHdSettingsCard() const;
+    Q_INVOKABLE QVariantMap openHdSettingsDevice() const;
 
     Q_INVOKABLE bool getBoolSetting(const QString &key);
     Q_INVOKABLE QString getValue(const QString &key);
@@ -178,6 +179,7 @@ signals:
     void cancelled();
     void finalizing();
     void networkOnline();
+    void cacheChanged();
     void preparationStatusUpdate(QVariant msg);
     void updateUploadProgress(QVariant percentage);
     void updateUploadStatus(QVariant msg);

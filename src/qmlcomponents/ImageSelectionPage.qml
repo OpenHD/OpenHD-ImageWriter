@@ -1,11 +1,11 @@
-﻿import QtQuick 2.9
+import QtQuick 2.9
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
 Item {
     id: root
 
-    // ─── Public API ───────────────────────────────────────────────────────────
+    // --- Public API -----------------------------------------------------------
     property var  sourceModel: null
     property bool rootLevel: true
     property string categoryName: ""
@@ -15,7 +15,7 @@ Item {
     property string userDefinedTitle: qsTr("Use custom image")
     property string formatTitle:      qsTr("Erase / Format")
 
-    // Tab index (Official=0, Developer=1, Local=2) — only at root level
+    // Tab index (Official=0, Developer=1, Local=2) � only at root level
     property int activeTab: 0
 
     readonly property bool narrow: width < 520
@@ -41,7 +41,7 @@ Item {
             itemSelected(sourceModel.get(0))
     }
 
-    // ─── Platform icon resolver ───────────────────────────────────────────────
+    // --- Platform icon resolver -----------------------------------------------
     // Maps keywords found in entry names/descriptions to bundled platform icons.
     // YAML icon fields are intentionally ignored here; the application controls presentation.
     function platformIcon(name, desc) {
@@ -54,55 +54,36 @@ Item {
          || s.indexOf("intel") >= 0
          || s.indexOf("amd") >= 0
          || s.indexOf("laptop") >= 0
-         || s.indexOf("computer") >= 0)         return "../icons/platforms/x86.svg"
+         || s.indexOf("computer") >= 0)         return "../icons/manufacturers/x86-mono.svg"
         if (s.indexOf("openhd") >= 0
          || s.indexOf("custom hardware") >= 0)  return "../icons/platforms/openhd.svg"
-        return "../icons/platforms/generic-sbc.svg"
+        return "../icons/manufacturers/more-mono.svg"
     }
 
     Keys.onEscapePressed: goBack()
 
-    // ─── Background ───────────────────────────────────────────────────────────
+    // --- Background -----------------------------------------------------------
     Rectangle { anchors.fill: parent; color: "#0d1b26" }
 
-    // ─── Back breadcrumb (sub-category only) ──────────────────────────────────
+    // --- Back breadcrumb (sub-category only) ----------------------------------
     Item {
         id: breadcrumb
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        height: !root.rootLevel ? 36 : 0
+        height: !root.rootLevel ? 52 : 0
         visible: !root.rootLevel
 
-        Row {
+        PageBackButton {
             anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            anchors.leftMargin: 14
-            spacing: 4
-
-            Text {
-                text: "‹"
-                color: "#4a9eff"
-                font.pixelSize: 16
-                anchors.verticalCenter: parent.verticalCenter
-            }
-            Text {
-                text: qsTr("Back")
-                color: "#4a9eff"
-                font.pixelSize: 13
-                anchors.verticalCenter: parent.verticalCenter
-
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.margins: -6
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.goBack()
-                }
-            }
+            anchors.right: parent.right
+            anchors.rightMargin: 14
+            compact: root.narrow
+            onClicked: root.goBack()
         }
     }
 
-    // ─── Page header ──────────────────────────────────────────────────────────
+    // --- Page header ----------------------------------------------------------
     Item {
         id: pageHeader
         anchors.top: breadcrumb.bottom
@@ -134,7 +115,7 @@ Item {
         }
     }
 
-    // ─── Segmented tab control ────────────────────────────────────────────────
+    // --- Segmented tab control ------------------------------------------------
     Item {
         id: tabBar
         anchors.top: pageHeader.bottom
@@ -145,7 +126,7 @@ Item {
         height: root.rootLevel ? 36 : 0
         visible: root.rootLevel
 
-        // Outer container — the segmented pill
+        // Outer container � the segmented pill
         Rectangle {
             id: tabPill
             anchors.left: parent.left
@@ -214,7 +195,7 @@ Item {
         }
     }
 
-    // ─── Spacer between tab and list ─────────────────────────────────────────
+    // --- Spacer between tab and list -----------------------------------------
     Item {
         id: spacer
         anchors.top: tabBar.bottom
@@ -223,7 +204,7 @@ Item {
         height: 8
     }
 
-    // ─── Grouped list panel ───────────────────────────────────────────────────
+    // --- Grouped list panel ---------------------------------------------------
     Rectangle {
         id: listPanel
         anchors.top: spacer.bottom
@@ -234,7 +215,7 @@ Item {
         anchors.rightMargin: 16
         anchors.bottomMargin: 12
         radius: 6
-        color: "#0f2030"
+        color: "#152130"
         border.color: "#1e3347"
         border.width: 1
         clip: true
@@ -322,7 +303,7 @@ Item {
                     }
                 }
 
-                // ─── Utility section: "Use custom" + "Erase/Format" ───────────
+                // --- Utility section: "Use custom" + "Erase/Format" -----------
                 // These appear in the "Local Images" tab at root level
                 Item {
                     width: listScroll.width
@@ -355,7 +336,9 @@ Item {
                             width: parent.width
                             title: entry ? utTitle : ""
                             description: entry ? entry.description : ""
-                            iconSource: index === 0 ? "../icons/use_custom.png" : "../icons/erase.png"
+                            iconSource: index === 0
+                                        ? "../icons/ui/custom-image-folder-file.svg"
+                                        : "../icons/ui/erase-format-trash.svg"
                             showSeparator: index === 0
                             onClicked: {
                                 if (entry) root.itemSelected(entry)

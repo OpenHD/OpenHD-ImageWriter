@@ -124,10 +124,47 @@ static inline void _checkResult(int r, struct archive *a)
         throw runtime_error(archive_error_string(a));
 }
 
+struct NestedArchiveReadContext
+{
+    explicit NestedArchiveReadContext(struct archive *source)
+        : outer(source), buffer(IMAGEWRITER_UNCOMPRESSED_BLOCKSIZE, Qt::Uninitialized)
+    {
+    }
+
+    struct archive *outer;
+    QByteArray buffer;
+};
+
+static la_ssize_t _readNestedArchive(struct archive *, void *clientData,
+                                     const void **buffer)
+{
+    NestedArchiveReadContext *context =
+            static_cast<NestedArchiveReadContext *>(clientData);
+    const la_ssize_t size = archive_read_data(context->outer,
+                                              context->buffer.data(),
+                                              context->buffer.size());
+    if (size > 0)
+        *buffer = context->buffer.constData();
+    return size;
+}
+
+static bool _isNestedImageArchive(const QString &filename)
+{
+    const QString lower = filename.toLower();
+    return lower.endsWith(QStringLiteral(".xz")) ||
+           lower.endsWith(QStringLiteral(".bz2")) ||
+           lower.endsWith(QStringLiteral(".gz")) ||
+           lower.endsWith(QStringLiteral(".zst")) ||
+           lower.endsWith(QStringLiteral(".7z")) ||
+           lower.endsWith(QStringLiteral(".zip"));
+}
+
 // libarchive thread
 void DownloadExtractThread::extractImageRun()
 {
     struct archive *a = archive_read_new();
+    struct archive *imageArchive = a;
+    struct archive *nestedArchive = nullptr;
     struct archive_entry *entry;
     int r;
 
@@ -143,15 +180,50 @@ void DownloadExtractThread::extractImageRun()
         if (!_abuf[0] || !_abuf[1])
             throw runtime_error("Unable to allocate image extraction buffers");
         _checkResult(r, a);
-        r = archive_read_next_header(a, &entry);
-        _checkResult(r, a);
+        // GitHub Actions always wraps uploaded files in an artifact ZIP. The
+        // uploaded OpenHD file is itself normally an .img.xz, so unwrap that
+        // second compression layer as a stream instead of writing XZ bytes to
+        // the target or requiring the user to extract it first.
+        do {
+            r = archive_read_next_header(a, &entry);
+            _checkResult(r, a);
+            if (r == ARCHIVE_EOF)
+                throw runtime_error("Archive does not contain a disk image");
+        } while (archive_entry_filetype(entry) == AE_IFDIR);
+
+        const char *entryPath = archive_entry_pathname_utf8(entry);
+        if (!entryPath)
+            entryPath = archive_entry_pathname(entry);
+        const QString entryName = QString::fromUtf8(entryPath ? entryPath : "");
+
+        NestedArchiveReadContext nestedContext(a);
+        if (_isNestedImageArchive(entryName))
+        {
+            nestedArchive = archive_read_new();
+            archive_read_support_filter_all(nestedArchive);
+            archive_read_support_format_zip(nestedArchive);
+            archive_read_support_format_7zip(nestedArchive);
+            archive_read_support_format_raw(nestedArchive);
+            r = archive_read_open(nestedArchive, &nestedContext, nullptr,
+                                  &_readNestedArchive, nullptr);
+            _checkResult(r, nestedArchive);
+
+            do {
+                r = archive_read_next_header(nestedArchive, &entry);
+                _checkResult(r, nestedArchive);
+                if (r == ARCHIVE_EOF)
+                    throw runtime_error("Nested archive does not contain a disk image");
+            } while (archive_entry_filetype(entry) == AE_IFDIR);
+            imageArchive = nestedArchive;
+        }
+
         quint64 extractedBytes = 0;
 
         while (true)
         {
-            ssize_t size = archive_read_data(a, _abuf[_activeBuf], _abufsize);
+            ssize_t size = archive_read_data(imageArchive, _abuf[_activeBuf], _abufsize);
             if (size < 0)
-                throw runtime_error(archive_error_string(a));
+                throw runtime_error(archive_error_string(imageArchive));
             if (size == 0)
                 break;
             extractedBytes += static_cast<quint64>(size);
@@ -166,6 +238,8 @@ void DownloadExtractThread::extractImageRun()
                         DownloadThread::cancelDownload();
                         emit error(tr("Error writing to storage"));
                     }
+                    if (nestedArchive)
+                        archive_read_free(nestedArchive);
                     archive_read_free(a);
                     return;
                 }
@@ -196,15 +270,33 @@ void DownloadExtractThread::extractImageRun()
                 throw runtime_error("Error writing final image padding to storage");
         }
 
-        r = archive_read_next_header(a, &entry);
+        r = archive_read_next_header(imageArchive, &entry);
         if (r != ARCHIVE_EOF)
             throw runtime_error("Disk-image archive contains more than one entry");
+
+        if (nestedArchive)
+        {
+            archive_read_free(nestedArchive);
+            nestedArchive = nullptr;
+            imageArchive = a;
+        }
+
+        // Directory records in the outer artifact are harmless, but a second
+        // regular file is ambiguous and must not be silently flashed.
+        do {
+            r = archive_read_next_header(a, &entry);
+            _checkResult(r, a);
+        } while (r != ARCHIVE_EOF && archive_entry_filetype(entry) == AE_IFDIR);
+        if (r != ARCHIVE_EOF)
+            throw runtime_error("Disk-image archive contains more than one file");
         if (_cancelled)
             throw runtime_error("Image extraction cancelled");
         _writeComplete();
     }
     catch (exception &e)
     {
+        if (nestedArchive)
+            archive_read_free(nestedArchive);
         if (!_cancelled)
         {
             // Fatal error

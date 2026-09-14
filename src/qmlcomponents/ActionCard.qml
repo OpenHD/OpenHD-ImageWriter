@@ -16,14 +16,14 @@ Button {
 
     background: Rectangle {
         radius: 10
-        color: !root.enabled ? "#10242f"
-              : root.down ? "#102e40"
-              : root.hovered ? "#112d3d"
-              : "#0e2734"
+        color: !root.enabled ? "#0f1823"
+              : root.down ? "#132738"
+              : root.hovered ? "#1a2e40"
+              : "#152130"
         border.color: root.activeFocus ? "#62b7ff"
                     : root.primaryAction && root.enabled ? "#168df3"
-                    : root.hovered ? "#3b6579"
-                    : "#294654"
+                    : root.hovered ? "#2a6fa8"
+                    : "#1e3347"
         border.width: root.primaryAction && root.enabled ? 2 : 1
 
         Behavior on color { ColorAnimation { duration: 110 } }

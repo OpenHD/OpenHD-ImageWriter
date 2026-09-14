@@ -9,6 +9,7 @@
 #include <QString>
 #include <QUrl>
 #include <QVariantList>
+#include <QVariantMap>
 
 /*
  * OpenHD-specific storage discovery and file operations.
@@ -28,6 +29,7 @@ public:
     static bool removeFile(const QString &filePath);
 
     static bool hasSettingsCard();
+    static QVariantMap settingsDevice();
     static bool isOhdFile(const QUrl &url);
     static QString findFatPartition(const QString &device);
 

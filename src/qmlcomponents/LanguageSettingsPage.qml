@@ -40,9 +40,7 @@ Item {
                 subtitle: qsTr("Choose the language used throughout OpenHD ImageWriter.")
             }
 
-            Button {
-                text: qsTr("Back")
-                flat: true
+            PageBackButton {
                 onClicked: root.backRequested()
             }
         }

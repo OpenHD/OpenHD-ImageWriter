@@ -23,7 +23,7 @@
 #define DRIVELIST_FILTER_SYSTEM_DRIVES    true
 
 /* Update progressbar every 0.1 second */
-#define PROGRESS_UPDATE_INTERVAL          100
+#define PROGRESS_UPDATE_INTERVAL          200
 
 /* Block size used for writes (currently used when using .zip images only) */
 #define IMAGEWRITER_BLOCKSIZE             1*1024*1024

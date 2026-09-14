@@ -10,13 +10,14 @@ import QtQuick.Layouts 1.0
 import QtQuick.Controls.Material 2.2
 import Qt.labs.settings 1.0
 import "qmlcomponents"
+import "catalog.js" as Catalog
 
 
 
 Rectangle {
     id: window
     anchors.fill: parent
-    color: "#0c202c"
+    color: "#0d1b26"
 
     FontLoader {id: roboto;      source: "fonts/Roboto-Regular.ttf"}
     FontLoader {id: robotoLight; source: "fonts/Roboto-Light.ttf"}
@@ -34,6 +35,9 @@ Rectangle {
     property bool reviewingOperation: false
     property string fleetControlProfileName: ""
     property bool completionHandled: false
+    property double selectedTargetSize: 0
+    property string selectedImagePlatform: ""
+    readonly property bool selectedImageRequiresRockchip: selectedImagePlatform === "x21"
     readonly property bool operationInProgress: progressBar.visible
 
     Connections {
@@ -305,14 +309,14 @@ Rectangle {
                             font.pixelSize: 11
                         }
 
-                        Button {
+                        ModernActionButton {
                             visible: cancelwritebutton.visible
                             enabled: cancelwritebutton.enabled
                             text: qsTr("Cancel write")
                             onClicked: cancelwritebutton.clicked()
                         }
 
-                        Button {
+                        ModernActionButton {
                             visible: cancelverifybutton.visible
                             enabled: cancelverifybutton.enabled
                             text: qsTr("Skip verification")
@@ -353,8 +357,9 @@ Rectangle {
                     }
                 }
 
-                Button {
+                ModernActionButton {
                     text: qsTr("Configure")
+                    primary: true
                     onClicked: optionsPage.openPage()
                 }
             }
@@ -386,10 +391,13 @@ Rectangle {
         property bool rootLevel: osswipeview.currentIndex === 0
         property string categoryName: imageCatalog.categorySelected
         property int activeTab: 0
+        property bool officialCatalogLoading: imageWriter.isOnline()
         property bool githubDevLoading: false
         property string githubDevError: ""
         property int githubDevImageCount: 0
         property int githubDevRequestId: 0
+        readonly property bool fleetControlSignedIn:
+            mainWindow ? mainWindow.fleetControlSignedIn : false
 
         readonly property string githubArtifactsApi:
             "https://openhd.tech/api/imagewriter/github/artifacts"
@@ -433,13 +441,13 @@ Rectangle {
                 s.indexOf("intel") >= 0 ||
                 s.indexOf("amd") >= 0 ||
                 s.indexOf("computer") >= 0)
-                return "icons/platforms/x86.svg"
+                return "icons/manufacturers/x86-mono.svg"
 
             if (s.indexOf("openhd") >= 0 ||
                 s.indexOf("custom hardware") >= 0)
                 return "icons/platforms/openhd.svg"
 
-            return "icons/platforms/generic-sbc.svg"
+            return "icons/manufacturers/more-mono.svg"
         }
 
         function githubArtifactKey(name) {
@@ -449,8 +457,6 @@ Rectangle {
 
         function isFlashableGithubArtifact(name) {
             var value = String(name || "").toLowerCase()
-            if (value.indexOf("x21b") >= 0)
-                return false
             return value.indexOf("openhd-image-") === 0 ||
                    value.indexOf("openhd-lite-image-") === 0 ||
                    value.indexOf("openhd-rpi5-") === 0
@@ -458,8 +464,11 @@ Rectangle {
 
         function clearGithubDevImages() {
             for (var i = osmodel.count - 3; i >= 0; --i) {
-                var entryUrl = String(osmodel.get(i).url || "")
-                if (entryUrl.indexOf(githubArtifactsApi) === 0)
+                var entry = osmodel.get(i)
+                var entryUrl = String(entry.url || "")
+                if (String(entry.catalog_source || "") === "fleetcontrol" ||
+                        entryUrl.indexOf(githubArtifactsApi) === 0 ||
+                        entryUrl.indexOf("https://dl.cloudsmith.io/public/openhd/") === 0)
                     osmodel.remove(i)
             }
             githubDevImageCount = 0
@@ -504,6 +513,7 @@ Rectangle {
             })
 
             var latest = {}
+            var images = []
             for (var i = 0; i < artifacts.length; ++i) {
                 var artifact = artifacts[i]
                 if (!isFlashableGithubArtifact(artifact.name))
@@ -515,18 +525,22 @@ Rectangle {
                 latest[key] = true
 
                 var created = String(artifact.created_at || "").substring(0, 10)
-                osmodel.insert(osmodel.count - 2, {
+                var source = String(artifact.source || "github")
+                images.push({
                     "url": String(artifact.archive_download_url),
                     "icon": "",
+                    "channel": "development",
                     "extract_size": 0,
                     "image_download_size": Number(artifact.size_in_bytes || 0),
-                    "extract_sha256": "",
+                    "extract_sha256": String(artifact.extract_sha256 || ""),
                     "contains_multiple_files": false,
                     "release_date": created,
                     "subitems_url": "",
                     "subitems_json": "",
                     "name": String(artifact.name),
-                    "description": qsTr("Latest dev-release image from GitHub Actions - %1").arg(created),
+                    "description": source === "cloudsmith"
+                                   ? qsTr("X21 developer firmware from Cloudsmith - %1").arg(created)
+                                   : qsTr("Latest dev-release image from GitHub Actions - %1").arg(created),
                     "tooltip": "",
                     "website": String(artifact.url || ""),
                     "init_format": "systemd"
@@ -534,11 +548,23 @@ Rectangle {
                 githubDevImageCount++
             }
 
+            var groups = Catalog.normalise(images, Qt.locale().name)
+            if (groups !== null) {
+                groups = Catalog.flattenSubitems(groups)
+                for (var groupIndex = 0; groupIndex < groups.length; ++groupIndex) {
+                    groups[groupIndex].catalog_source = "fleetcontrol"
+                    osmodel.insert(osmodel.count - 2, groups[groupIndex])
+                }
+            }
+
             if (githubDevImageCount === 0)
                 githubDevError = qsTr("No current dev-release image artifacts were found.")
         }
 
         function refreshGithubDevImages() {
+            if (!fleetControlSignedIn)
+                return
+
             var requestId = ++githubDevRequestId
             clearGithubDevImages()
             githubDevError = ""
@@ -556,6 +582,27 @@ Rectangle {
             })
         }
 
+        Component.onCompleted: {
+            // Session restoration is owned by main.qml. Starting another
+            // request here could race it and briefly save false before true.
+            if (fleetControlSignedIn)
+                refreshGithubDevImages()
+        }
+
+        onFleetControlSignedInChanged: {
+            if (!fleetControlSignedIn) {
+                activeTab = 0
+                osswipeview.currentIndex = 0
+                imageCatalog.categorySelected = ""
+                githubDevRequestId++
+                githubDevLoading = false
+                githubDevError = ""
+                clearGithubDevImages()
+            } else if (!githubDevLoading && githubDevImageCount === 0) {
+                refreshGithubDevImages()
+            }
+        }
+
         function goBack() {
             if (rootLevel) {
                 if (mainWindow && mainWindow.showHome)
@@ -571,62 +618,23 @@ Rectangle {
 
         Rectangle {
             anchors.fill: parent
-            color: "#0c202c"
+            color: "#0d1b26"
         }
 
-        // Keep the complete selector compact and left aligned like ImageWriter v3.
+        // Use the available width while keeping the selector comfortable on very
+        // large displays.
         Item {
             id: selectorContent
 
-            anchors.top: parent.top
-            anchors.left: parent.left
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
 
-            anchors.topMargin: 10
-            anchors.leftMargin: 14
+            readonly property real desiredHeight:
+                selectorHeader.implicitHeight + 8 + releaseTabs.height +
+                (imageSelectionPage.rootLevel ? 8 : 10) + imageCardGrid.naturalHeight
 
-            width: Math.min(parent.width - 28, 760)
-            height: parent.height - 20
-
-            // -------------------------------------------------------------
-            // Back link for nested release lists
-            // -------------------------------------------------------------
-
-            Item {
-                id: selectorBreadcrumb
-
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-
-                height: imageSelectionPage.rootLevel ? 0 : 26
-                visible: !imageSelectionPage.rootLevel
-
-                Row {
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 4
-
-                    Text {
-                        text: "‹"
-                        color: "#57aafa"
-                        font.pixelSize: 16
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
-                    Text {
-                        text: qsTr("Back")
-                        color: "#57aafa"
-                        font.pixelSize: 12
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: imageSelectionPage.goBack()
-                }
-            }
+            width: Math.min(parent.width - 28, 1240)
+            height: Math.min(parent.height - 20, desiredHeight)
 
             // -------------------------------------------------------------
             // Header
@@ -635,30 +643,112 @@ Rectangle {
             Column {
                 id: selectorHeader
 
-                anchors.top: selectorBreadcrumb.bottom
+                anchors.top: parent.top
                 anchors.left: parent.left
+                anchors.right: parent.right
 
                 spacing: 2
 
-                Text {
-                    text:
-                        imageSelectionPage.rootLevel ||
-                        imageSelectionPage.categoryName.length === 0
-                        ? qsTr("Choose an image")
-                        : imageSelectionPage.categoryName
+                Item {
+                    width: parent.width
+                    height: Math.max(selectorTitle.implicitHeight,
+                                     selectorRefresh.visible ? selectorRefresh.implicitHeight : 0,
+                                     selectorBack.visible ? selectorBack.implicitHeight : 0)
 
-                    color: "#f0f5f8"
+                    Text {
+                        id: selectorTitle
 
-                    font.pixelSize: 20
-                    font.bold: true
+                        anchors.left: parent.left
+                        anchors.right: selectorRefresh.visible
+                                       ? selectorRefresh.left
+                                       : (selectorBack.visible ? selectorBack.left : parent.right)
+                        anchors.rightMargin: selectorRefresh.visible || selectorBack.visible ? 12 : 0
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        text: qsTr("Choose an image")
+                        color: "#f0f5f8"
+                        font.pixelSize: 20
+                        font.bold: true
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        id: selectorRefresh
+
+                        anchors.right: selectorBack.visible ? selectorBack.left : parent.right
+                        anchors.rightMargin: selectorBack.visible ? 12 : 0
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        visible: imageSelectionPage.officialCatalogLoading ||
+                                 imageSelectionPage.githubDevLoading
+                        text: "↻"
+                        color: "#57aafa"
+                        font.pixelSize: 20
+                        transformOrigin: Item.Center
+
+                        RotationAnimation on rotation {
+                            running: selectorRefresh.visible
+                            from: 0
+                            to: 360
+                            duration: 900
+                            loops: Animation.Infinite
+                        }
+
+                        MouseArea {
+                            id: selectorRefreshMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            acceptedButtons: Qt.NoButton
+                        }
+
+                        ToolTip.visible: selectorRefreshMouse.containsMouse
+                        ToolTip.text: qsTr("Refreshing images")
+                    }
+
+                    PageBackButton {
+                        id: selectorBack
+
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: !imageSelectionPage.rootLevel
+                        compact: imageSelectionPage.width < 620
+                        onClicked: imageSelectionPage.goBack()
+
+                        Row {
+                            id: selectorBackRow
+                            visible: false
+                            anchors.fill: parent
+                            spacing: 4
+
+                            Text {
+                                text: "‹"
+                                color: "#57aafa"
+                                font.pixelSize: 20
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Text {
+                                text: qsTr("Back")
+                                color: "#57aafa"
+                                font.pixelSize: 13
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -6
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: imageSelectionPage.goBack()
+                        }
+                    }
                 }
 
                 Text {
+                    width: parent.width
                     text:
                         imageSelectionPage.rootLevel
-                        ? (fleetControlProfileName.length > 0
-                           ? qsTr("FleetControl profile '%1' is active. Select the image to write.").arg(fleetControlProfileName)
-                           : qsTr("Select the device or image you want to write."))
+                        ? qsTr("Select a hardware family, then choose the image to write.")
                         : qsTr("Choose the OpenHD release to use for this device.")
 
                     color: "#8ea7b7"
@@ -674,15 +764,17 @@ Rectangle {
             Rectangle {
                 id: releaseTabs
 
+                readonly property bool compactLabels: width < 520
+                readonly property bool iconOnly: width < 330
+
                 anchors.top: selectorHeader.bottom
                 anchors.left: parent.left
 
                 anchors.topMargin: 8
 
                 width: parent.width
-                height: imageSelectionPage.rootLevel ? 36 : 0
-
-                visible: imageSelectionPage.rootLevel
+                height: 40
+                visible: true
 
                 radius: 5
 
@@ -697,14 +789,17 @@ Rectangle {
 
                     Repeater {
                         model: [
-                            qsTr("Official Releases"),
-                            qsTr("Developer Versions"),
-                            qsTr("Local Images")
+                            { "label": qsTr("Official Releases"), "shortLabel": qsTr("Official"), "icon": "icons/ui/tab-download.svg" },
+                            { "label": qsTr("Developer Versions"), "shortLabel": qsTr("Developer"), "icon": "icons/ui/tab-code.svg" },
+                            { "label": qsTr("Local Images"), "shortLabel": qsTr("Local"), "icon": "icons/ui/drive.svg" }
                         ]
 
                         delegate: Item {
-                            width: releaseTabs.width / 3
+                            width: index === 1 && !imageSelectionPage.fleetControlSignedIn
+                                   ? 0
+                                   : releaseTabs.width / (imageSelectionPage.fleetControlSignedIn ? 3 : 2)
                             height: releaseTabs.height
+                            visible: index !== 1 || imageSelectionPage.fleetControlSignedIn
 
                             Rectangle {
                                 anchors.fill: parent
@@ -736,26 +831,42 @@ Rectangle {
                                     imageSelectionPage.activeTab !== index + 1
                             }
 
-                            Text {
+                            Row {
                                 anchors.centerIn: parent
+                                spacing: 6
 
-                                text: modelData
+                                Image {
+                                    width: releaseTabs.iconOnly ? 19 : 16
+                                    height: width
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    source: modelData.icon
+                                    fillMode: Image.PreserveAspectFit
+                                }
 
-                                color:
-                                    imageSelectionPage.activeTab === index
-                                    ? "#ffffff"
-                                    : "#b5c4ce"
-
-                                font.pixelSize: 12
-                                font.bold:
-                                    imageSelectionPage.activeTab === index
+                                Text {
+                                    visible: !releaseTabs.iconOnly
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: releaseTabs.compactLabels
+                                          ? modelData.shortLabel : modelData.label
+                                    color: imageSelectionPage.activeTab === index
+                                           ? "#ffffff" : "#b5c4ce"
+                                    font.pixelSize: 12
+                                    font.bold: imageSelectionPage.activeTab === index
+                                }
                             }
 
                             MouseArea {
                                 anchors.fill: parent
+                                hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
+                                ToolTip.visible: containsMouse && releaseTabs.iconOnly
+                                ToolTip.text: modelData.label
                                 onClicked: {
                                     imageSelectionPage.activeTab = index
+                                    if (!imageSelectionPage.rootLevel) {
+                                        osswipeview.currentIndex = 0
+                                        imageCatalog.categorySelected = ""
+                                    }
                                     if (index === 1)
                                         imageSelectionPage.refreshGithubDevImages()
                                 }
@@ -771,8 +882,8 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.topMargin: 8
                 width: parent.width
-                height: imageSelectionPage.rootLevel && imageSelectionPage.activeTab === 1 ? 58 : 0
-                visible: height > 0
+                height: 0
+                visible: false
                 radius: 5
                 color: "#102532"
                 border.width: 1
@@ -790,7 +901,7 @@ Rectangle {
                         text: qsTr("GitHub access is managed by your FleetControl account")
                     }
 
-                    Button {
+                    ModernActionButton {
                         text: qsTr("Open FleetControl")
                         onClicked: {
                             Qt.openUrlExternally("https://openhd.tech/")
@@ -805,6 +916,7 @@ Rectangle {
 
             Rectangle {
                 id: imageListPanel
+                visible: false
 
                 anchors.top:
                     imageSelectionPage.rootLevel
@@ -892,7 +1004,7 @@ Rectangle {
                         }
 
                         // -------------------------------------------------
-                        // Remote / YAML generated entries
+                        // Remote catalog entries (grouped and sorted by ImageWriter)
                         // -------------------------------------------------
 
                         Item {
@@ -942,21 +1054,24 @@ Rectangle {
                                     : ""
 
                                 readonly property bool developerEntry:
+                                    (entry && String(entry.channel || "").toLowerCase() === "development") ||
                                     searchText.indexOf("beta") >= 0 ||
                                     searchText.indexOf("nightly") >= 0 ||
                                     searchText.indexOf("dev") >= 0 ||
                                     searchText.indexOf("snapshot") >= 0
 
                                 readonly property bool githubArtifact:
-                                    entry && String(entry.url || "").indexOf(
-                                        imageSelectionPage.githubArtifactsApi) === 0
+                                    entry && (String(entry.url || "").indexOf(
+                                        imageSelectionPage.githubArtifactsApi) === 0 ||
+                                        String(entry.url || "").indexOf(
+                                        "https://dl.cloudsmith.io/public/openhd/") === 0)
 
                                 visible:
                                     !imageSelectionPage.rootLevel ||
                                     (imageSelectionPage.activeTab === 0 &&
                                      !developerEntry && !githubArtifact) ||
                                     (imageSelectionPage.activeTab === 1 &&
-                                     githubArtifact)
+                                     (developerEntry || githubArtifact))
 
                                 width: imageListScroll.width
                                 height: visible ? 52 : 0
@@ -1008,7 +1123,9 @@ Rectangle {
                                             sourceSize.height: 72
 
                                             source:
-                                                imageSelectionPage.platformIcon(
+                                                remoteEntryContainer.entry && remoteEntryContainer.entry.icon
+                                                ? remoteEntryContainer.entry.icon
+                                                : imageSelectionPage.platformIcon(
                                                     remoteEntryContainer.entry
                                                     ? remoteEntryContainer.entry.name
                                                     : "",
@@ -1158,8 +1275,8 @@ Rectangle {
 
                                             source:
                                                 index === 0
-                                                ? "icons/use_custom.png"
-                                                : "icons/erase.png"
+                                                ? "icons/ui/custom-image-folder-file.svg"
+                                                : "icons/ui/erase-format-trash.svg"
 
                                             fillMode: Image.PreserveAspectFit
                                             smooth: true
@@ -1239,6 +1356,29 @@ Rectangle {
                     }
                 }
             }
+
+            ImageCardGrid {
+                id: imageCardGrid
+
+                anchors.top: releaseTabs.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.topMargin: imageSelectionPage.rootLevel ? 8 : 10
+                height: Math.min(naturalHeight, Math.max(0, parent.height - y))
+
+                sourceModel: imageSelectionPage.sourceModel
+                rootLevel: imageSelectionPage.rootLevel
+                activeTab: imageSelectionPage.activeTab
+                mainItemCount: imageSelectionPage.mainItemCount
+                sourceCount: imageSelectionPage.sourceCount
+                includeDevelopment: imageSelectionPage.fleetControlSignedIn
+                catalogLoading: imageSelectionPage.officialCatalogLoading
+                developerLoading: imageSelectionPage.githubDevLoading
+                developerError: imageSelectionPage.githubDevError
+                developerApi: imageSelectionPage.githubArtifactsApi
+
+                onItemSelected: selectOSitem(item)
+            }
         }
     }
 
@@ -1249,7 +1389,9 @@ Rectangle {
         z: 2
         deviceModel: driveListModel
         title: qsTr("Choose a target device")
-        subtitle: qsTr("Select the SD card, USB drive, or supported OpenHD device to overwrite.")
+        subtitle: selectedImageRequiresRockchip
+                  ? qsTr("Connect the OpenHD X21 by USB in MaskROM or Loader mode, then select it below.")
+                  : qsTr("Select the SD card, USB drive, or supported OpenHD device to overwrite.")
         onDeviceSelected: {
             selectDstItem(device)
         }
@@ -1270,18 +1412,33 @@ Rectangle {
         enabled: visible
         z: 2
         title: qsTr("Review image write")
-        subtitle: qsTr("Make sure the selected image and destination are correct.")
+        subtitle: qsTr("Check your selection and configure the write options before continuing.")
         sourceName: osbutton.text
+        sourceDetail: String(imageWriter.src())
         targetName: dstbutton.text
+        targetDetail: imageWriter.dst() + (selectedTargetSize > 0
+                      ? "  \u2022  " + formatReviewSize(selectedTargetSize) : "")
         confirmText: qsTr("Erase target and write")
+        configurationRequired: true
+        configurationComplete: optionsPage.configurationApplied
         onBackRequested: {
             reviewingOperation = false
             selectingTarget = true
             imageWriter.startDriveListPolling()
         }
-        onConfirmed: {
+        onChangeSourceRequested: {
             reviewingOperation = false
-            startWriteNow()
+            openImageSelector()
+        }
+        onChangeTargetRequested: {
+            reviewingOperation = false
+            selectingTarget = true
+            imageWriter.startDriveListPolling()
+        }
+        onConfigureRequested: optionsPage.openPage()
+        onConfirmed: {
+            if (optionsPage.configurationApplied)
+                writeConfirmPopup.openPopup()
         }
     }
 
@@ -1291,7 +1448,7 @@ Rectangle {
         imageCatalog.categorySelected = ""
         resetOpenHdSettingsForNewImage()
         fleetControlProfileName = ""
-        optionsPage.initialized = false
+        optionsPage.resetPage()
         selectingImage = true
     }
 
@@ -1301,7 +1458,7 @@ Rectangle {
 
         imageCatalog.categorySelected = ""
         fleetControlProfileName = profileName || ""
-        optionsPage.initialized = false
+        optionsPage.resetPage()
         selectingImage = true
         selectingTarget = false
         reviewingOperation = false
@@ -1316,14 +1473,18 @@ Rectangle {
         selectingImage = true
         selectingTarget = false
         reviewingOperation = false
+        resetOpenHdSettingsForNewImage()
+        optionsPage.resetPage()
 
         imageWriter.stopDriveListPolling()
-
-        if (optionsPage.visible)
-            optionsPage.close()
     }
 
     function startWriteNow() {
+        if (!optionsPage.configurationApplied) {
+            reviewingOperation = true
+            return
+        }
+
         completionHandled = false
         rockchipFinalizationFallback.stop()
         langbar.visible = false
@@ -1397,7 +1558,7 @@ Rectangle {
 
 
         Rectangle {
-            color: "#0c202c"
+            color: "#0d1b26"
             Layout.fillWidth: true
             Layout.fillHeight: true
 
@@ -1744,7 +1905,7 @@ Rectangle {
 
         ListElement {
             url: "internal://format"
-            icon: "icons/erase.png"
+            icon: "icons/ui/erase-format-trash.svg"
             extract_size: 0
             image_download_size: 0
             extract_sha256: ""
@@ -1761,7 +1922,7 @@ Rectangle {
 
         ListElement {
             url: ""
-            icon: "icons/use_custom.png"
+            icon: "icons/ui/custom-image-folder-file.svg"
             name: qsTr("Use custom")
             description: qsTr("Select a custom .img from your computer")
         }
@@ -1785,6 +1946,30 @@ Rectangle {
         text: qsTr("OpenHD ImageWriter is still busy.<br>Are you sure you want to quit?")
         onYes: {
             Qt.quit()
+        }
+    }
+
+    MsgPopup {
+        id: writeConfirmPopup
+        continueButton: false
+        yesButton: true
+        noButton: true
+        title: qsTr("Erase and write image?")
+        text: qsTr("All existing data on <b>%1</b> will be permanently erased.<br><br>Write <b>%2</b> to this device?")
+              .arg(dstbutton.text).arg(osbutton.text)
+        onYes: {
+            reviewingOperation = false
+            // Let the modal popup release its input grab before starting
+            // decompression and device I/O. Starting synchronously from the
+            // popup button can leave a frameless window looking inactive and
+            // unable to begin a native window drag until the event loop runs.
+            Qt.callLater(function() {
+                if (mainWindow) {
+                    mainWindow.raise()
+                    mainWindow.requestActivate()
+                }
+                startWriteNow()
+            })
         }
     }
 
@@ -1853,7 +2038,7 @@ Rectangle {
     }
 
     /* Utility functions */
-    function httpRequest(url, callback) {
+    function httpRequest(url, callback, errorCallback) {
         var xhr = new XMLHttpRequest();
         xhr.timeout = 5000
         xhr.onreadystatechange = (function(x) {
@@ -1866,7 +2051,10 @@ Rectangle {
                     }
                     else
                     {
-                        onError(qsTr("Error downloading OS list from Internet"))
+                        if (errorCallback)
+                            errorCallback(x)
+                        else
+                            onError(qsTr("Error downloading OS list from Internet"))
                     }
                 }
             }
@@ -1959,6 +2147,17 @@ Rectangle {
         imageWriter.setSetting("camera2", "")
         imageWriter.setSetting("cameraResolution", "")
         imageWriter.setSetting("camera2Resolution", "")
+        imageWriter.setSetting("cameraPort", "")
+        imageWriter.setSetting("camera2Port", "")
+        imageWriter.setSetting("ipCameraAddress", "")
+        imageWriter.setSetting("ipCameraPipeline", "")
+        imageWriter.setSetting("camera2IpCameraAddress", "")
+        imageWriter.setSetting("camera2IpCameraPipeline", "")
+        imageWriter.setSetting("ipCameraBitrate", "")
+        imageWriter.setSetting("displayForceMode", false)
+        imageWriter.setSetting("displayWidth", "")
+        imageWriter.setSetting("displayHeight", "")
+        imageWriter.setSetting("displayRefreshHz", "")
         imageWriter.setSetting("mode", "")
         imageWriter.setSetting("hotSpot" , "")
         imageWriter.setSetting("beep", "")
@@ -1966,13 +2165,16 @@ Rectangle {
         imageWriter.setSetting("justUpdate", "")
         imageWriter.setSetting("qopenhdConfPath", "")
         imageWriter.setSetting("premiumCertificatePath", "")
+        imageWriter.setSetting("useSettings", true)
     }
 
     function resetWorkflowAfterSuccess() {
         resetOpenHdSettingsForNewImage()
-        optionsPage.initialized = false
+        optionsPage.resetPage()
         imageWriter.setSrc("")
         imageWriter.setDst("")
+        selectedTargetSize = 0
+        selectedImagePlatform = ""
         osbutton.text = qsTr("CHOOSE OS")
         dstbutton.text = qsTr("CHOOSE STORAGE")
 
@@ -2055,8 +2257,13 @@ Rectangle {
                 normalized = "file:///" + file.replace(/\\/g, "/")
             }
         }
+        resetOpenHdSettingsForNewImage()
+        optionsPage.resetPage()
         imageWriter.setSrc(normalized)
         osbutton.text = imageWriter.srcFileName()
+        var localName = String(osbutton.text).toLowerCase()
+        selectedImagePlatform = (localName === "firmware.zip" || localName.indexOf("x21") >= 0)
+                                ? "x21" : ""
 
         selectingImage = false
         reviewingOperation = false
@@ -2110,39 +2317,13 @@ Rectangle {
     }
 
     function oslistFromJson(o) {
-        var oslist = false
-        var lang_country = Qt.locale().name
-        if ("os_list_"+lang_country in o) {
-            oslist = o["os_list_"+lang_country]
+        var oslist = Catalog.normalise(o, Qt.locale().name)
+        if (oslist === null) {
+            onError(qsTr("Error parsing image catalog"))
+            return false
         }
-        else if (lang_country.includes("_")) {
-            var lang = lang_country.substr(0, lang_country.indexOf("_"))
-            if ("os_list_"+lang in o) {
-                oslist = o["os_list_"+lang]
-            }
-        }
-
-        if (!oslist) {
-            if (!"os_list" in o) {
-                onError(qsTr("Error parsing os_list.json"))
-                return false
-            }
-
-            oslist = o["os_list"]
-        }
-
         checkForRandom(oslist)
-
-        /* Flatten subitems to subitems_json */
-        for (var i in oslist) {
-            var entry = oslist[i];
-            if ("subitems" in entry) {
-                entry["subitems_json"] = JSON.stringify(entry["subitems"])
-                delete entry["subitems"]
-            }
-        }
-
-        return oslist
+        return Catalog.flattenSubitems(oslist)
     }
 
     function selectNamedOS(name, collection)
@@ -2161,7 +2342,9 @@ Rectangle {
     }
 
     function fetchOSlist() {
+        imageSelectionPage.officialCatalogLoading = true
         httpRequest(imageWriter.constantOsListUrl(), function (x) {
+            imageSelectionPage.officialCatalogLoading = false
             var o = JSON.parse(x.responseText)
             var oslist = oslistFromJson(o)
             if (oslist === false)
@@ -2192,6 +2375,9 @@ Rectangle {
                     }
                 }
             }
+        }, function() {
+            imageSelectionPage.officialCatalogLoading = false
+            onError(qsTr("Error downloading OS list from Internet"))
         })
     }
 
@@ -2301,6 +2487,9 @@ Rectangle {
                 }
             }
         } else {
+            resetOpenHdSettingsForNewImage()
+            optionsPage.resetPage()
+            selectedImagePlatform = String(typeof(d.platform) !== "undefined" ? d.platform : "").toLowerCase()
             imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, imageCatalog.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : "")
             osbutton.text = d.name
 
@@ -2322,10 +2511,16 @@ Rectangle {
             return
         }
 
+        if (selectedImageRequiresRockchip && String(d.device).indexOf("rockusb:") !== 0) {
+            onError(qsTr("X21 firmware.zip packages must be flashed directly to an OpenHD X21 connected by USB in MaskROM or Loader mode."))
+            return
+        }
+
         selectingTarget = false
         imageWriter.stopDriveListPolling()
 
         imageWriter.setDst(d.device, d.size)
+        selectedTargetSize = Number(d.size) || 0
         dstbutton.text = d.description
 
         if (imageWriter.readyToWrite()) {
@@ -2334,5 +2529,12 @@ Rectangle {
         } else {
             selectingImage = true
         }
+    }
+
+    function formatReviewSize(bytes) {
+        var size = Number(bytes)
+        if (!isFinite(size) || size <= 0)
+            return ""
+        return (size / 1000000000).toFixed(1) + " GB"
     }
 }

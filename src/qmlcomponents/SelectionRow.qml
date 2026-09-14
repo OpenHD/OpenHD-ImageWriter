@@ -1,8 +1,8 @@
-﻿import QtQuick 2.9
+import QtQuick 2.9
 import QtQuick.Controls 2.2
 
 // Compact row used inside a grouped list container.
-// Height: ~54 px.  No individual card background — the outer grouped panel provides the surface.
+// Height: ~54 px.  No individual card background � the outer grouped panel provides the surface.
 Button {
     id: root
 

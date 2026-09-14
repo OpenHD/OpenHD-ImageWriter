@@ -19,6 +19,11 @@ Rectangle {
     color: "#0c202c"
     focus: visible
     property bool initialized: false
+    property bool configurationApplied: false
+    property bool existingDeviceMode: false
+    property string existingDeviceName: ""
+    signal configurationSaved()
+    signal closeRequested()
 
     property var settingsMap: ({})
     property bool settingsMapLoaded: false
@@ -44,8 +49,8 @@ Rectangle {
     property int displayRefreshHz: 60
     property string mode
     property string hotSpot
-    property string beep
-    property string eject
+    property bool beep: false
+    property bool eject: true
     property bool rock3
     property bool rock5
     property bool rpi
@@ -56,37 +61,58 @@ Rectangle {
     property string premiumCertificatePath: ""
     property string premiumCertificateError: ""
     ColumnLayout {
-        width: Math.min(parent.width - (parent.width < 720 ? 36 : 72), 1040)
+        width: Math.min(parent.width - (parent.width < 720 ? 24 : 44), 826)
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.topMargin: parent.width < 720 ? 24 : 30
-        anchors.bottomMargin: 20
-        spacing: 18
+        anchors.topMargin: parent.width < 720 ? 18 : 22
+        anchors.bottomMargin: 16
+        spacing: 12
 
         RowLayout {
             Layout.fillWidth: true
+            spacing: 14
+
+            Image {
+                Layout.preferredWidth: 36
+                Layout.preferredHeight: 36
+                source: "icons/ui/configure-write.svg"
+                sourceSize.width: 256
+                sourceSize.height: 256
+                fillMode: Image.PreserveAspectFit
+            }
 
             PageHeader {
                 Layout.fillWidth: true
-                title: qsTr("Configure image")
-                subtitle: qsTr("Set the device role, cameras, display, networking, and optional configuration files.")
+                title: existingDeviceMode ? qsTr("OpenHD settings") : qsTr("Configure image")
+                subtitle: existingDeviceMode
+                          ? qsTr("Configure %1 using the same options available before writing an image.").arg(existingDeviceName)
+                          : qsTr("Set the device role, cameras, display, networking, and optional configuration files.")
             }
 
-            Button {
-                text: qsTr("Back")
-                flat: true
-                onClicked: page.close()
+            PageBackButton {
+                compact: page.width < 620
+                onClicked: page.requestClose()
             }
         }
 
         TabBar {
             id: settingsTabs
             Layout.fillWidth: true
+            onCurrentIndexChanged: page.resetOptionsScroll()
 
-            TabButton { text: qsTr("General") }
-            TabButton { text: qsTr("Cameras") }
-            TabButton { text: qsTr("Files and certificates") }
+            SettingsTabButton {
+                text: qsTr("General")
+                iconSource: "icons/ui/sliders.svg"
+            }
+            SettingsTabButton {
+                text: qsTr("Cameras")
+                iconSource: "icons/ui/camera-settings.svg"
+            }
+            SettingsTabButton {
+                text: qsTr("Files and certificates")
+                iconSource: "icons/ui/files-settings.svg"
+            }
         }
 
         ScrollView {
@@ -99,47 +125,87 @@ Rectangle {
             Layout.rightMargin: 0
             Layout.topMargin: 0
             clip: true
-            ScrollBar.vertical.policy: ScrollBar.AlwaysOn
+            ScrollBar.vertical.policy: ScrollBar.AsNeeded
 
-            ColumnLayout {
+            Item {
+                id: settingsGrid
+                width: popupbody.availableWidth
+                height: {
+                    if (settingsTabs.currentIndex === 0) {
+                        return Math.max(deviceRoleCard.y + deviceRoleCard.height,
+                                        displaySettingsCard.visible
+                                        ? displaySettingsCard.y + displaySettingsCard.height : 0,
+                                        miscSettings.y + miscSettings.height)
+                    }
+                    if (settingsTabs.currentIndex === 1)
+                        return cameraSettings.height
+                    return Math.max(qopenhdCard.y + qopenhdCard.height,
+                                    premiumCertificateCard.y + premiumCertificateCard.height)
+                }
+                property real spacing: 14
+                property bool twoColumns: page.width >= 650
+                property real cardWidth: twoColumns ? (width - spacing) / 2 : width
+
                 SettingsSection {
+                    id: deviceRoleCard
                     title: qsTr("Device role")
-                    Layout.fillWidth: true
+                    description: qsTr("Select how this device will be used.")
+                    iconSource: "icons/ui/device-role.svg"
+                    width: settingsGrid.cardWidth
+                    x: 0
+                    y: 0
                     visible: settingsTabs.currentIndex === 0
 
                     ColumnLayout {
-                        spacing: -10
+                        width: deviceRoleCard.availableWidth
+                        spacing: 10
 
-                        Repeater {
-                            id: bootRepeater
-                            model: settingsMap.bootType && settingsMap.bootType.options ? settingsMap.bootType.options.filter(function(option) {
-                                return option.id && option.id.length > 0 && ((option.id === "Air" && supportsAir) || (option.id === "Ground" && supportsGround))
-                            }) : []
-                            delegate: ImCheckBox {
-                                property var option: modelData
-                                text: qsTr("Set SBC to %1").arg(option ? option.id : "")
-                                checked: bootType === (option ? option.id : "")
-                                onClicked: {
-                                    if (option) {
-                                        bootType = option.id
-                                        if (bootType !== "Air") {
-                                            camera = ""
-                                            camera2 = ""
-                                            cameraResolution = ""
-                                            camera2Resolution = ""
-                                        }
+                        ModernComboBox {
+                            id: bootTypeSelector
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            model: page.availableBootOptions()
+                            textRole: "id"
+                            currentIndex: page.bootOptionIndex(bootType)
+                            displayText: currentIndex >= 0
+                                         ? qsTr("Set SBC to %1").arg(currentText)
+                                         : qsTr("Choose device role")
+                            onActivated: {
+                                if (currentIndex >= 0 && model[currentIndex]) {
+                                    bootType = model[currentIndex].id
+                                    if (bootType !== "Air") {
+                                        camera = ""
+                                        camera2 = ""
+                                        cameraResolution = ""
+                                        camera2Resolution = ""
                                     }
                                 }
                             }
                         }
+
+                        Label {
+                            Layout.fillWidth: true
+                            Layout.maximumWidth: parent.width
+                            text: bootType === "Air"
+                                  ? qsTr("Configures services and networking for air unit operation.")
+                                  : qsTr("Configures display and receiver services for ground unit operation.")
+                            color: "#83a3b5"
+                            wrapMode: Text.WordWrap
+                        }
                     }
                 }
                 SettingsSection {
-                    title: qsTr("Ground display")
-                    Layout.fillWidth: true
+                    id: displaySettingsCard
+                    title: qsTr("Display settings")
+                    description: qsTr("Configure display output when available.")
+                    iconSource: "icons/ui/display-settings.svg"
+                    width: settingsGrid.cardWidth
+                    x: settingsGrid.twoColumns ? settingsGrid.cardWidth + settingsGrid.spacing : 0
+                    y: settingsGrid.twoColumns ? 0 : deviceRoleCard.height + settingsGrid.spacing
                     visible: settingsTabs.currentIndex === 0 && bootType === "Ground"
 
                     ColumnLayout {
+                        width: displaySettingsCard.availableWidth
                         spacing: 8
                         ImCheckBox {
                             text: qsTr("Force HDMI resolution and refresh rate")
@@ -149,11 +215,14 @@ Rectangle {
                         Label {
                             text: qsTr("Use this when a monitor is not detected reliably. Automatic EDID detection remains the default.")
                             wrapMode: Text.WordWrap
-                            Layout.maximumWidth: 520
+                            Layout.fillWidth: true
+                            Layout.maximumWidth: parent.width
                         }
                         GridLayout {
                             columns: 2
                             enabled: displayForceMode
+                            Layout.fillWidth: true
+                            columnSpacing: 8
                             Label { text: qsTr("Width") }
                             SpinBox { from: 320; to: 7680; value: displayWidth; onValueModified: displayWidth = value }
                             Label { text: qsTr("Height") }
@@ -165,17 +234,23 @@ Rectangle {
                 }
                 SettingsSection {
                     title: qsTr("Camera Settings")
+                    description: qsTr("Select cameras, resolutions, connectors, and IP sources.")
+                    iconSource: "icons/ui/camera-settings.svg"
                     id: cameraSettings
-                    Layout.fillWidth: true
+                    width: settingsGrid.width
+                    x: 0
+                    y: 0
                     visible: settingsTabs.currentIndex === 1
 
                     ColumnLayout {
+                        width: cameraSettings.availableWidth
                         spacing: 8
                         Repeater {
                             id: cameraGroupRepeater
                             model: settingsMap.camera && settingsMap.camera.sbcGroups ? settingsMap.camera.sbcGroups : []
                             delegate: SettingsSection {
                                 property var groupData: modelData
+                                function refreshOptions() { cameraGroup.rebuildVendors() }
                                 title: qsTr("Camera Settings")
                                 Layout.fillWidth: true
                                 visible: groupData && groupData.sbc && groupData.sbc.indexOf(sbc) !== -1 && bootType === groupData.bootTypeRequired
@@ -192,7 +267,7 @@ Rectangle {
                                         id: vendorModel
                                     }
 
-                                    ComboBox {
+                                    ModernComboBox {
                                         id: vendorSelector
                                         visible: vendorModel.count > 1
                                         textRole: "displayName"
@@ -242,7 +317,7 @@ Rectangle {
                                             visible: camera.length > 0 && cameraResolutionOptionsModel.count > 0
                                         }
 
-                                        ComboBox {
+                                        ModernComboBox {
                                             id: cameraSelector
                                             textRole: "displayText"
                                             model: cameraOptionsModel
@@ -261,7 +336,7 @@ Rectangle {
                                             }
                                         }
 
-                                        ComboBox {
+                                        ModernComboBox {
                                             id: cameraResolutionSelector
                                             textRole: "label"
                                             model: cameraResolutionOptionsModel
@@ -287,7 +362,7 @@ Rectangle {
                                             visible: camera2.length > 0 && camera2ResolutionOptionsModel.count > 0
                                         }
 
-                                        ComboBox {
+                                        ModernComboBox {
                                             id: camera2Selector
                                             textRole: "label"
                                             model: camera2OptionsModel
@@ -302,7 +377,7 @@ Rectangle {
                                             }
                                         }
 
-                                        ComboBox {
+                                        ModernComboBox {
                                             id: camera2ResolutionSelector
                                             textRole: "label"
                                             model: camera2ResolutionOptionsModel
@@ -551,7 +626,7 @@ Rectangle {
                                 Layout.fillWidth: true
 
                                 Label { text: qsTr("Primary camera connector"); visible: isRpiCsiCamera(camera) }
-                                ComboBox {
+                                ModernComboBox {
                                     visible: isRpiCsiCamera(camera)
                                     model: ["CAM0", "CAM1"]
                                     currentIndex: cameraPort === "cam0" ? 0 : 1
@@ -563,7 +638,7 @@ Rectangle {
                                 }
 
                                 Label { text: qsTr("Secondary camera connector"); visible: isRpiCsiCamera(camera2) }
-                                ComboBox {
+                                ModernComboBox {
                                     visible: isRpiCsiCamera(camera2)
                                     model: ["CAM0", "CAM1"]
                                     currentIndex: camera2Port === "cam0" ? 0 : 1
@@ -638,94 +713,92 @@ Rectangle {
                     }
                 }
                 SettingsSection {
-                    title: qsTr("Misc Settings")
+                    title: qsTr("Additional options")
+                    description: qsTr("Optional development and system behavior.")
+                    iconSource: "icons/ui/configure-write.svg"
                     id: miscSettings
-                    Layout.fillWidth: true
+                    width: settingsGrid.cardWidth
+                    x: {
+                        if (!settingsGrid.twoColumns)
+                            return 0
+                        if (!displaySettingsCard.visible)
+                            return settingsGrid.cardWidth + settingsGrid.spacing
+                        return deviceRoleCard.height <= displaySettingsCard.height
+                               ? 0 : settingsGrid.cardWidth + settingsGrid.spacing
+                    }
+                    y: {
+                        if (!settingsGrid.twoColumns)
+                            return displaySettingsCard.visible
+                                   ? displaySettingsCard.y + displaySettingsCard.height + settingsGrid.spacing
+                                   : deviceRoleCard.height + settingsGrid.spacing
+                        if (!displaySettingsCard.visible)
+                            return 0
+                        return Math.min(deviceRoleCard.height, displaySettingsCard.height) + settingsGrid.spacing
+                    }
                     visible: settingsTabs.currentIndex === 0
                     ColumnLayout {
-                        spacing: -10
+                        width: miscSettings.availableWidth
+                        spacing: 2
 
                         ImCheckBox {
                             id: setDebug
                             visible: !!(settingsMap.mode && settingsMap.mode.options && settingsMap.mode.options.length > 0)
                             text: settingsMap.mode && settingsMap.mode.options && settingsMap.mode.options.length > 0 ? qsTr(settingsMap.mode.options[0].id || "Debug Mode") : qsTr("Debug Mode")
                             onCheckedChanged: {
-                                if (checked) {
-                                    mode = "debug";
-                                }
-                            }
-                        }
-
-                    TextField {
-                            id: textField
-                            visible: imageWriter.getValue("developer") !== "Kugelrund"
-                            onTextChanged: {
-                                saveButton.visible = text === "Kugelrund";
-                            }
-                        }
-
-                        Button {
-                            id: saveButton
-                            text: "Use Dev Images"
-                            visible: false
-                            onClicked: {
-                                imageWriter.setSetting("developer","Kugelrund");
-                                imageWriter.makeDeveloper();
-                            }
-                        }
-
-                        Button {
-                            id: userButton
-                            text: "Use Normal Images"
-                            visible: imageWriter.getValue("developer") == "Kugelrund"
-                            onClicked: {
-                                imageWriter.setSetting("developer","");
-                                imageWriter.makeUser();
+                                mode = checked ? "debug" : ""
                             }
                         }
 
                         ImCheckBox {
-                            id: setWifiHotspot
-                            visible: !!(settingsMap.hotSpot && settingsMap.hotSpot.options && settingsMap.hotSpot.options.length > 0)
-                            text: settingsMap.hotSpot && settingsMap.hotSpot.options && settingsMap.hotSpot.options.length > 0 ? qsTr(settingsMap.hotSpot.options[0].id || "WifiHotspot") : qsTr("WifiHotspot")
-                            onCheckedChanged: {
-                                if (checked) {
-                                    hotSpot = "wifi";
-                                }
-                            }
+                            text: qsTr("Play a sound when finished")
+                            checked: beep
+                            onClicked: beep = checked
                         }
+
+                        ImCheckBox {
+                            text: qsTr("Eject the target when finished")
+                            checked: eject
+                            onClicked: eject = checked
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.topMargin: 6
+                            height: 1
+                            color: "#315267"
+                        }
+
+                        Label {
+                            Layout.fillWidth: true
+                            Layout.maximumWidth: parent.width
+                            text: qsTr("These options are applied while preparing and writing the image.")
+                            color: "#83a3b5"
+                            wrapMode: Text.WordWrap
+                        }
+
                     }
                 }
 
                 SettingsSection {
+                    id: qopenhdCard
                     title: qsTr("QOpenHD.conf")
-                    Layout.fillWidth: true
+                    description: qsTr("Optionally include an existing OpenHD configuration.")
+                    iconSource: "icons/ui/files-settings.svg"
+                    width: settingsGrid.cardWidth
+                    x: 0
+                    y: 0
                     visible: settingsTabs.currentIndex === 2
 
                     ColumnLayout {
+                        width: qopenhdCard.availableWidth
                         spacing: 8
 
-                        TextField {
-                            id: qopenhdConfDisplay
+                        FileSelectionControl {
                             Layout.fillWidth: true
-                            readOnly: true
                             placeholderText: qsTr("No QOpenHD.conf selected")
-                            text: qopenhdConfPath
-                        }
-
-                        RowLayout {
-                            spacing: 8
-
-                            Button {
-                                text: qsTr("Choose File")
-                                onClicked: qopenhdConfDialog.open()
-                            }
-
-                            Button {
-                                text: qsTr("Clear Selection")
-                                enabled: qopenhdConfPath.length > 0
-                                onClicked: qopenhdConfPath = ""
-                            }
+                            selectedPath: qopenhdConfPath
+                            onChooseRequested: qopenhdConfDialog.open()
+                            onClearRequested: qopenhdConfPath = ""
                         }
 
                         Label {
@@ -733,41 +806,35 @@ Rectangle {
                             text: qsTr("Existing QOpenHD.conf on the target will be kept when no file is selected.")
                             wrapMode: Text.Wrap
                             Layout.fillWidth: true
+                            Layout.maximumWidth: parent.width
+                            color: "#83a3b5"
+                            font.pixelSize: 10
                         }
                     }
                 }
 
                 SettingsSection {
+                    id: premiumCertificateCard
                     title: qsTr("Premium Certificate")
-                    Layout.fillWidth: true
+                    description: qsTr("Optionally install an OpenHD premium certificate.")
+                    iconSource: "icons/ui/files-settings.svg"
+                    width: settingsGrid.cardWidth
+                    x: settingsGrid.twoColumns ? settingsGrid.cardWidth + settingsGrid.spacing : 0
+                    y: settingsGrid.twoColumns ? 0 : qopenhdCard.height + settingsGrid.spacing
                     visible: settingsTabs.currentIndex === 2
 
                     ColumnLayout {
+                        width: premiumCertificateCard.availableWidth
                         spacing: 8
 
-                        TextField {
-                            id: premiumCertificateDisplay
+                        FileSelectionControl {
                             Layout.fillWidth: true
-                            readOnly: true
                             placeholderText: qsTr("No premium certificate selected")
-                            text: premiumCertificatePath
-                        }
-
-                        RowLayout {
-                            spacing: 8
-
-                            Button {
-                                text: qsTr("Choose File")
-                                onClicked: premiumCertificateDialog.open()
-                            }
-
-                            Button {
-                                text: qsTr("Clear Selection")
-                                enabled: premiumCertificatePath.length > 0
-                                onClicked: {
-                                    premiumCertificatePath = ""
-                                    premiumCertificateError = ""
-                                }
+                            selectedPath: premiumCertificatePath
+                            onChooseRequested: premiumCertificateDialog.open()
+                            onClearRequested: {
+                                premiumCertificatePath = ""
+                                premiumCertificateError = ""
                             }
                         }
 
@@ -777,6 +844,8 @@ Rectangle {
                             color: "#C0392B"
                             wrapMode: Text.Wrap
                             Layout.fillWidth: true
+                            Layout.maximumWidth: parent.width
+                            font.pixelSize: 10
                         }
 
                         Label {
@@ -784,6 +853,9 @@ Rectangle {
                             text: qsTr("Existing premium certificate on the target will be kept when no file is selected.")
                             wrapMode: Text.Wrap
                             Layout.fillWidth: true
+                            Layout.maximumWidth: parent.width
+                            color: "#83a3b5"
+                            font.pixelSize: 10
                         }
                     }
                 }
@@ -797,17 +869,22 @@ Rectangle {
 
             Item { Layout.fillWidth: true }
 
-            Button {
+            ModernActionButton {
                 text: qsTr("Cancel")
-                flat: true
-                onClicked: page.close()
+                onClicked: page.requestClose()
             }
 
-            Button {
+            ModernActionButton {
                 text: qsTr("Save and return")
+                primary: true
                 onClicked: {
                     applySettings()
-                    page.close()
+                    configurationApplied = true
+                    configurationSaved()
+                    // Existing-device mode lets its host show the result of
+                    // writing settings before navigating away.
+                    if (!existingDeviceMode)
+                        page.close()
                 }
             }
         }
@@ -872,6 +949,21 @@ Rectangle {
     function initialize() {
         console.log("[ImageOptionsPage] initialize() called")
         loadSettingsMap()
+
+        // The device-settings screen supplies values read directly from the
+        // mounted OpenHD card. Do not replace those with the last image-write
+        // preferences stored in QSettings.
+        if (existingDeviceMode) {
+            if (!bootType && settingsMap.bootType && settingsMap.bootType.options && settingsMap.bootType.options.length > 0)
+                bootType = settingsMap.bootType.options[0].id
+            setDebug.checked = !!mode
+            supportsAir = true
+            supportsGround = true
+            Qt.callLater(refreshCameraOptions)
+            initialized = true
+            return
+        }
+
         var settings = imageWriter.getSavedCustomizationSettings()
 
         // initialise settings
@@ -916,13 +1008,6 @@ Rectangle {
         else{
             setDebug.checked=false
         }
-        if (hotSpot) {
-            setWifiHotspot.checked=true
-        }
-        else{
-            setWifiHotspot.checked=false
-        }
-
         // Detect the platform and the role capabilities from all current image
         // naming schemes. Lite/minimal images intentionally have no Air stack.
         imageWriter.setSetting("fileName", fileName)
@@ -1023,6 +1108,7 @@ Rectangle {
     function openPage() {
         initialize()
         open()
+        resetOptionsScroll()
         popupbody.forceActiveFocus()
     }
 
@@ -1035,7 +1121,83 @@ Rectangle {
         visible = false
     }
 
-    Keys.onEscapePressed: close()
+    function requestClose() {
+        if (existingDeviceMode)
+            closeRequested()
+        else
+            close()
+    }
+
+    function resetOptionsScroll() {
+        Qt.callLater(function() {
+            if (popupbody.contentItem && popupbody.contentItem.contentY !== undefined)
+                popupbody.contentItem.contentY = 0
+        })
+    }
+
+    function refreshCameraOptions() {
+        for (var i = 0; i < cameraGroupRepeater.count; ++i) {
+            var group = cameraGroupRepeater.itemAt(i)
+            if (group && group.refreshOptions)
+                group.refreshOptions()
+        }
+    }
+
+    function resetPage() {
+        close()
+        initialized = false
+        configurationApplied = false
+        settingsTabs.currentIndex = 0
+        bootType = ""
+        fileName = ""
+        sbc = ""
+        camera = ""
+        camera2 = ""
+        cameraResolution = ""
+        camera2Resolution = ""
+        cameraPort = "cam1"
+        camera2Port = "cam0"
+        ipCameraAddress = "192.168.144.108"
+        ipCameraPipeline = "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
+        camera2IpCameraAddress = "192.168.144.108"
+        camera2IpCameraPipeline = "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
+        ipCameraBitrate = 2
+        displayForceMode = false
+        displayWidth = 1920
+        displayHeight = 1080
+        displayRefreshHz = 60
+        mode = ""
+        hotSpot = ""
+        beep = false
+        eject = true
+        useSettings = true
+        qopenhdConfPath = ""
+        premiumCertificatePath = ""
+        premiumCertificateError = ""
+        supportsAir = true
+        supportsGround = true
+    }
+
+    Keys.onEscapePressed: requestClose()
+
+    function availableBootOptions() {
+        if (!settingsMap.bootType || !settingsMap.bootType.options)
+            return []
+        return settingsMap.bootType.options.filter(function(option) {
+            return option.id && option.id.length > 0 &&
+                   ((option.id === "Air" && supportsAir) ||
+                    (option.id === "Ground" && supportsGround))
+        })
+    }
+
+    function bootOptionIndex(value) {
+        var options = availableBootOptions()
+        for (var i = 0; i < options.length; i++) {
+            if (options[i].id === value)
+                return i
+        }
+        return options.length > 0 ? 0 : -1
+    }
 
     function applySettings()
     {

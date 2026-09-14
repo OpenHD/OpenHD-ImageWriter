@@ -25,7 +25,6 @@
 #include <QDebug>
 #include <QProcess>
 #include <QSettings>
-#include <QtConcurrent/QtConcurrent>
 
 #ifdef Q_OS_LINUX
 #include <sys/ioctl.h>
@@ -627,15 +626,12 @@ size_t DownloadThread::_writeFile(const char *buf, size_t len)
         _lastFileError = _file->seek(static_cast<quint64>(len));
         return _lastFileError == FileError::Success ? len : 0;
     }
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    QFuture<void> wh = QtConcurrent::run(&DownloadThread::_hashData, this, buf, len);
-#else
-    QFuture<void> wh = QtConcurrent::run(this, &DownloadThread::_hashData, buf, len);
-#endif
-
+    // This method already runs in the background write job. Spawning another
+    // normal-priority pool job for every block can saturate all CPU cores and
+    // make the QML render thread appear frozen while writing. Hash serially in
+    // this worker; verification behavior is unchanged.
+    _hashData(buf, len);
     const bool accepted = _writeBatcher->append(reinterpret_cast<const quint8 *>(buf), len);
-
-    wh.waitForFinished();
     return accepted ? len : 0;
 }
 

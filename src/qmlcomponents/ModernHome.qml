@@ -6,6 +6,7 @@ Item {
     id: root
 
     property string statusMessage: ""
+    property bool openHdDeviceAvailable: false
     signal featureRequested(string view)
 
     Rectangle {
@@ -60,22 +61,25 @@ Item {
                         "desc":  qsTr("Write OpenHD to an SD card, USB drive, or supported device.")
                     },
                     {
-                        "view": "update",
-                        "icon": "../icons/ui/update.svg",
-                        "title": qsTr("Update device"),
-                        "desc":  qsTr("Download current OpenHD images and update your device.")
-                    },
-                    {
                         "view": "configure",
                         "icon": "../icons/ui/settings.svg",
-                        "title": qsTr("Configure OpenHD"),
-                        "desc":  qsTr("Adjust device roles, cameras, display, and advanced OpenHD settings.")
+                        "title": root.openHdDeviceAvailable
+                                 ? qsTr("OpenHD Einstellungen") : qsTr("Einstellungen"),
+                        "desc": root.openHdDeviceAvailable
+                                ? qsTr("Adjust device roles, cameras, display, and advanced OpenHD settings.")
+                                : qsTr("Sprache auswählen oder die OpenHD-Entwicklung unterstützen.")
                     },
                     {
                         "view": "fleetcontrol",
                         "icon": "../icons/ui/fleetcontrol.svg",
                         "title": qsTr("FleetControl"),
                         "desc":  qsTr("Sign in to securely coordinate your aircraft, links, and missions.")
+                    },
+                    {
+                        "view": "donate",
+                        "icon": "../icons/ui/donate.svg",
+                        "title": qsTr("Donate"),
+                        "desc": qsTr("Support the continued development of OpenHD.")
                     }
                 ]
 
@@ -137,7 +141,12 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.featureRequested(modelData.view)
+                        onClicked: {
+                            if (modelData.view === "donate")
+                                Qt.openUrlExternally("https://opencollective.com/openhd")
+                            else
+                                root.featureRequested(modelData.view)
+                        }
                     }
                 }
             }

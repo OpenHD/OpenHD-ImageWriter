@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 700 172"
+     role="img"
+     aria-labelledby="title"
+     shape-rendering="geometricPrecision">
+  <title id="title">UXV Technologies symbol</title>
+  <g fill="#FFFFFF">
+    
+<path d="
+  M 0 0
+  H 47
+  V 88
+  C 47 110, 64 122, 97 122
+  C 130 122, 147 110, 147 88
+  V 0
+  H 195
+  V 94
+  C 195 144, 158 172, 97 172
+  C 37 172, 0 144, 0 94
+  Z"/>
+
+    
+<path d="M 147 0 H 269 L 314 40 H 194 Z"/>
+
+    
+<path d="
+  M 213 172
+  H 276
+  L 330 117
+  L 384 172
+  H 448
+  L 360 87
+  L 386 61
+  H 274
+  L 300 87
+  Z"/>
+
+    
+<path d="
+  M 345 40
+  H 445
+  L 457 56
+  L 517 146
+  C 529 163, 541 171, 556 171
+  C 570 171, 583 162, 593 148
+  L 666 41
+  L 700 0
+  H 633
+  L 556 111
+  L 479 0
+  H 391
+  Z"/>
+
+  </g>
+</svg>

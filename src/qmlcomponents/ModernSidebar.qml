@@ -16,30 +16,31 @@ Rectangle {
 
     property string currentView: "home"
     property bool compact: width < 100
+    property bool openHdDeviceAvailable: false
 
     signal navigate(string view)
     signal languageRequested()
     signal infoRequested()
     signal helpRequested()
 
-    color: "#0d1c2a"
+    color: "#18222d" // Match background color from app style (screenshot side panel)
 
     ColumnLayout {
         anchors.fill: parent
 
-        anchors.leftMargin: root.compact ? 5 : 8
-        anchors.rightMargin: root.compact ? 5 : 8
+        anchors.leftMargin: root.compact ? 8 : 12
+        anchors.rightMargin: root.compact ? 8 : 12
         anchors.topMargin: 0
         anchors.bottomMargin: 0
 
-        spacing: 0
+        spacing: 4
 
         // ============================================================
         // Small amount of breathing room below the title bar
         // ============================================================
 
         Item {
-            Layout.preferredHeight: 8
+            Layout.preferredHeight: 12
         }
 
         // ============================================================
@@ -56,17 +57,12 @@ Rectangle {
                 {
                     "view": "flash",
                     "icon": "../icons/ui/drive.svg",
-                    "label": qsTr("Write image")
-                },
-                {
-                    "view": "update",
-                    "icon": "../icons/ui/update.svg",
-                    "label": qsTr("Update device")
+                    "label": qsTr("Image wählen")
                 },
                 {
                     "view": "configure",
                     "icon": "../icons/ui/settings.svg",
-                    "label": qsTr("Configure OpenHD")
+                    "label": qsTr("Einstellungen")
                 },
                 {
                     "view": "fleetcontrol",
@@ -78,8 +74,9 @@ Rectangle {
             delegate: Button {
                 id: navButton
 
+                visible: true
                 Layout.fillWidth: true
-                Layout.preferredHeight: 60
+                Layout.preferredHeight: visible ? 52 : 0
 
                 hoverEnabled: true
                 padding: 0
@@ -87,42 +84,22 @@ Rectangle {
                 onClicked: root.navigate(modelData.view)
 
                 background: Rectangle {
-                    radius: 3
+                    radius: 8
 
                     color: {
                         if (root.currentView === modelData.view)
-                            return "#173a57"
+                            return "#1867a1" // Solid blue selected state
 
                         if (navButton.hovered)
-                            return "#132838"
+                            return "#202e3c"
 
                         return "transparent"
                     }
 
-                    border.width:
-                        root.currentView === modelData.view ? 0 : 0
-
-                    border.color: "#245f86"
-
                     Behavior on color {
                         ColorAnimation {
-                            duration: 80
+                            duration: 100
                         }
-                    }
-
-                    // Thin blue accent strip on the active entry
-                    Rectangle {
-                        visible: root.currentView === modelData.view
-
-                        anchors.left: parent.left
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-
-                        width: 3
-
-                        color: "#168df3"
-
-                        radius: 2
                     }
                 }
 
@@ -227,7 +204,7 @@ Rectangle {
             id: infoButton
 
             Layout.fillWidth: true
-            Layout.preferredHeight: 40
+            Layout.preferredHeight: 46
             Layout.bottomMargin: 8
 
             hoverEnabled: true
@@ -236,34 +213,34 @@ Rectangle {
             onClicked: root.infoRequested()
 
             background: Rectangle {
-                radius: 3
+                radius: 8
 
                 color:
                     infoButton.hovered
-                    ? "#132838"
+                    ? "#202e3c"
                     : "transparent"
 
                 Behavior on color {
                     ColorAnimation {
-                        duration: 80
+                        duration: 100
                     }
                 }
             }
 
             contentItem: Item {
                 Image {
-                    width: 16
-                    height: 16
+                    width: 18
+                    height: 18
 
-                    sourceSize.width: 32
-                    sourceSize.height: 32
+                    sourceSize.width: 36
+                    sourceSize.height: 36
 
                     anchors.left: parent.left
 
                     anchors.leftMargin:
                         root.compact
                         ? (parent.width - width) / 2
-                        : 13
+                        : 16
 
                     anchors.verticalCenter: parent.verticalCenter
 
@@ -273,14 +250,14 @@ Rectangle {
                     opacity:
                         infoButton.hovered
                         ? 0.95
-                        : 0.78
+                        : 0.65
                 }
 
                 Text {
                     visible: !root.compact
 
                     anchors.left: parent.left
-                    anchors.leftMargin: 43
+                    anchors.leftMargin: 48
 
                     anchors.verticalCenter: parent.verticalCenter
 
@@ -288,8 +265,8 @@ Rectangle {
 
                     color:
                         infoButton.hovered
-                        ? "#d6e1e8"
-                        : "#b4c2cc"
+                        ? "#e6f0f7"
+                        : "#a1b8c7"
 
                     font.pixelSize: 13
                     font.bold: false
@@ -307,6 +284,95 @@ Rectangle {
 
             ToolTip.text:
                 qsTr("Info")
+
+            ToolTip.delay:
+                400
+        }
+
+        Button {
+            id: helpButton
+
+            Layout.fillWidth: true
+            Layout.preferredHeight: 46
+            Layout.bottomMargin: 12
+
+            hoverEnabled: true
+            padding: 0
+
+            onClicked: root.helpRequested()
+
+            background: Rectangle {
+                radius: 8
+
+                color:
+                    helpButton.hovered
+                    ? "#202e3c"
+                    : "transparent"
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 100
+                    }
+                }
+            }
+
+            contentItem: Item {
+                Image {
+                    width: 18
+                    height: 18
+
+                    sourceSize.width: 36
+                    sourceSize.height: 36
+
+                    anchors.left: parent.left
+
+                    anchors.leftMargin:
+                        root.compact
+                        ? (parent.width - width) / 2
+                        : 16
+
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    source: "../icons/ui/info.svg" // Just reusing info.svg or similar if help doesn't exist
+                    fillMode: Image.PreserveAspectFit
+
+                    opacity:
+                        helpButton.hovered
+                        ? 0.95
+                        : 0.65
+                }
+
+                Text {
+                    visible: !root.compact
+
+                    anchors.left: parent.left
+                    anchors.leftMargin: 48
+
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    text: qsTr("Hilfe")
+
+                    color:
+                        helpButton.hovered
+                        ? "#e6f0f7"
+                        : "#a1b8c7"
+
+                    font.pixelSize: 13
+                    font.bold: false
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onPressed: mouse.accepted = false
+            }
+
+            ToolTip.visible:
+                root.compact && helpButton.hovered
+
+            ToolTip.text:
+                qsTr("Hilfe")
 
             ToolTip.delay:
                 400

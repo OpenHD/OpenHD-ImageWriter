@@ -10,6 +10,8 @@
 
 #include <QDebug>
 #include <QDir>
+#include <QDirIterator>
+#include <QElapsedTimer>
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
@@ -20,6 +22,55 @@
 #include <QTemporaryDir>
 #include <archive.h>
 #include <archive_entry.h>
+
+namespace {
+
+QString packageLoaderPath(const QString &firmwareDirectory)
+{
+    const QStringList candidates = {QStringLiteral("MiniLoaderAll.bin"),
+                                    QStringLiteral("download.bin")};
+    for (const QString &name : candidates)
+    {
+        const QString path = QDir(firmwareDirectory).filePath(name);
+        QFile loader(path);
+        if (loader.open(QIODevice::ReadOnly) && loader.size() > 4 &&
+            loader.read(4) == QByteArrayLiteral("LDR "))
+            return path;
+    }
+    return {};
+}
+
+bool isReadableArchive(const QString &path)
+{
+    struct archive *reader = archive_read_new();
+    archive_read_support_format_all(reader);
+    archive_read_support_filter_all(reader);
+    const int openResult = archive_read_open_filename(
+            reader, path.toLocal8Bit().constData(), 65536);
+    struct archive_entry *entry = nullptr;
+    const int headerResult = openResult == ARCHIVE_OK
+            ? archive_read_next_header(reader, &entry) : openResult;
+    archive_read_close(reader);
+    archive_read_free(reader);
+    return headerResult == ARCHIVE_OK;
+}
+
+QStringList findFirmwareArchives(const QString &rootPath)
+{
+    QStringList matches;
+    QDirIterator iterator(rootPath, QDir::Files | QDir::Readable,
+                          QDirIterator::Subdirectories);
+    while (iterator.hasNext())
+    {
+        const QFileInfo candidate(iterator.next());
+        if (candidate.fileName().compare(QStringLiteral("firmware.zip"),
+                                         Qt::CaseInsensitive) == 0)
+            matches.append(candidate.absoluteFilePath());
+    }
+    return matches;
+}
+
+} // namespace
 
 RockchipFlashThread::RockchipFlashThread(const QUrl &source, const QString &deviceId, QObject *parent)
     : QThread(parent), _source(source), _deviceId(deviceId)
@@ -38,7 +89,7 @@ void RockchipFlashThread::cancel()
 
 bool RockchipFlashThread::extractZip(const QString &zipPath, const QString &destDir, QString *errorMsg)
 {
-    constexpr int MaxEntries = 512;
+    constexpr int MaxEntries = 4096;
     constexpr quint64 MaxExtractedBytes = 64ULL * 1024 * 1024 * 1024;
     struct archive *a = archive_read_new();
     archive_read_support_format_all(a);
@@ -197,14 +248,18 @@ void RockchipFlashThread::run()
         QNetworkRequest req(_source);
         req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         QNetworkReply *reply = nam.get(req);
+        QElapsedTimer downloadProgressTimer;
+        downloadProgressTimer.start();
 
         QEventLoop loop;
         connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-        connect(reply, &QNetworkReply::downloadProgress, this, [this](qint64 bytesReceived, qint64 bytesTotal) {
+        connect(reply, &QNetworkReply::downloadProgress, this, [this, &downloadProgressTimer](qint64 bytesReceived, qint64 bytesTotal) {
             if (_cancelled)
                 return;
-            if (bytesTotal > 0)
+            if (bytesTotal > 0 &&
+                (bytesReceived >= bytesTotal || downloadProgressTimer.elapsed() >= 100))
             {
+                downloadProgressTimer.restart();
                 int pct = static_cast<int>(bytesReceived * 100 / bytesTotal);
                 emit preparationStatusUpdate(tr("Downloading firmware package (%1%)...").arg(pct));
                 emit writeProgress(bytesReceived, bytesTotal);
@@ -251,37 +306,68 @@ void RockchipFlashThread::run()
 
     QString extractedDir = tempDir.path();
     QString lowerPath = localPackagePath.toLower();
-    bool isZip = lowerPath.endsWith(QStringLiteral(".zip"));
     bool isOhd = lowerPath.endsWith(QStringLiteral(".ohd"));
     bool isRawImg = lowerPath.endsWith(QStringLiteral(".img"));
+    // GitHub's artifact endpoint commonly ends in /download, so the URL and
+    // temporary filename do not identify the ZIP. Inspect the downloaded
+    // content instead.
+    bool isFirmwarePackage = !isOhd && !isRawImg && isReadableArchive(localPackagePath);
 
-    if (isZip)
+    if (isFirmwarePackage)
     {
-        emit preparationStatusUpdate(tr("Extracting firmware package..."));
-        QString extractErr;
-        if (!extractZip(localPackagePath, extractedDir, &extractErr))
+        const QString outerDirectory = tempDir.filePath(QStringLiteral("artifact"));
+        if (!QDir().mkpath(outerDirectory))
         {
-            emit error(tr("Failed to extract firmware zip: %1").arg(extractErr));
+            emit error(tr("Unable to create the firmware extraction directory."));
             return;
+        }
+
+        emit preparationStatusUpdate(tr("Extracting downloaded artifact..."));
+        QString extractErr;
+        if (!extractZip(localPackagePath, outerDirectory, &extractErr))
+        {
+            emit error(tr("Failed to extract firmware archive: %1").arg(extractErr));
+            return;
+        }
+
+        // X21 GitHub artifacts contain build logs and directory trees alongside
+        // the real Rockchip payload. Only firmware.zip is a flashable package.
+        const QStringList firmwareArchives = findFirmwareArchives(outerDirectory);
+        if (firmwareArchives.size() > 1)
+        {
+            emit error(tr("The downloaded artifact contains more than one firmware.zip."));
+            return;
+        }
+
+        QString layoutRoot = outerDirectory;
+        if (firmwareArchives.size() == 1)
+        {
+            emit preparationStatusUpdate(tr("Found firmware.zip; extracting Rockchip partitions..."));
+            layoutRoot = tempDir.filePath(QStringLiteral("firmware"));
+            if (!QDir().mkpath(layoutRoot) ||
+                !extractZip(firmwareArchives.first(), layoutRoot, &extractErr))
+            {
+                emit error(tr("Failed to extract firmware.zip: %1").arg(extractErr));
+                return;
+            }
         }
 
         QString layoutError;
         QString firmwareDirectory;
-        if (!findRockchipFirmwareDirectory(extractedDir, firmwareDirectory, &layoutError))
+        if (!findRockchipFirmwareDirectory(layoutRoot, firmwareDirectory, &layoutError))
         {
             emit error(tr("Invalid Rockchip firmware package: %1").arg(layoutError));
             return;
         }
         extractedDir = firmwareDirectory;
 
-        const QFileInfo packageLoader(QDir(extractedDir).filePath(QStringLiteral("MiniLoaderAll.bin")));
-        if (!packageLoader.isFile() || !packageLoader.isReadable() || packageLoader.size() == 0)
+        if (packageLoaderPath(extractedDir).isEmpty())
         {
-            emit error(tr("The selected firmware ZIP does not contain a readable MiniLoaderAll.bin."));
+            emit error(tr("The selected firmware ZIP does not contain a valid Rockchip loader (MiniLoaderAll.bin or download.bin)."));
             return;
         }
 
-        emit preparationStatusUpdate(tr("Found ImageBuilder firmware in %1.")
+        emit preparationStatusUpdate(tr("Found Rockchip firmware in %1.")
                                      .arg(QDir(tempDir.path()).relativeFilePath(extractedDir)));
     }
 
@@ -296,6 +382,7 @@ void RockchipFlashThread::run()
     };
     QList<FlashTarget> targets;
     QByteArray parameterData;
+    QList<RockchipPartition> partitions;
 
     // Check for parameter.txt
     QString paramPath = QDir(extractedDir).filePath(QStringLiteral("parameter.txt"));
@@ -311,12 +398,31 @@ void RockchipFlashThread::run()
 
     if (!parameterData.isEmpty())
     {
-        auto partitions = parseParameterTxt(parameterData);
+        partitions = parseParameterTxt(parameterData);
         if (partitions.isEmpty())
         {
             emit error(tr("The firmware package contains an invalid or empty parameter.txt."));
             return;
         }
+    }
+    else if (isFirmwarePackage)
+    {
+        QFile environmentFile(QDir(extractedDir).filePath(QStringLiteral(".env.txt")));
+        if (!environmentFile.open(QIODevice::ReadOnly))
+        {
+            emit error(tr("The firmware package does not contain readable partition metadata."));
+            return;
+        }
+        partitions = parseBlockDeviceParts(environmentFile.readAll());
+        if (partitions.isEmpty())
+        {
+            emit error(tr("The firmware package contains invalid or empty .env.txt partition metadata."));
+            return;
+        }
+    }
+
+    if (!partitions.isEmpty())
+    {
         QDir d(extractedDir);
         for (const auto &part : partitions)
         {
@@ -426,8 +532,8 @@ void RockchipFlashThread::run()
         // Full ImageBuilder firmware ZIPs are self-contained. Their loader
         // must match the firmware package and must never be substituted with
         // the copy embedded in ImageWriter.
-        QString customLoaderPath = QDir(extractedDir).filePath(QStringLiteral("MiniLoaderAll.bin"));
-        if (QFileInfo(customLoaderPath).isFile())
+        const QString customLoaderPath = packageLoaderPath(extractedDir);
+        if (!customLoaderPath.isEmpty())
         {
             QFile lf(customLoaderPath);
             if (lf.open(QIODevice::ReadOnly))
@@ -437,12 +543,12 @@ void RockchipFlashThread::run()
             }
         }
 
-        if (isZip && bootloader.isEmpty())
+        if (isFirmwarePackage && bootloader.isEmpty())
         {
-            emit error(tr("The selected firmware ZIP does not contain a readable MiniLoaderAll.bin."));
+            emit error(tr("The selected firmware ZIP does not contain a readable Rockchip loader."));
             return;
         }
-        if (!isZip && bootloader.isEmpty())
+        if (!isFirmwarePackage && bootloader.isEmpty())
         {
             bootloader = loadDefaultBootloader();
         }
@@ -453,9 +559,9 @@ void RockchipFlashThread::run()
             return;
         }
 
-        if (isZip)
+        if (isFirmwarePackage)
         {
-            emit preparationStatusUpdate(tr("Loading MiniLoaderAll.bin from the selected firmware ZIP..."));
+            emit preparationStatusUpdate(tr("Loading the Rockchip loader from the selected firmware ZIP..."));
         }
 
         QString dlErr;
@@ -500,6 +606,8 @@ void RockchipFlashThread::run()
 
     quint64 totalWritten = 0;
     emit writeProgress(0, totalBytes);
+    QElapsedTimer progressUpdateTimer;
+    progressUpdateTimer.start();
 
     // Flash parameter if present
     if (!parameterData.isEmpty())
@@ -568,7 +676,13 @@ void RockchipFlashThread::run()
             currentLba += sectorsInChunk;
             totalWritten += (sectorsInChunk * 512);
             fileRemaining = (fileRemaining > static_cast<quint64>(readBytes)) ? (fileRemaining - readBytes) : 0;
-            emit writeProgress(totalWritten, totalBytes);
+            // A 64 KiB transfer can complete thousands of times per image.
+            // Queueing a QML update for every transfer starves the GUI thread.
+            if (fileRemaining == 0 || progressUpdateTimer.elapsed() >= 100)
+            {
+                progressUpdateTimer.restart();
+                emit writeProgress(totalWritten, totalBytes);
+            }
         }
         partFile.close();
     }

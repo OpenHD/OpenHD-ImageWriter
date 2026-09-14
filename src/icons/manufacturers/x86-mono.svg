@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 256 256"
+     role="img"
+     aria-labelledby="title"
+     shape-rendering="geometricPrecision">
+  <title id="title">Laptop</title>
+
+  <g fill="none"
+     stroke="#FFFFFF"
+     stroke-width="12"
+     stroke-linecap="round"
+     stroke-linejoin="round">
+
+    <!-- Screen -->
+    <rect x="58" y="54" width="140" height="102" rx="10"/>
+
+    <!-- Base -->
+    <path d="
+      M 42 172
+      H 214
+      C 214 190 202 200 184 200
+      H 72
+      C 54 200 42 190 42 172
+      Z"/>
+
+    <!-- Trackpad / indicator -->
+    <path d="M 116 185 H 140"/>
+  </g>
+</svg>
