@@ -157,7 +157,7 @@ bool findRockchipFirmwareDirectory(const QString &extractionRoot,
     QDirIterator iterator(extractionRoot,
                           QStringList() << QStringLiteral("parameter.txt")
                                         << QStringLiteral(".env.txt"),
-                          QDir::Files | QDir::Readable,
+                          QDir::Files | QDir::Readable | QDir::Hidden,
                           QDirIterator::Subdirectories);
     while (iterator.hasNext())
     {

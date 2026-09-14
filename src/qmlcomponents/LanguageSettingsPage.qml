@@ -7,6 +7,8 @@ Item {
 
     property var languages: []
     property string currentLanguage: ""
+    property string pendingLanguage: ""
+    property string appliedLanguage: ""
     readonly property bool narrow: width < 720
 
     signal languageSelected(string language)
@@ -15,7 +17,9 @@ Item {
     focus: visible
     onVisibleChanged: {
         if (visible) {
-            languageSelector.currentIndex = languageSelector.find(currentLanguage)
+            appliedLanguage = currentLanguage
+            pendingLanguage = currentLanguage
+            languageSelector.currentIndex = languageSelector.find(pendingLanguage)
             forceActiveFocus()
         }
     }
@@ -55,7 +59,7 @@ Item {
 
                 Text {
                     Layout.fillWidth: true
-                    text: qsTr("The interface updates immediately after you select a language.")
+                    text: qsTr("Select a language, then choose Apply.")
                     color: "#9fb3bf"
                     font.pixelSize: 13
                     wrapMode: Text.WordWrap
@@ -66,7 +70,19 @@ Item {
                     Layout.fillWidth: true
                     model: root.languages
                     currentIndex: -1
-                    onActivated: root.languageSelected(editText)
+                    onActivated: root.pendingLanguage = currentText
+                }
+
+                ModernActionButton {
+                    Layout.alignment: Qt.AlignRight
+                    text: qsTr("Apply")
+                    primary: true
+                    enabled: root.pendingLanguage.length > 0 &&
+                             root.pendingLanguage !== root.appliedLanguage
+                    onClicked: {
+                        root.appliedLanguage = root.pendingLanguage
+                        root.languageSelected(root.pendingLanguage)
+                    }
                 }
             }
         }
