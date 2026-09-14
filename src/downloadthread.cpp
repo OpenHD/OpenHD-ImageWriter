@@ -23,8 +23,11 @@
 #include <fcntl.h>
 #include <regex>
 #include <QDebug>
+#include <QDir>
+#include <QFileInfo>
 #include <QProcess>
 #include <QSettings>
+#include <QTemporaryDir>
 
 #ifdef Q_OS_LINUX
 #include <sys/ioctl.h>

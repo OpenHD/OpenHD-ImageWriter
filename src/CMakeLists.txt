@@ -2,8 +2,12 @@
 # Copyright (C) 2020 Raspberry Pi Ltd
 
 cmake_minimum_required(VERSION 3.9.4)
-if (APPLE)
-set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "" FORCE)
+if(APPLE AND NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+    if(CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
+    else()
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum macOS version")
+    endif()
 endif()
 
 OPTION (ENABLE_CHECK_VERSION "Check for version updates" ON)
@@ -190,6 +194,10 @@ if (WIN32)
     set(LibArchive_LIBRARIES archive_static)
     set(LibArchive_INCLUDE_DIR dependencies/libarchive-3.5.2/libarchive)
 
+    # Bundled fat32format
+    add_subdirectory(dependencies/fat32format)
+    add_dependencies(${PROJECT_NAME} fat32format)
+
     # Strip debug symbols
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
@@ -207,7 +215,7 @@ if (WIN32)
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-            "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe"
+            "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe" "${CMAKE_BINARY_DIR}/dependencies/fat32format/fat32format.exe"
             "${CMAKE_SOURCE_DIR}/../license.txt" "${CMAKE_SOURCE_DIR}/windows/openhdimagewriter.cmd"
             "${CMAKE_BINARY_DIR}/deploy")
 
