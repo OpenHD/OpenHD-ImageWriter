@@ -6,7 +6,7 @@
         <message>
             <location filename="../qmlcomponents/ActionCard.qml" line="+10" />
             <source>Choose</source>
-            <translation>Обрати</translation>
+            <translation>Вибрані</translation>
         </message>
     </context>
     <context>
@@ -24,7 +24,7 @@
         <message>
             <location line="+30" />
             <source>Refresh</source>
-            <translation>Реверс</translation>
+            <translation>Оновити</translation>
         </message>
         <message>
             <location line="+63" />
@@ -39,12 +39,12 @@
         <message>
             <location line="+17" />
             <source>MaskROM recovery mode</source>
-            <translation>Режим відновлення маски</translation>
+            <translation>MaskROM режим відновлення</translation>
         </message>
         <message>
             <location line="+2" />
             <source>Loader mode</source>
-            <translation>Режим навантажувача</translation>
+            <translation>Loader режим</translation>
         </message>
         <message>
             <location line="+2" />
@@ -60,15 +60,15 @@
             <translation>Помилка для зберігання</translation>
         </message>
         <message>
-            <location line="+65" />
+            <location line="+66" />
             <location line="+211" />
             <source>Error extracting archive: %1</source>
-            <translation>Архів вилучення: %1</translation>
+            <translation>Архів вилучення помилок: %1</translation>
         </message>
         <message>
             <location line="-146" />
             <source>Error mounting FAT32 partition</source>
-            <translation>Помилка кріплення FAT32</translation>
+            <translation>Помилка кріплення FAT32 розділ</translation>
         </message>
         <message>
             <location line="+20" />
@@ -91,17 +91,17 @@
         <message>
             <location line="+26" />
             <source>Cannot safely enumerate target volumes: %1</source>
-            <translation>Не безпечно об'єднувати цільові обсяги: %1</translation>
+            <translation>Не можна безпечно обробити цільові об'єми: %1</translation>
         </message>
         <message>
             <location line="+14" />
             <source>The selected storage device is no longer available.</source>
-            <translation>Вибраний пристрій зберігання не доступний.</translation>
+            <translation>Вибраний пристрій для зберігання більше не доступний.</translation>
         </message>
         <message>
             <location line="+7" />
             <source>Cannot lock the target volumes: %1</source>
-            <translation>Не заблокувати цільові обсяги: %1</translation>
+            <translation>Не можна заблокувати цільові обсяги: %1</translation>
         </message>
         <message>
             <location line="+22" />
@@ -111,23 +111,23 @@
         <message>
             <location line="+4" />
             <source>Error running authopen to gain access to disk device '%1'</source>
-            <translation>Помилка запуску authopen для отримання доступу до пристрою диска "%1"</translation>
+            <translation>Помилка, що працює authopen, щоб отримати доступ до пристрою диска '%1'</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Please verify if 'Raspberry Pi Imager' is allowed access to 'removable volumes' in privacy settings (under 'files and folders' or alternatively give it 'full disk access').</source>
-            <translation>Будь ласка, перевірте, якщо 'Raspberry Pi Imager' дозволено доступ до 'знімних томів' в налаштуваннях конфіденційності (від 'файлів і папок' або альтернативно дати його 'full access диска').</translation>
+            <translation>Будь ласка, перевірте, якщо 'Raspberry Pi Imager' дозволено доступ до 'знімних томів' в налаштуваннях конфіденційності (від 'файлів і папок' або альтернативно дати його 'full доступ до диска').</translation>
         </message>
         <message>
             <location line="+24" />
             <location line="+5" />
             <source>Cannot open storage device '%1': %2.</source>
-            <translation>Не можна відкрити пристрій зберігання "%1": %2.</translation>
+            <translation>Неможливо відкрити пристрій для зберігання '%1': %2.</translation>
         </message>
         <message>
             <location line="+48" />
             <source>discarding existing data on drive</source>
-            <translation>дискретизація існуючих даних на диску</translation>
+            <translation>відключення наявних даних на диску</translation>
         </message>
         <message>
             <location line="+20" />
@@ -137,7 +137,7 @@
         <message>
             <location line="+5" />
             <source>zeroing out first and last MB of drive</source>
-            <translation>занурення першого і останнього MB диска</translation>
+            <translation>занурення першого і останнього MB приводу</translation>
         </message>
         <message>
             <location line="+10" />
@@ -147,7 +147,7 @@
         <message>
             <location line="+14" />
             <source>Write error while trying to zero out last part of card.&lt;br&gt;Card could be advertising wrong capacity (possible counterfeit).</source>
-            <translation>Перейдіть за адресою: м. Київ, вул. Соборна, буд. 2 &lt;br&gt;Card може бути рекламною неправомірною ємністю (податкова підробка).</translation>
+            <translation>Перейдіть за адресою: м. Київ, вул.Газова, буд.1&lt;br&gt;Картка може бути рекламною неправильною ємністю (знімний підробок).</translation>
         </message>
         <message>
             <location line="+8" />
@@ -157,32 +157,32 @@
         <message>
             <location line="+32" />
             <source>Unable to initialize the download engine</source>
-            <translation>Unable для ініціалізації двигуна завантаження</translation>
+            <translation>Unable для ініціалізації завантажувального двигуна</translation>
         </message>
         <message>
             <location line="+17" />
             <source>starting download</source>
-            <translation>завантаження</translation>
+            <translation>початкове завантаження</translation>
         </message>
         <message>
             <location line="+72" />
             <source>Access denied error while writing file to disk.</source>
-            <translation>Відхилити помилку при запису файлу на диск.</translation>
+            <translation>Доступ відхилити помилки при написанні файлу на диск.</translation>
         </message>
         <message>
             <location line="+5" />
             <source>Controlled Folder Access seems to be enabled. Please add openhdimagewriter.exe to the list of allowed apps and try again.</source>
-            <translation>Увімкнено контрольний пристрій. Будь ласка, додайте openhdimagepaper.exe до списку дозволених додатків і спробуйте знову.</translation>
+            <translation>Увімкніть доступ до папки, будь ласка, додайте openhdimagewriter.exe до списку дозволених додатків та спробуйте ще раз.</translation>
         </message>
         <message>
             <location line="+7" />
             <source>Error writing file to disk</source>
-            <translation>Помилка написання файлу на диск</translation>
+            <translation>Письмовий файл для диска</translation>
         </message>
         <message>
             <location line="+20" />
             <source>Error downloading: %1</source>
-            <translation>Завантажити помилку: %1</translation>
+            <translation>Завантаження помилок: %1</translation>
         </message>
         <message>
             <location line="+276" />
@@ -192,22 +192,22 @@
         <message>
             <location line="+12" />
             <source>Download corrupt. Hash does not match</source>
-            <translation>Завантажити пошкоджені. Hash не відповідає</translation>
+            <translation>Завантажити пошкоджені. Не відповідає</translation>
         </message>
         <message>
             <location line="+13" />
             <source>Error writing to storage (while flushing)</source>
-            <translation>Помилка для зберігання</translation>
+            <translation>Помилка для зберігання (повільний промивання)</translation>
         </message>
         <message>
             <location line="+29" />
             <source>Error writing first block (partition table)</source>
-            <translation>Помилка написання першого блоку</translation>
+            <translation>Помилка написання першого блоку (табл. розділ)</translation>
         </message>
         <message>
             <location line="+40" />
             <source>Unable to allocate verification buffer.</source>
-            <translation>Неможливо виділити буфер перевірки.</translation>
+            <translation>Неможливо виділити верифікації буфера.</translation>
         </message>
         <message>
             <location line="+27" />
@@ -217,12 +217,12 @@
         <message>
             <location line="+16" />
             <source>Error reading from storage.&lt;br&gt;SD card may be broken.</source>
-            <translation>Помилка читання від зберігання. Картка &lt;br&gt;SD може бути порушена.</translation>
+            <translation>Помилка читання від зберігання.&lt;br&gt;Картка SD може бути порушена.</translation>
         </message>
         <message>
             <location line="+19" />
             <source>Verifying write failed. Contents of SD card is different from what was written to it.</source>
-            <translation>Перевірити запис не вдалося. Зміст картки SD відрізняється від того, що було написано до неї.</translation>
+            <translation>Перевірити запис не вдалося. Зміст SD-карти відрізняється від того, що було написано до неї.</translation>
         </message>
         <message>
             <location line="+47" />
@@ -232,17 +232,17 @@
         <message>
             <location line="+107" />
             <source>Error mounting FAT32 partition or config.txt not found</source>
-            <translation>ЗFAT32 розділ або config.txt не знайдено</translation>
+            <translation>Помилка кріплення FAT32 Розділ або config.txt не знайдено</translation>
         </message>
         <message>
             <location line="+20" />
             <source>This Image doesn't support OpenHD settings, proceed with caution!</source>
-            <translation>Цей образ не підтримує налаштування OpenHD, приступайте до обережності!</translation>
+            <translation>Цей образ не підтримує налаштування OpenHD, приступаючи до обережності!</translation>
         </message>
         <message>
             <location line="+33" />
             <source>Unable to customize. File '%1' does not exist.</source>
-            <translation>Неможливо налаштувати. Файл "%1" не існує.</translation>
+            <translation>Неможливо налаштувати. Файл '%1' не існує.</translation>
         </message>
         <message>
             <location line="+4" />
@@ -252,7 +252,7 @@
         <message>
             <location line="+37" />
             <source>Error writing to config.txt on FAT partition</source>
-            <translation>Помилка для config.txt на FAT розділ</translation>
+            <translation>Помилка для розділів config.txt на FAT</translation>
         </message>
         <message>
             <location line="+52" />
@@ -262,7 +262,7 @@
         <message>
             <location line="+3" />
             <source>Error writing settings.json on FAT partition</source>
-            <translation>Помилка для запису settings.json на FAT</translation>
+            <translation>Помилка написання settings.json на FAT розділ</translation>
         </message>
         <message>
             <location line="+3" />
@@ -272,7 +272,7 @@
         <message>
             <location line="+3" />
             <source>Error replacing existing QOpenHD.conf on FAT partition</source>
-            <translation>Заміна помилки існуючої QOpenHD.conf на FAT розділ</translation>
+            <translation>Заміна помилки існуючого QOpenHD.conf на FAT розділ</translation>
         </message>
         <message>
             <location line="+3" />
@@ -282,12 +282,12 @@
         <message>
             <location line="+3" />
             <source>Premium certificate is invalid: %1</source>
-            <translation>Сертифікат відповідності: %1</translation>
+            <translation>Сертифікат преміум-класу недійсний: %1</translation>
         </message>
         <message>
             <location line="+3" />
             <source>Error replacing existing premium certificate on FAT partition</source>
-            <translation>Заміна сертифікату на FAT</translation>
+            <translation>Помилки, що замінюють існуючий сертифікат на FAT</translation>
         </message>
         <message>
             <location line="+3" />
@@ -300,27 +300,27 @@
         <message>
             <location filename="../driveformatthread.cpp" line="+47" />
             <source>Cannot enumerate the target drive: %1</source>
-            <translation>Не вводити цільовий диск: %1</translation>
+            <translation>Не можна об'єднати цільовий диск: %1</translation>
         </message>
         <message>
             <location line="+14" />
             <source>The selected storage device is no longer available.</source>
-            <translation>Вибраний пристрій зберігання не доступний.</translation>
+            <translation>Вибраний пристрій для зберігання більше не доступний.</translation>
         </message>
         <message>
             <location line="+5" />
             <source>Refusing to format a system drive.</source>
-            <translation>Відмова від форматування системного диска.</translation>
+            <translation>Відновлення для форматування системного диска.</translation>
         </message>
         <message>
             <location line="+8" />
             <source>Cannot lock the target volumes: %1</source>
-            <translation>Не заблокувати цільові обсяги: %1</translation>
+            <translation>Не можна заблокувати цільові обсяги: %1</translation>
         </message>
         <message>
             <location line="+15" />
             <source>Error formatting: %1</source>
-            <translation>Форматування помилок: %1</translation>
+            <translation>Формат помилки: %1</translation>
         </message>
         <message>
             <location line="+14" />
@@ -330,7 +330,7 @@
         <message>
             <location line="+7" />
             <source>Invalid device: %1</source>
-            <translation>Неточний пристрій: %1</translation>
+            <translation>Інвалідний пристрій: %1</translation>
         </message>
         <message>
             <location line="+15" />
@@ -341,7 +341,7 @@
         <message>
             <location line="-39" />
             <source>Error formatting (through udisks2)</source>
-            <translation>Форматування помилок</translation>
+            <translation>Форматування помилки (до udisks2)</translation>
         </message>
         <message>
             <location line="+28" />
@@ -361,7 +361,7 @@
         <message>
             <location line="+10" />
             <source>Error running mkfs.fat: %1</source>
-            <translation>Помилка запуску mkfs.fat: %1</translation>
+            <translation>Помилка, що працює mkfs.fat: %1</translation>
         </message>
         <message>
             <location line="+7" />
@@ -379,12 +379,12 @@
         <message>
             <location line="+1" />
             <source>MaskROM</source>
-            <translation>Маска</translation>
+            <translation>MaskROM</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Loader</source>
-            <translation>Навантажувач</translation>
+            <translation>Loader</translation>
         </message>
     </context>
     <context>
@@ -402,7 +402,7 @@
         <message>
             <location line="+10" />
             <source>Clear</source>
-            <translation>Очистити</translation>
+            <translation>Очистити вибір</translation>
         </message>
     </context>
     <context>
@@ -410,12 +410,12 @@
         <message>
             <location filename="../qmlcomponents/FleetControlPage.qml" line="+56" />
             <source>FleetControl profiles are not available yet.</source>
-            <translation>Профіль FleetControl ще не доступний.</translation>
+            <translation>Профілі FleetControl не доступні.</translation>
         </message>
         <message>
             <location line="+35" />
             <source>Give the profile a name with at least two characters.</source>
-            <translation>Надайте ім'я профілю принаймні два символи.</translation>
+            <translation>Подаруйте ім'я профілю принаймні двома символами.</translation>
         </message>
         <message>
             <location line="+21" />
@@ -435,7 +435,7 @@
         <message>
             <location line="+8" />
             <source>Profile applied. Choose an image to continue.</source>
-            <translation>Нанесення профілю. Виберіть зображення для продовження.</translation>
+            <translation>Профіль наноситься. Виберіть зображення для продовження.</translation>
         </message>
         <message>
             <location line="+11" />
@@ -445,7 +445,7 @@
         <message>
             <location line="+24" />
             <source>Operator</source>
-            <translation>Оператори</translation>
+            <translation>Оператор</translation>
         </message>
         <message>
             <location line="+23" />
@@ -465,7 +465,7 @@
         <message>
             <location line="+86" />
             <source>CHECKING GATEWAY</source>
-            <translation>ХЕКЗУВАННЯ ГАТВА</translation>
+            <translation>ХЕККІНГ ГАТВА</translation>
         </message>
         <message>
             <location line="+0" />
@@ -475,7 +475,7 @@
         <message>
             <location line="+26" />
             <source>COMMAND ACCESS</source>
-            <translation>КОМЕРЦІЙНИЙ ЦЕНТР</translation>
+            <translation>КОМЕРЦІЙНИЙ АКСЕСУАР</translation>
         </message>
         <message>
             <location line="+10" />
@@ -490,27 +490,27 @@
         <message>
             <location line="+10" />
             <source>Securely coordinate every aircraft, link, and mission from one operational command layer.</source>
-            <translation>Надійно координувати кожен літак, посилання та місію з одного оперативного шару команди.</translation>
+            <translation>Надійно координувати всі літаки, посилання та місію з одного оперативного шару команди.</translation>
         </message>
         <message>
             <location line="+45" />
             <source>SESSION ACTIVE</source>
-            <translation>СЕСІЙНИЙ АКТИВ</translation>
+            <translation>СЕАНС АКТИВНИЙ</translation>
         </message>
         <message>
             <location line="+0" />
             <source>AUTHORIZED PERSONNEL</source>
-            <translation>Ауторемонт</translation>
+            <translation>АВТООРІЗОВАНИЙ ПЕРСОНЕЛЬ</translation>
         </message>
         <message>
             <location line="+10" />
             <source>Secure sign in</source>
-            <translation>Безпечний знак</translation>
+            <translation>Безпечний вхід</translation>
         </message>
         <message>
             <location line="+10" />
             <source>OPERATOR</source>
-            <translation>ОПЕРАТОР</translation>
+            <translation>Оператор</translation>
         </message>
         <message>
             <location line="+15" />
@@ -520,7 +520,7 @@
         <message>
             <location line="+10" />
             <source>Enter operator ID</source>
-            <translation>Введіть ідентифікатор оператора</translation>
+            <translation>Введіть номер мобільного, який Ви вказали при вказанні</translation>
         </message>
         <message>
             <location line="+13" />
@@ -535,27 +535,27 @@
         <message>
             <location line="+40" />
             <source>SIGN OUT</source>
-            <translation>SIGN OUT</translation>
+            <translation>Вийти</translation>
         </message>
         <message>
             <location line="+2" />
             <source>AUTHENTICATING</source>
-            <translation>Аудиторія</translation>
+            <translation>ВХІД...</translation>
         </message>
         <message>
             <location line="+1" />
             <source>AUTHENTICATE</source>
-            <translation>Аудиторія</translation>
+            <translation>УВІЙТИ</translation>
         </message>
         <message>
             <location line="+27" />
             <source>TLS ENCRYPTED CONNECTION</source>
-            <translation>ЗАГАЛЬНА КОНКУРС</translation>
+            <translation>TLS ЗАГАЛЬНА КОНКУРС</translation>
         </message>
         <message>
             <location line="+37" />
             <source>IMAGEWRITER PROFILES / %1</source>
-            <translation>МАГАЗИННІ ПРОФІЛІ / %1</translation>
+            <translation>ВАЖЛИВІ ПРОФІЛІ / %1</translation>
         </message>
         <message>
             <location line="+8" />
@@ -565,22 +565,22 @@
         <message>
             <location line="+7" />
             <source>Save OpenHD and QOpenHD settings, then apply them before choosing an image.</source>
-            <translation>Заощаджуйте налаштування OpenHD і QOpenHD, потім застосуйте їх до вибору зображення.</translation>
+            <translation>Заощаджуйте налаштування OpenHD і QOpenHD, потім застосуйте їх перед вибором зображення.</translation>
         </message>
         <message>
             <location line="+12" />
             <source>Refresh</source>
-            <translation>Реверс</translation>
+            <translation>Оновити</translation>
         </message>
         <message>
             <location line="+6" />
             <source>Save current settings</source>
-            <translation>Збережіть поточні налаштування</translation>
+            <translation>Заощаджувати поточні налаштування</translation>
         </message>
         <message>
             <location line="+12" />
             <source>Sign out</source>
-            <translation>Увійти</translation>
+            <translation>Вийти</translation>
         </message>
         <message>
             <location line="+66" />
@@ -605,22 +605,22 @@
         <message>
             <location line="+1" />
             <source>No profiles yet. Save the current ImageWriter settings to create one.</source>
-            <translation>Немає профілів ще. Збережіть поточні налаштування ImageWriter для створення одного.</translation>
+            <translation>Немає профілів ще. Заощаджуйте поточні налаштування ImageWriter для створення одного.</translation>
         </message>
         <message>
             <location line="+34" />
             <source>OPEN WEB PORTAL</source>
-            <translation>ВІДДІЛ САЙТУ</translation>
+            <translation>ВІДКРИТТЯ САЙТУ</translation>
         </message>
         <message>
             <location line="+33" />
             <source>Save FleetControl profile</source>
-            <translation>Зберегти FleetControl профіль</translation>
+            <translation>Зберегти FleetControl Профіль</translation>
         </message>
         <message>
             <location line="+8" />
             <source>The current OpenHD settings and selected QOpenHD.conf will be stored in your account.</source>
-            <translation>Поточні налаштування OpenHD та вибрані налаштування QOpenHD.conf будуть зберігатися у вашому обліковому записі.</translation>
+            <translation>Поточні налаштування OpenHD та вибрані QOpenHD.conf будуть зберігатися у вашому обліковому записі.</translation>
         </message>
         <message>
             <location line="+9" />
@@ -630,12 +630,12 @@
         <message>
             <location line="+7" />
             <source>Description (optional)</source>
-            <translation>Опис (за бажанням)</translation>
+            <translation>Опис (необов'язково)</translation>
         </message>
         <message>
             <location line="+11" />
             <source>Stream video to FleetControl platform</source>
-            <translation>Потокове відео на FleetControl</translation>
+            <translation>Потокове відео на платформу FleetControl</translation>
         </message>
         <message>
             <location line="+15" />
@@ -645,7 +645,7 @@
         <message>
             <location line="+22" />
             <source>Cancel</source>
-            <translation>Зареєструватися</translation>
+            <translation>Скасувати</translation>
         </message>
         <message>
             <location line="+6" />
@@ -663,37 +663,37 @@
         <message>
             <location filename="../qmlcomponents/ImageCardGrid.qml" line="+90" />
             <source>Size unavailable</source>
-            <translation>Розмір 0</translation>
+            <translation>Розмір 1.00</translation>
         </message>
         <message>
             <location line="+2" />
             <source>B</source>
-            <translation>Б</translation>
+            <translation>B</translation>
         </message>
         <message>
             <location line="+0" />
             <source>KB</source>
-            <translation>Кабель</translation>
+            <translation>KB</translation>
         </message>
         <message>
             <location line="+0" />
             <source>MB</source>
-            <translation>Про нас</translation>
+            <translation>MB</translation>
         </message>
         <message>
             <location line="+0" />
             <source>GB</source>
-            <translation>Р</translation>
+            <translation>GB</translation>
         </message>
         <message>
             <location line="+0" />
             <source>TB</source>
-            <translation>ТБ</translation>
+            <translation>TB</translation>
         </message>
         <message>
             <location line="+48" />
             <source>OpenHD Hardware</source>
-            <translation>OpenHD Обладнання</translation>
+            <translation>OpenHD обладнання</translation>
         </message>
         <message>
             <location line="+1" />
@@ -723,7 +723,7 @@
         <message>
             <location line="+5" />
             <source>Luckfox</source>
-            <translation>Лакфокс</translation>
+            <translation>Luckfox</translation>
         </message>
         <message>
             <location line="+1" />
@@ -733,7 +733,7 @@
         <message>
             <location line="+5" />
             <source>x86 / PC</source>
-            <translation>x86 / ПК</translation>
+            <translation>x86 / PC</translation>
         </message>
         <message>
             <location line="+1" />
@@ -743,23 +743,23 @@
         <message>
             <location line="+5" />
             <source>More</source>
-            <translation>Детальніше</translation>
+            <translation>Інші</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Orange Pi, Orqa and more</source>
-            <translation>Orange Pi, Orqa і більше</translation>
+            <translation>Помаранчевий Пі, Orqa і більше</translation>
         </message>
         <message>
             <location line="+51" />
             <source>No images available yet</source>
-            <translation>Немає зображень</translation>
+            <translation>Немає зображень, доступні ще</translation>
         </message>
         <message>
             <location line="+16" />
             <location line="+337" />
             <source>Use custom image</source>
-            <translation>Використання користувацького зображення</translation>
+            <translation>Використати власний образ</translation>
         </message>
         <message>
             <location line="-336" />
@@ -770,7 +770,7 @@
             <location line="+5" />
             <location line="+331" />
             <source>Erase / Format</source>
-            <translation>Ераза / Формат</translation>
+            <translation>Стерти / Форматувати</translation>
         </message>
         <message>
             <location line="-267" />
@@ -786,29 +786,29 @@
     <context>
         <name>ImageOptionsPage</name>
         <message>
-            <location filename="../ImageOptionsPage.qml" line="+87" />
+            <location filename="../ImageOptionsPage.qml" line="+88" />
             <source>OpenHD settings</source>
-            <translation>Параметри OpenHD</translation>
+            <translation>Налаштування OpenHD</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Configure image</source>
-            <translation>Налаштування зображення</translation>
+            <translation>Налаштувати образ</translation>
         </message>
         <message>
             <location line="+2" />
             <source>Configure %1 using the same options available before writing an image.</source>
-            <translation>Налаштуйте %1 за допомогою тих же варіантів, доступних до написання зображення.</translation>
+            <translation>Налаштуйте %1 за допомогою тих же варіантів, доступних перед написанням образу.</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Set the device role, cameras, display, networking, and optional configuration files.</source>
-            <translation>Встановити роль пристрою, камери, відображення, мережування та додаткові файли конфігурації.</translation>
+            <translation>Налаштуйте роль пристрою, камери, відображення, мережування та додаткові файли конфігурації.</translation>
         </message>
         <message>
             <location line="+15" />
             <source>General</source>
-            <translation>Головна</translation>
+            <translation>Загальні</translation>
         </message>
         <message>
             <location line="+4" />
@@ -828,12 +828,12 @@
         <message>
             <location line="+1" />
             <source>Select how this device will be used.</source>
-            <translation>Виберіть, як використовувати цей пристрій.</translation>
+            <translation>Виберіть, як буде використовуватися цей пристрій.</translation>
         </message>
         <message>
             <location line="+19" />
             <source>Set SBC to %1</source>
-            <translation>Комплект SBC до %1</translation>
+            <translation>Встановити SBC на %1</translation>
         </message>
         <message>
             <location line="+1" />
@@ -848,7 +848,7 @@
         <message>
             <location line="+1" />
             <source>Configures display and receiver services for ground unit operation.</source>
-            <translation>Налаштовує дисплеєм і ресивери для роботи наземного агрегату.</translation>
+            <translation>Налаштовує дисплеєм і ресивери послуги для роботи наземного агрегату.</translation>
         </message>
         <message>
             <location line="+8" />
@@ -858,12 +858,12 @@
         <message>
             <location line="+1" />
             <source>Configure display output when available.</source>
-            <translation>Настроювання виходу дисплея при наявності.</translation>
+            <translation>Налаштуйте вихід дисплея при наявності.</translation>
         </message>
         <message>
             <location line="+11" />
             <source>Force HDMI resolution and refresh rate</source>
-            <translation>Примус HDMI дозвіл і частота оновлення</translation>
+            <translation>Примус HDMI дозвіл і частота оновлень</translation>
         </message>
         <message>
             <location line="+5" />
@@ -878,12 +878,12 @@
         <message>
             <location line="+2" />
             <source>Height</source>
-            <translation>Виброхвост</translation>
+            <translation>Вибросито</translation>
         </message>
         <message>
             <location line="+2" />
             <source>Refresh rate (Hz)</source>
-            <translation>Refresh (Хз)</translation>
+            <translation>Частота оновлення (Гц)</translation>
         </message>
         <message>
             <location line="+6" />
@@ -904,22 +904,22 @@
         <message>
             <location line="+4" />
             <source>Primary resolution</source>
-            <translation>Первинне рішення</translation>
+            <translation>Роздільність основної камери</translation>
         </message>
         <message>
             <location line="+39" />
             <source>Secondary camera</source>
-            <translation>Середня камера</translation>
+            <translation>Вторинна камера</translation>
         </message>
         <message>
             <location line="+5" />
             <source>Secondary resolution</source>
-            <translation>Середня роздільна здатність</translation>
+            <translation>Роздільність додаткової камери</translation>
         </message>
         <message>
             <location line="+257" />
             <source>Raspberry Pi 5 Camera Connectors</source>
-            <translation>Raspberry Pi 5 роз'єм камери</translation>
+            <translation>Raspberry Pi 5 роз'єми камери</translation>
         </message>
         <message>
             <location line="+11" />
@@ -949,7 +949,7 @@
         <message>
             <location line="+10" />
             <source>Secondary camera IP</source>
-            <translation>IP камери</translation>
+            <translation>Веб камера IP</translation>
         </message>
         <message>
             <location line="+9" />
@@ -959,7 +959,7 @@
         <message>
             <location line="+10" />
             <source>Reserved link bitrate (Mbit/s)</source>
-            <translation>Зашифрований бітрейт посилання (Mbit/s)</translation>
+            <translation>Зарезервований бітрейт посилання (Mbit/s)</translation>
         </message>
         <message>
             <location line="+13" />
@@ -969,7 +969,7 @@
         <message>
             <location line="+1" />
             <source>Optional development and system behavior.</source>
-            <translation>Додатковий розвиток та поведінка системи.</translation>
+            <translation>Додатковий розвиток і системна поведінка.</translation>
         </message>
         <message>
             <location line="+29" />
@@ -989,7 +989,7 @@
         <message>
             <location line="+15" />
             <source>These options are applied while preparing and writing the image.</source>
-            <translation>Ці варіанти застосовуються при підготовці та написанні зображення.</translation>
+            <translation>Ці варіанти наносяться під час приготування і написання образу.</translation>
         </message>
         <message>
             <location line="+10" />
@@ -1009,7 +1009,7 @@
         <message>
             <location line="+8" />
             <source>Existing QOpenHD.conf on the target will be kept when no file is selected.</source>
-            <translation>Випробування QOpenHD.conf на ціль буде зберігатися, коли не вибрано файл.</translation>
+            <translation>Наявний QOpenHD.conf на цільовому носії буде збережено, якщо файл не вибрано.</translation>
         </message>
         <message>
             <location line="+12" />
@@ -1019,7 +1019,7 @@
         <message>
             <location line="+1" />
             <source>Optionally install an OpenHD premium certificate.</source>
-            <translation>Додатково встановіть сертифікат OpenHD.</translation>
+            <translation>Додатково встановіть сертифікат OpenHD преміум.</translation>
         </message>
         <message>
             <location line="+13" />
@@ -1029,17 +1029,17 @@
         <message>
             <location line="+21" />
             <source>Existing premium certificate on the target will be kept when no file is selected.</source>
-            <translation>Отримання сертифікату преміум на цілі буде зберігатися, коли не вибрано файл.</translation>
+            <translation>Отримання сертифікату преміум на ціль буде зберігатися, коли не вибрано файл.</translation>
         </message>
         <message>
             <location line="+20" />
             <source>Cancel</source>
-            <translation>Зареєструватися</translation>
+            <translation>Скасувати</translation>
         </message>
         <message>
             <location line="+5" />
             <source>Save and return</source>
-            <translation>Економія та повернення</translation>
+            <translation>Зберегти й повернутися</translation>
         </message>
         <message>
             <location line="+17" />
@@ -1060,7 +1060,7 @@
         <message>
             <location line="-1" />
             <source>Select premium certificate</source>
-            <translation>Оберіть сертифікат преміум</translation>
+            <translation>Оберіть преміальний сертифікат</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1071,7 +1071,7 @@
             <location line="+21" />
             <location line="+270" />
             <source>Premium certificate is invalid: %1</source>
-            <translation>Сертифікат відповідності: %1</translation>
+            <translation>Сертифікат преміум-класу недійсний: %1</translation>
         </message>
     </context>
     <context>
@@ -1079,7 +1079,7 @@
         <message>
             <location filename="../qmlcomponents/ImageSelectionPage.qml" line="+12" />
             <source>Choose an image</source>
-            <translation>Виберіть зображення</translation>
+            <translation>Вибрати образ</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1094,12 +1094,12 @@
         <message>
             <location line="+1" />
             <source>Use custom image</source>
-            <translation>Використання користувацького зображення</translation>
+            <translation>Використати власний образ</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Erase / Format</source>
-            <translation>Ераза / Формат</translation>
+            <translation>Стерти / Форматувати</translation>
         </message>
         <message>
             <location line="+132" />
@@ -1114,7 +1114,7 @@
         <message>
             <location line="+1" />
             <source>Local Images</source>
-            <translation>Місцеві зображення</translation>
+            <translation>Локальні образи</translation>
         </message>
         <message>
             <location line="+102" />
@@ -1127,28 +1127,28 @@
         <message>
             <location filename="../imagewriter.cpp" line="+451" />
             <source>Storage capacity is not large enough.&lt;br&gt;Needs to be at least %1 GB.</source>
-            <translation>Ємність зберігання не велика. &lt;br&gt;Needs to be принаймні %1 GB.</translation>
+            <translation>Ємність зберігання не дуже велика.&lt;br&gt;Потрібні бути не менше %1 GB.</translation>
         </message>
         <message>
             <location line="+6" />
             <source>Input file is not a valid disk image.&lt;br&gt;File size %1 bytes is not a multiple of 512 bytes.</source>
-            <translation>Вхідний файл не є дійсним образом диска. &lt;br&gt;File розмір %1 байтів не є кілька 512 байтів.</translation>
+            <translation>Вхідний файл не є дійсним образом диска.&lt;br&gt;Розмір файлу %1 байтів не кілька 512 байтів.</translation>
         </message>
         <message>
             <location line="+207" />
             <source>Downloading and writing image</source>
-            <translation>Завантаження та написання зображення</translation>
+            <translation>Завантаження та написання образу</translation>
         </message>
         <message>
             <location line="+102" />
             <source>Write stalled because the storage device stopped responding.&lt;br&gt;Please reconnect or replace the storage device and try again.</source>
-            <translation>Напишіть, що пристрій зберігання припинив відгук. &lt;br&gt;Please відключення або замініть пристрій зберігання і спробуйте знову.</translation>
+            <translation>Напишіть, що пристрій для зберігання припинив відгук.&lt;br&gt;Будь ласка, відключіть або замініть пристрій для зберігання і спробуйте знову.</translation>
         </message>
         <message>
             <location line="+47" />
             <location line="+1" />
             <source>No update package selected.</source>
-            <translation>Немає вибраного пакета оновлення.</translation>
+            <translation>Немає вибраного пакета оновлень.</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1159,13 +1159,13 @@
         <message>
             <location line="+35" />
             <source>Finalizing and rebooting OpenHD device...</source>
-            <translation>Закінчення та перезавантаження пристроїв OpenHD ...</translation>
+            <translation>Закінчення та перезавантаження OpenHD-пристр...</translation>
         </message>
         <message>
             <location line="+18" />
             <location line="+1" />
             <source>Unable to find OpenHD FAT partition on %1</source>
-            <translation>Неможливо знайти OpenHD FAT розділ на %1</translation>
+            <translation>Неможливо знайти розділ OpenHD FAT на %1</translation>
         </message>
         <message>
             <location line="+117" />
@@ -1180,7 +1180,7 @@
         <message>
             <location line="+158" />
             <source>Raspberry Pi rpiboot is not installed. Install the official Raspberry Pi USB boot package first.</source>
-            <translation>Raspberry Pi не встановлено. Встановіть офіційний пакет Raspberry Pi USB.</translation>
+            <translation>Raspberry Pi rpiboot не встановлена. Встановити офіційну Raspberry Pi USB завантажувальний пакет first.</translation>
         </message>
         <message>
             <location line="+26" />
@@ -1190,17 +1190,17 @@
         <message>
             <location line="+16" />
             <source>Raspberry Pi USB boot cancelled.</source>
-            <translation>Завантажувач Raspberry Pi USB скасовано.</translation>
+            <translation>Raspberry Pi USB заглушка скасована.</translation>
         </message>
         <message>
             <location line="+4" />
             <source>Raspberry Pi storage exposed. Waiting for Windows to enumerate it...</source>
-            <translation>Raspberry Pi сховище. Очікується для Windows, щоб прикрасити його...</translation>
+            <translation>Raspberry Pi зберігання піддається. Очікується для Windows, щоб обдурити його ...</translation>
         </message>
         <message>
             <location line="+5" />
             <source>rpiboot failed with exit code %1. Check the USB boot jumper and Windows driver.</source>
-            <translation>помилка rpiboot з кодом виходу %1. Перевірте перемичку завантаження USB і драйвер Windows.</translation>
+            <translation>rpiboot не вдалося з вихідним кодом %1. Перевірте USB-завантажувальний джемпер і драйвер Windows.</translation>
         </message>
         <message>
             <location line="+7" />
@@ -1218,17 +1218,17 @@
         <message>
             <location line="+1" />
             <source>Choose the language used throughout OpenHD ImageWriter.</source>
-            <translation>Виберіть мову, яка використовуватиметься в OpenHD ImageWriter.</translation>
+            <translation>Виберіть мову, яка використовується протягом OpenHD ImageWriter.</translation>
         </message>
         <message>
             <location line="+10" />
             <source>Application language</source>
-            <translation>Мова застосунку</translation>
+            <translation>Мова додатка</translation>
         </message>
         <message>
             <location line="+8" />
             <source>Select a language, then choose Apply.</source>
-            <translation>Виберіть мову, а потім натисніть «Застосувати».</translation>
+            <translation>Виберіть мову, після чого виберіть Застосувати.</translation>
         </message>
         <message>
             <location line="+16" />
@@ -1241,7 +1241,7 @@
         <message>
             <location filename="../localfileextractthread.cpp" line="+34" />
             <source>opening image file</source>
-            <translation>відкриття файлу зображень</translation>
+            <translation>відкриття файлу образу</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1254,37 +1254,37 @@
         <message>
             <location filename="../qmlcomponents/ModernHome.qml" line="+40" />
             <source>Open Source FPV for Everyone</source>
-            <translation>Відкритий джерело FPV для всіх</translation>
+            <translation>FPV з відкритим кодом для всіх</translation>
         </message>
         <message>
             <location line="+20" />
             <source>Write image</source>
-            <translation>Написати зображення</translation>
+            <translation>Записати образ</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Write OpenHD to an SD card, USB drive, or supported device.</source>
-            <translation>Напишіть OpenHD на картку SD, USB або підтримуваний пристрій.</translation>
+            <translation>Напишіть OpenHD на SD-карту, USB-накопичувач або підтримуваний пристрій.</translation>
         </message>
         <message>
-            <location line="+6" />
-            <source>OpenHD Einstellungen</source>
-            <translation>OpenHD Einstellungen</translation>
+            <location line="+8" />
+            <source>Adjust device roles, cameras, display, and advanced OpenHD settings.</source>
+            <translation>Регульувати ролі пристроїв, камери, відображення та розширені налаштування OpenHD.</translation>
+        </message>
+        <message>
+            <location line="-2" />
+            <source>OpenHD settings</source>
+            <translation>Налаштування OpenHD</translation>
         </message>
         <message>
             <location line="+0" />
-            <source>Einstellungen</source>
-            <translation>Ейнспленг</translation>
+            <source>Settings</source>
+            <translation>Налаштування</translation>
         </message>
         <message>
-            <location line="+2" />
-            <source>Adjust device roles, cameras, display, and advanced OpenHD settings.</source>
-            <translation>Регульувати ролі пристроїв, камери, дисплей та розширені налаштування OpenHD.</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Sprache auswählen oder die OpenHD-Entwicklung unterstützen.</source>
-            <translation>Sprache auswählen oder штамп OpenHD-Entwicklung unterstützen.</translation>
+            <location line="+3" />
+            <source>Choose a language or support OpenHD development.</source>
+            <translation>Виберіть мову або підтримку OpenHD.</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1294,17 +1294,17 @@
         <message>
             <location line="+1" />
             <source>Sign in to securely coordinate your aircraft, links, and missions.</source>
-            <translation>Підпишіться на надійного узгодження повітряного судна, посилань та місій.</translation>
+            <translation>Увійдіть, щоб безпечно керувати літальними апаратами, зв'язками та місіями.</translation>
         </message>
         <message>
             <location line="+5" />
             <source>Donate</source>
-            <translation>Пожертвувати</translation>
+            <translation>Підтримати</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Support the continued development of OpenHD.</source>
-            <translation>Підтримка продовження розвитку OpenHD.</translation>
+            <translation>Підтримайте подальший розвиток OpenHD.</translation>
         </message>
     </context>
     <context>
@@ -1316,13 +1316,13 @@
         </message>
         <message>
             <location line="+5" />
-            <source>Image wählen</source>
-            <translation>Зображення wählen</translation>
+            <source>Choose image</source>
+            <translation>Вибрати образ</translation>
         </message>
         <message>
             <location line="+5" />
-            <source>Einstellungen</source>
-            <translation>Ейнспленг</translation>
+            <source>Settings</source>
+            <translation>Налаштування</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1333,13 +1333,13 @@
             <location line="+194" />
             <location line="+22" />
             <source>Info</source>
-            <translation>Новини</translation>
+            <translation>Інформація</translation>
         </message>
         <message>
             <location line="+67" />
             <location line="+22" />
-            <source>Hilfe</source>
-            <translation>Гільф</translation>
+            <source>Help</source>
+            <translation>Довідка</translation>
         </message>
     </context>
     <context>
@@ -1347,12 +1347,12 @@
         <message>
             <location filename="../MsgPopup.qml" line="+164" />
             <source>CLOSE</source>
-            <translation>ЗАКРИТИ</translation>
+            <translation>Закрити</translation>
         </message>
         <message>
             <location line="-10" />
             <source>CONFIGURE</source>
-            <translation>НАЛАШТУВАТИ</translation>
+            <translation>Налаштувати</translation>
         </message>
         <message>
             <location line="-9" />
@@ -1362,7 +1362,7 @@
         <message>
             <location line="-29" />
             <source>Details</source>
-            <translation>Деталі</translation>
+            <translation>Подробиці</translation>
         </message>
         <message>
             <location line="+7" />
@@ -1377,22 +1377,22 @@
         <message>
             <location line="+43" />
             <source>Write details</source>
-            <translation>Детальніше</translation>
+            <translation>Опис вакансії</translation>
         </message>
         <message>
             <location line="+52" />
             <source>Close</source>
-            <translation>Головна</translation>
+            <translation>Закрити</translation>
         </message>
         <message>
             <location line="+15" />
             <source>Image</source>
-            <translation>Відео</translation>
+            <translation>Образ</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Source</source>
-            <translation>Джерело</translation>
+            <translation>Зареєструватися</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1407,7 +1407,7 @@
         <message>
             <location line="+1" />
             <source>SBC</source>
-            <translation>СБК</translation>
+            <translation>SBC</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1417,17 +1417,17 @@
         <message>
             <location line="+1" />
             <source>Primary resolution</source>
-            <translation>Первинне рішення</translation>
+            <translation>Роздільність основної камери</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Secondary camera</source>
-            <translation>Середня камера</translation>
+            <translation>Вторинна камера</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Secondary resolution</source>
-            <translation>Середня роздільна здатність</translation>
+            <translation>Роздільність додаткової камери</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1450,7 +1450,7 @@
         <message>
             <location filename="../qmlcomponents/OperationReviewPage.qml" line="+8" />
             <source>Review operation</source>
-            <translation>Огляд операції</translation>
+            <translation>Операція з оглядом</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1465,33 +1465,33 @@
         <message>
             <location line="+94" />
             <source>Update package</source>
-            <translation>Пакет оновлень</translation>
+            <translation>Пакети оновлень</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Source image</source>
-            <translation>Джерело зображення</translation>
+            <translation>Вихідний образ</translation>
         </message>
         <message>
             <location line="+18" />
             <location line="+61" />
             <source>Change</source>
-            <translation>Зареєструватися</translation>
+            <translation>Змінити</translation>
         </message>
         <message>
             <location line="-60" />
             <source>Change update</source>
-            <translation>Оновлення</translation>
+            <translation>Змінити оновлення</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Change image</source>
-            <translation>Зміна зображення</translation>
+            <translation>Змінити зображення</translation>
         </message>
         <message>
             <location line="+43" />
             <source>Destination device</source>
-            <translation>Пристрої призначення</translation>
+            <translation>Цільовий пристрій</translation>
         </message>
         <message>
             <location line="+17" />
@@ -1506,7 +1506,7 @@
         <message>
             <location line="+10" />
             <source>Configuration saved. Select to review or change it.</source>
-            <translation>Конфігурація збережена. Виберіть для перегляду або змінити його.</translation>
+            <translation>Конфігурація збережена. Виберіть для перегляду або зміни його.</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1553,7 +1553,7 @@
         <message>
             <location line="+2" />
             <source>Certificate is missing customer or use-case claims.</source>
-            <translation>Сертифікат відсутніх клієнтів або вимог до роботи на ринку.</translation>
+            <translation>Сертифікат відсутніх клієнтів або вимог до роботи в портах.</translation>
         </message>
         <message>
             <location line="+2" />
@@ -1583,12 +1583,12 @@
         <message>
             <location line="+2" />
             <source>Certificate is not valid yet.</source>
-            <translation>Сертифікат не діє.</translation>
+            <translation>Сертифікат ще не діє.</translation>
         </message>
         <message>
             <location line="+2" />
             <source>Certificate has expired.</source>
-            <translation>Сертифікат завершено.</translation>
+            <translation>Сертифікат закінчився.</translation>
         </message>
     </context>
     <context>
@@ -1617,7 +1617,7 @@
         <message>
             <location line="+9" />
             <source>Unable to extract %1.</source>
-            <translation>Не можна витягти %1.</translation>
+            <translation>Витратити %1.</translation>
         </message>
         <message>
             <location line="+16" />
@@ -1642,17 +1642,17 @@
         <message>
             <location line="+18" />
             <source>Downloading firmware package (%1%)...</source>
-            <translation>Завантажити пакет прошивки (%1%)...</translation>
+            <translation>Завантаження пакету прошивок (%1%) ...</translation>
         </message>
         <message>
             <location line="+16" />
             <source>Failed to download firmware: %1</source>
-            <translation>Заборонено для завантаження прошивки: %1</translation>
+            <translation>Заборонено завантажити прошивку: %1</translation>
         </message>
         <message>
             <location line="+13" />
             <source>Failed to save downloaded firmware.</source>
-            <translation>Не вдалося зберегти завантаження прошивки.</translation>
+            <translation>Не вдалося зберегти завантажену прошивку.</translation>
         </message>
         <message>
             <location line="+12" />
@@ -1672,7 +1672,7 @@
         <message>
             <location line="+4" />
             <source>Failed to extract firmware archive: %1</source>
-            <translation>Заборонено вилучити архів прошивок: %1</translation>
+            <translation>В’язаний для вилучення архіву прошивки: %1</translation>
         </message>
         <message>
             <location line="+9" />
@@ -1682,22 +1682,22 @@
         <message>
             <location line="+7" />
             <source>Found firmware.zip; extracting Rockchip partitions...</source>
-            <translation>Знайдено firmware.zip; вилучення розділів Rockchip ...</translation>
+            <translation>Знайдено firmware.zip; вилучення Rockchip розділів...</translation>
         </message>
         <message>
             <location line="+5" />
             <source>Failed to extract firmware.zip: %1</source>
-            <translation>Зfirmware.zip: %1</translation>
+            <translation>Надіслане до екстракту firmware.zip: %1</translation>
         </message>
         <message>
             <location line="+9" />
             <source>Invalid Rockchip firmware package: %1</source>
-            <translation>Пакет прошивки Rockchip: %1</translation>
+            <translation>Пакет прошивок Invalid Rockchip: %1</translation>
         </message>
         <message>
             <location line="+7" />
             <source>The selected firmware ZIP does not contain a valid Rockchip loader (MiniLoaderAll.bin or download.bin).</source>
-            <translation>Вибране прошивку ZIP не містить дійсного Rockchip навантажувача (MiniLoaderAll.bin або download.bin).</translation>
+            <translation>Вибрані прошивки ZIP не містить дійсного навантажувача Rockchip (MiniLoaderAll.bin або завантажити.bin).</translation>
         </message>
         <message>
             <location line="+4" />
@@ -1712,7 +1712,7 @@
         <message>
             <location line="+9" />
             <source>The firmware package does not contain readable partition metadata.</source>
-            <translation>Пакет прошивок не містить читаних метаданих розділів.</translation>
+            <translation>Пакет прошивок не містить читабельних метаданих розділів.</translation>
         </message>
         <message>
             <location line="+6" />
@@ -1727,7 +1727,7 @@
         <message>
             <location line="+51" />
             <source>No flashable partition images found in the selected package.</source>
-            <translation>Немає flashable розділу зображень, знайдені в вибраному пакеті.</translation>
+            <translation>Немає flashable перегородки, знайдені в вибраному пакеті.</translation>
         </message>
         <message>
             <location line="+8" />
@@ -1737,22 +1737,22 @@
         <message>
             <location line="+17" />
             <source>Rockchip device not detected. Please ensure your OpenHD X21 is connected via USB.</source>
-            <translation>Пристрої Rockchip не виявлено. ЗOpenHD X21 підключений через USB.</translation>
+            <translation>Пристрій Rockchip не виявлений. Будь ласка, переконайтеся, що ваш OpenHD X21 підключений через USB.</translation>
         </message>
         <message>
             <location line="+6" />
             <source>OpenHD X21 detected in MaskROM mode. Loading bootloader...</source>
-            <translation>OpenHD X21 виявлений в режимі маскування. Завантаження завантажувача ...</translation>
+            <translation>OpenHD X21 виявлено в режимі MaskROM. Завантаження завантажувача ...</translation>
         </message>
         <message>
             <location line="+19" />
             <source>The selected firmware ZIP does not contain a readable Rockchip loader.</source>
-            <translation>Вибрані прошивки ZIP не містять зчитувач Rockchip.</translation>
+            <translation>Вибраний прошивку ZIP не містить читабельного навантажувача Rockchip.</translation>
         </message>
         <message>
             <location line="+10" />
             <source>Failed to load Rockchip bootloader binary (MiniLoaderAll.bin).</source>
-            <translation>Призначений для завантаження Rockchip завантажувача бінарними (MiniLoaderAll.bin).</translation>
+            <translation>Переміщений для завантаження Rockchip Bootloader бінарними (MiniLoaderAll.bin).</translation>
         </message>
         <message>
             <location line="+6" />
@@ -1772,7 +1772,7 @@
         <message>
             <location line="+4" />
             <source>Timed out waiting for device to enter Loader mode after bootloader download.</source>
-            <translation>Очікується, що пристрій для введення режиму Loader після завантаження завантажувача.</translation>
+            <translation>Очікується чек на пристрій, щоб ввести режим Loader після завантаження завантажувача.</translation>
         </message>
         <message>
             <location line="+8" />
@@ -1782,12 +1782,12 @@
         <message>
             <location line="+5" />
             <source>Failed to connect to Loader interface: %1</source>
-            <translation>З'єднання до інтерфейсу Loader: %1</translation>
+            <translation>Переміщений для підключення до інтерфейсу Loader: %1</translation>
         </message>
         <message>
             <location line="+24" />
             <source>Writing partition table (parameter.txt)...</source>
-            <translation>Написання таблиці розділу (parameter.txt) ...</translation>
+            <translation>Написання таблиці розділів (parameter.txt) ...</translation>
         </message>
         <message>
             <location line="+9" />
@@ -1797,7 +1797,7 @@
         <message>
             <location line="+18" />
             <source>Flashing %1 (%2 MB)...</source>
-            <translation>Миготить %1 (%2 МБ)...</translation>
+            <translation>Запис %1 (%2 MB)...</translation>
         </message>
         <message>
             <location line="+7" />
@@ -1807,12 +1807,75 @@
         <message>
             <location line="+20" />
             <source>Failed flashing %1 at sector %2: %3</source>
-            <translation>Помилка миготіння %1 в секторі %2: %3</translation>
+            <translation>Заборонена миготливість %1 в секторі %2: %3</translation>
         </message>
         <message>
             <location line="+27" />
             <source>Flashing complete. Rebooting OpenHD device...</source>
-            <translation>Флешування завершено. Перезавантаження пристрою OpenHD ...</translation>
+            <translation>Перезавантаження OpenHD-пристр...</translation>
+        </message>
+    </context>
+    <context>
+        <name>SettingsLabels</name>
+        <message>
+            <location filename="../qmlcomponents/SettingsLabels.js" line="+4" />
+            <source>Air</source>
+            <translation>Повітряний модуль</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Ground</source>
+            <translation>Наземна станція</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>None</source>
+            <translation>Немає</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Network</source>
+            <translation>Мережа</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Advanced</source>
+            <translation>Розширені</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Generic</source>
+            <translation>Генерація</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Integrated camera</source>
+            <translation>Вбудована камера</translation>
+        </message>
+        <message>
+            <location line="+2" />
+            <source>IP camera</source>
+            <translation>IP-камера</translation>
+        </message>
+        <message>
+            <location line="+2" />
+            <source>Test camera</source>
+            <translation>Тестова камера</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>External camera</source>
+            <translation>Зовнішня камера</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>File source</source>
+            <translation>Файл-джерело</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>2 MP cameras</source>
+            <translation>2 Мп камери</translation>
         </message>
     </context>
     <context>
@@ -1830,7 +1893,7 @@
         <message>
             <location line="+6" />
             <source>OpenHD storage is not mounted.</source>
-            <translation>OpenHD не монтується.</translation>
+            <translation>Оперативна пам'ять OpenHD не монтується.</translation>
         </message>
         <message>
             <location line="+11" />
@@ -1840,7 +1903,7 @@
         <message>
             <location line="+18" />
             <source>Unable to access update destination folder.</source>
-            <translation>Неможливо оновити папку призначення.</translation>
+            <translation>Неможливо оновити папку призначення доступу.</translation>
         </message>
         <message>
             <location line="+22" />
@@ -1852,12 +1915,12 @@
             <location line="+94" />
             <location line="+41" />
             <source>Not enough space on the FAT partition (%1 MB available, %2 MB required).</source>
-            <translation>Не достатньо місця на FAT розділ (%1 Мб доступний, %2 Мб потрібно).</translation>
+            <translation>Не вистачає місця на розділ FAT (%1 MB, %2 MB потрібно).</translation>
         </message>
         <message>
             <location line="-125" />
             <source>Unable to write to OpenHD partition.</source>
-            <translation>Неможливо писати на розділ OpenHD.</translation>
+            <translation>Неможливо писати на OpenHD розділ.</translation>
         </message>
         <message>
             <location line="+4" />
@@ -1888,7 +1951,7 @@
             <location line="+27" />
             <location line="+92" />
             <source>Error writing update archive.</source>
-            <translation>Архів оновлення помилок.</translation>
+            <translation>Архів оновлень помилок.</translation>
         </message>
         <message>
             <location line="-81" />
@@ -1913,12 +1976,12 @@
         <message>
             <location line="+14" />
             <source>Unable to read update archive.</source>
-            <translation>Неможливо прочитати архів оновлення.</translation>
+            <translation>Неможливо прочитати архів оновлень.</translation>
         </message>
         <message>
             <location line="+5" />
             <source>Uploading update</source>
-            <translation>Завантаження оновлення</translation>
+            <translation>Передавання оновлення</translation>
         </message>
         <message>
             <location line="+11" />
@@ -1933,13 +1996,13 @@
         <message>
             <location line="+15" />
             <source>Uploading update (%1%)</source>
-            <translation>Завантаження оновлення (%1%)</translation>
+            <translation>Передавання оновлення (%1%)</translation>
         </message>
     </context>
     <context>
         <name>configure</name>
         <message>
-            <location filename="../configure.qml" line="+853" />
+            <location filename="../configure.qml" line="+854" />
             <source>A QOpenHD.conf is already present on the drive.</source>
             <translation>Файл QOpenHD.conf вже є на диску.</translation>
         </message>
@@ -1955,7 +2018,52 @@
             <translation>Режим завантаження</translation>
         </message>
         <message>
-            <location line="+29" />
+            <location line="-113" />
+            <source>Settings</source>
+            <translation>Налаштування</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Choose a language or support OpenHD development.</source>
+            <translation>Виберіть мову або підтримку OpenHD.</translation>
+        </message>
+        <message>
+            <location line="+11" />
+            <source>Language</source>
+            <translation>Мова</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Application</source>
+            <translation>Застосунок</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Change the language of OpenHD ImageWriter.</source>
+            <translation>Зміна мови OpenHD ImageWriter.</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Choose language</source>
+            <translation>Виберіть мову</translation>
+        </message>
+        <message>
+            <location line="+11" />
+            <source>Support OpenHD</source>
+            <translation>Підтримка OpenHD</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Support OpenHD development with a donation.</source>
+            <translation>Підтримка розробки OpenHD з пожертвуванням.</translation>
+        </message>
+        <message>
+            <location line="+19" />
+            <source>OpenHD settings</source>
+            <translation>Налаштування OpenHD</translation>
+        </message>
+        <message>
+            <location line="+96" />
             <source>Camera</source>
             <translation>Камера</translation>
         </message>
@@ -1984,68 +2092,19 @@
         <message>
             <location line="-645" />
             <location line="+68" />
+            <location line="+3" />
             <source>Donate</source>
-            <translation>Пожертвувати</translation>
+            <translation>Підтримати</translation>
         </message>
         <message>
-            <location line="-25" />
-            <source>Einstellungen</source>
-            <translation>Ейнспленг</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Sprache auswählen oder die OpenHD-Entwicklung unterstützen.</source>
-            <translation>Sprache auswählen oder штамп OpenHD-Entwicklung unterstützen.</translation>
-        </message>
-        <message>
-            <location line="+11" />
-            <source>Sprache</source>
-            <translation>Скраш</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Anwendung</source>
-            <translation>Ануендунг</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Die Sprache des OpenHD ImageWriter ändern.</source>
-            <translation>Die Sprache des OpenHD ImageWriter ändern.</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Sprache auswählen</source>
-            <translation>Скраш Аускун</translation>
-        </message>
-        <message>
-            <location line="+11" />
-            <source>OpenHD unterstützen</source>
-            <translation>OpenHD unterstützen</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Die Entwicklung von OpenHD mit einer Spende unterstützen.</source>
-            <translation>Die Entwicklung фон OpenHD mit einer Spende unterstützen.</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Spenden</source>
-            <translation>Сенден</translation>
-        </message>
-        <message>
-            <location line="+18" />
-            <source>OpenHD Einstellungen</source>
-            <translation>OpenHD Einstellungen</translation>
-        </message>
-        <message>
-            <location line="+2" />
+            <location line="+20" />
             <source>Adjust the OpenHD settings stored on the selected device.</source>
             <translation>Налаштування параметрів OpenHD, що зберігаються на вибраному пристрої.</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Select an OpenHD device to inspect and configure its settings.</source>
-            <translation>Виберіть пристрій OpenHD для перевірки та налаштування параметрів.</translation>
+            <translation>Виберіть пристрій OpenHD для перевірки та налаштування його налаштувань.</translation>
         </message>
         <message>
             <location line="+14" />
@@ -2065,7 +2124,7 @@
         <message>
             <location line="+1" />
             <source>Choose the SD card or USB storage containing OpenHD.</source>
-            <translation>Виберіть карту SD або USB, що містить OpenHD.</translation>
+            <translation>Виберіть SD-карту або USB-накопичувач, що містить OpenHD.</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2085,22 +2144,22 @@
         <message>
             <location line="+4" />
             <source>Primary resolution</source>
-            <translation>Первинне рішення</translation>
+            <translation>Роздільність основної камери</translation>
         </message>
         <message>
             <location line="+39" />
             <source>Secondary camera</source>
-            <translation>Середня камера</translation>
+            <translation>Вторинна камера</translation>
         </message>
         <message>
             <location line="+5" />
             <source>Secondary resolution</source>
-            <translation>Середня роздільна здатність</translation>
+            <translation>Роздільність додаткової камери</translation>
         </message>
         <message>
             <location line="+244" />
             <source>Raspberry Pi 5 Camera Connectors</source>
-            <translation>Raspberry Pi 5 роз'єм камери</translation>
+            <translation>Raspberry Pi 5 роз'єми камери</translation>
         </message>
         <message>
             <location line="+11" />
@@ -2120,7 +2179,7 @@
         <message>
             <location line="+7" />
             <source>Force HDMI resolution and refresh rate</source>
-            <translation>Примус HDMI дозвіл і частота оновлення</translation>
+            <translation>Примус HDMI дозвіл і частота оновлень</translation>
         </message>
         <message>
             <location line="+7" />
@@ -2130,12 +2189,12 @@
         <message>
             <location line="+2" />
             <source>Height</source>
-            <translation>Виброхвост</translation>
+            <translation>Вибросито</translation>
         </message>
         <message>
             <location line="+2" />
             <source>Refresh rate (Hz)</source>
-            <translation>Refresh (Хз)</translation>
+            <translation>Частота оновлення (Гц)</translation>
         </message>
         <message>
             <location line="+7" />
@@ -2155,7 +2214,7 @@
         <message>
             <location line="+8" />
             <source>Secondary camera IP</source>
-            <translation>IP камери</translation>
+            <translation>Веб камера IP</translation>
         </message>
         <message>
             <location line="+8" />
@@ -2165,10 +2224,15 @@
         <message>
             <location line="+8" />
             <source>Reserved link bitrate (Mbit/s)</source>
-            <translation>Зашифрований бітрейт посилання (Mbit/s)</translation>
+            <translation>Зарезервований бітрейт посилання (Mbit/s)</translation>
         </message>
         <message>
-            <location line="+94" />
+            <location line="+34" />
+            <source>Wi-Fi hotspot</source>
+            <translation>Wi-Fi гарячийпот</translation>
+        </message>
+        <message>
+            <location line="+60" />
             <source>Premium Certificate</source>
             <translation>Преміум сертифікат</translation>
         </message>
@@ -2195,12 +2259,12 @@
         <message>
             <location line="+1" />
             <source>Select the OpenHD SD card or USB storage whose settings you want to edit.</source>
-            <translation>Виберіть OpenHD SD карту або USB, налаштування якого ви хочете редагувати.</translation>
+            <translation>Виберіть OpenHD SD-карт або USB-накопичувач, налаштування якого ви хочете редагувати.</translation>
         </message>
         <message>
             <location line="+140" />
             <source>Select premium certificate</source>
-            <translation>Оберіть сертифікат преміум</translation>
+            <translation>Оберіть преміальний сертифікат</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2211,7 +2275,7 @@
             <location line="+21" />
             <location line="+479" />
             <source>Premium certificate is invalid: %1</source>
-            <translation>Сертифікат відповідності: %1</translation>
+            <translation>Сертифікат преміум-класу недійсний: %1</translation>
         </message>
         <message>
             <location line="-428" />
@@ -2283,11 +2347,6 @@
             <source>WRITE SETTINGS</source>
             <translation>ЗАПИСАТИ НАЛАШТУВАННЯ</translation>
         </message>
-        <message>
-            <location line="-122" />
-            <source>WifiHotspot</source>
-            <translation>Wi-Fi точка доступу</translation>
-        </message>
     </context>
     <context>
         <name>flash</name>
@@ -2351,17 +2410,17 @@
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was flashed to the board.&lt;br&gt;The board is now rebooting.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; спалахнула на дошку. &lt;br&gt;Дошка тепер перезавантаження.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; був спалахований на дошку.&lt;br&gt;Дошка тепер перезавантаження.</translation>
         </message>
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was copied to the FAT32 partition on &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;You can now safely remove the card and insert it into your board.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; було скопійовано до розділу FAT32 на &lt;b&gt;%2ZXQP&lt;/b&gt;.&lt;br&gt;Ви можете тепер безпечно видалити карту і вставити її в вашу дошку.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; було скопійовано до розділу FAT32 на &lt;b&gt;%2 % р.&lt;/b&gt;. .&lt;br&gt;Ви можете зараз безпечно видалити картку і вставити її в вашу дошку.</translation>
         </message>
         <message>
             <location line="+101" />
             <source>Error parsing image catalog</source>
-            <translation>Каталог зображень</translation>
+            <translation>Помилка каталог зображень</translation>
         </message>
         <message>
             <location line="+164" />
@@ -2376,12 +2435,12 @@
         <message>
             <location line="-1379" />
             <source>Writing image</source>
-            <translation>Написання зображення</translation>
+            <translation>Запис образу</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Write an image</source>
-            <translation>Напишіть зображення</translation>
+            <translation>Записати образ</translation>
         </message>
         <message>
             <location line="+2" />
@@ -2396,7 +2455,7 @@
         <message>
             <location line="+10" />
             <source>Image</source>
-            <translation>Відео</translation>
+            <translation>Образ</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2406,7 +2465,7 @@
         <message>
             <location line="+1" />
             <source>Write</source>
-            <translation>Написати</translation>
+            <translation>Записати</translation>
         </message>
         <message>
             <location line="+49" />
@@ -2416,7 +2475,7 @@
         <message>
             <location line="+1" />
             <source>Source image</source>
-            <translation>Джерело зображення</translation>
+            <translation>Вихідний образ</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2426,7 +2485,7 @@
         <message>
             <location line="+1" />
             <source>Choose image</source>
-            <translation>Виберіть зображення</translation>
+            <translation>Вибрати образ</translation>
         </message>
         <message>
             <location line="+7" />
@@ -2442,7 +2501,7 @@
             <location line="+1" />
             <location line="+1155" />
             <source>Select the SD card, USB drive, or supported OpenHD device to overwrite.</source>
-            <translation>Виберіть карту SD, USB, або підтриманий пристрій OpenHD для перезапису.</translation>
+            <translation>Виберіть SD-карту, USB-накопичувач або підтриманий пристрій OpenHD для перезапису.</translation>
         </message>
         <message>
             <location line="-1154" />
@@ -2452,17 +2511,17 @@
         <message>
             <location line="+10" />
             <source>Ready to write</source>
-            <translation>Готовий писати</translation>
+            <translation>Готовий написати</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Complete the selections</source>
-            <translation>Повний вибір</translation>
+            <translation>Завершити вибір</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Final step</source>
-            <translation>Остаточний крок</translation>
+            <translation>Кінцевий крок</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2472,7 +2531,7 @@
         <message>
             <location line="+1" />
             <source>Review and write</source>
-            <translation>Огляд та запис</translation>
+            <translation>Перевірити й записати</translation>
         </message>
         <message>
             <location line="+54" />
@@ -2482,12 +2541,12 @@
         <message>
             <location line="+8" />
             <source>Cancel write</source>
-            <translation>Скасувати</translation>
+            <translation>Скасування</translation>
         </message>
         <message>
             <location line="+7" />
             <source>Skip verification</source>
-            <translation>Перевірка</translation>
+            <translation>Пропустити перевірку</translation>
         </message>
         <message>
             <location line="+24" />
@@ -2497,22 +2556,22 @@
         <message>
             <location line="+7" />
             <source>Configure device role, cameras, networking, and display settings.</source>
-            <translation>Налаштування ролі пристрою, камер, мереж і параметрів відображення.</translation>
+            <translation>Налаштування ролі пристрою, фотоапаратів, мереж і параметрів відображення.</translation>
         </message>
         <message>
             <location line="+8" />
             <source>Configure</source>
-            <translation>Налаштування</translation>
+            <translation>Налаштувати</translation>
         </message>
         <message>
             <location line="+139" />
             <source>Sign in to FleetControl before loading developer images.</source>
-            <translation>Увійти до FleetControl перед завантаженням забудовника зображень.</translation>
+            <translation>Зареєструйтеся на FleetControl перед завантаженням забудовника зображень.</translation>
         </message>
         <message>
             <location line="+2" />
             <source>Link a GitHub account under FleetControl &gt; My Account first.</source>
-            <translation>Посилання на обліковий запис GitHub під FleetControl &gt; Перший обліковий запис.</translation>
+            <translation>Посилання на обліковий запис GitHub під FleetControl &gt; Мій обліковий запис першим.</translation>
         </message>
         <message>
             <location line="+2" />
@@ -2522,7 +2581,7 @@
         <message>
             <location line="+1" />
             <source>FleetControl could not load GitHub developer artifacts (HTTP %1).</source>
-            <translation>FleetControl не може навантажувати GitHub розробник артефакти (HTTP %1).</translation>
+            <translation>FleetControl не може навантажувати GitHub розробника артефакти (HTTP %1).</translation>
         </message>
         <message>
             <location line="+37" />
@@ -2537,12 +2596,12 @@
         <message>
             <location line="+18" />
             <source>No current dev-release image artifacts were found.</source>
-            <translation>Виявлено неперервне зображення.</translation>
+            <translation>Виявлено неперервне вивільнення зображень.</translation>
         </message>
         <message>
             <location line="+107" />
             <source>Choose an image</source>
-            <translation>Виберіть зображення</translation>
+            <translation>Вибрати образ</translation>
         </message>
         <message>
             <location line="+37" />
@@ -2567,7 +2626,7 @@
         <message>
             <location line="+0" />
             <source>Official</source>
-            <translation>Офіційна інформація</translation>
+            <translation>Офіційні</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2577,17 +2636,17 @@
         <message>
             <location line="+0" />
             <source>Developer</source>
-            <translation>Розробник</translation>
+            <translation>Розробники</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Local Images</source>
-            <translation>Місцеві зображення</translation>
+            <translation>Локальні образи</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Local</source>
-            <translation>Головна</translation>
+            <translation>Місцеве ТБ</translation>
         </message>
         <message>
             <location line="+107" />
@@ -2597,7 +2656,7 @@
         <message>
             <location line="+4" />
             <source>Open FleetControl</source>
-            <translation>Завантажити FleetControl</translation>
+            <translation>Відкрито FleetControl</translation>
         </message>
         <message>
             <location line="+93" />
@@ -2612,12 +2671,12 @@
         <message>
             <location line="+269" />
             <source>Use custom image</source>
-            <translation>Використання користувацького зображення</translation>
+            <translation>Використати власний образ</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Erase / Format</source>
-            <translation>Ераза / Формат</translation>
+            <translation>Стерти / Форматувати</translation>
         </message>
         <message>
             <location line="+89" />
@@ -2627,12 +2686,12 @@
         <message>
             <location line="+2" />
             <source>Connect the OpenHD X21 by USB in MaskROM or Loader mode, then select it below.</source>
-            <translation>Підключіть OpenHD X21 від USB в режимі маскування або навантажувача, потім виберіть його нижче.</translation>
+            <translation>Роз'єм OpenHD X21 від USB в режимі MaskROM або Loader, потім виберіть його нижче.</translation>
         </message>
         <message>
             <location line="+21" />
             <source>Review image write</source>
-            <translation>Список зображень</translation>
+            <translation>Редагування зображень</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2642,12 +2701,12 @@
         <message>
             <location line="+6" />
             <source>Erase target and write</source>
-            <translation>Ціль і запис</translation>
+            <translation>Цільове завдання і писати</translation>
         </message>
         <message>
             <location line="+108" />
             <source>Donate</source>
-            <translation>Пожертвувати</translation>
+            <translation>Підтримати</translation>
         </message>
         <message>
             <location line="+387" />
@@ -2663,7 +2722,7 @@
         <message>
             <location line="+1" />
             <source>All existing data on &lt;b&gt;%1&lt;/b&gt; will be permanently erased.&lt;br&gt;&lt;br&gt;Write &lt;b&gt;%2&lt;/b&gt; to this device?</source>
-            <translation>Всі існуючі дані на &lt;b&gt;%1&lt;/b&gt; будуть назавжди вилучені.&lt;br&gt;&lt;br&gt;Write &lt;b&gt;%2&lt;/b&gt; до цього пристрою?</translation>
+            <translation>Усі дані на &lt;b&gt;%1&lt;/b&gt; буде остаточно стерто.&lt;br&gt;&lt;br&gt;Записати &lt;b&gt;%2&lt;/b&gt; на цей пристрій?</translation>
         </message>
         <message>
             <location line="+236" />
@@ -2673,7 +2732,7 @@
         <message>
             <location line="+321" />
             <source>X21 firmware.zip packages must be flashed directly to an OpenHD X21 connected by USB in MaskROM or Loader mode.</source>
-            <translation>Пакети X21 firmware.zip повинні бути спалаховані безпосередньо до OpenHD X21 підключені USB в режимі маскування або навантажувача.</translation>
+            <translation>Пакети X21 firmware.zip повинні бути спалаховані безпосередньо до OpenHD X21, підключених USB в MaskROM або Loader.</translation>
         </message>
         <message>
             <location line="-458" />
@@ -2797,7 +2856,7 @@
         <message>
             <location line="-485" />
             <source>WRITE</source>
-            <translation>ЗАПИСАТИ</translation>
+            <translation>Записати</translation>
         </message>
         <message>
             <location line="+444" />
@@ -2820,19 +2879,19 @@
             <translation>Оздоблення або скасування поточної операції перед тим, як залишити цю сторінку.</translation>
         </message>
         <message>
-            <location line="+969" />
+            <location line="+972" />
             <source>WEBSITE</source>
             <translation>Веб-сайт</translation>
         </message>
         <message>
             <location line="+5" />
             <source>GITHUB</source>
-            <translation>ГІТУБ</translation>
+            <translation>GITHUB</translation>
         </message>
         <message>
             <location line="+5" />
             <source>DONATE</source>
-            <translation>ДОНАТ</translation>
+            <translation>Підтримати</translation>
         </message>
         <message>
             <location line="+120" />
@@ -2880,7 +2939,12 @@
             <translation>ВИБРАТИ НОСІЙ</translation>
         </message>
         <message>
-            <location line="-863" />
+            <location line="-878" />
+            <source>Update OpenHD</source>
+            <translation>Оновлення OpenHD</translation>
+        </message>
+        <message>
+            <location line="+15" />
             <location line="+278" />
             <location line="+584" />
             <source>CHOOSE UPDATE</source>
@@ -2897,22 +2961,22 @@
         <message>
             <location line="+122" />
             <source>Update complete</source>
-            <translation>Оновлення</translation>
+            <translation>Оновлення завершено</translation>
         </message>
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was flashed to the board.&lt;br&gt;The board is now rebooting.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; спалахнула на дошку. &lt;br&gt;Дошка тепер перезавантаження.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; був спалахований на дошку.&lt;br&gt;Дошка тепер перезавантаження.</translation>
         </message>
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was copied to the FAT32 partition on &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;You can now safely remove the card and insert it into your board.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; було скопійовано до розділу FAT32 на &lt;b&gt;%2ZXQP&lt;/b&gt;.&lt;br&gt;Ви можете тепер безпечно видалити карту і вставити її в вашу дошку.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; було скопійовано до розділу FAT32 на &lt;b&gt;%2 % р.&lt;/b&gt;. .&lt;br&gt;Ви можете зараз безпечно видалити картку і вставити її в вашу дошку.</translation>
         </message>
         <message>
             <location line="+72" />
             <source>Error parsing image catalog</source>
-            <translation>Каталог зображень</translation>
+            <translation>Помилка каталог зображень</translation>
         </message>
         <message>
             <location line="+57" />
@@ -2937,12 +3001,12 @@
         <message>
             <location line="+1" />
             <source>Complete X21 USB recovery firmware (%1)</source>
-            <translation>Повний X21 USB відновлення прошивки (%1)</translation>
+            <translation>Повна прошивка для відновлення USB X21 (%1)</translation>
         </message>
         <message>
             <location line="+15" />
             <source>Dated X21 update and recovery packages from Cloudsmith</source>
-            <translation>Пакети оновлень та відновлення даних X21 від Cloudsmith</translation>
+            <translation>Дата X21 оновлення та відновлення пакетів з Cloudsmith</translation>
         </message>
         <message>
             <location line="+127" />
@@ -2962,17 +3026,12 @@
         <message>
             <location line="-13" />
             <source>Donate</source>
-            <translation>Пожертвувати</translation>
+            <translation>Підтримати</translation>
         </message>
         <message>
             <location line="-236" />
             <source>Updating device</source>
             <translation>Оновлення пристрою</translation>
-        </message>
-        <message>
-            <location line="+0" />
-            <source>OpenHD Updaten</source>
-            <translation>OpenHD Оновлення</translation>
         </message>
         <message>
             <location line="+2" />
@@ -2992,7 +3051,7 @@
         <message>
             <location line="+1" />
             <source>Update package</source>
-            <translation>Пакет оновлень</translation>
+            <translation>Пакети оновлень</translation>
         </message>
         <message>
             <location line="+1" />
@@ -3028,22 +3087,22 @@
         <message>
             <location line="+10" />
             <source>Ready to update</source>
-            <translation>Готові оновлення</translation>
+            <translation>Готовий до оновлення</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Complete the selections</source>
-            <translation>Повний вибір</translation>
+            <translation>Завершити вибір</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Final step</source>
-            <translation>Остаточний крок</translation>
+            <translation>Кінцевий крок</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Review the package and target before starting the update.</source>
-            <translation>Перегляд пакету та цілі перед початком оновлення.</translation>
+            <translation>Перегляньте пакет і ціль перед тим, як почати оновлення.</translation>
         </message>
         <message>
             <location line="+1" />
@@ -3058,12 +3117,12 @@
         <message>
             <location line="+8" />
             <source>Cancel</source>
-            <translation>Зареєструватися</translation>
+            <translation>Скасувати</translation>
         </message>
         <message>
             <location line="+7" />
             <source>Skip verification</source>
-            <translation>Перевірка</translation>
+            <translation>Пропустити перевірку</translation>
         </message>
         <message>
             <location line="+23" />
@@ -3078,7 +3137,7 @@
         <message>
             <location line="+7" />
             <source>Configure</source>
-            <translation>Налаштування</translation>
+            <translation>Налаштувати</translation>
         </message>
         <message>
             <location line="+16" />
@@ -3103,7 +3162,7 @@
         <message>
             <location line="+11" />
             <source>Choose an update target</source>
-            <translation>Виберіть цілі оновлення</translation>
+            <translation>Виберіть цільову цільову тему оновлення</translation>
         </message>
         <message>
             <location line="+22" />
@@ -3118,7 +3177,7 @@
         <message>
             <location line="+3" />
             <source>Install update</source>
-            <translation>Оновлення</translation>
+            <translation>Встановіть оновлення</translation>
         </message>
         <message>
             <location line="+418" />
@@ -3254,7 +3313,7 @@
         <message>
             <location line="-490" />
             <source>WRITE</source>
-            <translation>ЗАПИСАТИ</translation>
+            <translation>Записати</translation>
         </message>
         <message>
             <location line="+453" />

@@ -48,6 +48,7 @@
         <file>qmlcomponents/PageBackButton.qml</file>
         <file>qmlcomponents/SettingsTabButton.qml</file>
         <file>qmlcomponents/ModernComboBox.qml</file>
+        <file>qmlcomponents/SettingsLabels.js</file>
         <file>qmlcomponents/FileSelectionControl.qml</file>
         <file>qmlcomponents/ModernActionButton.qml</file>
         <file>qmlcomponents/ActionCard.qml</file>

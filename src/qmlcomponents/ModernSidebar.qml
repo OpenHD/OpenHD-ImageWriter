@@ -57,12 +57,12 @@ Rectangle {
                 {
                     "view": "flash",
                     "icon": "../icons/ui/drive.svg",
-                    "label": qsTr("Image wählen")
+                    "label": qsTr("Choose image")
                 },
                 {
                     "view": "configure",
                     "icon": "../icons/ui/settings.svg",
-                    "label": qsTr("Einstellungen")
+                    "label": qsTr("Settings")
                 },
                 {
                     "view": "fleetcontrol",
@@ -350,7 +350,7 @@ Rectangle {
 
                     anchors.verticalCenter: parent.verticalCenter
 
-                    text: qsTr("Hilfe")
+                    text: qsTr("Help")
 
                     color:
                         helpButton.hovered
@@ -372,7 +372,7 @@ Rectangle {
                 root.compact && helpButton.hovered
 
             ToolTip.text:
-                qsTr("Hilfe")
+                qsTr("Help")
 
             ToolTip.delay:
                 400

@@ -10,6 +10,7 @@ import QtQuick.Controls.Material 2.2
 import Qt.labs.settings 1.0
 import QtQuick.Dialogs 1.3
 import "qmlcomponents"
+import "qmlcomponents/SettingsLabels.js" as SettingsLabels
 
 Rectangle {
     id: page
@@ -168,7 +169,7 @@ Rectangle {
                             textRole: "id"
                             currentIndex: page.bootOptionIndex(bootType)
                             displayText: currentIndex >= 0
-                                         ? qsTr("Set SBC to %1").arg(currentText)
+                                         ? qsTr("Set SBC to %1").arg(SettingsLabels.translated(currentText))
                                          : qsTr("Choose device role")
                             onActivated: {
                                 if (currentIndex >= 0 && model[currentIndex]) {
@@ -743,7 +744,7 @@ Rectangle {
                         ImCheckBox {
                             id: setDebug
                             visible: !!(settingsMap.mode && settingsMap.mode.options && settingsMap.mode.options.length > 0)
-                            text: settingsMap.mode && settingsMap.mode.options && settingsMap.mode.options.length > 0 ? qsTr(settingsMap.mode.options[0].id || "Debug Mode") : qsTr("Debug Mode")
+                            text: qsTr("Debug Mode")
                             onCheckedChanged: {
                                 mode = checked ? "debug" : ""
                             }

@@ -270,12 +270,13 @@ void DownloadExtractThread::extractImageRun()
                 throw runtime_error("Error writing final image padding to storage");
         }
 
-        r = archive_read_next_header(imageArchive, &entry);
-        if (r != ARCHIVE_EOF)
-            throw runtime_error("Disk-image archive contains more than one entry");
-
         if (nestedArchive)
         {
+            r = archive_read_next_header(nestedArchive, &entry);
+            _checkResult(r, nestedArchive);
+            if (r != ARCHIVE_EOF)
+                throw runtime_error("Disk-image archive contains more than one entry");
+
             archive_read_free(nestedArchive);
             nestedArchive = nullptr;
             imageArchive = a;

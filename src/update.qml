@@ -170,7 +170,7 @@ Rectangle {
 
             PageHeader {
                 Layout.fillWidth: true
-                title: progressBar.visible ? qsTr("Updating device") : qsTr("OpenHD Updaten")
+                title: progressBar.visible ? qsTr("Updating device") : qsTr("Update OpenHD")
                 subtitle: progressBar.visible
                           ? qsTr("Keep the target connected until the update is complete.")
                           : qsTr("Select an update package and target device, then start the installation.")

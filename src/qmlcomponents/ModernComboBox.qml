@@ -1,5 +1,6 @@
 import QtQuick 2.9
 import QtQuick.Controls 2.2
+import "SettingsLabels.js" as SettingsLabels
 
 ComboBox {
     id: root
@@ -12,7 +13,7 @@ ComboBox {
     contentItem: Text {
         leftPadding: 0
         rightPadding: 0
-        text: root.displayText
+        text: SettingsLabels.translated(root.displayText)
         color: root.enabled ? "#e7f0f5" : "#718694"
         font.pixelSize: 13
         verticalAlignment: Text.AlignVCenter
@@ -74,7 +75,7 @@ ComboBox {
         highlighted: root.highlightedIndex === index
 
         contentItem: Text {
-            text: root.textAt(index)
+            text: SettingsLabels.translated(root.textAt(index))
             color: optionDelegate.highlighted ? "#ffffff" : "#c8d9e3"
             font.pixelSize: 13
             verticalAlignment: Text.AlignVCenter

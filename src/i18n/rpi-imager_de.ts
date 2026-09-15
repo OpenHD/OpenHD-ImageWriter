@@ -19,22 +19,22 @@
         <message>
             <location line="+1" />
             <source>Select the device that should receive the image.</source>
-            <translation>Wählen Sie das Gerät aus, das das Bild empfangen soll.</translation>
+            <translation>Wählen Sie das Gerät aus, auf das das Image geschrieben werden soll.</translation>
         </message>
         <message>
             <location line="+30" />
             <source>Refresh</source>
-            <translation>Erfrischend</translation>
+            <translation>Aktualisieren</translation>
         </message>
         <message>
             <location line="+63" />
             <source>Searching for removable devices...</source>
-            <translation>Auf der Suche nach Wechselgeräten...</translation>
+            <translation>Wechseldatenträger werden gesucht...</translation>
         </message>
         <message>
             <location line="+18" />
             <source>All data on the selected target will be erased. Verify the device name and capacity before continuing.</source>
-            <translation>Alle Daten zum ausgewählten Ziel werden gelöscht. Überprüfen Sie den Gerätenamen und die Kapazität, bevor Sie fortfahren.</translation>
+            <translation>Alle Daten auf dem ausgewählten Ziel werden gelöscht. Prüfen Sie den Gerätenamen und die Kapazität, bevor Sie fortfahren.</translation>
         </message>
         <message>
             <location line="+17" />
@@ -44,7 +44,7 @@
         <message>
             <location line="+2" />
             <source>Loader mode</source>
-            <translation>Ladebetrieb</translation>
+            <translation>Loader-Modus</translation>
         </message>
         <message>
             <location line="+2" />
@@ -60,7 +60,7 @@
             <translation>Fehler beim Schreiben auf den Speicher</translation>
         </message>
         <message>
-            <location line="+65" />
+            <location line="+66" />
             <location line="+211" />
             <source>Error extracting archive: %1</source>
             <translation>Fehler beim Entpacken des Archivs: %1</translation>
@@ -329,7 +329,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+15" />
             <source>Error formatting: %1</source>
-            <translation>Fehlerformatierung: %1</translation>
+            <translation>Fehler beim Formatieren: %1</translation>
         </message>
         <message>
             <location line="+14" />
@@ -405,7 +405,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+10" />
             <source>Clear</source>
-            <translation>klar</translation>
+            <translation>Auswahl löschen</translation>
         </message>
     </context>
     <context>
@@ -423,7 +423,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+21" />
             <source>Profile saved to FleetControl.</source>
-            <translation>Profil gespeichert in FleetControl.</translation>
+            <translation>Profil in FleetControl gespeichert.</translation>
         </message>
         <message>
             <location line="+2" />
@@ -438,7 +438,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+8" />
             <source>Profile applied. Choose an image to continue.</source>
-            <translation>Profil angewendet. Wählen Sie ein Bild, um fortzufahren.</translation>
+            <translation>Profil angewendet. Wählen Sie ein Image aus, um fortzufahren.</translation>
         </message>
         <message>
             <location line="+11" />
@@ -448,12 +448,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+24" />
             <source>Operator</source>
-            <translation>Betreiber</translation>
+            <translation>Bediener</translation>
         </message>
         <message>
             <location line="+23" />
             <source>Enter both your operator ID and passphrase.</source>
-            <translation>Geben Sie sowohl Ihre Operator-ID als auch Ihre Passphrase ein.</translation>
+            <translation>Geben Sie Ihre Benutzerkennung und Ihr Passwort ein.</translation>
         </message>
         <message>
             <location line="+31" />
@@ -468,17 +468,17 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+86" />
             <source>CHECKING GATEWAY</source>
-            <translation>KONTROLLSTELLE</translation>
+            <translation>GATEWAY WIRD GEPRÜFT</translation>
         </message>
         <message>
             <location line="+0" />
             <source>SECURE GATEWAY ONLINE</source>
-            <translation>SICHERER GATEWAY ONLINE</translation>
+            <translation>SICHERES GATEWAY ONLINE</translation>
         </message>
         <message>
             <location line="+26" />
             <source>COMMAND ACCESS</source>
-            <translation>ZUGANG ZU DEN GEMEINSCHAFTEN</translation>
+            <translation>ZUGANG ZUR STEUERUNG</translation>
         </message>
         <message>
             <location line="+10" />
@@ -488,97 +488,97 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+7" />
             <source>Total control.</source>
-            <translation>Totalkontrolle.</translation>
+            <translation>Volle Kontrolle.</translation>
         </message>
         <message>
             <location line="+10" />
             <source>Securely coordinate every aircraft, link, and mission from one operational command layer.</source>
-            <translation>Koordinieren Sie jedes Flugzeug, jeden Link und jede Mission sicher von einer operativen Kommandoebene aus.</translation>
+            <translation>Koordinieren Sie alle Fluggeräte, Verbindungen und Einsätze sicher über eine zentrale Steuerung.</translation>
         </message>
         <message>
             <location line="+45" />
             <source>SESSION ACTIVE</source>
-            <translation>SESSUNGSAKTIVE</translation>
+            <translation>SITZUNG AKTIV</translation>
         </message>
         <message>
             <location line="+0" />
             <source>AUTHORIZED PERSONNEL</source>
-            <translation>GENEHMIGTER PERSONAL</translation>
+            <translation>AUTORISIERTES PERSONAL</translation>
         </message>
         <message>
             <location line="+10" />
             <source>Secure sign in</source>
-            <translation>Sicheres Zeichen in</translation>
+            <translation>Sicher anmelden</translation>
         </message>
         <message>
             <location line="+10" />
             <source>OPERATOR</source>
-            <translation>BETREIBER</translation>
+            <translation>BEDIENER</translation>
         </message>
         <message>
             <location line="+15" />
             <source>OPERATOR ID</source>
-            <translation>BETREIBERIDUNG</translation>
+            <translation>BENUTZERKENNUNG</translation>
         </message>
         <message>
             <location line="+10" />
             <source>Enter operator ID</source>
-            <translation>Kennung des Betreibers</translation>
+            <translation>Benutzerkennung eingeben</translation>
         </message>
         <message>
             <location line="+13" />
             <source>PASSPHRASE</source>
-            <translation>PASSPHRASE</translation>
+            <translation>PASSWORT</translation>
         </message>
         <message>
             <location line="+10" />
             <source>Enter passphrase</source>
-            <translation>Passphrase eingeben</translation>
+            <translation>Passwort eingeben</translation>
         </message>
         <message>
             <location line="+40" />
             <source>SIGN OUT</source>
-            <translation>UNTERSCHRIFT</translation>
+            <translation>ABMELDEN</translation>
         </message>
         <message>
             <location line="+2" />
             <source>AUTHENTICATING</source>
-            <translation>BEHÖRDE</translation>
+            <translation>ANMELDUNG LÄUFT</translation>
         </message>
         <message>
             <location line="+1" />
             <source>AUTHENTICATE</source>
-            <translation>AUTHENTIKAT</translation>
+            <translation>ANMELDEN</translation>
         </message>
         <message>
             <location line="+27" />
             <source>TLS ENCRYPTED CONNECTION</source>
-            <translation>TLS ENCRYPTED CONNECTION</translation>
+            <translation>TLS-VERSCHLÜSSELTE VERBINDUNG</translation>
         </message>
         <message>
             <location line="+37" />
             <source>IMAGEWRITER PROFILES / %1</source>
-            <translation>IMAGEWRITERPROFILE / %1</translation>
+            <translation>IMAGEWRITER-PROFILE / %1</translation>
         </message>
         <message>
             <location line="+8" />
             <source>OpenHD configuration library</source>
-            <translation>OpenHD Konfigurationsbibliothek</translation>
+            <translation>OpenHD-Konfigurationsbibliothek</translation>
         </message>
         <message>
             <location line="+7" />
             <source>Save OpenHD and QOpenHD settings, then apply them before choosing an image.</source>
-            <translation>Speichern Sie die OpenHD- und QOpenHD-Einstellungen und wenden Sie sie dann an, bevor Sie ein Bild auswählen.</translation>
+            <translation>Speichern Sie OpenHD- und QOpenHD-Einstellungen und wenden Sie sie vor der Auswahl eines Images an.</translation>
         </message>
         <message>
             <location line="+12" />
             <source>Refresh</source>
-            <translation>Erfrischend</translation>
+            <translation>Aktualisieren</translation>
         </message>
         <message>
             <location line="+6" />
             <source>Save current settings</source>
-            <translation>Speichern Sie aktuelle Einstellungen</translation>
+            <translation>Aktuelle Einstellungen speichern</translation>
         </message>
         <message>
             <location line="+12" />
@@ -588,12 +588,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+66" />
             <source>OpenHD configuration profile</source>
-            <translation>OpenHD Konfigurationsprofil</translation>
+            <translation>OpenHD-Konfigurationsprofil</translation>
         </message>
         <message>
             <location line="+8" />
             <source>Apply and write</source>
-            <translation>Bewerben und schreiben</translation>
+            <translation>Anwenden und schreiben</translation>
         </message>
         <message>
             <location line="+11" />
@@ -603,27 +603,27 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+10" />
             <source>Loading profiles...</source>
-            <translation>Ladeprofile...</translation>
+            <translation>Profile werden geladen...</translation>
         </message>
         <message>
             <location line="+1" />
             <source>No profiles yet. Save the current ImageWriter settings to create one.</source>
-            <translation>Noch keine Profile. Speichern Sie die aktuellen ImageWriter-Einstellungen, um eine zu erstellen.</translation>
+            <translation>Noch keine Profile vorhanden. Speichern Sie die aktuellen ImageWriter-Einstellungen, um ein Profil zu erstellen.</translation>
         </message>
         <message>
             <location line="+34" />
             <source>OPEN WEB PORTAL</source>
-            <translation>OPEN WEB PORTAL</translation>
+            <translation>WEBPORTAL ÖFFNEN</translation>
         </message>
         <message>
             <location line="+33" />
             <source>Save FleetControl profile</source>
-            <translation>Speichern Sie FleetControl Profil</translation>
+            <translation>FleetControl-Profil speichern</translation>
         </message>
         <message>
             <location line="+8" />
             <source>The current OpenHD settings and selected QOpenHD.conf will be stored in your account.</source>
-            <translation>Die aktuellen OpenHD-Einstellungen und ausgewählte QOpenHD.conf werden in Ihrem Konto gespeichert.</translation>
+            <translation>Die aktuellen OpenHD-Einstellungen und die ausgewählte QOpenHD.conf werden in Ihrem Konto gespeichert.</translation>
         </message>
         <message>
             <location line="+9" />
@@ -633,12 +633,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+7" />
             <source>Description (optional)</source>
-            <translation>Beschreibung (fakultativ)</translation>
+            <translation>Beschreibung (optional)</translation>
         </message>
         <message>
             <location line="+11" />
             <source>Stream video to FleetControl platform</source>
-            <translation>Streamen Sie Videos auf die FleetControl Plattform</translation>
+            <translation>Video an die FleetControl-Plattform übertragen</translation>
         </message>
         <message>
             <location line="+15" />
@@ -648,17 +648,17 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+22" />
             <source>Cancel</source>
-            <translation>Stornierung</translation>
+            <translation>Abbrechen</translation>
         </message>
         <message>
             <location line="+6" />
             <source>Saving...</source>
-            <translation>Rettung...</translation>
+            <translation>Wird gespeichert...</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Save profile</source>
-            <translation>Speicherprofil</translation>
+            <translation>Profil speichern</translation>
         </message>
     </context>
     <context>
@@ -696,7 +696,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+48" />
             <source>OpenHD Hardware</source>
-            <translation>OpenHD Hardware</translation>
+            <translation>OpenHD-Hardware</translation>
         </message>
         <message>
             <location line="+1" />
@@ -741,7 +741,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Intel and AMD systems</source>
-            <translation>Intel und AMD Systeme</translation>
+            <translation>Intel- und AMD-Systeme</translation>
         </message>
         <message>
             <location line="+5" />
@@ -756,52 +756,52 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+51" />
             <source>No images available yet</source>
-            <translation>Noch keine Bilder verfügbar</translation>
+            <translation>Noch keine Images verfügbar</translation>
         </message>
         <message>
             <location line="+16" />
             <location line="+337" />
             <source>Use custom image</source>
-            <translation>Custom Image verwenden</translation>
+            <translation>Eigenes Image verwenden</translation>
         </message>
         <message>
             <location line="-336" />
             <source>Choose an image file from this computer</source>
-            <translation>Wählen Sie eine Bilddatei von diesem Computer</translation>
+            <translation>Eine Image-Datei von diesem Computer auswählen</translation>
         </message>
         <message>
             <location line="+5" />
             <location line="+331" />
             <source>Erase / Format</source>
-            <translation>Löschen/Format</translation>
+            <translation>Löschen / Formatieren</translation>
         </message>
         <message>
             <location line="-267" />
             <source>No images are available for this hardware family yet.</source>
-            <translation>Für diese Hardware-Familie sind noch keine Bilder verfügbar.</translation>
+            <translation>Für diese Hardwarefamilie sind noch keine Images verfügbar.</translation>
         </message>
         <message>
             <location line="+127" />
             <source>Already downloaded and cached</source>
-            <translation>Bereits heruntergeladen und cached</translation>
+            <translation>Bereits heruntergeladen und zwischengespeichert</translation>
         </message>
     </context>
     <context>
         <name>ImageOptionsPage</name>
         <message>
-            <location filename="../ImageOptionsPage.qml" line="+87" />
+            <location filename="../ImageOptionsPage.qml" line="+88" />
             <source>OpenHD settings</source>
-            <translation>OpenHD Einstellungen</translation>
+            <translation>OpenHD-Einstellungen</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Configure image</source>
-            <translation>Bild konfigurieren</translation>
+            <translation>Image konfigurieren</translation>
         </message>
         <message>
             <location line="+2" />
             <source>Configure %1 using the same options available before writing an image.</source>
-            <translation>Konfigurieren Sie %1 mit den gleichen verfügbaren Optionen, bevor Sie ein Bild schreiben.</translation>
+            <translation>Konfigurieren Sie %1 mit denselben Optionen wie vor dem Schreiben eines Images.</translation>
         </message>
         <message>
             <location line="+1" />
@@ -811,7 +811,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+15" />
             <source>General</source>
-            <translation>Generalgeneral</translation>
+            <translation>Allgemein</translation>
         </message>
         <message>
             <location line="+4" />
@@ -821,12 +821,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+4" />
             <source>Files and certificates</source>
-            <translation>Akten und Bescheinigungen</translation>
+            <translation>Dateien und Zertifikate</translation>
         </message>
         <message>
             <location line="+38" />
             <source>Device role</source>
-            <translation>Rolle des Geräts</translation>
+            <translation>Geräterolle</translation>
         </message>
         <message>
             <location line="+1" />
@@ -866,12 +866,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+11" />
             <source>Force HDMI resolution and refresh rate</source>
-            <translation>Force HDMI Auflösung und Bildwiederholrate</translation>
+            <translation>HDMI-Auflösung und Bildwiederholrate erzwingen</translation>
         </message>
         <message>
             <location line="+5" />
             <source>Use this when a monitor is not detected reliably. Automatic EDID detection remains the default.</source>
-            <translation>Verwenden Sie dies, wenn ein Monitor nicht zuverlässig erkannt wird. Die automatische EDID-Erkennung bleibt standardmäßig.</translation>
+            <translation>Verwenden Sie diese Option, wenn ein Monitor nicht zuverlässig erkannt wird. Standardmäßig wird der Monitor automatisch über EDID erkannt.</translation>
         </message>
         <message>
             <location line="+10" />
@@ -886,7 +886,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+2" />
             <source>Refresh rate (Hz)</source>
-            <translation>Erfrischungsrate (Hz)</translation>
+            <translation>Bildwiederholrate (Hz)</translation>
         </message>
         <message>
             <location line="+6" />
@@ -907,7 +907,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+4" />
             <source>Primary resolution</source>
-            <translation>Primäre Entschließung</translation>
+            <translation>Auflösung der primären Kamera</translation>
         </message>
         <message>
             <location line="+39" />
@@ -917,7 +917,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+5" />
             <source>Secondary resolution</source>
-            <translation>Sekundäre Entschließung</translation>
+            <translation>Auflösung der sekundären Kamera</translation>
         </message>
         <message>
             <location line="+257" />
@@ -937,7 +937,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+15" />
             <source>IP Camera Setup</source>
-            <translation>IP Kamera Setup</translation>
+            <translation>IP-Kamera einrichten</translation>
         </message>
         <message>
             <location line="+10" />
@@ -947,7 +947,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+9" />
             <source>Primary source pipeline</source>
-            <translation>Pipeline für Primärquellen</translation>
+            <translation>Pipeline der primären Quelle</translation>
         </message>
         <message>
             <location line="+10" />
@@ -957,12 +957,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+9" />
             <source>Secondary source pipeline</source>
-            <translation>Sekundärquellenpipeline</translation>
+            <translation>Pipeline der sekundären Quelle</translation>
         </message>
         <message>
             <location line="+10" />
             <source>Reserved link bitrate (Mbit/s)</source>
-            <translation>Bitrate für reservierte Verbindungen (Mbit/s)</translation>
+            <translation>Reservierte Bitrate der Funkverbindung (Mbit/s)</translation>
         </message>
         <message>
             <location line="+13" />
@@ -972,7 +972,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Optional development and system behavior.</source>
-            <translation>Optionale Entwicklung und Systemverhalten.</translation>
+            <translation>Optionale Entwicklungs- und Systemeinstellungen.</translation>
         </message>
         <message>
             <location line="+29" />
@@ -982,17 +982,17 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+7" />
             <source>Play a sound when finished</source>
-            <translation>Spielen Sie einen Sound, wenn Sie fertig sind</translation>
+            <translation>Nach Abschluss einen Ton abspielen</translation>
         </message>
         <message>
             <location line="+6" />
             <source>Eject the target when finished</source>
-            <translation>Das Ziel auswerfen, wenn es fertig ist</translation>
+            <translation>Zielgerät nach Abschluss auswerfen</translation>
         </message>
         <message>
             <location line="+15" />
             <source>These options are applied while preparing and writing the image.</source>
-            <translation>Diese Optionen werden beim Vorbereiten und Schreiben des Bildes angewendet.</translation>
+            <translation>Diese Optionen werden beim Vorbereiten und Schreiben des Images angewendet.</translation>
         </message>
         <message>
             <location line="+10" />
@@ -1012,7 +1012,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+8" />
             <source>Existing QOpenHD.conf on the target will be kept when no file is selected.</source>
-            <translation>Bestehendes QOpenHD.conf auf dem Ziel wird beibehalten, wenn keine Datei ausgewählt ist.</translation>
+            <translation>Die vorhandene QOpenHD.conf auf dem Zielgerät bleibt erhalten, wenn keine Datei ausgewählt wird.</translation>
         </message>
         <message>
             <location line="+12" />
@@ -1032,17 +1032,17 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+21" />
             <source>Existing premium certificate on the target will be kept when no file is selected.</source>
-            <translation>Bestehendes Premium-Zertifikat auf dem Ziel wird beibehalten, wenn keine Datei ausgewählt wird.</translation>
+            <translation>Das vorhandene Premium-Zertifikat auf dem Zielgerät bleibt erhalten, wenn keine Datei ausgewählt wird.</translation>
         </message>
         <message>
             <location line="+20" />
             <source>Cancel</source>
-            <translation>Stornierung</translation>
+            <translation>Abbrechen</translation>
         </message>
         <message>
             <location line="+5" />
             <source>Save and return</source>
-            <translation>Sparen und Zurückgeben</translation>
+            <translation>Speichern und zurück</translation>
         </message>
         <message>
             <location line="+17" />
@@ -1063,7 +1063,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="-1" />
             <source>Select premium certificate</source>
-            <translation>Ausgewähltes Premium-Zertifikat</translation>
+            <translation>Premium-Zertifikat auswählen</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1082,27 +1082,27 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location filename="../qmlcomponents/ImageSelectionPage.qml" line="+12" />
             <source>Choose an image</source>
-            <translation>Wählen Sie ein Bild</translation>
+            <translation>Image auswählen</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Select the device or image you want to write.</source>
-            <translation>Wählen Sie das Gerät oder Bild, das Sie schreiben möchten.</translation>
+            <translation>Wählen Sie das Gerät oder das Image aus, das Sie schreiben möchten.</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Choose the OpenHD release to use for this device.</source>
-            <translation>Wählen Sie die OpenHD-Version, die für dieses Gerät verwendet werden soll.</translation>
+            <translation>Wählen Sie die OpenHD-Version für dieses Gerät aus.</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Use custom image</source>
-            <translation>Custom Image verwenden</translation>
+            <translation>Eigenes Image verwenden</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Erase / Format</source>
-            <translation>Löschen/Format</translation>
+            <translation>Löschen / Formatieren</translation>
         </message>
         <message>
             <location line="+132" />
@@ -1117,12 +1117,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Local Images</source>
-            <translation>Lokale Bilder</translation>
+            <translation>Lokale Images</translation>
         </message>
         <message>
             <location line="+102" />
             <source>Loading available images...</source>
-            <translation>Verfügbare Bilder laden...</translation>
+            <translation>Verfügbare Images werden geladen...</translation>
         </message>
     </context>
     <context>
@@ -1262,7 +1262,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+20" />
             <source>Write image</source>
-            <translation>Schreibbild</translation>
+            <translation>Image schreiben</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1270,24 +1270,24 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
             <translation>Schreiben Sie OpenHD auf eine SD-Karte, ein USB-Laufwerk oder ein unterstütztes Gerät.</translation>
         </message>
         <message>
-            <location line="+6" />
-            <source>OpenHD Einstellungen</source>
-            <translation>OpenHD Einstellungen</translation>
-        </message>
-        <message>
-            <location line="+0" />
-            <source>Einstellungen</source>
-            <translation>Einstellungen</translation>
-        </message>
-        <message>
-            <location line="+2" />
+            <location line="+8" />
             <source>Adjust device roles, cameras, display, and advanced OpenHD settings.</source>
             <translation>Passen Sie Geräterollen, Kameras, Display und erweiterte OpenHD-Einstellungen an.</translation>
         </message>
         <message>
-            <location line="+1" />
-            <source>Sprache auswählen oder die OpenHD-Entwicklung unterstützen.</source>
-            <translation>Sprachoptionen oder die OpenHD-Entwicklung unterstützen.</translation>
+            <location line="-2" />
+            <source>OpenHD settings</source>
+            <translation>OpenHD-Einstellungen</translation>
+        </message>
+        <message>
+            <location line="+0" />
+            <source>Settings</source>
+            <translation>Einstellungen</translation>
+        </message>
+        <message>
+            <location line="+3" />
+            <source>Choose a language or support OpenHD development.</source>
+            <translation>Eine Sprache auswählen oder die OpenHD-Entwicklung unterstützen.</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1297,7 +1297,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Sign in to securely coordinate your aircraft, links, and missions.</source>
-            <translation>Melden Sie sich an, um Ihre Flugzeuge, Links und Missionen sicher zu koordinieren.</translation>
+            <translation>Melden Sie sich an, um Ihre Fluggeräte, Verbindungen und Einsätze sicher zu koordinieren.</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1307,7 +1307,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Support the continued development of OpenHD.</source>
-            <translation>Unterstützung der Weiterentwicklung von OpenHD.</translation>
+            <translation>Unterstützen Sie die Weiterentwicklung von OpenHD.</translation>
         </message>
     </context>
     <context>
@@ -1315,16 +1315,16 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location filename="../qmlcomponents/ModernSidebar.qml" line="+55" />
             <source>Home</source>
-            <translation>Zuhause</translation>
+            <translation>Startseite</translation>
         </message>
         <message>
             <location line="+5" />
-            <source>Image wählen</source>
-            <translation>Bildauswahl</translation>
+            <source>Choose image</source>
+            <translation>Image auswählen</translation>
         </message>
         <message>
             <location line="+5" />
-            <source>Einstellungen</source>
+            <source>Settings</source>
             <translation>Einstellungen</translation>
         </message>
         <message>
@@ -1341,7 +1341,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+67" />
             <location line="+22" />
-            <source>Hilfe</source>
+            <source>Help</source>
             <translation>Hilfe</translation>
         </message>
     </context>
@@ -1370,7 +1370,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+43" />
             <source>Write details</source>
-            <translation>Schreibe Details</translation>
+            <translation>Details zum Schreibvorgang</translation>
         </message>
         <message>
             <location line="+52" />
@@ -1380,7 +1380,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+15" />
             <source>Image</source>
-            <translation>Bild</translation>
+            <translation>Image</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1395,7 +1395,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Device role</source>
-            <translation>Rolle des Geräts</translation>
+            <translation>Geräterolle</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1410,7 +1410,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Primary resolution</source>
-            <translation>Primäre Entschließung</translation>
+            <translation>Auflösung der primären Kamera</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1420,7 +1420,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Secondary resolution</source>
-            <translation>Sekundäre Entschließung</translation>
+            <translation>Auflösung der sekundären Kamera</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1453,7 +1453,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location filename="../qmlcomponents/OperationReviewPage.qml" line="+8" />
             <source>Review operation</source>
-            <translation>Überprüfungsvorgang</translation>
+            <translation>Vorgang prüfen</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1463,7 +1463,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+5" />
             <source>Start</source>
-            <translation>Beginn</translation>
+            <translation>Starten</translation>
         </message>
         <message>
             <location line="+94" />
@@ -1473,33 +1473,33 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+0" />
             <source>Source image</source>
-            <translation>Quellenbild</translation>
+            <translation>Quell-Image</translation>
         </message>
         <message>
             <location line="+18" />
             <location line="+61" />
             <source>Change</source>
-            <translation>Änderung</translation>
+            <translation>Ändern</translation>
         </message>
         <message>
             <location line="-60" />
             <source>Change update</source>
-            <translation>Änderungsaktualisierung</translation>
+            <translation>Update ändern</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Change image</source>
-            <translation>Änderungsbild</translation>
+            <translation>Image ändern</translation>
         </message>
         <message>
             <location line="+43" />
             <source>Destination device</source>
-            <translation>Zieleinrichtung</translation>
+            <translation>Zielgerät</translation>
         </message>
         <message>
             <location line="+17" />
             <source>Change device</source>
-            <translation>Wechseleinrichtung</translation>
+            <translation>Gerät ändern</translation>
         </message>
         <message>
             <location line="+40" />
@@ -1509,7 +1509,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+10" />
             <source>Configuration saved. Select to review or change it.</source>
-            <translation>Konfiguration gespeichert. Wählen Sie, um es zu überprüfen oder zu ändern.</translation>
+            <translation>Konfiguration gespeichert. Zum Prüfen oder Ändern auswählen.</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1800,7 +1800,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+18" />
             <source>Flashing %1 (%2 MB)...</source>
-            <translation>Flashing %1 (%2 MB)...</translation>
+            <translation>%1 wird geschrieben (%2 MB)...</translation>
         </message>
         <message>
             <location line="+7" />
@@ -1819,6 +1819,69 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         </message>
     </context>
     <context>
+        <name>SettingsLabels</name>
+        <message>
+            <location filename="../qmlcomponents/SettingsLabels.js" line="+4" />
+            <source>Air</source>
+            <translation>Lufteinheit</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Ground</source>
+            <translation>Bodenstation</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>None</source>
+            <translation>Keine</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Network</source>
+            <translation>Netzwerk</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Advanced</source>
+            <translation>Erweitert</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Generic</source>
+            <translation>Allgemein</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Integrated camera</source>
+            <translation>Integrierte Kamera</translation>
+        </message>
+        <message>
+            <location line="+2" />
+            <source>IP camera</source>
+            <translation>IP-Kamera</translation>
+        </message>
+        <message>
+            <location line="+2" />
+            <source>Test camera</source>
+            <translation>Testkamera</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>External camera</source>
+            <translation>Externe Kamera</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>File source</source>
+            <translation>Dateiquelle</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>2 MP cameras</source>
+            <translation>2-MP-Kameras</translation>
+        </message>
+    </context>
+    <context>
         <name>UpdateUploadThread</name>
         <message>
             <location filename="../updateuploadthread.cpp" line="+50" />
@@ -1833,7 +1896,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+6" />
             <source>OpenHD storage is not mounted.</source>
-            <translation>Der OpenHD-Speicher ist nicht montiert.</translation>
+            <translation>Der OpenHD-Speicher ist nicht eingebunden.</translation>
         </message>
         <message>
             <location line="+11" />
@@ -1865,12 +1928,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+4" />
             <source>Preparing to copy update...</source>
-            <translation>Vorbereitung auf das Copy Update...</translation>
+            <translation>Kopieren des Updates wird vorbereitet...</translation>
         </message>
         <message>
             <location line="+12" />
             <source>Update checksum verification failed.</source>
-            <translation>Update Checksum Verifizierung fehlgeschlagen.</translation>
+            <translation>Prüfsummenprüfung des Updates fehlgeschlagen.</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1885,7 +1948,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+30" />
             <source>Downloading update</source>
-            <translation>Download Update</translation>
+            <translation>Update wird heruntergeladen</translation>
         </message>
         <message>
             <location line="+27" />
@@ -1901,7 +1964,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+16" />
             <source>Downloading update package timed out.</source>
-            <translation>Download des Update-Pakets timed out.</translation>
+            <translation>Zeitüberschreitung beim Herunterladen des Update-Pakets.</translation>
         </message>
         <message>
             <location line="+15" />
@@ -1921,12 +1984,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+5" />
             <source>Uploading update</source>
-            <translation>Upload Update</translation>
+            <translation>Update wird hochgeladen</translation>
         </message>
         <message>
             <location line="+11" />
             <source>Cancelled</source>
-            <translation>Storniert</translation>
+            <translation>Abgebrochen</translation>
         </message>
         <message>
             <location line="+7" />
@@ -1942,7 +2005,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
     <context>
         <name>configure</name>
         <message>
-            <location filename="../configure.qml" line="+853" />
+            <location filename="../configure.qml" line="+854" />
             <source>A QOpenHD.conf is already present on the drive.</source>
             <translation>Eine QOpenHD.conf ist bereits auf dem Laufwerk vorhanden.</translation>
         </message>
@@ -1958,7 +2021,52 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
             <translation>Boot-Modus</translation>
         </message>
         <message>
-            <location line="+29" />
+            <location line="-113" />
+            <source>Settings</source>
+            <translation>Einstellungen</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Choose a language or support OpenHD development.</source>
+            <translation>Eine Sprache auswählen oder die OpenHD-Entwicklung unterstützen.</translation>
+        </message>
+        <message>
+            <location line="+11" />
+            <source>Language</source>
+            <translation>Sprache</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Application</source>
+            <translation>Anwendung</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Change the language of OpenHD ImageWriter.</source>
+            <translation>Die Sprache von OpenHD ImageWriter ändern.</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Choose language</source>
+            <translation>Sprache auswählen</translation>
+        </message>
+        <message>
+            <location line="+11" />
+            <source>Support OpenHD</source>
+            <translation>OpenHD unterstützen</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Support OpenHD development with a donation.</source>
+            <translation>Die Entwicklung von OpenHD mit einer Spende unterstützen.</translation>
+        </message>
+        <message>
+            <location line="+19" />
+            <source>OpenHD settings</source>
+            <translation>OpenHD-Einstellungen</translation>
+        </message>
+        <message>
+            <location line="+96" />
             <source>Camera</source>
             <translation>Kamera</translation>
         </message>
@@ -1987,61 +2095,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="-645" />
             <location line="+68" />
+            <location line="+3" />
             <source>Donate</source>
             <translation>Spenden</translation>
         </message>
         <message>
-            <location line="-25" />
-            <source>Einstellungen</source>
-            <translation>Einstellungen</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Sprache auswählen oder die OpenHD-Entwicklung unterstützen.</source>
-            <translation>Sprachoptionen oder die OpenHD-Entwicklung unterstützen.</translation>
-        </message>
-        <message>
-            <location line="+11" />
-            <source>Sprache</source>
-            <translation>Sprache</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Anwendung</source>
-            <translation>Anwendung</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Die Sprache des OpenHD ImageWriter ändern.</source>
-            <translation>Die Sprache des OpenHD ImageWriter ändern.</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Sprache auswählen</source>
-            <translation>Sprachenwahl</translation>
-        </message>
-        <message>
-            <location line="+11" />
-            <source>OpenHD unterstützen</source>
-            <translation>OpenHD unterstützt</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Die Entwicklung von OpenHD mit einer Spende unterstützen.</source>
-            <translation>Die Entwicklung von OpenHD mit einem Spende unterstützen.</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Spenden</source>
-            <translation>Spenden</translation>
-        </message>
-        <message>
-            <location line="+18" />
-            <source>OpenHD Einstellungen</source>
-            <translation>OpenHD Einstellungen</translation>
-        </message>
-        <message>
-            <location line="+2" />
+            <location line="+20" />
             <source>Adjust the OpenHD settings stored on the selected device.</source>
             <translation>Passen Sie die OpenHD-Einstellungen an, die auf dem ausgewählten Gerät gespeichert sind.</translation>
         </message>
@@ -2053,7 +2112,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+14" />
             <source>No storage selected</source>
-            <translation>Keine Speicherung ausgewählt</translation>
+            <translation>Kein Speicher ausgewählt</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2073,12 +2132,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Change target</source>
-            <translation>Änderungsziel</translation>
+            <translation>Ziel ändern</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Choose storage</source>
-            <translation>Wählen Sie Storage</translation>
+            <translation>Speicher auswählen</translation>
         </message>
         <message>
             <location line="+116" />
@@ -2088,7 +2147,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+4" />
             <source>Primary resolution</source>
-            <translation>Primäre Entschließung</translation>
+            <translation>Auflösung der primären Kamera</translation>
         </message>
         <message>
             <location line="+39" />
@@ -2098,7 +2157,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+5" />
             <source>Secondary resolution</source>
-            <translation>Sekundäre Entschließung</translation>
+            <translation>Auflösung der sekundären Kamera</translation>
         </message>
         <message>
             <location line="+244" />
@@ -2118,12 +2177,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+15" />
             <source>Ground display</source>
-            <translation>Bodenanzeige</translation>
+            <translation>Anzeige der Bodenstation</translation>
         </message>
         <message>
             <location line="+7" />
             <source>Force HDMI resolution and refresh rate</source>
-            <translation>Force HDMI Auflösung und Bildwiederholrate</translation>
+            <translation>HDMI-Auflösung und Bildwiederholrate erzwingen</translation>
         </message>
         <message>
             <location line="+7" />
@@ -2138,12 +2197,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+2" />
             <source>Refresh rate (Hz)</source>
-            <translation>Erfrischungsrate (Hz)</translation>
+            <translation>Bildwiederholrate (Hz)</translation>
         </message>
         <message>
             <location line="+7" />
             <source>IP Camera Setup</source>
-            <translation>IP Kamera Setup</translation>
+            <translation>IP-Kamera einrichten</translation>
         </message>
         <message>
             <location line="+10" />
@@ -2153,7 +2212,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+8" />
             <source>Primary source pipeline</source>
-            <translation>Pipeline für Primärquellen</translation>
+            <translation>Pipeline der primären Quelle</translation>
         </message>
         <message>
             <location line="+8" />
@@ -2163,15 +2222,20 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+8" />
             <source>Secondary source pipeline</source>
-            <translation>Sekundärquellenpipeline</translation>
+            <translation>Pipeline der sekundären Quelle</translation>
         </message>
         <message>
             <location line="+8" />
             <source>Reserved link bitrate (Mbit/s)</source>
-            <translation>Bitrate für reservierte Verbindungen (Mbit/s)</translation>
+            <translation>Reservierte Bitrate der Funkverbindung (Mbit/s)</translation>
         </message>
         <message>
-            <location line="+94" />
+            <location line="+34" />
+            <source>Wi-Fi hotspot</source>
+            <translation>WLAN-Hotspot</translation>
+        </message>
+        <message>
+            <location line="+60" />
             <source>Premium Certificate</source>
             <translation>Premium-Zertifikat</translation>
         </message>
@@ -2193,7 +2257,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+38" />
             <source>Choose configuration storage</source>
-            <translation>Wählen Sie Configuration Storage</translation>
+            <translation>Konfigurationsspeicher auswählen</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2203,7 +2267,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+140" />
             <source>Select premium certificate</source>
-            <translation>Ausgewähltes Premium-Zertifikat</translation>
+            <translation>Premium-Zertifikat auswählen</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2286,11 +2350,6 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
             <source>WRITE SETTINGS</source>
             <translation>EINSTELLUNGEN SCHREIBEN</translation>
         </message>
-        <message>
-            <location line="-122" />
-            <source>WifiHotspot</source>
-            <translation>WLAN-Hotspot</translation>
-        </message>
     </context>
     <context>
         <name>flash</name>
@@ -2354,17 +2413,17 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was flashed to the board.&lt;br&gt;The board is now rebooting.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; wurde auf die Platine geblinkt. &lt;br&gt;Das Board wird jetzt neu gestartet.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; wurde auf das Board geschrieben.&lt;br&gt;Das Board wird jetzt neu gestartet.</translation>
         </message>
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was copied to the FAT32 partition on &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;You can now safely remove the card and insert it into your board.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; wurde auf die FAT32-Partition auf &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt; kopiert Sie können die Karte jetzt sicher entfernen und in Ihr Board einfügen.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; wurde auf die FAT32-Partition auf &lt;b&gt;%2&lt;/b&gt; kopiert.&lt;br&gt;Sie können die Karte jetzt sicher entfernen und in Ihr Board einsetzen.</translation>
         </message>
         <message>
             <location line="+101" />
             <source>Error parsing image catalog</source>
-            <translation>Fehler Parsing Image Katalog</translation>
+            <translation>Fehler beim Lesen des Image-Katalogs</translation>
         </message>
         <message>
             <location line="+164" />
@@ -2379,27 +2438,27 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="-1379" />
             <source>Writing image</source>
-            <translation>Schreibbild</translation>
+            <translation>Image wird geschrieben</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Write an image</source>
-            <translation>Schreibe ein Bild</translation>
+            <translation>Image schreiben</translation>
         </message>
         <message>
             <location line="+2" />
             <source>Keep the target connected until writing and verification are complete.</source>
-            <translation>Halten Sie das Ziel verbunden, bis das Schreiben und die Überprüfung abgeschlossen sind.</translation>
+            <translation>Lassen Sie das Zielgerät angeschlossen, bis Schreiben und Überprüfung abgeschlossen sind.</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Select an OpenHD image and a target device, then review and start the write.</source>
-            <translation>Wählen Sie ein OpenHD-Bild und ein Zielgerät aus, überprüfen und starten Sie dann das Schreiben.</translation>
+            <translation>Wählen Sie ein OpenHD-Image und ein Zielgerät aus. Prüfen Sie die Auswahl und starten Sie den Schreibvorgang.</translation>
         </message>
         <message>
             <location line="+10" />
             <source>Image</source>
-            <translation>Bild</translation>
+            <translation>Image</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2414,22 +2473,22 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+49" />
             <source>No image selected</source>
-            <translation>Kein Bild ausgewählt</translation>
+            <translation>Kein Image ausgewählt</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Source image</source>
-            <translation>Quellenbild</translation>
+            <translation>Quell-Image</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Choose an official release or select a local image file.</source>
-            <translation>Wählen Sie eine offizielle Version oder wählen Sie eine lokale Bilddatei.</translation>
+            <translation>Wählen Sie eine offizielle Version oder eine lokale Image-Datei aus.</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Choose image</source>
-            <translation>Bild auswählen</translation>
+            <translation>Image auswählen</translation>
         </message>
         <message>
             <location line="+7" />
@@ -2439,7 +2498,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Target device</source>
-            <translation>Zieleinrichtung</translation>
+            <translation>Zielgerät</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2460,7 +2519,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+0" />
             <source>Complete the selections</source>
-            <translation>Füllen Sie die Auswahl aus</translation>
+            <translation>Auswahl vervollständigen</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2470,17 +2529,17 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Review the selected image and target before starting the operation.</source>
-            <translation>Überprüfen Sie das ausgewählte Bild und Ziel vor Beginn der Operation.</translation>
+            <translation>Prüfen Sie das ausgewählte Image und das Zielgerät, bevor Sie den Vorgang starten.</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Review and write</source>
-            <translation>Review und Schreiben</translation>
+            <translation>Prüfen und schreiben</translation>
         </message>
         <message>
             <location line="+54" />
             <source>Do not remove or disconnect the target.</source>
-            <translation>Entfernen oder trennen Sie das Ziel nicht.</translation>
+            <translation>Entfernen oder trennen Sie das Zielgerät nicht.</translation>
         </message>
         <message>
             <location line="+8" />
@@ -2490,12 +2549,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+7" />
             <source>Skip verification</source>
-            <translation>Überprüfung der Überschreitung</translation>
+            <translation>Überprüfung überspringen</translation>
         </message>
         <message>
             <location line="+24" />
             <source>Advanced image options</source>
-            <translation>Erweiterte Bildoptionen</translation>
+            <translation>Erweiterte Image-Optionen</translation>
         </message>
         <message>
             <location line="+7" />
@@ -2510,7 +2569,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+139" />
             <source>Sign in to FleetControl before loading developer images.</source>
-            <translation>Melden Sie sich bei FleetControl an, bevor Sie Entwicklerbilder laden.</translation>
+            <translation>Melden Sie sich bei FleetControl an, bevor Sie Entwickler-Images laden.</translation>
         </message>
         <message>
             <location line="+2" />
@@ -2535,32 +2594,32 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Latest dev-release image from GitHub Actions - %1</source>
-            <translation>Neueste Dev-Release-Bild von GitHub Actions - %1</translation>
+            <translation>Neuestes Entwickler-Image von GitHub Actions - %1</translation>
         </message>
         <message>
             <location line="+18" />
             <source>No current dev-release image artifacts were found.</source>
-            <translation>Es wurden keine aktuellen Dev-Release-Bildartefakte gefunden.</translation>
+            <translation>Keine aktuellen Entwickler-Images gefunden.</translation>
         </message>
         <message>
             <location line="+107" />
             <source>Choose an image</source>
-            <translation>Wählen Sie ein Bild</translation>
+            <translation>Image auswählen</translation>
         </message>
         <message>
             <location line="+37" />
             <source>Refreshing images</source>
-            <translation>Erfrischende Bilder</translation>
+            <translation>Images werden aktualisiert</translation>
         </message>
         <message>
             <location line="+46" />
             <source>Select a hardware family, then choose the image to write.</source>
-            <translation>Wählen Sie eine Hardwarefamilie aus und wählen Sie dann das zu schreibende Bild.</translation>
+            <translation>Wählen Sie eine Hardwarefamilie und anschließend das zu schreibende Image aus.</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Choose the OpenHD release to use for this device.</source>
-            <translation>Wählen Sie die OpenHD-Version, die für dieses Gerät verwendet werden soll.</translation>
+            <translation>Wählen Sie die OpenHD-Version für dieses Gerät aus.</translation>
         </message>
         <message>
             <location line="+40" />
@@ -2570,7 +2629,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+0" />
             <source>Official</source>
-            <translation>Beamter</translation>
+            <translation>Offiziell</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2585,7 +2644,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Local Images</source>
-            <translation>Lokale Bilder</translation>
+            <translation>Lokale Images</translation>
         </message>
         <message>
             <location line="+0" />
@@ -2600,27 +2659,27 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+4" />
             <source>Open FleetControl</source>
-            <translation>Open FleetControl</translation>
+            <translation>FleetControl öffnen</translation>
         </message>
         <message>
             <location line="+93" />
             <source>Loading available images...</source>
-            <translation>Verfügbare Bilder laden...</translation>
+            <translation>Verfügbare Images werden geladen...</translation>
         </message>
         <message>
             <location line="+34" />
             <source>Loading latest GitHub Actions images...</source>
-            <translation>Laden der neuesten GitHub Actions Bilder...</translation>
+            <translation>Neueste Images von GitHub Actions werden geladen...</translation>
         </message>
         <message>
             <location line="+269" />
             <source>Use custom image</source>
-            <translation>Custom Image verwenden</translation>
+            <translation>Eigenes Image verwenden</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Erase / Format</source>
-            <translation>Löschen/Format</translation>
+            <translation>Löschen / Formatieren</translation>
         </message>
         <message>
             <location line="+89" />
@@ -2635,7 +2694,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+21" />
             <source>Review image write</source>
-            <translation>Review Bild schreiben</translation>
+            <translation>Schreibvorgang prüfen</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2645,7 +2704,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+6" />
             <source>Erase target and write</source>
-            <translation>Löschen Ziel und schreiben</translation>
+            <translation>Ziel löschen und Image schreiben</translation>
         </message>
         <message>
             <location line="+108" />
@@ -2661,12 +2720,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="-275" />
             <source>Erase and write image?</source>
-            <translation>Löschen und schreiben Bild?</translation>
+            <translation>Ziel löschen und Image schreiben?</translation>
         </message>
         <message>
             <location line="+1" />
             <source>All existing data on &lt;b&gt;%1&lt;/b&gt; will be permanently erased.&lt;br&gt;&lt;br&gt;Write &lt;b&gt;%2&lt;/b&gt; to this device?</source>
-            <translation>Alle vorhandenen Daten auf &lt;b&gt;%1&lt;/b&gt; werden dauerhaft gelöscht.&lt;br&gt;&lt;br&gt;Write &lt;b&gt;%2&lt;/b&gt; auf dieses Gerät?</translation>
+            <translation>Alle vorhandenen Daten auf &lt;b&gt;%1&lt;/b&gt; werden dauerhaft gelöscht.&lt;br&gt;&lt;br&gt;&lt;b&gt;%2&lt;/b&gt; auf dieses Gerät schreiben?</translation>
         </message>
         <message>
             <location line="+236" />
@@ -2704,7 +2763,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+337" />
             <source>Image was written successfully!</source>
-            <translation>Image wurde erfolgreich geschrieben!</translation>
+            <translation>Image erfolgreich geschrieben!</translation>
         </message>
         <message>
             <location line="-452" />
@@ -2820,12 +2879,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="-220" />
             <source>Finish or cancel the current operation before leaving this page.</source>
-            <translation>Beenden oder stornieren Sie den aktuellen Vorgang, bevor Sie diese Seite verlassen.</translation>
+            <translation>Schließen Sie den aktuellen Vorgang ab oder brechen Sie ihn ab, bevor Sie diese Seite verlassen.</translation>
         </message>
         <message>
-            <location line="+969" />
+            <location line="+972" />
             <source>WEBSITE</source>
-            <translation>WEBSITE</translation>
+            <translation>WEBSEITE</translation>
         </message>
         <message>
             <location line="+5" />
@@ -2835,12 +2894,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+5" />
             <source>DONATE</source>
-            <translation>DONAT</translation>
+            <translation>SPENDEN</translation>
         </message>
         <message>
             <location line="+120" />
             <source>WRITE   ·   UPDATE   ·   CONFIGURE   ·   FLY</source>
-            <translation>WRITE · AKTUALISIERUNG · KONFIGURATION · FLY</translation>
+            <translation>SCHREIBEN   ·   AKTUALISIEREN   ·   KONFIGURIEREN   ·   FLIEGEN</translation>
         </message>
     </context>
     <context>
@@ -2883,7 +2942,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
             <translation>SPEICHER WÄHLEN</translation>
         </message>
         <message>
-            <location line="-863" />
+            <location line="-878" />
+            <source>Update OpenHD</source>
+            <translation>OpenHD aktualisieren</translation>
+        </message>
+        <message>
+            <location line="+15" />
             <location line="+278" />
             <location line="+584" />
             <source>CHOOSE UPDATE</source>
@@ -2905,17 +2969,17 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was flashed to the board.&lt;br&gt;The board is now rebooting.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; wurde auf die Platine geblinkt. &lt;br&gt;Das Board wird jetzt neu gestartet.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; wurde auf das Board geschrieben.&lt;br&gt;Das Board wird jetzt neu gestartet.</translation>
         </message>
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was copied to the FAT32 partition on &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;You can now safely remove the card and insert it into your board.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; wurde auf die FAT32-Partition auf &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt; kopiert Sie können die Karte jetzt sicher entfernen und in Ihr Board einfügen.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; wurde auf die FAT32-Partition auf &lt;b&gt;%2&lt;/b&gt; kopiert.&lt;br&gt;Sie können die Karte jetzt sicher entfernen und in Ihr Board einsetzen.</translation>
         </message>
         <message>
             <location line="+72" />
             <source>Error parsing image catalog</source>
-            <translation>Fehler Parsing Image Katalog</translation>
+            <translation>Fehler beim Lesen des Image-Katalogs</translation>
         </message>
         <message>
             <location line="+57" />
@@ -2970,17 +3034,12 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="-236" />
             <source>Updating device</source>
-            <translation>Aktualisierungsvorrichtung</translation>
-        </message>
-        <message>
-            <location line="+0" />
-            <source>OpenHD Updaten</source>
-            <translation>OpenHD aktualisiert</translation>
+            <translation>Gerät wird aktualisiert</translation>
         </message>
         <message>
             <location line="+2" />
             <source>Keep the target connected until the update is complete.</source>
-            <translation>Halten Sie das Ziel verbunden, bis das Update abgeschlossen ist.</translation>
+            <translation>Lassen Sie das Zielgerät angeschlossen, bis das Update abgeschlossen ist.</translation>
         </message>
         <message>
             <location line="+1" />
@@ -3005,7 +3064,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Choose update</source>
-            <translation>Wählen Sie Update</translation>
+            <translation>Update auswählen</translation>
         </message>
         <message>
             <location line="+7" />
@@ -3015,13 +3074,13 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Target device</source>
-            <translation>Zieleinrichtung</translation>
+            <translation>Zielgerät</translation>
         </message>
         <message>
             <location line="+1" />
             <location line="+151" />
             <source>Select the device or storage that should receive the update.</source>
-            <translation>Wählen Sie das Gerät oder den Speicher aus, das das Update erhalten soll.</translation>
+            <translation>Wählen Sie das Gerät oder den Speicher aus, auf das bzw. den das Update übertragen werden soll.</translation>
         </message>
         <message>
             <location line="-150" />
@@ -3036,7 +3095,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+0" />
             <source>Complete the selections</source>
-            <translation>Füllen Sie die Auswahl aus</translation>
+            <translation>Auswahl vervollständigen</translation>
         </message>
         <message>
             <location line="+1" />
@@ -3046,27 +3105,27 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+1" />
             <source>Review the package and target before starting the update.</source>
-            <translation>Überprüfen Sie das Paket und das Ziel, bevor Sie das Update starten.</translation>
+            <translation>Prüfen Sie das Paket und das Zielgerät, bevor Sie das Update starten.</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Review and update</source>
-            <translation>Überprüfung und Aktualisierung</translation>
+            <translation>Prüfen und aktualisieren</translation>
         </message>
         <message>
             <location line="+54" />
             <source>Do not remove or disconnect the target.</source>
-            <translation>Entfernen oder trennen Sie das Ziel nicht.</translation>
+            <translation>Entfernen oder trennen Sie das Zielgerät nicht.</translation>
         </message>
         <message>
             <location line="+8" />
             <source>Cancel</source>
-            <translation>Stornierung</translation>
+            <translation>Abbrechen</translation>
         </message>
         <message>
             <location line="+7" />
             <source>Skip verification</source>
-            <translation>Überprüfung der Überschreitung</translation>
+            <translation>Überprüfung überspringen</translation>
         </message>
         <message>
             <location line="+23" />
@@ -3111,7 +3170,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+22" />
             <source>Review device update</source>
-            <translation>Überprüfung der Geräteaktualisierung</translation>
+            <translation>Geräte-Update prüfen</translation>
         </message>
         <message>
             <location line="+1" />
@@ -3161,7 +3220,7 @@ Bitte stellen Sie sicher, dass 'Raspberry Pi Imager' Zugriff auf 'removable volu
         <message>
             <location line="+297" />
             <source>Image was written successfully!</source>
-            <translation>Image wurde erfolgreich geschrieben!</translation>
+            <translation>Image erfolgreich geschrieben!</translation>
         </message>
         <message>
             <location line="-412" />

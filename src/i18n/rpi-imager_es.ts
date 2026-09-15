@@ -24,7 +24,7 @@
         <message>
             <location line="+30" />
             <source>Refresh</source>
-            <translation>Refresh</translation>
+            <translation>Actualizar</translation>
         </message>
         <message>
             <location line="+63" />
@@ -34,7 +34,7 @@
         <message>
             <location line="+18" />
             <source>All data on the selected target will be erased. Verify the device name and capacity before continuing.</source>
-            <translation>Todos los datos sobre el objetivo seleccionado serán borrados. Verifique el nombre y la capacidad del dispositivo antes de continuar.</translation>
+            <translation>Todos los datos del objetivo seleccionado serán borrados. Verifique el nombre y la capacidad del dispositivo antes de continuar.</translation>
         </message>
         <message>
             <location line="+17" />
@@ -44,7 +44,7 @@
         <message>
             <location line="+2" />
             <source>Loader mode</source>
-            <translation>Modo de préstamo</translation>
+            <translation>Modo Loader</translation>
         </message>
         <message>
             <location line="+2" />
@@ -60,7 +60,7 @@
             <translation>Escribir error al almacenamiento</translation>
         </message>
         <message>
-            <location line="+65" />
+            <location line="+66" />
             <location line="+211" />
             <source>Error extracting archive: %1</source>
             <translation>Archivo de extracción de errores: %1</translation>
@@ -78,7 +78,7 @@
         <message>
             <location line="+23" />
             <source>Error changing to directory '%1'</source>
-            <translation>Cambio de error al directorio '%1'</translation>
+            <translation>Cambio de error en el directorio '%1'</translation>
         </message>
     </context>
     <context>
@@ -116,7 +116,7 @@
         <message>
             <location line="+1" />
             <source>Please verify if 'Raspberry Pi Imager' is allowed access to 'removable volumes' in privacy settings (under 'files and folders' or alternatively give it 'full disk access').</source>
-            <translation>Por favor, verifique si 'Raspberry Pi Imager' permite el acceso a 'volúmenes extraíbles' en la configuración de privacidad (bajo 'archivos y carpetas' o, alternativamente, darle 'acceso completo del disco').</translation>
+            <translation>Por favor, compruebe si 'Raspberry Pi Imager' se permite el acceso a 'volúmenes extraíbles' en la configuración de privacidad (bajo 'archivos y carpetas' o, alternativamente, darle 'acceso completo de disco').</translation>
         </message>
         <message>
             <location line="+24" />
@@ -147,7 +147,7 @@
         <message>
             <location line="+14" />
             <source>Write error while trying to zero out last part of card.&lt;br&gt;Card could be advertising wrong capacity (possible counterfeit).</source>
-            <translation>Escribe error mientras intentas eliminar la última parte de la tarjeta. &lt;br&gt;Card podría ser la capacidad de publicidad incorrecta (posible falsificación).</translation>
+            <translation>Escribe error mientras intentas eliminar la última parte de la tarjeta.&lt;br&gt;La tarjeta podría ser publicidad incorrecta capacidad (posible falsificación).</translation>
         </message>
         <message>
             <location line="+8" />
@@ -172,7 +172,7 @@
         <message>
             <location line="+5" />
             <source>Controlled Folder Access seems to be enabled. Please add openhdimagewriter.exe to the list of allowed apps and try again.</source>
-            <translation>El acceso de la carpeta controlada parece estar habilitado. Por favor, agregue openhdimagewriter.exe a la lista de aplicaciones permitidas e inténtelo de nuevo.</translation>
+            <translation>Controlled Folder Access parece estar habilitado. Por favor, añadir openhdimagewriter.exe a la lista de aplicaciones permitidas e inténtelo de nuevo.</translation>
         </message>
         <message>
             <location line="+7" />
@@ -187,12 +187,12 @@
         <message>
             <location line="+276" />
             <source>Error writing final block to storage</source>
-            <translation>Error escribiendo bloque final para almacenamiento</translation>
+            <translation>Error escribiendo bloque final para el almacenamiento</translation>
         </message>
         <message>
             <location line="+12" />
             <source>Download corrupt. Hash does not match</source>
-            <translation>Descarga corrupto. Hash no coincide</translation>
+            <translation>Descargar corrupto. Hash no coincide</translation>
         </message>
         <message>
             <location line="+13" />
@@ -202,7 +202,7 @@
         <message>
             <location line="+29" />
             <source>Error writing first block (partition table)</source>
-            <translation>Error escribiendo primer bloque (mesa de participación)</translation>
+            <translation>Error escribiendo primer bloque (mesa de partición)</translation>
         </message>
         <message>
             <location line="+40" />
@@ -212,17 +212,17 @@
         <message>
             <location line="+27" />
             <source>Error seeking on storage during verification.</source>
-            <translation>Error buscando almacenamiento durante la verificación.</translation>
+            <translation>Error en busca de almacenamiento durante la verificación.</translation>
         </message>
         <message>
             <location line="+16" />
             <source>Error reading from storage.&lt;br&gt;SD card may be broken.</source>
-            <translation>Lectura de error del almacenamiento. La tarjeta &lt;br&gt;SD puede ser rota.</translation>
+            <translation>Lectura de error desde el almacenamiento.&lt;br&gt;La tarjeta SD puede ser rota.</translation>
         </message>
         <message>
             <location line="+19" />
             <source>Verifying write failed. Contents of SD card is different from what was written to it.</source>
-            <translation>Verificar escritura falló. Contenido de la tarjeta SD es diferente de lo que fue escrito a ella.</translation>
+            <translation>El contenido de la tarjeta SD es diferente de lo que se le escribió.</translation>
         </message>
         <message>
             <location line="+47" />
@@ -232,12 +232,12 @@
         <message>
             <location line="+107" />
             <source>Error mounting FAT32 partition or config.txt not found</source>
-            <translation>Montaje de error FAT32 partición o config.txt no se encuentra</translation>
+            <translation>Montaje de error FAT32 partición o config.txt no encontrado</translation>
         </message>
         <message>
             <location line="+20" />
             <source>This Image doesn't support OpenHD settings, proceed with caution!</source>
-            <translation>Esta imagen no admite la configuración de OpenHD, proceda con precaución!</translation>
+            <translation>Esta imagen no admite la configuración OpenHD, proceda con precaución!</translation>
         </message>
         <message>
             <location line="+33" />
@@ -247,12 +247,12 @@
         <message>
             <location line="+4" />
             <source>Customizing image</source>
-            <translation>Imagen personalizada</translation>
+            <translation>Imagen personalizable</translation>
         </message>
         <message>
             <location line="+37" />
             <source>Error writing to config.txt on FAT partition</source>
-            <translation>Escribir error a config.txt en partición FAT</translation>
+            <translation>Escribir error para config.txt en la partición FAT</translation>
         </message>
         <message>
             <location line="+52" />
@@ -262,7 +262,7 @@
         <message>
             <location line="+3" />
             <source>Error writing settings.json on FAT partition</source>
-            <translation>Error escribiendo settings.json en partición FAT</translation>
+            <translation>Redacción de error settings.json en la partición FAT</translation>
         </message>
         <message>
             <location line="+3" />
@@ -272,7 +272,7 @@
         <message>
             <location line="+3" />
             <source>Error replacing existing QOpenHD.conf on FAT partition</source>
-            <translation>Error reemplazando QOpenHD.conf existente en la partición FAT</translation>
+            <translation>Error reemplazando el QOpenHD.conf existente en la partición FAT</translation>
         </message>
         <message>
             <location line="+3" />
@@ -282,7 +282,7 @@
         <message>
             <location line="+3" />
             <source>Premium certificate is invalid: %1</source>
-            <translation>Certificado Premium es inválido: %1</translation>
+            <translation>El certificado Premium es inválido: %1</translation>
         </message>
         <message>
             <location line="+3" />
@@ -292,7 +292,7 @@
         <message>
             <location line="+3" />
             <source>Error copying premium certificate to FAT partition</source>
-            <translation>Copia de error de certificado premium a partición FAT</translation>
+            <translation>Copiar el certificado premium de error a la partición FAT</translation>
         </message>
     </context>
     <context>
@@ -346,12 +346,12 @@
         <message>
             <location line="+28" />
             <source>Error starting sfdisk</source>
-            <translation>Error inicial sfdisk</translation>
+            <translation>Error de inicio sfdisk</translation>
         </message>
         <message>
             <location line="+25" />
             <source>Partitioning did not create expected FAT partition %1</source>
-            <translation>Partición no creó la partición FAT esperada %1</translation>
+            <translation>Partitioning no creó la partición FAT prevista %1</translation>
         </message>
         <message>
             <location line="+9" />
@@ -366,7 +366,7 @@
         <message>
             <location line="+7" />
             <source>Formatting not implemented for this platform</source>
-            <translation>Formato no implementado para esta plataforma</translation>
+            <translation>Formateo no implementado para esta plataforma</translation>
         </message>
     </context>
     <context>
@@ -402,7 +402,7 @@
         <message>
             <location line="+10" />
             <source>Clear</source>
-            <translation>Despejado</translation>
+            <translation>Borrar selección</translation>
         </message>
     </context>
     <context>
@@ -410,7 +410,7 @@
         <message>
             <location filename="../qmlcomponents/FleetControlPage.qml" line="+56" />
             <source>FleetControl profiles are not available yet.</source>
-            <translation>Los perfiles FleetControl aún no están disponibles.</translation>
+            <translation>Los perfiles de FleetControl no están disponibles todavía.</translation>
         </message>
         <message>
             <location line="+35" />
@@ -435,7 +435,7 @@
         <message>
             <location line="+8" />
             <source>Profile applied. Choose an image to continue.</source>
-            <translation>Perfil aplicado. Elige una imagen para continuar.</translation>
+            <translation>Perfil aplicado. Elija una imagen para continuar.</translation>
         </message>
         <message>
             <location line="+11" />
@@ -450,17 +450,17 @@
         <message>
             <location line="+23" />
             <source>Enter both your operator ID and passphrase.</source>
-            <translation>Introduzca su ID de operador y contraseña.</translation>
+            <translation>Introduzca tanto su ID de operador como su contraseña.</translation>
         </message>
         <message>
             <location line="+31" />
             <source>Unable to reach the secure FleetControl gateway.</source>
-            <translation>Incapaz de llegar a la puerta segura FleetControl.</translation>
+            <translation>Incapaz de llegar a la entrada segura de FleetControl.</translation>
         </message>
         <message>
             <location line="+4" />
             <source>Access denied. Check your credentials and try again.</source>
-            <translation>Acceso negado. Revisa tus credenciales e intenta de nuevo.</translation>
+            <translation>Acceso denegado. Compruebe sus credenciales e inténtelo de nuevo.</translation>
         </message>
         <message>
             <location line="+86" />
@@ -495,7 +495,7 @@
         <message>
             <location line="+45" />
             <source>SESSION ACTIVE</source>
-            <translation>DE SESIONES</translation>
+            <translation>SESIÓN ACTIVA</translation>
         </message>
         <message>
             <location line="+0" />
@@ -505,12 +505,12 @@
         <message>
             <location line="+10" />
             <source>Secure sign in</source>
-            <translation>Firma segura en</translation>
+            <translation>Inicio de sesión seguro</translation>
         </message>
         <message>
             <location line="+10" />
             <source>OPERATOR</source>
-            <translation>OPERATOR</translation>
+            <translation>Operador</translation>
         </message>
         <message>
             <location line="+15" />
@@ -520,7 +520,7 @@
         <message>
             <location line="+10" />
             <source>Enter operator ID</source>
-            <translation>Identificación del operador</translation>
+            <translation>Introducir ID del operador</translation>
         </message>
         <message>
             <location line="+13" />
@@ -535,17 +535,17 @@
         <message>
             <location line="+40" />
             <source>SIGN OUT</source>
-            <translation>SIGN OUT</translation>
+            <translation>Cerrar sesión</translation>
         </message>
         <message>
             <location line="+2" />
             <source>AUTHENTICATING</source>
-            <translation>AUTHENTICATING</translation>
+            <translation>INICIANDO SESIÓN</translation>
         </message>
         <message>
             <location line="+1" />
             <source>AUTHENTICATE</source>
-            <translation>AUTHENTICATE</translation>
+            <translation>INICIAR SESIÓN</translation>
         </message>
         <message>
             <location line="+27" />
@@ -560,17 +560,17 @@
         <message>
             <location line="+8" />
             <source>OpenHD configuration library</source>
-            <translation>Biblioteca de configuración OpenHD</translation>
+            <translation>Biblioteca de configuración de OpenHD</translation>
         </message>
         <message>
             <location line="+7" />
             <source>Save OpenHD and QOpenHD settings, then apply them before choosing an image.</source>
-            <translation>Guardar los ajustes de OpenHD y QOpenHD, luego aplicarlos antes de elegir una imagen.</translation>
+            <translation>Guarda los ajustes OpenHD y QOpenHD, luego aplicarlos antes de elegir una imagen.</translation>
         </message>
         <message>
             <location line="+12" />
             <source>Refresh</source>
-            <translation>Refresh</translation>
+            <translation>Actualizar</translation>
         </message>
         <message>
             <location line="+6" />
@@ -580,7 +580,7 @@
         <message>
             <location line="+12" />
             <source>Sign out</source>
-            <translation>Suscríbase</translation>
+            <translation>Cerrar sesión</translation>
         </message>
         <message>
             <location line="+66" />
@@ -595,7 +595,7 @@
         <message>
             <location line="+11" />
             <source>Delete profile</source>
-            <translation>Borrar perfil</translation>
+            <translation>Borrar el perfil</translation>
         </message>
         <message>
             <location line="+10" />
@@ -605,7 +605,7 @@
         <message>
             <location line="+1" />
             <source>No profiles yet. Save the current ImageWriter settings to create one.</source>
-            <translation>Todavía no hay perfiles. Guarde la configuración actual ImageWriter para crear uno.</translation>
+            <translation>Aún no hay perfiles. Ahorre la configuración actual ImageWriter para crear uno.</translation>
         </message>
         <message>
             <location line="+34" />
@@ -615,12 +615,12 @@
         <message>
             <location line="+33" />
             <source>Save FleetControl profile</source>
-            <translation>Guardar perfil FleetControl</translation>
+            <translation>Guardar perfil de FleetControl</translation>
         </message>
         <message>
             <location line="+8" />
             <source>The current OpenHD settings and selected QOpenHD.conf will be stored in your account.</source>
-            <translation>Los ajustes actuales de OpenHD y QOpenHD.conf seleccionados se almacenarán en su cuenta.</translation>
+            <translation>La configuración actual de OpenHD y QOpenHD.conf seleccionados se almacenarán en su cuenta.</translation>
         </message>
         <message>
             <location line="+9" />
@@ -650,7 +650,7 @@
         <message>
             <location line="+6" />
             <source>Saving...</source>
-            <translation>Salvando...</translation>
+            <translation>Guardando...</translation>
         </message>
         <message>
             <location line="+0" />
@@ -693,7 +693,7 @@
         <message>
             <location line="+48" />
             <source>OpenHD Hardware</source>
-            <translation>Hardware OpenHD</translation>
+            <translation>OpenHD Hardware</translation>
         </message>
         <message>
             <location line="+1" />
@@ -708,7 +708,7 @@
         <message>
             <location line="+1" />
             <source>Pi 2–5 and Compute Modules</source>
-            <translation>Módulos Pi 2-5 y Compute</translation>
+            <translation>Módulos Pi 2–5 y Compute</translation>
         </message>
         <message>
             <location line="+5" />
@@ -748,7 +748,7 @@
         <message>
             <location line="+1" />
             <source>Orange Pi, Orqa and more</source>
-            <translation>Orange Pi, Orqa y más</translation>
+            <translation>Pi, Orqa y más</translation>
         </message>
         <message>
             <location line="+51" />
@@ -770,7 +770,7 @@
             <location line="+5" />
             <location line="+331" />
             <source>Erase / Format</source>
-            <translation>Borrar / Formato</translation>
+            <translation>Borrar / Formatear</translation>
         </message>
         <message>
             <location line="-267" />
@@ -786,14 +786,14 @@
     <context>
         <name>ImageOptionsPage</name>
         <message>
-            <location filename="../ImageOptionsPage.qml" line="+87" />
+            <location filename="../ImageOptionsPage.qml" line="+88" />
             <source>OpenHD settings</source>
-            <translation>Ajustes OpenHD</translation>
+            <translation>Ajustes de OpenHD</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Configure image</source>
-            <translation>Imagen configurada</translation>
+            <translation>Configurar imagen</translation>
         </message>
         <message>
             <location line="+2" />
@@ -833,7 +833,7 @@
         <message>
             <location line="+19" />
             <source>Set SBC to %1</source>
-            <translation>Set SBC to %1</translation>
+            <translation>Establecer SBC en %1</translation>
         </message>
         <message>
             <location line="+1" />
@@ -868,7 +868,7 @@
         <message>
             <location line="+5" />
             <source>Use this when a monitor is not detected reliably. Automatic EDID detection remains the default.</source>
-            <translation>Utilice esto cuando un monitor no se detecta de forma fiable. La detección automática de EDID sigue siendo la predeterminada.</translation>
+            <translation>Utilice esto cuando un monitor no se detecta de forma fiable. La detección automática de EDID sigue siendo el predeterminado.</translation>
         </message>
         <message>
             <location line="+10" />
@@ -883,13 +883,13 @@
         <message>
             <location line="+2" />
             <source>Refresh rate (Hz)</source>
-            <translation>Tasa de reducción (Hz)</translation>
+            <translation>Frecuencia de actualización (Hz)</translation>
         </message>
         <message>
             <location line="+6" />
             <location line="+18" />
             <source>Camera Settings</source>
-            <translation>Ajustes de la cámara</translation>
+            <translation>Configuración de cámara</translation>
         </message>
         <message>
             <location line="-17" />
@@ -904,7 +904,7 @@
         <message>
             <location line="+4" />
             <source>Primary resolution</source>
-            <translation>Resolución primaria</translation>
+            <translation>Resolución de la cámara principal</translation>
         </message>
         <message>
             <location line="+39" />
@@ -914,7 +914,7 @@
         <message>
             <location line="+5" />
             <source>Secondary resolution</source>
-            <translation>Resolución secundaria</translation>
+            <translation>Resolución de la cámara secundaria</translation>
         </message>
         <message>
             <location line="+257" />
@@ -944,7 +944,7 @@
         <message>
             <location line="+9" />
             <source>Primary source pipeline</source>
-            <translation>Gasoducto de origen primario</translation>
+            <translation>Gasoducto de fuentes primarias</translation>
         </message>
         <message>
             <location line="+10" />
@@ -979,12 +979,12 @@
         <message>
             <location line="+7" />
             <source>Play a sound when finished</source>
-            <translation>Juega un sonido cuando termine</translation>
+            <translation>Juega un sonido cuando haya terminado</translation>
         </message>
         <message>
             <location line="+6" />
             <source>Eject the target when finished</source>
-            <translation>Echa el objetivo cuando termine</translation>
+            <translation>Echa el objetivo cuando haya terminado</translation>
         </message>
         <message>
             <location line="+15" />
@@ -999,7 +999,7 @@
         <message>
             <location line="+1" />
             <source>Optionally include an existing OpenHD configuration.</source>
-            <translation>Opcionalmente incluye una configuración OpenHD existente.</translation>
+            <translation>Opcionalmente incluye una configuración de OpenHD existente.</translation>
         </message>
         <message>
             <location line="+13" />
@@ -1009,7 +1009,7 @@
         <message>
             <location line="+8" />
             <source>Existing QOpenHD.conf on the target will be kept when no file is selected.</source>
-            <translation>El QOpenHD.conf existente en el objetivo se mantendrá cuando no se selecciona ningún archivo.</translation>
+            <translation>El QOpenHD.conf existente en el destino se conservará si no se selecciona ningún archivo.</translation>
         </message>
         <message>
             <location line="+12" />
@@ -1019,7 +1019,7 @@
         <message>
             <location line="+1" />
             <source>Optionally install an OpenHD premium certificate.</source>
-            <translation>Opcionalmente instale un certificado premium OpenHD.</translation>
+            <translation>Opcionalmente instale un certificado de prima OpenHD.</translation>
         </message>
         <message>
             <location line="+13" />
@@ -1039,7 +1039,7 @@
         <message>
             <location line="+5" />
             <source>Save and return</source>
-            <translation>Salvar y regresar</translation>
+            <translation>Guardar y volver</translation>
         </message>
         <message>
             <location line="+17" />
@@ -1071,7 +1071,7 @@
             <location line="+21" />
             <location line="+270" />
             <source>Premium certificate is invalid: %1</source>
-            <translation>Certificado Premium es inválido: %1</translation>
+            <translation>El certificado Premium es inválido: %1</translation>
         </message>
     </context>
     <context>
@@ -1079,7 +1079,7 @@
         <message>
             <location filename="../qmlcomponents/ImageSelectionPage.qml" line="+12" />
             <source>Choose an image</source>
-            <translation>Elija una imagen</translation>
+            <translation>Elegir imagen</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1099,7 +1099,7 @@
         <message>
             <location line="+1" />
             <source>Erase / Format</source>
-            <translation>Borrar / Formato</translation>
+            <translation>Borrar / Formatear</translation>
         </message>
         <message>
             <location line="+132" />
@@ -1127,12 +1127,12 @@
         <message>
             <location filename="../imagewriter.cpp" line="+451" />
             <source>Storage capacity is not large enough.&lt;br&gt;Needs to be at least %1 GB.</source>
-            <translation>La capacidad de almacenamiento no es lo suficientemente grande. &lt;br&gt;Needs to be at least %1 GB.</translation>
+            <translation>La capacidad de almacenamiento no es lo suficientemente grande.&lt;br&gt;Necesita ser al menos %1 GB.</translation>
         </message>
         <message>
             <location line="+6" />
             <source>Input file is not a valid disk image.&lt;br&gt;File size %1 bytes is not a multiple of 512 bytes.</source>
-            <translation>El archivo de entrada no es una imagen de disco válida. &lt;br&gt;Tamaño del archivo Los bytes %1 no son múltiples de 512 bytes.</translation>
+            <translation>El archivo de entrada no es una imagen de disco válida.&lt;br&gt;El tamaño de archivo %1 bytes no es un múltiplo de 512 bytes.</translation>
         </message>
         <message>
             <location line="+207" />
@@ -1142,7 +1142,7 @@
         <message>
             <location line="+102" />
             <source>Write stalled because the storage device stopped responding.&lt;br&gt;Please reconnect or replace the storage device and try again.</source>
-            <translation>Escribe guardado porque el dispositivo de almacenamiento dejó de responder. &lt;br&gt;Por favor, vuelva a conectar o reemplace el dispositivo de almacenamiento e inténtelo de nuevo.</translation>
+            <translation>Escribe guardado porque el dispositivo de almacenamiento dejó de responder.&lt;br&gt;Por favor, vuelva a conectar o reemplace el dispositivo de almacenamiento e inténtelo de nuevo.</translation>
         </message>
         <message>
             <location line="+47" />
@@ -1165,7 +1165,7 @@
             <location line="+18" />
             <location line="+1" />
             <source>Unable to find OpenHD FAT partition on %1</source>
-            <translation>No se puede encontrar la partición OpenHD FAT en %1</translation>
+            <translation>Incapaz de encontrar la partición OpenHD FAT en %1</translation>
         </message>
         <message>
             <location line="+117" />
@@ -1180,32 +1180,32 @@
         <message>
             <location line="+158" />
             <source>Raspberry Pi rpiboot is not installed. Install the official Raspberry Pi USB boot package first.</source>
-            <translation>Raspberry Pi rpiboot no está instalado. Instala el paquete oficial de arranque Raspberry Pi USB primero.</translation>
+            <translation>Raspberry Pi rpiboot no está instalado. Instale el paquete de arranque oficial Raspberry Pi USB primero.</translation>
         </message>
         <message>
             <location line="+26" />
             <source>Could not start rpiboot: %1</source>
-            <translation>No podía comenzar el reinicio: %1</translation>
+            <translation>No podía empezar rpiboot: %1</translation>
         </message>
         <message>
             <location line="+16" />
             <source>Raspberry Pi USB boot cancelled.</source>
-            <translation>Bota Raspberry Pi USB cancelada.</translation>
+            <translation>Bota USB Raspberry Pi cancelada.</translation>
         </message>
         <message>
             <location line="+4" />
             <source>Raspberry Pi storage exposed. Waiting for Windows to enumerate it...</source>
-            <translation>Almacenamiento Raspberry Pi expuesto. Esperando a Windows para enumerarlo...</translation>
+            <translation>Raspberry Pi almacenamiento expuesto. Esperando a Windows para enumerarlo...</translation>
         </message>
         <message>
             <location line="+5" />
             <source>rpiboot failed with exit code %1. Check the USB boot jumper and Windows driver.</source>
-            <translation>rpiboot falló con el código de salida %1. Compruebe el arranque de arranque USB y el controlador de Windows.</translation>
+            <translation>rpiboot falló con el código de salida %1. Compruebe el arranque USB y el controlador de Windows.</translation>
         </message>
         <message>
             <location line="+7" />
             <source>Waiting in the background for Raspberry Pi USB boot devices...</source>
-            <translation>Esperando en el fondo para dispositivos de arranque Raspberry Pi USB...</translation>
+            <translation>Esperando en el fondo para los dispositivos de arranque USB Raspberry Pi...</translation>
         </message>
     </context>
     <context>
@@ -1218,17 +1218,17 @@
         <message>
             <location line="+1" />
             <source>Choose the language used throughout OpenHD ImageWriter.</source>
-            <translation>Elige el idioma utilizado en toda la aplicación OpenHD ImageWriter.</translation>
+            <translation>Elija el idioma utilizado a través de OpenHD ImageWriter.</translation>
         </message>
         <message>
             <location line="+10" />
             <source>Application language</source>
-            <translation>Idioma de la aplicación</translation>
+            <translation>Idioma de aplicación</translation>
         </message>
         <message>
             <location line="+8" />
             <source>Select a language, then choose Apply.</source>
-            <translation>Selecciona un idioma y, a continuación, pulsa «Aplicar».</translation>
+            <translation>Seleccione un idioma, luego elija Apply.</translation>
         </message>
         <message>
             <location line="+16" />
@@ -1254,12 +1254,12 @@
         <message>
             <location filename="../qmlcomponents/ModernHome.qml" line="+40" />
             <source>Open Source FPV for Everyone</source>
-            <translation>Fuente abierta FPV para todos</translation>
+            <translation>FPV de código abierto para todos</translation>
         </message>
         <message>
             <location line="+20" />
             <source>Write image</source>
-            <translation>Imagen escrita</translation>
+            <translation>Escribir imagen</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1267,24 +1267,24 @@
             <translation>Escriba OpenHD a una tarjeta SD, unidad USB o dispositivo compatible.</translation>
         </message>
         <message>
-            <location line="+6" />
-            <source>OpenHD Einstellungen</source>
-            <translation>OpenHD Einstellungen</translation>
+            <location line="+8" />
+            <source>Adjust device roles, cameras, display, and advanced OpenHD settings.</source>
+            <translation>Ajuste los roles de dispositivo, las cámaras, la pantalla y los ajustes de OpenHD avanzados.</translation>
+        </message>
+        <message>
+            <location line="-2" />
+            <source>OpenHD settings</source>
+            <translation>Ajustes de OpenHD</translation>
         </message>
         <message>
             <location line="+0" />
-            <source>Einstellungen</source>
-            <translation>Einstellungen</translation>
+            <source>Settings</source>
+            <translation>Ajustes</translation>
         </message>
         <message>
-            <location line="+2" />
-            <source>Adjust device roles, cameras, display, and advanced OpenHD settings.</source>
-            <translation>Ajuste los roles de dispositivo, las cámaras, la pantalla y los ajustes avanzados de OpenHD.</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Sprache auswählen oder die OpenHD-Entwicklung unterstützen.</source>
-            <translation>Sprache auswählen oder die OpenHD-Entwicklung unterstützen.</translation>
+            <location line="+3" />
+            <source>Choose a language or support OpenHD development.</source>
+            <translation>Elija un idioma o apoye el desarrollo de OpenHD.</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1294,7 +1294,7 @@
         <message>
             <location line="+1" />
             <source>Sign in to securely coordinate your aircraft, links, and missions.</source>
-            <translation>Inicie sesión para coordinar de forma segura sus aeronaves, enlaces y misiones.</translation>
+            <translation>Inicia sesión para coordinar de forma segura tus aeronaves, enlaces y misiones.</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1304,7 +1304,7 @@
         <message>
             <location line="+1" />
             <source>Support the continued development of OpenHD.</source>
-            <translation>Apoyar el desarrollo continuo de OpenHD.</translation>
+            <translation>Apoya el desarrollo continuo de OpenHD.</translation>
         </message>
     </context>
     <context>
@@ -1312,17 +1312,17 @@
         <message>
             <location filename="../qmlcomponents/ModernSidebar.qml" line="+55" />
             <source>Home</source>
-            <translation>Home</translation>
+            <translation>Inicio</translation>
         </message>
         <message>
             <location line="+5" />
-            <source>Image wählen</source>
-            <translation>Imagen wählen</translation>
+            <source>Choose image</source>
+            <translation>Elegir imagen</translation>
         </message>
         <message>
             <location line="+5" />
-            <source>Einstellungen</source>
-            <translation>Einstellungen</translation>
+            <source>Settings</source>
+            <translation>Ajustes</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1333,13 +1333,13 @@
             <location line="+194" />
             <location line="+22" />
             <source>Info</source>
-            <translation>Info</translation>
+            <translation>Información</translation>
         </message>
         <message>
             <location line="+67" />
             <location line="+22" />
-            <source>Hilfe</source>
-            <translation>Hilfe</translation>
+            <source>Help</source>
+            <translation>Ayuda</translation>
         </message>
     </context>
     <context>
@@ -1347,12 +1347,12 @@
         <message>
             <location filename="../MsgPopup.qml" line="+164" />
             <source>CLOSE</source>
-            <translation>CERRAR</translation>
+            <translation>Cerrar</translation>
         </message>
         <message>
             <location line="-10" />
             <source>CONFIGURE</source>
-            <translation>CONFIGURAR</translation>
+            <translation>Configurar</translation>
         </message>
         <message>
             <location line="-9" />
@@ -1382,7 +1382,7 @@
         <message>
             <location line="+52" />
             <source>Close</source>
-            <translation>Cerca</translation>
+            <translation>Cerrar</translation>
         </message>
         <message>
             <location line="+15" />
@@ -1417,7 +1417,7 @@
         <message>
             <location line="+1" />
             <source>Primary resolution</source>
-            <translation>Resolución primaria</translation>
+            <translation>Resolución de la cámara principal</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1427,7 +1427,7 @@
         <message>
             <location line="+1" />
             <source>Secondary resolution</source>
-            <translation>Resolución secundaria</translation>
+            <translation>Resolución de la cámara secundaria</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1460,7 +1460,7 @@
         <message>
             <location line="+5" />
             <source>Start</source>
-            <translation>Comienzo</translation>
+            <translation>Iniciar</translation>
         </message>
         <message>
             <location line="+94" />
@@ -1470,13 +1470,13 @@
         <message>
             <location line="+0" />
             <source>Source image</source>
-            <translation>Imagen fuente</translation>
+            <translation>Imagen de origen</translation>
         </message>
         <message>
             <location line="+18" />
             <location line="+61" />
             <source>Change</source>
-            <translation>Cambio</translation>
+            <translation>Cambiar</translation>
         </message>
         <message>
             <location line="-60" />
@@ -1491,22 +1491,22 @@
         <message>
             <location line="+43" />
             <source>Destination device</source>
-            <translation>Dispositivo</translation>
+            <translation>Dispositivo de destino</translation>
         </message>
         <message>
             <location line="+17" />
             <source>Change device</source>
-            <translation>Cambiar dispositivo</translation>
+            <translation>Cambiar el dispositivo</translation>
         </message>
         <message>
             <location line="+40" />
             <source>Configure write options</source>
-            <translation>Configurar opciones de escritura</translation>
+            <translation>Configurar las opciones de escritura</translation>
         </message>
         <message>
             <location line="+10" />
             <source>Configuration saved. Select to review or change it.</source>
-            <translation>Configuración guardada. Seleccione para revisar o cambiarlo.</translation>
+            <translation>Configuración guardada. Seleccione para revisar o cambiarla.</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1568,7 +1568,7 @@
         <message>
             <location line="+8" />
             <source>Certificate contains invalid timestamps or key id.</source>
-            <translation>El certificado contiene marcas inválidas o id clave.</translation>
+            <translation>El certificado contiene cronogramas inválidos o id clave.</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1596,7 +1596,7 @@
         <message>
             <location filename="../rockchipflashthread.cpp" line="+118" />
             <source>Firmware archive contains too many entries.</source>
-            <translation>El archivo firmware contiene demasiadas entradas.</translation>
+            <translation>El archivo de firmware contiene demasiadas entradas.</translation>
         </message>
         <message>
             <location line="+24" />
@@ -1606,13 +1606,13 @@
         <message>
             <location line="+9" />
             <source>Firmware archive contains duplicate paths.</source>
-            <translation>El archivo firmware contiene caminos duplicados.</translation>
+            <translation>El archivo de firmware contiene caminos duplicados.</translation>
         </message>
         <message>
             <location line="+13" />
             <location line="+11" />
             <source>Unable to create a firmware package directory.</source>
-            <translation>Incapaz de crear un directorio de paquetes firmware.</translation>
+            <translation>Incapaz de crear un directorio de paquetes de firmware.</translation>
         </message>
         <message>
             <location line="+9" />
@@ -1682,7 +1682,7 @@
         <message>
             <location line="+7" />
             <source>Found firmware.zip; extracting Rockchip partitions...</source>
-            <translation>encontrado firmware.zip; extracción de particiones Rockchip...</translation>
+            <translation>Found firmware.zip; extracting Rockchip particiones...</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1702,12 +1702,12 @@
         <message>
             <location line="+4" />
             <source>Found Rockchip firmware in %1.</source>
-            <translation>Encontré firmware Rockchip en %1.</translation>
+            <translation>Encontramos firmware Rockchip en %1.</translation>
         </message>
         <message>
             <location line="+34" />
             <source>The firmware package contains an invalid or empty parameter.txt.</source>
-            <translation>El paquete firmware contiene un parameter.txt inválido o vacío.</translation>
+            <translation>El paquete firmware contiene un inválido o vacío parameter.txt.</translation>
         </message>
         <message>
             <location line="+9" />
@@ -1722,7 +1722,7 @@
         <message>
             <location line="+28" />
             <source>Firmware image %1 is larger than its %2 partition.</source>
-            <translation>Imagen de firmware %1 es más grande que su partición %2.</translation>
+            <translation>Imagen de firmware %1 es mayor que su partición %2.</translation>
         </message>
         <message>
             <location line="+51" />
@@ -1737,12 +1737,12 @@
         <message>
             <location line="+17" />
             <source>Rockchip device not detected. Please ensure your OpenHD X21 is connected via USB.</source>
-            <translation>El dispositivo Rockchip no detectado. Por favor, asegúrese de que su OpenHD X21 esté conectado a través de USB.</translation>
+            <translation>Dispositivo Rockchip no detectado. Por favor, asegúrese de que su OpenHD X21 esté conectado a través de USB.</translation>
         </message>
         <message>
             <location line="+6" />
             <source>OpenHD X21 detected in MaskROM mode. Loading bootloader...</source>
-            <translation>OpenHD X21 detectado en modo MaskROM. Carga de arranque Cargando...</translation>
+            <translation>OpenHD X21 detectado en el modo MaskROM. Carga de arranque...</translation>
         </message>
         <message>
             <location line="+19" />
@@ -1777,7 +1777,7 @@
         <message>
             <location line="+8" />
             <source>Connecting to device in Loader mode...</source>
-            <translation>Conectando al dispositivo en modo Loader...</translation>
+            <translation>Conectando al dispositivo en el modo Loader...</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1787,32 +1787,95 @@
         <message>
             <location line="+24" />
             <source>Writing partition table (parameter.txt)...</source>
-            <translation>Tabla de partición de escritura (parameter.txt)...</translation>
+            <translation>Escribir tabla de partición (parameter.txt)...</translation>
         </message>
         <message>
             <location line="+9" />
             <source>Failed writing parameter partition: %1</source>
-            <translation>Partición de parámetro de escritura fallida: %1</translation>
+            <translation>Partición del parámetro de escritura fallida: %1</translation>
         </message>
         <message>
             <location line="+18" />
             <source>Flashing %1 (%2 MB)...</source>
-            <translation>Flashing %1 (%2 MB)...</translation>
+            <translation>Escribiendo %1 (%2 MB)...</translation>
         </message>
         <message>
             <location line="+7" />
             <source>Unable to open image file: %1</source>
-            <translation>Unable para abrir el archivo de imagen: %1</translation>
+            <translation>Incapaz de abrir el archivo de imagen: %1</translation>
         </message>
         <message>
             <location line="+20" />
             <source>Failed flashing %1 at sector %2: %3</source>
-            <translation>%1 en el sector %2: %3</translation>
+            <translation>Inflamación fallida %1 en sector %2: %3</translation>
         </message>
         <message>
             <location line="+27" />
             <source>Flashing complete. Rebooting OpenHD device...</source>
-            <translation>Flashing completo. Rebooting OpenHD device...</translation>
+            <translation>Reiniciar el dispositivo OpenHD...</translation>
+        </message>
+    </context>
+    <context>
+        <name>SettingsLabels</name>
+        <message>
+            <location filename="../qmlcomponents/SettingsLabels.js" line="+4" />
+            <source>Air</source>
+            <translation>Unidad aérea</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Ground</source>
+            <translation>Estación terrestre</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>None</source>
+            <translation>Ninguna</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Network</source>
+            <translation>Red</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Advanced</source>
+            <translation>Avanzado</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Generic</source>
+            <translation>Genérico</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Integrated camera</source>
+            <translation>Cámara integrada</translation>
+        </message>
+        <message>
+            <location line="+2" />
+            <source>IP camera</source>
+            <translation>Cámara IP</translation>
+        </message>
+        <message>
+            <location line="+2" />
+            <source>Test camera</source>
+            <translation>Cámara de prueba</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>External camera</source>
+            <translation>Cámara externa</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>File source</source>
+            <translation>Archivo de origen</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>2 MP cameras</source>
+            <translation>2 cámaras MP</translation>
         </message>
     </context>
     <context>
@@ -1820,7 +1883,7 @@
         <message>
             <location filename="../updateuploadthread.cpp" line="+50" />
             <source>Checking update package...</source>
-            <translation>Comprobando paquete de actualización...</translation>
+            <translation>Comprobando el paquete de actualización...</translation>
         </message>
         <message>
             <location line="+7" />
@@ -1852,22 +1915,22 @@
             <location line="+94" />
             <location line="+41" />
             <source>Not enough space on the FAT partition (%1 MB available, %2 MB required).</source>
-            <translation>No es suficiente espacio en la partición FAT (%1 MB disponible, %2 MB requerido).</translation>
+            <translation>No hay suficiente espacio en la partición FAT (%1 MB disponible, %2 MB requerido).</translation>
         </message>
         <message>
             <location line="-125" />
             <source>Unable to write to OpenHD partition.</source>
-            <translation>Incapaz de escribir a la partición OpenHD.</translation>
+            <translation>No se puede escribir a la partición OpenHD.</translation>
         </message>
         <message>
             <location line="+4" />
             <source>Preparing to copy update...</source>
-            <translation>Preparando para copiar la actualización...</translation>
+            <translation>Preparándose para copiar la actualización...</translation>
         </message>
         <message>
             <location line="+12" />
             <source>Update checksum verification failed.</source>
-            <translation>La verificación de checksum de actualización falló.</translation>
+            <translation>Actualizar la verificación de la suma de comprobación falló.</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1882,7 +1945,7 @@
         <message>
             <location line="+30" />
             <source>Downloading update</source>
-            <translation>Descargar actualización</translation>
+            <translation>Descargando actualización</translation>
         </message>
         <message>
             <location line="+27" />
@@ -1893,12 +1956,12 @@
         <message>
             <location line="-81" />
             <source>Downloading update (%1%)</source>
-            <translation>Actualización de descarga (%1%)</translation>
+            <translation>Descargando actualización (%1%)</translation>
         </message>
         <message>
             <location line="+16" />
             <source>Downloading update package timed out.</source>
-            <translation>Descargar paquete de actualización programado.</translation>
+            <translation>Descarga del paquete de actualización programado.</translation>
         </message>
         <message>
             <location line="+15" />
@@ -1908,17 +1971,17 @@
         <message>
             <location line="+7" />
             <source>No data received while downloading update package.</source>
-            <translation>No se recibieron datos al descargar paquete de actualización.</translation>
+            <translation>No se han recibido datos al descargar el paquete de actualización.</translation>
         </message>
         <message>
             <location line="+14" />
             <source>Unable to read update archive.</source>
-            <translation>Incapaz de leer archivo de actualización.</translation>
+            <translation>Incapaz de leer el archivo de actualización.</translation>
         </message>
         <message>
             <location line="+5" />
             <source>Uploading update</source>
-            <translation>Actualización de carga</translation>
+            <translation>Subiendo actualización</translation>
         </message>
         <message>
             <location line="+11" />
@@ -1933,13 +1996,13 @@
         <message>
             <location line="+15" />
             <source>Uploading update (%1%)</source>
-            <translation>Actualización de carga (%1%)</translation>
+            <translation>Subiendo actualización (%1%)</translation>
         </message>
     </context>
     <context>
         <name>configure</name>
         <message>
-            <location filename="../configure.qml" line="+853" />
+            <location filename="../configure.qml" line="+854" />
             <source>A QOpenHD.conf is already present on the drive.</source>
             <translation>Ya hay un QOpenHD.conf en la unidad.</translation>
         </message>
@@ -1955,7 +2018,52 @@
             <translation>Modo de arranque</translation>
         </message>
         <message>
-            <location line="+29" />
+            <location line="-113" />
+            <source>Settings</source>
+            <translation>Ajustes</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Choose a language or support OpenHD development.</source>
+            <translation>Elija un idioma o apoye el desarrollo de OpenHD.</translation>
+        </message>
+        <message>
+            <location line="+11" />
+            <source>Language</source>
+            <translation>Idioma</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Application</source>
+            <translation>Aplicación</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Change the language of OpenHD ImageWriter.</source>
+            <translation>Cambiar el idioma de OpenHD ImageWriter.</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Choose language</source>
+            <translation>Elija idioma</translation>
+        </message>
+        <message>
+            <location line="+11" />
+            <source>Support OpenHD</source>
+            <translation>Soporte OpenHD</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Support OpenHD development with a donation.</source>
+            <translation>Apoyar el desarrollo de OpenHD con una donación.</translation>
+        </message>
+        <message>
+            <location line="+19" />
+            <source>OpenHD settings</source>
+            <translation>Ajustes de OpenHD</translation>
+        </message>
+        <message>
+            <location line="+96" />
             <source>Camera</source>
             <translation>Cámara</translation>
         </message>
@@ -1984,61 +2092,12 @@
         <message>
             <location line="-645" />
             <location line="+68" />
+            <location line="+3" />
             <source>Donate</source>
             <translation>Donar</translation>
         </message>
         <message>
-            <location line="-25" />
-            <source>Einstellungen</source>
-            <translation>Einstellungen</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Sprache auswählen oder die OpenHD-Entwicklung unterstützen.</source>
-            <translation>Sprache auswählen oder die OpenHD-Entwicklung unterstützen.</translation>
-        </message>
-        <message>
-            <location line="+11" />
-            <source>Sprache</source>
-            <translation>Sprache</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Anwendung</source>
-            <translation>Anwendung</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Die Sprache des OpenHD ImageWriter ändern.</source>
-            <translation>Die Sprache des OpenHD ImageWriter ändern.</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Sprache auswählen</source>
-            <translation>Sprache auswählen</translation>
-        </message>
-        <message>
-            <location line="+11" />
-            <source>OpenHD unterstützen</source>
-            <translation>OpenHD unterstützen</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Die Entwicklung von OpenHD mit einer Spende unterstützen.</source>
-            <translation>Die Entwicklung von OpenHD mit einer Spende unterstützen.</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Spenden</source>
-            <translation>Spenden</translation>
-        </message>
-        <message>
-            <location line="+18" />
-            <source>OpenHD Einstellungen</source>
-            <translation>OpenHD Einstellungen</translation>
-        </message>
-        <message>
-            <location line="+2" />
+            <location line="+20" />
             <source>Adjust the OpenHD settings stored on the selected device.</source>
             <translation>Ajuste los ajustes OpenHD almacenados en el dispositivo seleccionado.</translation>
         </message>
@@ -2050,7 +2109,7 @@
         <message>
             <location line="+14" />
             <source>No storage selected</source>
-            <translation>No hay almacenamiento seleccionado</translation>
+            <translation>No se ha seleccionado ningún almacenamiento</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2065,7 +2124,7 @@
         <message>
             <location line="+1" />
             <source>Choose the SD card or USB storage containing OpenHD.</source>
-            <translation>Elija la tarjeta SD o el almacenamiento USB que contiene OpenHD.</translation>
+            <translation>Elija la tarjeta SD o almacenamiento USB que contenga OpenHD.</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2085,7 +2144,7 @@
         <message>
             <location line="+4" />
             <source>Primary resolution</source>
-            <translation>Resolución primaria</translation>
+            <translation>Resolución de la cámara principal</translation>
         </message>
         <message>
             <location line="+39" />
@@ -2095,7 +2154,7 @@
         <message>
             <location line="+5" />
             <source>Secondary resolution</source>
-            <translation>Resolución secundaria</translation>
+            <translation>Resolución de la cámara secundaria</translation>
         </message>
         <message>
             <location line="+244" />
@@ -2115,7 +2174,7 @@
         <message>
             <location line="+15" />
             <source>Ground display</source>
-            <translation>Pantalla terrestre</translation>
+            <translation>Pantalla de tierra</translation>
         </message>
         <message>
             <location line="+7" />
@@ -2135,7 +2194,7 @@
         <message>
             <location line="+2" />
             <source>Refresh rate (Hz)</source>
-            <translation>Tasa de reducción (Hz)</translation>
+            <translation>Frecuencia de actualización (Hz)</translation>
         </message>
         <message>
             <location line="+7" />
@@ -2150,7 +2209,7 @@
         <message>
             <location line="+8" />
             <source>Primary source pipeline</source>
-            <translation>Gasoducto de origen primario</translation>
+            <translation>Gasoducto de fuentes primarias</translation>
         </message>
         <message>
             <location line="+8" />
@@ -2168,7 +2227,12 @@
             <translation>bitrate de enlace reservado (Mbit/s)</translation>
         </message>
         <message>
-            <location line="+94" />
+            <location line="+34" />
+            <source>Wi-Fi hotspot</source>
+            <translation>Wi-Fi hotspot</translation>
+        </message>
+        <message>
+            <location line="+60" />
             <source>Premium Certificate</source>
             <translation>Certificado Premium</translation>
         </message>
@@ -2180,7 +2244,7 @@
         <message>
             <location line="+22" />
             <source>A premium certificate is already present on the drive.</source>
-            <translation>Un certificado premium ya está presente en la unidad.</translation>
+            <translation>Un certificado de prima ya está presente en la unidad.</translation>
         </message>
         <message>
             <location line="+7" />
@@ -2195,7 +2259,7 @@
         <message>
             <location line="+1" />
             <source>Select the OpenHD SD card or USB storage whose settings you want to edit.</source>
-            <translation>Seleccione la tarjeta OpenHD SD o el almacenamiento USB cuyos ajustes desea editar.</translation>
+            <translation>Seleccione la tarjeta SD OpenHD o el almacenamiento USB cuya configuración desea editar.</translation>
         </message>
         <message>
             <location line="+140" />
@@ -2211,7 +2275,7 @@
             <location line="+21" />
             <location line="+479" />
             <source>Premium certificate is invalid: %1</source>
-            <translation>Certificado Premium es inválido: %1</translation>
+            <translation>El certificado Premium es inválido: %1</translation>
         </message>
         <message>
             <location line="-428" />
@@ -2283,11 +2347,6 @@
             <source>WRITE SETTINGS</source>
             <translation>ESCRIBIR AJUSTES</translation>
         </message>
-        <message>
-            <location line="-122" />
-            <source>WifiHotspot</source>
-            <translation>Punto de acceso WiFi</translation>
-        </message>
     </context>
     <context>
         <name>flash</name>
@@ -2346,22 +2405,22 @@
         <message>
             <location line="+124" />
             <source>Update complete!</source>
-            <translation>Actualizar completo!</translation>
+            <translation>Actualización completada!</translation>
         </message>
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was flashed to the board.&lt;br&gt;The board is now rebooting.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; fue flasheado a la tabla. &lt;br&gt;La junta está reiniciando.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; fue destellado a la junta.&lt;br&gt;La junta está reiniciando.</translation>
         </message>
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was copied to the FAT32 partition on &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;You can now safely remove the card and insert it into your board.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; fue copiado a la partición FAT32 en &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;Ahora puede quitar la tarjeta de forma segura y insertarla en su tablero.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; fue copiado a la partición FAT32 en &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;Ahora puede quitar la tarjeta de forma segura e insertarla en su tablero.</translation>
         </message>
         <message>
             <location line="+101" />
             <source>Error parsing image catalog</source>
-            <translation>Catálogo de imagen de error</translation>
+            <translation>Catálogo de imagen que analiza el error</translation>
         </message>
         <message>
             <location line="+164" />
@@ -2376,12 +2435,12 @@
         <message>
             <location line="-1379" />
             <source>Writing image</source>
-            <translation>Escribir imagen</translation>
+            <translation>Escribiendo imagen</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Write an image</source>
-            <translation>Escribe una imagen</translation>
+            <translation>Escribir imagen</translation>
         </message>
         <message>
             <location line="+2" />
@@ -2391,7 +2450,7 @@
         <message>
             <location line="+1" />
             <source>Select an OpenHD image and a target device, then review and start the write.</source>
-            <translation>Seleccione una imagen OpenHD y un dispositivo de destino, luego revise y comience la escritura.</translation>
+            <translation>Seleccione una imagen OpenHD y un dispositivo objetivo, luego revise y comience la escritura.</translation>
         </message>
         <message>
             <location line="+10" />
@@ -2406,7 +2465,7 @@
         <message>
             <location line="+1" />
             <source>Write</source>
-            <translation>Escriba</translation>
+            <translation>Escribir</translation>
         </message>
         <message>
             <location line="+49" />
@@ -2416,7 +2475,7 @@
         <message>
             <location line="+1" />
             <source>Source image</source>
-            <translation>Imagen fuente</translation>
+            <translation>Imagen de origen</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2426,7 +2485,7 @@
         <message>
             <location line="+1" />
             <source>Choose image</source>
-            <translation>Elija la imagen</translation>
+            <translation>Elegir imagen</translation>
         </message>
         <message>
             <location line="+7" />
@@ -2442,7 +2501,7 @@
             <location line="+1" />
             <location line="+1155" />
             <source>Select the SD card, USB drive, or supported OpenHD device to overwrite.</source>
-            <translation>Seleccione la tarjeta SD, unidad USB, o el dispositivo OpenHD compatible para sobreescribir.</translation>
+            <translation>Seleccione la tarjeta SD, unidad USB o el dispositivo OpenHD compatible para sobreescribir.</translation>
         </message>
         <message>
             <location line="-1154" />
@@ -2472,12 +2531,12 @@
         <message>
             <location line="+1" />
             <source>Review and write</source>
-            <translation>Revisión y escritura</translation>
+            <translation>Revisar y escribir</translation>
         </message>
         <message>
             <location line="+54" />
             <source>Do not remove or disconnect the target.</source>
-            <translation>No eliminar o desconectar el objetivo.</translation>
+            <translation>No retire o desconecte el objetivo.</translation>
         </message>
         <message>
             <location line="+8" />
@@ -2487,7 +2546,7 @@
         <message>
             <location line="+7" />
             <source>Skip verification</source>
-            <translation>Skip verification</translation>
+            <translation>Omitir verificación</translation>
         </message>
         <message>
             <location line="+24" />
@@ -2497,12 +2556,12 @@
         <message>
             <location line="+7" />
             <source>Configure device role, cameras, networking, and display settings.</source>
-            <translation>Configurar el papel del dispositivo, cámaras, redes y configuraciones de visualización.</translation>
+            <translation>Configurar el papel del dispositivo, las cámaras, las redes y los ajustes de visualización.</translation>
         </message>
         <message>
             <location line="+8" />
             <source>Configure</source>
-            <translation>Configuración</translation>
+            <translation>Configurar</translation>
         </message>
         <message>
             <location line="+139" />
@@ -2512,17 +2571,17 @@
         <message>
             <location line="+2" />
             <source>Link a GitHub account under FleetControl &gt; My Account first.</source>
-            <translation>Enlace a una cuenta GitHub bajo FleetControl √≥ Mi cuenta primero.</translation>
+            <translation>Enlace una cuenta GitHub bajo FleetControl &gt; Mi cuenta primero.</translation>
         </message>
         <message>
             <location line="+2" />
             <source>GitHub returned invalid workflow data.</source>
-            <translation>GitHub devolvió datos de flujo de trabajo inválidos.</translation>
+            <translation>GitHub devolvió los datos de flujo de trabajo inválidos.</translation>
         </message>
         <message>
             <location line="+1" />
             <source>FleetControl could not load GitHub developer artifacts (HTTP %1).</source>
-            <translation>FleetControl no pudo cargar artefactos de desarrollador GitHub (HTTP %1).</translation>
+            <translation>FleetControl no pudo cargar artefactos de desarrolladores GitHub (HTTP %1).</translation>
         </message>
         <message>
             <location line="+37" />
@@ -2542,7 +2601,7 @@
         <message>
             <location line="+107" />
             <source>Choose an image</source>
-            <translation>Elija una imagen</translation>
+            <translation>Elegir imagen</translation>
         </message>
         <message>
             <location line="+37" />
@@ -2617,7 +2676,7 @@
         <message>
             <location line="+1" />
             <source>Erase / Format</source>
-            <translation>Borrar / Formato</translation>
+            <translation>Borrar / Formatear</translation>
         </message>
         <message>
             <location line="+89" />
@@ -2627,7 +2686,7 @@
         <message>
             <location line="+2" />
             <source>Connect the OpenHD X21 by USB in MaskROM or Loader mode, then select it below.</source>
-            <translation>Conecte el OpenHD X21 por USB en el modo MaskROM o Loader, a continuación, seleccione a continuación.</translation>
+            <translation>Conecte el OpenHD X21 por USB en modo MaskROM o Loader, a continuación, seleccione a continuación.</translation>
         </message>
         <message>
             <location line="+21" />
@@ -2658,12 +2717,12 @@
         <message>
             <location line="-275" />
             <source>Erase and write image?</source>
-            <translation>Borrar y escribir imagen?</translation>
+            <translation>Borrar y escribir la imagen?</translation>
         </message>
         <message>
             <location line="+1" />
             <source>All existing data on &lt;b&gt;%1&lt;/b&gt; will be permanently erased.&lt;br&gt;&lt;br&gt;Write &lt;b&gt;%2&lt;/b&gt; to this device?</source>
-            <translation>Todos los datos existentes en &lt;b&gt;%1&lt;/b&gt; serán borrados permanentemente.&lt;br&gt;&lt;br&gt;Write &lt;b&gt;%2&lt;/b&gt; a este dispositivo?</translation>
+            <translation>Todos los datos de &lt;b&gt;%1&lt;/b&gt; se borrarán permanentemente.&lt;br&gt;&lt;br&gt;¿Escribir &lt;b&gt;%2&lt;/b&gt; en este dispositivo?</translation>
         </message>
         <message>
             <location line="+236" />
@@ -2673,7 +2732,7 @@
         <message>
             <location line="+321" />
             <source>X21 firmware.zip packages must be flashed directly to an OpenHD X21 connected by USB in MaskROM or Loader mode.</source>
-            <translation>Los paquetes X21 firmware.zip deben ser flasheados directamente a un modo OpenHD X21 conectado por USB en MaskROM o Loader.</translation>
+            <translation>Los paquetes de firmware.zip X21 deben ser flasheados directamente a un OpenHD X21 conectado por USB en modo MaskROM o Loader.</translation>
         </message>
         <message>
             <location line="-458" />
@@ -2797,7 +2856,7 @@
         <message>
             <location line="-485" />
             <source>WRITE</source>
-            <translation>ESCRIBIR</translation>
+            <translation>Escribir</translation>
         </message>
         <message>
             <location line="+444" />
@@ -2820,9 +2879,9 @@
             <translation>Terminar o cancelar la operación actual antes de salir de esta página.</translation>
         </message>
         <message>
-            <location line="+969" />
+            <location line="+972" />
             <source>WEBSITE</source>
-            <translation>WEB</translation>
+            <translation>WEBSITE</translation>
         </message>
         <message>
             <location line="+5" />
@@ -2832,7 +2891,7 @@
         <message>
             <location line="+5" />
             <source>DONATE</source>
-            <translation>DONATE</translation>
+            <translation>Donar</translation>
         </message>
         <message>
             <location line="+120" />
@@ -2880,7 +2939,12 @@
             <translation>ELEGIR ALMACENAMIENTO</translation>
         </message>
         <message>
-            <location line="-863" />
+            <location line="-878" />
+            <source>Update OpenHD</source>
+            <translation>Actualización OpenHD</translation>
+        </message>
+        <message>
+            <location line="+15" />
             <location line="+278" />
             <location line="+584" />
             <source>CHOOSE UPDATE</source>
@@ -2897,22 +2961,22 @@
         <message>
             <location line="+122" />
             <source>Update complete</source>
-            <translation>Actualización completa</translation>
+            <translation>Actualización completada</translation>
         </message>
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was flashed to the board.&lt;br&gt;The board is now rebooting.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; fue flasheado a la tabla. &lt;br&gt;La junta está reiniciando.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; fue destellado a la junta.&lt;br&gt;La junta está reiniciando.</translation>
         </message>
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was copied to the FAT32 partition on &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;You can now safely remove the card and insert it into your board.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; fue copiado a la partición FAT32 en &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;Ahora puede quitar la tarjeta de forma segura y insertarla en su tablero.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; fue copiado a la partición FAT32 en &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;Ahora puede quitar la tarjeta de forma segura e insertarla en su tablero.</translation>
         </message>
         <message>
             <location line="+72" />
             <source>Error parsing image catalog</source>
-            <translation>Catálogo de imagen de error</translation>
+            <translation>Catálogo de imagen que analiza el error</translation>
         </message>
         <message>
             <location line="+57" />
@@ -2937,12 +3001,12 @@
         <message>
             <location line="+1" />
             <source>Complete X21 USB recovery firmware (%1)</source>
-            <translation>Firmware completo de recuperación X21 USB (%1)</translation>
+            <translation>Completo firmware de recuperación USB X21 (%1)</translation>
         </message>
         <message>
             <location line="+15" />
             <source>Dated X21 update and recovery packages from Cloudsmith</source>
-            <translation>Fechas X21 paquetes de actualización y recuperación de Cloudsmith</translation>
+            <translation>Fechado X21 paquetes de actualización y recuperación de Cloudsmith</translation>
         </message>
         <message>
             <location line="+127" />
@@ -2967,12 +3031,7 @@
         <message>
             <location line="-236" />
             <source>Updating device</source>
-            <translation>Dispositivo de actualización</translation>
-        </message>
-        <message>
-            <location line="+0" />
-            <source>OpenHD Updaten</source>
-            <translation>Actualización OpenHD</translation>
+            <translation>Actualizando dispositivo</translation>
         </message>
         <message>
             <location line="+2" />
@@ -2997,7 +3056,7 @@
         <message>
             <location line="+1" />
             <source>Choose a current OpenHD release or select a local update package.</source>
-            <translation>Elija una versión OpenHD actual o seleccione un paquete de actualización local.</translation>
+            <translation>Elija una versión de OpenHD actual o seleccione un paquete de actualización local.</translation>
         </message>
         <message>
             <location line="+1" />
@@ -3053,7 +3112,7 @@
         <message>
             <location line="+54" />
             <source>Do not remove or disconnect the target.</source>
-            <translation>No eliminar o desconectar el objetivo.</translation>
+            <translation>No retire o desconecte el objetivo.</translation>
         </message>
         <message>
             <location line="+8" />
@@ -3063,7 +3122,7 @@
         <message>
             <location line="+7" />
             <source>Skip verification</source>
-            <translation>Skip verification</translation>
+            <translation>Omitir verificación</translation>
         </message>
         <message>
             <location line="+23" />
@@ -3078,7 +3137,7 @@
         <message>
             <location line="+7" />
             <source>Configure</source>
-            <translation>Configuración</translation>
+            <translation>Configurar</translation>
         </message>
         <message>
             <location line="+16" />
@@ -3254,7 +3313,7 @@
         <message>
             <location line="-490" />
             <source>WRITE</source>
-            <translation>ESCRIBIR</translation>
+            <translation>Escribir</translation>
         </message>
         <message>
             <location line="+453" />

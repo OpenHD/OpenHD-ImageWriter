@@ -64,10 +64,10 @@ Item {
                         "view": "configure",
                         "icon": "../icons/ui/settings.svg",
                         "title": root.openHdDeviceAvailable
-                                 ? qsTr("OpenHD Einstellungen") : qsTr("Einstellungen"),
+                                 ? qsTr("OpenHD settings") : qsTr("Settings"),
                         "desc": root.openHdDeviceAvailable
                                 ? qsTr("Adjust device roles, cameras, display, and advanced OpenHD settings.")
-                                : qsTr("Sprache auswählen oder die OpenHD-Entwicklung unterstützen.")
+                                : qsTr("Choose a language or support OpenHD development.")
                     },
                     {
                         "view": "fleetcontrol",

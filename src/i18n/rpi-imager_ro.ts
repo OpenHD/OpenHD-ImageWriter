@@ -14,7 +14,7 @@
         <message>
             <location filename="../qmlcomponents/DeviceSelectionPage.qml" line="+9" />
             <source>Choose a target</source>
-            <translation>Alege o ţintă</translation>
+            <translation>Alegeți o țintă</translation>
         </message>
         <message>
             <location line="+1" />
@@ -24,7 +24,7 @@
         <message>
             <location line="+30" />
             <source>Refresh</source>
-            <translation>Reîmprospătează</translation>
+            <translation>Reîmprospătare</translation>
         </message>
         <message>
             <location line="+63" />
@@ -44,12 +44,12 @@
         <message>
             <location line="+2" />
             <source>Loader mode</source>
-            <translation>Modul încărcător</translation>
+            <translation>Mod Loader</translation>
         </message>
         <message>
             <location line="+2" />
             <source>Write protected</source>
-            <translation>Scrie protejat</translation>
+            <translation>Scrieți protejat</translation>
         </message>
     </context>
     <context>
@@ -60,10 +60,10 @@
             <translation>Eroare la scrierea în depozit</translation>
         </message>
         <message>
-            <location line="+65" />
+            <location line="+66" />
             <location line="+211" />
             <source>Error extracting archive: %1</source>
-            <translation>Eroare la extragerea arhivei: %1</translation>
+            <translation>Eroare la extragerea arhivei:%1</translation>
         </message>
         <message>
             <location line="-146" />
@@ -78,7 +78,7 @@
         <message>
             <location line="+23" />
             <source>Error changing to directory '%1'</source>
-            <translation>Eroare la trecerea la directorul "%1"</translation>
+            <translation>Eroare la schimbarea în dosarul "%1 "</translation>
         </message>
     </context>
     <context>
@@ -91,7 +91,7 @@
         <message>
             <location line="+26" />
             <source>Cannot safely enumerate target volumes: %1</source>
-            <translation>Nu am putut enumera în siguranță volumele țintă: %1</translation>
+            <translation>Nu am putut enumera în siguranță volumele țintă:%1</translation>
         </message>
         <message>
             <location line="+14" />
@@ -101,7 +101,7 @@
         <message>
             <location line="+7" />
             <source>Cannot lock the target volumes: %1</source>
-            <translation>Nu se pot bloca volumele țintă: %1</translation>
+            <translation>Nu pot bloca volumele țintă:%1</translation>
         </message>
         <message>
             <location line="+22" />
@@ -111,28 +111,28 @@
         <message>
             <location line="+4" />
             <source>Error running authopen to gain access to disk device '%1'</source>
-            <translation>Eroare la rularea authopen pentru a obține acces la dispozitivul disc "%1"</translation>
+            <translation>Eroare la rularea authopen pentru a obține acces la dispozitivul disc "%1 "</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Please verify if 'Raspberry Pi Imager' is allowed access to 'removable volumes' in privacy settings (under 'files and folders' or alternatively give it 'full disk access').</source>
-            <translation>Vă rugăm să verificați dacă "Raspberry Pi Imagerul" are acces la "volume removabile" în setările de confidențialitate (sub "fișiere și foldere" sau îi oferă alternativ "acces complet pe disc").</translation>
+            <translation>Vă rugăm să verificați dacă "Raspberry Pi Imager" este permis accesul la "volume removabile" în setările de confidențialitate (sub "fișiere și foldere" sau, alternativ, să-l "acces complet pe disc").</translation>
         </message>
         <message>
             <location line="+24" />
             <location line="+5" />
             <source>Cannot open storage device '%1': %2.</source>
-            <translation>Nu am putut deschide dispozitivul de stocare "%1": %2.</translation>
+            <translation>Nu am putut deschide dispozitivul de stocare "%1 ":%2.</translation>
         </message>
         <message>
             <location line="+48" />
             <source>discarding existing data on drive</source>
-            <translation>eliminarea datelor existente privind motorul</translation>
+            <translation>aruncarea datelor existente privind motorul</translation>
         </message>
         <message>
             <location line="+20" />
             <source>Cannot determine storage device size.</source>
-            <translation>Nu pot determina dimensiunea dispozitivului de stocare.</translation>
+            <translation>Nu se poate determina dimensiunea dispozitivului de stocare.</translation>
         </message>
         <message>
             <location line="+5" />
@@ -147,17 +147,17 @@
         <message>
             <location line="+14" />
             <source>Write error while trying to zero out last part of card.&lt;br&gt;Card could be advertising wrong capacity (possible counterfeit).</source>
-            <translation>Scrie eroare în timp ce încercați să zero ultima parte a cardului. &lt;br&gt;Card ar putea fi o capacitate de publicitate greșită (posibil contrafăcută).</translation>
+            <translation>Scrie eroare în timp ce încercați să zero ultima parte a cardului.&lt;br&gt;Cardul ar putea fi o capacitate de publicitate greşită (posibil contrafăcută).</translation>
         </message>
         <message>
             <location line="+8" />
             <source>Cannot seek to the start of the storage device.</source>
-            <translation>Nu pot căuta pornirea dispozitivului de stocare.</translation>
+            <translation>Nu se poate căuta pornirea dispozitivului de stocare.</translation>
         </message>
         <message>
             <location line="+32" />
             <source>Unable to initialize the download engine</source>
-            <translation>Imposibil de inițializat motorul de descărcare</translation>
+            <translation>Nu s-a putut inițializa motorul de descărcare</translation>
         </message>
         <message>
             <location line="+17" />
@@ -182,7 +182,7 @@
         <message>
             <location line="+20" />
             <source>Error downloading: %1</source>
-            <translation>Eroare la descărcarea: %1</translation>
+            <translation>Eroare la descărcarea:%1</translation>
         </message>
         <message>
             <location line="+276" />
@@ -217,12 +217,12 @@
         <message>
             <location line="+16" />
             <source>Error reading from storage.&lt;br&gt;SD card may be broken.</source>
-            <translation>Eroare la citirea din depozit. Cardul &lt;br&gt;SD poate fi rupt.</translation>
+            <translation>Eroare la citirea din depozit.&lt;br&gt;Cardul SD poate fi rupt.</translation>
         </message>
         <message>
             <location line="+19" />
             <source>Verifying write failed. Contents of SD card is different from what was written to it.</source>
-            <translation>Verificarea scrierii a eșuat. Conţinutul cardului SD este diferit de ceea ce a fost scris pe el.</translation>
+            <translation>Verificarea scrierii a eșuat. Conținutul cardului SD este diferit de ceea ce a fost scris pentru ea.</translation>
         </message>
         <message>
             <location line="+47" />
@@ -232,7 +232,7 @@
         <message>
             <location line="+107" />
             <source>Error mounting FAT32 partition or config.txt not found</source>
-            <translation>Eroare la montarea partiției FAT32 sau config.txt negăsit</translation>
+            <translation>Eroare la montarea partiției FAT32 sau a config.txt nu a fost găsită</translation>
         </message>
         <message>
             <location line="+20" />
@@ -242,7 +242,7 @@
         <message>
             <location line="+33" />
             <source>Unable to customize. File '%1' does not exist.</source>
-            <translation>Imposibil de personalizat. Fișierul "%1" nu există.</translation>
+            <translation>Imposibil de personalizat. Fișierul "%1 " nu există.</translation>
         </message>
         <message>
             <location line="+4" />
@@ -252,7 +252,7 @@
         <message>
             <location line="+37" />
             <source>Error writing to config.txt on FAT partition</source>
-            <translation>Eroare la scrierea în config.txt pe partiția FAT</translation>
+            <translation>Eroare la scrierea config.txt pe partiția FAT</translation>
         </message>
         <message>
             <location line="+52" />
@@ -272,7 +272,7 @@
         <message>
             <location line="+3" />
             <source>Error replacing existing QOpenHD.conf on FAT partition</source>
-            <translation>Eroare la înlocuirea QOpenHD.conf existent pe partiția FAT</translation>
+            <translation>Eroare la înlocuirea QOpenHD.conf existente pe partiția FAT</translation>
         </message>
         <message>
             <location line="+3" />
@@ -282,7 +282,7 @@
         <message>
             <location line="+3" />
             <source>Premium certificate is invalid: %1</source>
-            <translation>Certificatul Premium nu este valabil: %1</translation>
+            <translation>Certificatul Premium este invalid:%1</translation>
         </message>
         <message>
             <location line="+3" />
@@ -300,7 +300,7 @@
         <message>
             <location filename="../driveformatthread.cpp" line="+47" />
             <source>Cannot enumerate the target drive: %1</source>
-            <translation>Imposibil de enumerat unitatea țintă: %1</translation>
+            <translation>Nu am putut enumera unitatea țintă:%1</translation>
         </message>
         <message>
             <location line="+14" />
@@ -310,58 +310,58 @@
         <message>
             <location line="+5" />
             <source>Refusing to format a system drive.</source>
-            <translation>Refuză să formeze o unitate de sistem.</translation>
+            <translation>Refuzul de a formata o unitate de sistem.</translation>
         </message>
         <message>
             <location line="+8" />
             <source>Cannot lock the target volumes: %1</source>
-            <translation>Nu se pot bloca volumele țintă: %1</translation>
+            <translation>Nu pot bloca volumele țintă:%1</translation>
         </message>
         <message>
             <location line="+15" />
             <source>Error formatting: %1</source>
-            <translation>Formatare eroare: %1</translation>
+            <translation>Eroare la formatarea:%1</translation>
         </message>
         <message>
             <location line="+14" />
             <source>Error determining new drive letter: %1</source>
-            <translation>Eroare la determinarea noii litere de comandă: %1</translation>
+            <translation>Eroare la determinarea noii scrisori de unitate:%1</translation>
         </message>
         <message>
             <location line="+7" />
             <source>Invalid device: %1</source>
-            <translation>Dispozitiv invalid: %1</translation>
+            <translation>Dispozitiv nevalid:%1</translation>
         </message>
         <message>
             <location line="+15" />
             <location line="+61" />
             <source>Error partitioning: %1</source>
-            <translation>Eroare la partiționare: %1</translation>
+            <translation>Eroare la partiționare:%1</translation>
         </message>
         <message>
             <location line="-39" />
             <source>Error formatting (through udisks2)</source>
-            <translation>Formatare erori (prin udiscuri2)</translation>
+            <translation>Formatarea erorilor (prin udisks2)</translation>
         </message>
         <message>
             <location line="+28" />
             <source>Error starting sfdisk</source>
-            <translation>Eroare la pornirea sfdiskului</translation>
+            <translation>Eroare la pornirea sfdisk</translation>
         </message>
         <message>
             <location line="+25" />
             <source>Partitioning did not create expected FAT partition %1</source>
-            <translation>Partiționarea nu a creat partiția GAT preconizată %1</translation>
+            <translation>Partiționarea nu a creat partiția anticipată a FAT%1</translation>
         </message>
         <message>
             <location line="+9" />
             <source>Error starting mkfs.fat</source>
-            <translation>Eroare la pornirea mkfs. grăsimi</translation>
+            <translation>Eroare la pornirea mkfs.fat</translation>
         </message>
         <message>
             <location line="+10" />
             <source>Error running mkfs.fat: %1</source>
-            <translation>Eroare la rulare mkfs.grasă: %1</translation>
+            <translation>Eroare la rularea mkfs.fat: %1</translation>
         </message>
         <message>
             <location line="+7" />
@@ -379,12 +379,12 @@
         <message>
             <location line="+1" />
             <source>MaskROM</source>
-            <translation>Masca</translation>
+            <translation>MaskROM</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Loader</source>
-            <translation>Încărcător</translation>
+            <translation>Loader</translation>
         </message>
     </context>
     <context>
@@ -402,7 +402,7 @@
         <message>
             <location line="+10" />
             <source>Clear</source>
-            <translation>Clar</translation>
+            <translation>Șterge selecția</translation>
         </message>
     </context>
     <context>
@@ -410,17 +410,17 @@
         <message>
             <location filename="../qmlcomponents/FleetControlPage.qml" line="+56" />
             <source>FleetControl profiles are not available yet.</source>
-            <translation>Profilele FleetControl nu sunt încă disponibile.</translation>
+            <translation>Profilurile FleetControl nu sunt încă disponibile.</translation>
         </message>
         <message>
             <location line="+35" />
             <source>Give the profile a name with at least two characters.</source>
-            <translation>Dați profilului un nume cu cel puțin două caractere.</translation>
+            <translation>Dă-i profilului un nume cu cel puţin două caractere.</translation>
         </message>
         <message>
             <location line="+21" />
             <source>Profile saved to FleetControl.</source>
-            <translation>Profil salvat în FleetControl.</translation>
+            <translation>Profil salvat la FleetControl.</translation>
         </message>
         <message>
             <location line="+2" />
@@ -430,12 +430,12 @@
         <message>
             <location line="+14" />
             <source>The QOpenHD configuration could not be prepared locally.</source>
-            <translation>Configuraţia QOpenHD nu a putut fi pregătită local.</translation>
+            <translation>Configuraţia QOpenHD nu a putut fi pregătită la nivel local.</translation>
         </message>
         <message>
             <location line="+8" />
             <source>Profile applied. Choose an image to continue.</source>
-            <translation>Se aplică profilul. Alegeți o imagine pentru a continua.</translation>
+            <translation>Profil aplicat. Alegeți o imagine pentru a continua.</translation>
         </message>
         <message>
             <location line="+11" />
@@ -450,17 +450,17 @@
         <message>
             <location line="+23" />
             <source>Enter both your operator ID and passphrase.</source>
-            <translation>Introduceți atât ID-ul operatorului și parola.</translation>
+            <translation>Introduceți atât ID-ul operatorului și fraza de acces.</translation>
         </message>
         <message>
             <location line="+31" />
             <source>Unable to reach the secure FleetControl gateway.</source>
-            <translation>Imposibil de atins poarta securizată FleetControl.</translation>
+            <translation>Imposibil de ajuns la poarta securizată FleetControl.</translation>
         </message>
         <message>
             <location line="+4" />
             <source>Access denied. Check your credentials and try again.</source>
-            <translation>Acces interzis. Verificați acreditările și încercați din nou.</translation>
+            <translation>Verifică-ţi legitimaţiile şi încearcă din nou.</translation>
         </message>
         <message>
             <location line="+86" />
@@ -490,27 +490,27 @@
         <message>
             <location line="+10" />
             <source>Securely coordinate every aircraft, link, and mission from one operational command layer.</source>
-            <translation>Coordonaţi fiecare aeronavă, legătură şi misiune dintr-un singur strat de comandă operaţional.</translation>
+            <translation>Coordonează în siguranţă fiecare aeronavă, legătură şi misiune dintr-un strat de comandă operaţională.</translation>
         </message>
         <message>
             <location line="+45" />
             <source>SESSION ACTIVE</source>
-            <translation>SESIUNEA ACTIVE</translation>
+            <translation>SESIUNE ACTIVĂ</translation>
         </message>
         <message>
             <location line="+0" />
             <source>AUTHORIZED PERSONNEL</source>
-            <translation>Persoana autorizată</translation>
+            <translation>PERSOANE AUTORIZATE</translation>
         </message>
         <message>
             <location line="+10" />
             <source>Secure sign in</source>
-            <translation>Semn securizat</translation>
+            <translation>Autentificare securizată</translation>
         </message>
         <message>
             <location line="+10" />
             <source>OPERATOR</source>
-            <translation>OPERATOR</translation>
+            <translation>Operator</translation>
         </message>
         <message>
             <location line="+15" />
@@ -535,17 +535,17 @@
         <message>
             <location line="+40" />
             <source>SIGN OUT</source>
-            <translation>Semnează</translation>
+            <translation>Deconectare</translation>
         </message>
         <message>
             <location line="+2" />
             <source>AUTHENTICATING</source>
-            <translation>Autentificare</translation>
+            <translation>AUTENTIFICARE ÎN CURS</translation>
         </message>
         <message>
             <location line="+1" />
             <source>AUTHENTICATE</source>
-            <translation>Autentificare</translation>
+            <translation>AUTENTIFICARE</translation>
         </message>
         <message>
             <location line="+27" />
@@ -555,7 +555,7 @@
         <message>
             <location line="+37" />
             <source>IMAGEWRITER PROFILES / %1</source>
-            <translation>PROFILURI IMAGEWRITER / %1</translation>
+            <translation>IMAGINEA PROFILURILOR /%1</translation>
         </message>
         <message>
             <location line="+8" />
@@ -570,7 +570,7 @@
         <message>
             <location line="+12" />
             <source>Refresh</source>
-            <translation>Reîmprospătează</translation>
+            <translation>Reîmprospătare</translation>
         </message>
         <message>
             <location line="+6" />
@@ -580,7 +580,7 @@
         <message>
             <location line="+12" />
             <source>Sign out</source>
-            <translation>Semnează</translation>
+            <translation>Deconectare</translation>
         </message>
         <message>
             <location line="+66" />
@@ -605,12 +605,12 @@
         <message>
             <location line="+1" />
             <source>No profiles yet. Save the current ImageWriter settings to create one.</source>
-            <translation>Nici un profil încă. Salvează setările ImageWriter actuale pentru a crea unul.</translation>
+            <translation>Nu există profiluri încă. Salvați setările actuale ImageWriter pentru a crea unul.</translation>
         </message>
         <message>
             <location line="+34" />
             <source>OPEN WEB PORTAL</source>
-            <translation>Portalul web deschis</translation>
+            <translation>PORTAL DESCHIDEŢI WEB</translation>
         </message>
         <message>
             <location line="+33" />
@@ -620,7 +620,7 @@
         <message>
             <location line="+8" />
             <source>The current OpenHD settings and selected QOpenHD.conf will be stored in your account.</source>
-            <translation>Configurările OpenHD curente și selectate QOpenHD.conf vor fi stocate în contul dumneavoastră.</translation>
+            <translation>Configurările curente OpenHD și QOpenHD.conf selectate vor fi stocate în contul dumneavoastră.</translation>
         </message>
         <message>
             <location line="+9" />
@@ -635,22 +635,22 @@
         <message>
             <location line="+11" />
             <source>Stream video to FleetControl platform</source>
-            <translation>Stream video către platforma FleetControl</translation>
+            <translation>Stream video pentru platforma FleetControl</translation>
         </message>
         <message>
             <location line="+15" />
             <source>Platform streaming is not available for Developer or Tester licenses.</source>
-            <translation>Streamingul platformei nu este disponibil pentru licenţele Dezvoltator sau Tester.</translation>
+            <translation>Streamingul platformei nu este disponibil pentru licenţele Dezvoltatorului sau Testerului.</translation>
         </message>
         <message>
             <location line="+22" />
             <source>Cancel</source>
-            <translation>Renunță</translation>
+            <translation>Anulare</translation>
         </message>
         <message>
             <location line="+6" />
             <source>Saving...</source>
-            <translation>Salvarea...</translation>
+            <translation>Se salvează...</translation>
         </message>
         <message>
             <location line="+0" />
@@ -688,7 +688,7 @@
         <message>
             <location line="+0" />
             <source>TB</source>
-            <translation>TBC</translation>
+            <translation>TB</translation>
         </message>
         <message>
             <location line="+48" />
@@ -743,12 +743,12 @@
         <message>
             <location line="+5" />
             <source>More</source>
-            <translation>Mai mult</translation>
+            <translation>Mai multe</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Orange Pi, Orqa and more</source>
-            <translation>Orange Pi, Orqa și mai mult</translation>
+            <translation>Portocaliu Pi, Orqa și mai mult</translation>
         </message>
         <message>
             <location line="+51" />
@@ -759,7 +759,7 @@
             <location line="+16" />
             <location line="+337" />
             <source>Use custom image</source>
-            <translation>Folosește imaginea personalizată</translation>
+            <translation>Folosește o imagine personalizată</translation>
         </message>
         <message>
             <location line="-336" />
@@ -770,7 +770,7 @@
             <location line="+5" />
             <location line="+331" />
             <source>Erase / Format</source>
-            <translation>Ștergere / format</translation>
+            <translation>Șterge / Formatează</translation>
         </message>
         <message>
             <location line="-267" />
@@ -780,15 +780,15 @@
         <message>
             <location line="+127" />
             <source>Already downloaded and cached</source>
-            <translation>Deja descărcat și cache</translation>
+            <translation>Deja descărcate și cache</translation>
         </message>
     </context>
     <context>
         <name>ImageOptionsPage</name>
         <message>
-            <location filename="../ImageOptionsPage.qml" line="+87" />
+            <location filename="../ImageOptionsPage.qml" line="+88" />
             <source>OpenHD settings</source>
-            <translation>Configurări OpenHD</translation>
+            <translation>Setări OpenHD</translation>
         </message>
         <message>
             <location line="+0" />
@@ -798,17 +798,17 @@
         <message>
             <location line="+2" />
             <source>Configure %1 using the same options available before writing an image.</source>
-            <translation>Configurează %1 utilizând aceleași opțiuni disponibile înainte de a scrie o imagine.</translation>
+            <translation>Configurează%1 folosind aceleași opțiuni disponibile înainte de a scrie o imagine.</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Set the device role, cameras, display, networking, and optional configuration files.</source>
-            <translation>Setați rolul dispozitivului, camerele, afișarea, crearea de rețele și fișierele de configurare opționale.</translation>
+            <translation>Setați rolul dispozitivului, camerele de luat vederi, afișarea, crearea de rețele și fișierele de configurare opționale.</translation>
         </message>
         <message>
             <location line="+15" />
             <source>General</source>
-            <translation>Generale</translation>
+            <translation>General</translation>
         </message>
         <message>
             <location line="+4" />
@@ -868,7 +868,7 @@
         <message>
             <location line="+5" />
             <source>Use this when a monitor is not detected reliably. Automatic EDID detection remains the default.</source>
-            <translation>Utilizați acest lucru atunci când un monitor nu este detectat în mod fiabil. Detectarea automată a EDID rămâne implicită.</translation>
+            <translation>Utilizați acest lucru atunci când un monitor nu este detectat în mod fiabil. Detectarea automată a EDID rămâne implicit.</translation>
         </message>
         <message>
             <location line="+10" />
@@ -883,13 +883,13 @@
         <message>
             <location line="+2" />
             <source>Refresh rate (Hz)</source>
-            <translation>Rata de actualizare (Hz)</translation>
+            <translation>Rată de reîmprospătare (Hz)</translation>
         </message>
         <message>
             <location line="+6" />
             <location line="+18" />
             <source>Camera Settings</source>
-            <translation>Configurări aparat foto</translation>
+            <translation>Setări cameră</translation>
         </message>
         <message>
             <location line="-17" />
@@ -899,12 +899,12 @@
         <message>
             <location line="+75" />
             <source>Primary camera</source>
-            <translation>Camera principală</translation>
+            <translation>Aparat de fotografiat primar</translation>
         </message>
         <message>
             <location line="+4" />
             <source>Primary resolution</source>
-            <translation>Rezoluţia primară</translation>
+            <translation>Rezoluția camerei principale</translation>
         </message>
         <message>
             <location line="+39" />
@@ -914,12 +914,12 @@
         <message>
             <location line="+5" />
             <source>Secondary resolution</source>
-            <translation>Rezoluția secundară</translation>
+            <translation>Rezoluția camerei secundare</translation>
         </message>
         <message>
             <location line="+257" />
             <source>Raspberry Pi 5 Camera Connectors</source>
-            <translation>Conectori pentru camere Raspberry Pi 5</translation>
+            <translation>Raspberry Pi 5 Conectori de camere</translation>
         </message>
         <message>
             <location line="+11" />
@@ -944,7 +944,7 @@
         <message>
             <location line="+9" />
             <source>Primary source pipeline</source>
-            <translation>Conductă sursă primară</translation>
+            <translation>Conducta de surse primare</translation>
         </message>
         <message>
             <location line="+10" />
@@ -1009,7 +1009,7 @@
         <message>
             <location line="+8" />
             <source>Existing QOpenHD.conf on the target will be kept when no file is selected.</source>
-            <translation>QOpenHD.conf existent pe țintă va fi păstrat atunci când nu este selectat niciun fișier.</translation>
+            <translation>QOpenHD.conf existent pe destinație va fi păstrat dacă nu este selectat niciun fișier.</translation>
         </message>
         <message>
             <location line="+12" />
@@ -1019,7 +1019,7 @@
         <message>
             <location line="+1" />
             <source>Optionally install an OpenHD premium certificate.</source>
-            <translation>Instalați opțional un certificat de primă OpenHD.</translation>
+            <translation>Instalați opțional un certificat premium OpenHD.</translation>
         </message>
         <message>
             <location line="+13" />
@@ -1034,12 +1034,12 @@
         <message>
             <location line="+20" />
             <source>Cancel</source>
-            <translation>Renunță</translation>
+            <translation>Anulare</translation>
         </message>
         <message>
             <location line="+5" />
             <source>Save and return</source>
-            <translation>Salvează și întoarce</translation>
+            <translation>Salvează și revino</translation>
         </message>
         <message>
             <location line="+17" />
@@ -1071,7 +1071,7 @@
             <location line="+21" />
             <location line="+270" />
             <source>Premium certificate is invalid: %1</source>
-            <translation>Certificatul Premium nu este valabil: %1</translation>
+            <translation>Certificatul Premium este invalid:%1</translation>
         </message>
     </context>
     <context>
@@ -1079,7 +1079,7 @@
         <message>
             <location filename="../qmlcomponents/ImageSelectionPage.qml" line="+12" />
             <source>Choose an image</source>
-            <translation>Alege o imagine</translation>
+            <translation>Alege imaginea</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1094,12 +1094,12 @@
         <message>
             <location line="+1" />
             <source>Use custom image</source>
-            <translation>Folosește imaginea personalizată</translation>
+            <translation>Folosește o imagine personalizată</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Erase / Format</source>
-            <translation>Ștergere / format</translation>
+            <translation>Șterge / Formatează</translation>
         </message>
         <message>
             <location line="+132" />
@@ -1127,12 +1127,12 @@
         <message>
             <location filename="../imagewriter.cpp" line="+451" />
             <source>Storage capacity is not large enough.&lt;br&gt;Needs to be at least %1 GB.</source>
-            <translation>Capacitatea de stocare nu este suficient de mare. &lt;br&gt;Needs să fie cel puțin %1 GB.</translation>
+            <translation>Capacitatea de stocare nu este suficient de mare.&lt;br&gt;Trebuie să fie cel puțin%1 GB.</translation>
         </message>
         <message>
             <location line="+6" />
             <source>Input file is not a valid disk image.&lt;br&gt;File size %1 bytes is not a multiple of 512 bytes.</source>
-            <translation>Fișierul de intrare nu este o imagine validă a discului. &lt;br&gt;File dimensiunea %1 octeți nu este un multiplu de 512 octeți.</translation>
+            <translation>Fișierul de intrare nu este o imagine validă a discului.&lt;br&gt;Mărimea fișierului%1 octeți nu este un multiplu de 512 octeți.</translation>
         </message>
         <message>
             <location line="+207" />
@@ -1142,7 +1142,7 @@
         <message>
             <location line="+102" />
             <source>Write stalled because the storage device stopped responding.&lt;br&gt;Please reconnect or replace the storage device and try again.</source>
-            <translation>Scrierea a fost blocată deoarece dispozitivul de stocare nu a mai răspuns.&lt;br&gt;Reconectați sau înlocuiți dispozitivul de stocare și încercați din nou.</translation>
+            <translation>Scrie blocat pentru că dispozitivul de stocare nu mai răspunde.&lt;br&gt;Vă rugăm să reconectați sau să înlocuiți dispozitivul de stocare și să încercați din nou.</translation>
         </message>
         <message>
             <location line="+47" />
@@ -1165,7 +1165,7 @@
             <location line="+18" />
             <location line="+1" />
             <source>Unable to find OpenHD FAT partition on %1</source>
-            <translation>Nu am putut găsi partiția OpenHD FAT pe %1</translation>
+            <translation>Imposibil de găsit partiția OpenHD FAT pe%1</translation>
         </message>
         <message>
             <location line="+117" />
@@ -1185,7 +1185,7 @@
         <message>
             <location line="+26" />
             <source>Could not start rpiboot: %1</source>
-            <translation>Nu s-a putut porni rpiboot: %1</translation>
+            <translation>Nu s- a putut porni rpiboot:%1</translation>
         </message>
         <message>
             <location line="+16" />
@@ -1195,17 +1195,17 @@
         <message>
             <location line="+4" />
             <source>Raspberry Pi storage exposed. Waiting for Windows to enumerate it...</source>
-            <translation>Depozitarea Raspberry Pi expusă. Aşteptând ca Windows să-l numere...</translation>
+            <translation>De stocare Raspberry Pi expuse. Așteptare pentru Windows să-l enumere...</translation>
         </message>
         <message>
             <location line="+5" />
             <source>rpiboot failed with exit code %1. Check the USB boot jumper and Windows driver.</source>
-            <translation>rpiboot a eșuat cu codul de ieșire %1. Verificați boot jumperul USB și driverul Windows.</translation>
+            <translation>rpiboot a eșuat cu codul de ieșire %1. Verificați jumper boot USB și driver-ul Windows.</translation>
         </message>
         <message>
             <location line="+7" />
             <source>Waiting in the background for Raspberry Pi USB boot devices...</source>
-            <translation>Așteptare în fundal pentru Raspberry Pi USB dispozitive de boot...</translation>
+            <translation>Așteptare în fundal pentru Raspberry Pi dispozitive de boot USB...</translation>
         </message>
     </context>
     <context>
@@ -1218,17 +1218,17 @@
         <message>
             <location line="+1" />
             <source>Choose the language used throughout OpenHD ImageWriter.</source>
-            <translation>Alegeți limba utilizată în întreaga aplicație OpenHD ImageWriter.</translation>
+            <translation>Alegeți limba utilizată în OpenHD ImageWriter.</translation>
         </message>
         <message>
             <location line="+10" />
             <source>Application language</source>
-            <translation>Limba aplicației</translation>
+            <translation>Limba de aplicare</translation>
         </message>
         <message>
             <location line="+8" />
             <source>Select a language, then choose Apply.</source>
-            <translation>Selectați o limbă, apoi apăsați „Aplică”.</translation>
+            <translation>Selectaţi o limbă, apoi alegeţi Aplică.</translation>
         </message>
         <message>
             <location line="+16" />
@@ -1254,7 +1254,7 @@
         <message>
             <location filename="../qmlcomponents/ModernHome.qml" line="+40" />
             <source>Open Source FPV for Everyone</source>
-            <translation>Open Source FPV pentru toţi</translation>
+            <translation>FPV cu sursă deschisă pentru toți</translation>
         </message>
         <message>
             <location line="+20" />
@@ -1264,27 +1264,27 @@
         <message>
             <location line="+1" />
             <source>Write OpenHD to an SD card, USB drive, or supported device.</source>
-            <translation>Scrie OpenHD pe un card SD, unitate USB, sau dispozitiv suport.</translation>
+            <translation>Scrieți OpenHD pe un card SD, unitate USB sau dispozitiv suport.</translation>
         </message>
         <message>
-            <location line="+6" />
-            <source>OpenHD Einstellungen</source>
-            <translation>OpenHD Einstellungen</translation>
-        </message>
-        <message>
-            <location line="+0" />
-            <source>Einstellungen</source>
-            <translation>Einsteinlungen</translation>
-        </message>
-        <message>
-            <location line="+2" />
+            <location line="+8" />
             <source>Adjust device roles, cameras, display, and advanced OpenHD settings.</source>
             <translation>Reglați rolurile dispozitivului, camerele, ecranul și setările OpenHD avansate.</translation>
         </message>
         <message>
-            <location line="+1" />
-            <source>Sprache auswählen oder die OpenHD-Entwicklung unterstützen.</source>
-            <translation>Sprache auswählen oder die OpenHD-Entwicklung unterstützen.</translation>
+            <location line="-2" />
+            <source>OpenHD settings</source>
+            <translation>Setări OpenHD</translation>
+        </message>
+        <message>
+            <location line="+0" />
+            <source>Settings</source>
+            <translation>Setări</translation>
+        </message>
+        <message>
+            <location line="+3" />
+            <source>Choose a language or support OpenHD development.</source>
+            <translation>Alege un limbaj sau suport OpenHD dezvoltare.</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1294,7 +1294,7 @@
         <message>
             <location line="+1" />
             <source>Sign in to securely coordinate your aircraft, links, and missions.</source>
-            <translation>Conectați-vă pentru a coordona în siguranță avionul, link-uri, și misiuni.</translation>
+            <translation>Autentifică-te pentru a coordona în siguranță aeronavele, legăturile și misiunile.</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1304,7 +1304,7 @@
         <message>
             <location line="+1" />
             <source>Support the continued development of OpenHD.</source>
-            <translation>Sprijinirea dezvoltării continue a OpenHD.</translation>
+            <translation>Susține dezvoltarea continuă a OpenHD.</translation>
         </message>
     </context>
     <context>
@@ -1312,17 +1312,17 @@
         <message>
             <location filename="../qmlcomponents/ModernSidebar.qml" line="+55" />
             <source>Home</source>
-            <translation>Acasã</translation>
+            <translation>Acasă</translation>
         </message>
         <message>
             <location line="+5" />
-            <source>Image wählen</source>
-            <translation>Imagine wählen</translation>
+            <source>Choose image</source>
+            <translation>Alege imaginea</translation>
         </message>
         <message>
             <location line="+5" />
-            <source>Einstellungen</source>
-            <translation>Einsteinlungen</translation>
+            <source>Settings</source>
+            <translation>Setări</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1338,8 +1338,8 @@
         <message>
             <location line="+67" />
             <location line="+22" />
-            <source>Hilfe</source>
-            <translation>Hilfe</translation>
+            <source>Help</source>
+            <translation>Ajutor</translation>
         </message>
     </context>
     <context>
@@ -1347,12 +1347,12 @@
         <message>
             <location filename="../MsgPopup.qml" line="+164" />
             <source>CLOSE</source>
-            <translation>ÎNCHIDE</translation>
+            <translation>Închide</translation>
         </message>
         <message>
             <location line="-10" />
             <source>CONFIGURE</source>
-            <translation>CONFIGUREAZĂ</translation>
+            <translation>Configurează</translation>
         </message>
         <message>
             <location line="-9" />
@@ -1412,12 +1412,12 @@
         <message>
             <location line="+1" />
             <source>Primary camera</source>
-            <translation>Camera principală</translation>
+            <translation>Aparat de fotografiat primar</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Primary resolution</source>
-            <translation>Rezoluţia primară</translation>
+            <translation>Rezoluția camerei principale</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1427,7 +1427,7 @@
         <message>
             <location line="+1" />
             <source>Secondary resolution</source>
-            <translation>Rezoluția secundară</translation>
+            <translation>Rezoluția camerei secundare</translation>
         </message>
         <message>
             <location line="+1" />
@@ -1460,7 +1460,7 @@
         <message>
             <location line="+5" />
             <source>Start</source>
-            <translation>Start</translation>
+            <translation>Pornește</translation>
         </message>
         <message>
             <location line="+94" />
@@ -1476,12 +1476,12 @@
             <location line="+18" />
             <location line="+61" />
             <source>Change</source>
-            <translation>Modificare</translation>
+            <translation>Schimbă</translation>
         </message>
         <message>
             <location line="-60" />
             <source>Change update</source>
-            <translation>Schimbă actualizarea</translation>
+            <translation>Modificarea actualizării</translation>
         </message>
         <message>
             <location line="+0" />
@@ -1491,7 +1491,7 @@
         <message>
             <location line="+43" />
             <source>Destination device</source>
-            <translation>Dispozitiv de destinație</translation>
+            <translation>Dispozitiv țintă</translation>
         </message>
         <message>
             <location line="+17" />
@@ -1553,7 +1553,7 @@
         <message>
             <location line="+2" />
             <source>Certificate is missing customer or use-case claims.</source>
-            <translation>Certificatul lipseste din client sau din caz de utilizare.</translation>
+            <translation>Certificatul lipseste de la client sau de la caz de utilizare.</translation>
         </message>
         <message>
             <location line="+2" />
@@ -1563,12 +1563,12 @@
         <message>
             <location line="+2" />
             <source>Certificate signature is invalid.</source>
-            <translation>Semnătura certificatului este invalidă.</translation>
+            <translation>Semnătura certificatului nu este validă.</translation>
         </message>
         <message>
             <location line="+8" />
             <source>Certificate contains invalid timestamps or key id.</source>
-            <translation>Certificatul conține ștampile de timp invalide sau id cheie.</translation>
+            <translation>Certificatul conține ștampile de timp invalide sau id-ul cheii.</translation>
         </message>
         <message>
             <location line="+5" />
@@ -1601,7 +1601,7 @@
         <message>
             <location line="+24" />
             <source>Firmware archive contains a link or unsupported special file.</source>
-            <translation>Arhiva Firmware conține un link sau un fișier special nesuportat.</translation>
+            <translation>Arhiva Firmware conţine un link sau un fişier special nesusţinut.</translation>
         </message>
         <message>
             <location line="+9" />
@@ -1617,7 +1617,7 @@
         <message>
             <location line="+9" />
             <source>Unable to extract %1.</source>
-            <translation>Imposibil de extras %1.</translation>
+            <translation>Imposibil de extras%1.</translation>
         </message>
         <message>
             <location line="+16" />
@@ -1647,7 +1647,7 @@
         <message>
             <location line="+16" />
             <source>Failed to download firmware: %1</source>
-            <translation>Descarcă firmware-ul: %1</translation>
+            <translation>Descarcă firmware- ul:%1</translation>
         </message>
         <message>
             <location line="+13" />
@@ -1657,7 +1657,7 @@
         <message>
             <location line="+12" />
             <source>Inspecting firmware files...</source>
-            <translation>Inspectare fișiere firmware...</translation>
+            <translation>Inspectez fişierele firmware...</translation>
         </message>
         <message>
             <location line="+16" />
@@ -1667,12 +1667,12 @@
         <message>
             <location line="+4" />
             <source>Extracting downloaded artifact...</source>
-            <translation>Extragerea artefact descărcat...</translation>
+            <translation>Extragerea artefactului descărcat...</translation>
         </message>
         <message>
             <location line="+4" />
             <source>Failed to extract firmware archive: %1</source>
-            <translation>Extragerea arhivei firmware: %1</translation>
+            <translation>Extragerea arhivei firmware:%1</translation>
         </message>
         <message>
             <location line="+9" />
@@ -1682,32 +1682,32 @@
         <message>
             <location line="+7" />
             <source>Found firmware.zip; extracting Rockchip partitions...</source>
-            <translation>S-au găsit firmware.zip; extragerea Rockchip partiții...</translation>
+            <translation>S-au găsit firmware.zip; extragerea partiții Rockchip...</translation>
         </message>
         <message>
             <location line="+5" />
             <source>Failed to extract firmware.zip: %1</source>
-            <translation>Eșec la extragerea firmware.zip: %1</translation>
+            <translation>Extragerea firmware.zip:%1</translation>
         </message>
         <message>
             <location line="+9" />
             <source>Invalid Rockchip firmware package: %1</source>
-            <translation>Pachet firmware Rockchip nevalidă: %1</translation>
+            <translation>Pachet de firmware Rockchip nevalid:%1</translation>
         </message>
         <message>
             <location line="+7" />
             <source>The selected firmware ZIP does not contain a valid Rockchip loader (MiniLoaderAll.bin or download.bin).</source>
-            <translation>Firmware-ul selectat ZIP nu conține un încărcător Rockchip valabil (MiniLoaderAll.bin sau download.bin).</translation>
+            <translation>Firmware-ul selectat ZIP nu conține un încărcător Rockchip valid (MiniLoaderAll.bin sau download.bin).</translation>
         </message>
         <message>
             <location line="+4" />
             <source>Found Rockchip firmware in %1.</source>
-            <translation>S-au găsit Rockchip firmware în %1.</translation>
+            <translation>S- a găsit firmware- ul Rockchip în%1.</translation>
         </message>
         <message>
             <location line="+34" />
             <source>The firmware package contains an invalid or empty parameter.txt.</source>
-            <translation>Pachetul firmware conține un parameter.txt invalid sau gol.</translation>
+            <translation>Pachetul firmware conține un parameter.txt.</translation>
         </message>
         <message>
             <location line="+9" />
@@ -1717,12 +1717,12 @@
         <message>
             <location line="+6" />
             <source>The firmware package contains invalid or empty .env.txt partition metadata.</source>
-            <translation>Pachetul firmware conține metadate de partiție invalide sau goale .env.txt.</translation>
+            <translation>Pachetul firmware conține metadate de partiție nevalabile sau goale .env.txt.</translation>
         </message>
         <message>
             <location line="+28" />
             <source>Firmware image %1 is larger than its %2 partition.</source>
-            <translation>Imaginea firmware %1 este mai mare decât partiția %2.</translation>
+            <translation>Imaginea firmware%1 este mai mare decât partiția%2.</translation>
         </message>
         <message>
             <location line="+51" />
@@ -1737,7 +1737,7 @@
         <message>
             <location line="+17" />
             <source>Rockchip device not detected. Please ensure your OpenHD X21 is connected via USB.</source>
-            <translation>Dispozitivul Rockchip nu este detectat. Asiguraţi-vă că OpenHD X21 este conectat prin intermediul USB.</translation>
+            <translation>Dispozitivul Rockchip nu este detectat. Asigurați-vă că OpenHD X21 este conectat prin USB.</translation>
         </message>
         <message>
             <location line="+6" />
@@ -1752,67 +1752,130 @@
         <message>
             <location line="+10" />
             <source>Failed to load Rockchip bootloader binary (MiniLoaderAll.bin).</source>
-            <translation>Eșec la încărcarea binară a bootloaderului Rockchip (MiniLoaderAll.bin).</translation>
+            <translation>Eșec la încărcarea binarului Rockchip bootloader (MiniLoaderAll.bin).</translation>
         </message>
         <message>
             <location line="+6" />
             <source>Loading the Rockchip loader from the selected firmware ZIP...</source>
-            <translation>Se încarcă încărcătorul Rockchip de la firmware-ul selectat ZIP...</translation>
+            <translation>Încărcarea încărcătorului Rockchip de la firmware-ul selectat ZIP...</translation>
         </message>
         <message>
             <location line="+6" />
             <source>Failed to initialize bootloader: %1</source>
-            <translation>Eșec la inițializarea bootloader: %1</translation>
+            <translation>Eșec la inițializarea bootloaderului:%1</translation>
         </message>
         <message>
             <location line="+4" />
             <source>Waiting for device to re-enumerate in Loader mode...</source>
-            <translation>Așteptare pentru dispozitiv pentru a re-enumera în modul Încărcător...</translation>
+            <translation>Aşteptăm ca dispozitivul să renumăre în modul Loader...</translation>
         </message>
         <message>
             <location line="+4" />
             <source>Timed out waiting for device to enter Loader mode after bootloader download.</source>
-            <translation>Timed out de așteptare pentru dispozitiv pentru a intra modul de încărcare după descărcare bootloader.</translation>
+            <translation>Timed out de așteptare pentru dispozitiv pentru a intra în modul Loader după descărcarea bootloader.</translation>
         </message>
         <message>
             <location line="+8" />
             <source>Connecting to device in Loader mode...</source>
-            <translation>Conectarea la dispozitiv în modul încărcător...</translation>
+            <translation>Conectarea la dispozitiv în modul Loader...</translation>
         </message>
         <message>
             <location line="+5" />
             <source>Failed to connect to Loader interface: %1</source>
-            <translation>Eșec la conectarea la interfața de încărcare: %1</translation>
+            <translation>Eșec la conectarea la interfața Loader: %1</translation>
         </message>
         <message>
             <location line="+24" />
             <source>Writing partition table (parameter.txt)...</source>
-            <translation>Scriere tabel partiție (parameter.txt)...</translation>
+            <translation>Scrierea tabelei partițiilor (parameter.txt) ...</translation>
         </message>
         <message>
             <location line="+9" />
             <source>Failed writing parameter partition: %1</source>
-            <translation>Partiție de parametri de scriere eșuată: %1</translation>
+            <translation>Partiție de parametru de scriere eșuată:%1</translation>
         </message>
         <message>
             <location line="+18" />
             <source>Flashing %1 (%2 MB)...</source>
-            <translation>Flashing %1 (%2 MB)...</translation>
+            <translation>Se scrie %1 (%2 MB)...</translation>
         </message>
         <message>
             <location line="+7" />
             <source>Unable to open image file: %1</source>
-            <translation>Nu s-a putut deschide fișierul imagine: %1</translation>
+            <translation>Nu s- a putut deschide fișierul imagine:%1</translation>
         </message>
         <message>
             <location line="+20" />
             <source>Failed flashing %1 at sector %2: %3</source>
-            <translation>Flashing eșuat %1 în sectorul %2: %3</translation>
+            <translation>Eșec la flashing%1 în sectorul%2:%3</translation>
         </message>
         <message>
             <location line="+27" />
             <source>Flashing complete. Rebooting OpenHD device...</source>
-            <translation>Fulger complet. Repornire dispozitiv OpenHD...</translation>
+            <translation>Repornire dispozitiv OpenHD...</translation>
+        </message>
+    </context>
+    <context>
+        <name>SettingsLabels</name>
+        <message>
+            <location filename="../qmlcomponents/SettingsLabels.js" line="+4" />
+            <source>Air</source>
+            <translation>Unitate aeriană</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Ground</source>
+            <translation>Stație de sol</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>None</source>
+            <translation>Niciuna</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Network</source>
+            <translation>Rețea</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Advanced</source>
+            <translation>Avansat</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Generic</source>
+            <translation>Generic</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Integrated camera</source>
+            <translation>Cameră integrată</translation>
+        </message>
+        <message>
+            <location line="+2" />
+            <source>IP camera</source>
+            <translation>Cameră IP</translation>
+        </message>
+        <message>
+            <location line="+2" />
+            <source>Test camera</source>
+            <translation>Cameră de test</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>External camera</source>
+            <translation>Cameră externă</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>File source</source>
+            <translation>Fișier sursă</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>2 MP cameras</source>
+            <translation>2 camere MP</translation>
         </message>
     </context>
     <context>
@@ -1830,12 +1893,12 @@
         <message>
             <location line="+6" />
             <source>OpenHD storage is not mounted.</source>
-            <translation>Stocarea OpenHD nu este montată.</translation>
+            <translation>Depozitarea OpenHD nu este montată.</translation>
         </message>
         <message>
             <location line="+11" />
             <source>Invalid update destination filename.</source>
-            <translation>Nume de fișier destinație actualizat nevalidă.</translation>
+            <translation>Numele de fișier de destinație actualizat nevalabil.</translation>
         </message>
         <message>
             <location line="+18" />
@@ -1845,14 +1908,14 @@
         <message>
             <location line="+22" />
             <source>Unable to query storage information for OpenHD partition.</source>
-            <translation>Imposibil de interogat informații de stocare pentru partiția OpenHD.</translation>
+            <translation>Imposibil de interogat informațiile de stocare pentru partiția OpenHD.</translation>
         </message>
         <message>
             <location line="+16" />
             <location line="+94" />
             <location line="+41" />
             <source>Not enough space on the FAT partition (%1 MB available, %2 MB required).</source>
-            <translation>Nu este suficient spațiu pe partiția FAT (%1 MB disponibil, %2 MB necesară).</translation>
+            <translation>Nu este suficient spațiu pe partiția FAT (%1 MB disponibil,%2 MB necesar).</translation>
         </message>
         <message>
             <location line="-125" />
@@ -1877,12 +1940,12 @@
         <message>
             <location line="+57" />
             <source>Update size check timed out.</source>
-            <translation>Update dimensiunea verificat timp.</translation>
+            <translation>Update dimensiunea verificat timp afară.</translation>
         </message>
         <message>
             <location line="+30" />
             <source>Downloading update</source>
-            <translation>Descărcare actualizare</translation>
+            <translation>Se descarcă actualizarea</translation>
         </message>
         <message>
             <location line="+27" />
@@ -1893,12 +1956,12 @@
         <message>
             <location line="-81" />
             <source>Downloading update (%1%)</source>
-            <translation>Descărcare actualizare (%1%)</translation>
+            <translation>Se descarcă actualizarea (%1%)</translation>
         </message>
         <message>
             <location line="+16" />
             <source>Downloading update package timed out.</source>
-            <translation>Descărcarea pachetului actualizat a expirat.</translation>
+            <translation>Descărcarea pachetului de actualizare a expirat.</translation>
         </message>
         <message>
             <location line="+15" />
@@ -1923,7 +1986,7 @@
         <message>
             <location line="+11" />
             <source>Cancelled</source>
-            <translation>Anulat</translation>
+            <translation>Anulat.</translation>
         </message>
         <message>
             <location line="+7" />
@@ -1933,13 +1996,13 @@
         <message>
             <location line="+15" />
             <source>Uploading update (%1%)</source>
-            <translation>Actualizare de încărcare (%1%)</translation>
+            <translation>Se încarcă actualizarea (%1%)</translation>
         </message>
     </context>
     <context>
         <name>configure</name>
         <message>
-            <location filename="../configure.qml" line="+853" />
+            <location filename="../configure.qml" line="+854" />
             <source>A QOpenHD.conf is already present on the drive.</source>
             <translation>Un QOpenHD.conf este deja prezent pe unitate.</translation>
         </message>
@@ -1955,7 +2018,52 @@
             <translation>Mod de pornire</translation>
         </message>
         <message>
-            <location line="+29" />
+            <location line="-113" />
+            <source>Settings</source>
+            <translation>Setări</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Choose a language or support OpenHD development.</source>
+            <translation>Alege un limbaj sau suport OpenHD dezvoltare.</translation>
+        </message>
+        <message>
+            <location line="+11" />
+            <source>Language</source>
+            <translation>Limbă</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Application</source>
+            <translation>Aplicație</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Change the language of OpenHD ImageWriter.</source>
+            <translation>Schimbă limba OpenHD ImageWriter.</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Choose language</source>
+            <translation>Alege limba</translation>
+        </message>
+        <message>
+            <location line="+11" />
+            <source>Support OpenHD</source>
+            <translation>Suport OpenHD</translation>
+        </message>
+        <message>
+            <location line="+1" />
+            <source>Support OpenHD development with a donation.</source>
+            <translation>Sprijiniţi dezvoltarea OpenHD cu o donaţie.</translation>
+        </message>
+        <message>
+            <location line="+19" />
+            <source>OpenHD settings</source>
+            <translation>Setări OpenHD</translation>
+        </message>
+        <message>
+            <location line="+96" />
             <source>Camera</source>
             <translation>Cameră</translation>
         </message>
@@ -1984,61 +2092,12 @@
         <message>
             <location line="-645" />
             <location line="+68" />
+            <location line="+3" />
             <source>Donate</source>
             <translation>Donează</translation>
         </message>
         <message>
-            <location line="-25" />
-            <source>Einstellungen</source>
-            <translation>Einsteinlungen</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Sprache auswählen oder die OpenHD-Entwicklung unterstützen.</source>
-            <translation>Sprache auswählen oder die OpenHD-Entwicklung unterstützen.</translation>
-        </message>
-        <message>
-            <location line="+11" />
-            <source>Sprache</source>
-            <translation>Sprache</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Anwendung</source>
-            <translation>Anwendung</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Die Sprache des OpenHD ImageWriter ändern.</source>
-            <translation>Die Sprache des OpenHD ImageWriter ändern.</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Sprache auswählen</source>
-            <translation>Sprache auswählen</translation>
-        </message>
-        <message>
-            <location line="+11" />
-            <source>OpenHD unterstützen</source>
-            <translation>OpenHD unterstützen</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Die Entwicklung von OpenHD mit einer Spende unterstützen.</source>
-            <translation>Die Entwicklung von OpenHD mit einer Spende unterstützen.</translation>
-        </message>
-        <message>
-            <location line="+1" />
-            <source>Spenden</source>
-            <translation>Chelner</translation>
-        </message>
-        <message>
-            <location line="+18" />
-            <source>OpenHD Einstellungen</source>
-            <translation>OpenHD Einstellungen</translation>
-        </message>
-        <message>
-            <location line="+2" />
+            <location line="+20" />
             <source>Adjust the OpenHD settings stored on the selected device.</source>
             <translation>Ajustează setările OpenHD stocate pe dispozitivul selectat.</translation>
         </message>
@@ -2050,12 +2109,12 @@
         <message>
             <location line="+14" />
             <source>No storage selected</source>
-            <translation>Nicio stocare selectată</translation>
+            <translation>Nu s-a selectat nicio stocare</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Configuration target</source>
-            <translation>Obiectivul de configurare</translation>
+            <translation>Țintă de configurare</translation>
         </message>
         <message>
             <location line="+2" />
@@ -2080,12 +2139,12 @@
         <message>
             <location line="+116" />
             <source>Primary camera</source>
-            <translation>Camera principală</translation>
+            <translation>Aparat de fotografiat primar</translation>
         </message>
         <message>
             <location line="+4" />
             <source>Primary resolution</source>
-            <translation>Rezoluţia primară</translation>
+            <translation>Rezoluția camerei principale</translation>
         </message>
         <message>
             <location line="+39" />
@@ -2095,12 +2154,12 @@
         <message>
             <location line="+5" />
             <source>Secondary resolution</source>
-            <translation>Rezoluția secundară</translation>
+            <translation>Rezoluția camerei secundare</translation>
         </message>
         <message>
             <location line="+244" />
             <source>Raspberry Pi 5 Camera Connectors</source>
-            <translation>Conectori pentru camere Raspberry Pi 5</translation>
+            <translation>Raspberry Pi 5 Conectori de camere</translation>
         </message>
         <message>
             <location line="+11" />
@@ -2135,7 +2194,7 @@
         <message>
             <location line="+2" />
             <source>Refresh rate (Hz)</source>
-            <translation>Rata de actualizare (Hz)</translation>
+            <translation>Rată de reîmprospătare (Hz)</translation>
         </message>
         <message>
             <location line="+7" />
@@ -2150,7 +2209,7 @@
         <message>
             <location line="+8" />
             <source>Primary source pipeline</source>
-            <translation>Conductă sursă primară</translation>
+            <translation>Conducta de surse primare</translation>
         </message>
         <message>
             <location line="+8" />
@@ -2168,7 +2227,12 @@
             <translation>Rata de biți a legăturii rezervate (Mbit/s)</translation>
         </message>
         <message>
-            <location line="+94" />
+            <location line="+34" />
+            <source>Wi-Fi hotspot</source>
+            <translation>Punct fierbinte Wi-Fi</translation>
+        </message>
+        <message>
+            <location line="+60" />
             <source>Premium Certificate</source>
             <translation>Certificat Premium</translation>
         </message>
@@ -2195,7 +2259,7 @@
         <message>
             <location line="+1" />
             <source>Select the OpenHD SD card or USB storage whose settings you want to edit.</source>
-            <translation>Selectați cardul OpenHD SD sau opțiunea de stocare USB a căror setări doriți să editați.</translation>
+            <translation>Selectați cardul OpenHD SD sau stocarea USB ale căror setări doriți să editați.</translation>
         </message>
         <message>
             <location line="+140" />
@@ -2211,7 +2275,7 @@
             <location line="+21" />
             <location line="+479" />
             <source>Premium certificate is invalid: %1</source>
-            <translation>Certificatul Premium nu este valabil: %1</translation>
+            <translation>Certificatul Premium este invalid:%1</translation>
         </message>
         <message>
             <location line="-428" />
@@ -2283,11 +2347,6 @@
             <source>WRITE SETTINGS</source>
             <translation>SCRIE SETĂRILE</translation>
         </message>
-        <message>
-            <location line="-122" />
-            <source>WifiHotspot</source>
-            <translation>Hotspot WiFi</translation>
-        </message>
     </context>
     <context>
         <name>flash</name>
@@ -2346,17 +2405,17 @@
         <message>
             <location line="+124" />
             <source>Update complete!</source>
-            <translation>Actualizare completă!</translation>
+            <translation>Actualizare finalizată!</translation>
         </message>
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was flashed to the board.&lt;br&gt;The board is now rebooting.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; a fost flashed la bord. &lt;br&gt; Placa este acum repornirea.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; a fost flashed la bord.&lt;br&gt;Consiliul este acum repornirea.</translation>
         </message>
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was copied to the FAT32 partition on &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;You can now safely remove the card and insert it into your board.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; a fost copiat pe partiția FAT32 pe &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;Acum poți scoate în siguranță cardul și îl poți introduce în tablă.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; a fost copiat pe partitia FAT32 pe &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;Puteți acum elimina în condiții de siguranță cardul și introduceți-l în bord.</translation>
         </message>
         <message>
             <location line="+101" />
@@ -2376,12 +2435,12 @@
         <message>
             <location line="-1379" />
             <source>Writing image</source>
-            <translation>Scriere imagine</translation>
+            <translation>Se scrie imaginea</translation>
         </message>
         <message>
             <location line="+0" />
             <source>Write an image</source>
-            <translation>Scrie o imagine</translation>
+            <translation>Scrie imaginea</translation>
         </message>
         <message>
             <location line="+2" />
@@ -2391,7 +2450,7 @@
         <message>
             <location line="+1" />
             <source>Select an OpenHD image and a target device, then review and start the write.</source>
-            <translation>Selectaţi o imagine OpenHD şi un dispozitiv ţintă, apoi revizuiţi şi începeţi scrie.</translation>
+            <translation>Selectaţi o imagine OpenHD şi un dispozitiv ţintă, apoi revizuiţi şi începeţi scrierea.</translation>
         </message>
         <message>
             <location line="+10" />
@@ -2426,12 +2485,12 @@
         <message>
             <location line="+1" />
             <source>Choose image</source>
-            <translation>Alegeți imaginea</translation>
+            <translation>Alege imaginea</translation>
         </message>
         <message>
             <location line="+7" />
             <source>No target selected</source>
-            <translation>Nicio țintă selectată</translation>
+            <translation>Nu s-a selectat nicio țintă</translation>
         </message>
         <message>
             <location line="+1" />
@@ -2442,7 +2501,7 @@
             <location line="+1" />
             <location line="+1155" />
             <source>Select the SD card, USB drive, or supported OpenHD device to overwrite.</source>
-            <translation>Selectați cardul SD, unitatea USB sau dispozitivul OpenHD susținut pentru suprascriere.</translation>
+            <translation>Selectați cardul SD, unitatea USB sau dispozitivul OpenHD suport pentru suprascriere.</translation>
         </message>
         <message>
             <location line="-1154" />
@@ -2452,7 +2511,7 @@
         <message>
             <location line="+10" />
             <source>Ready to write</source>
-            <translation>Gata de scris</translation>
+            <translation>Gata de a scrie</translation>
         </message>
         <message>
             <location line="+0" />
@@ -2472,7 +2531,7 @@
         <message>
             <location line="+1" />
             <source>Review and write</source>
-            <translation>Review and write</translation>
+            <translation>Verifică și scrie</translation>
         </message>
         <message>
             <location line="+54" />
@@ -2497,7 +2556,7 @@
         <message>
             <location line="+7" />
             <source>Configure device role, cameras, networking, and display settings.</source>
-            <translation>Configurați rol dispozitiv, camere video, rețea, și setările de afișare.</translation>
+            <translation>Configurați rol dispozitiv, camere de luat vederi, rețea și setările de afișare.</translation>
         </message>
         <message>
             <location line="+8" />
@@ -2507,7 +2566,7 @@
         <message>
             <location line="+139" />
             <source>Sign in to FleetControl before loading developer images.</source>
-            <translation>Conectează-te la FleetControl înainte de încărcarea imaginilor dezvoltatorului.</translation>
+            <translation>Conectați-vă la FleetControl înainte de încărcare imagini dezvoltator.</translation>
         </message>
         <message>
             <location line="+2" />
@@ -2522,27 +2581,27 @@
         <message>
             <location line="+1" />
             <source>FleetControl could not load GitHub developer artifacts (HTTP %1).</source>
-            <translation>FleetControl nu a putut încărca artefactele dezvoltatorului GitHub (HTTP %1).</translation>
+            <translation>FleetControl nu a putut încărca GitHub artefacte ale dezvoltatorului (HTTP %1).</translation>
         </message>
         <message>
             <location line="+37" />
             <source>X21 developer firmware from Cloudsmith - %1</source>
-            <translation>X21 dezvoltator firmware de la Cloudsmith - %1</translation>
+            <translation>Dezvoltator firmware X21 de la Cloudsmith -%1</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Latest dev-release image from GitHub Actions - %1</source>
-            <translation>Ultima imagine de la GitHub Actions - %1</translation>
+            <translation>Ultima imagine eliberata de la GitHub Actions - %1</translation>
         </message>
         <message>
             <location line="+18" />
             <source>No current dev-release image artifacts were found.</source>
-            <translation>Nu s-au găsit artefacte de imagine.</translation>
+            <translation>Nu s-au găsit artefacte de imagine developate.</translation>
         </message>
         <message>
             <location line="+107" />
             <source>Choose an image</source>
-            <translation>Alege o imagine</translation>
+            <translation>Alege imaginea</translation>
         </message>
         <message>
             <location line="+37" />
@@ -2592,12 +2651,12 @@
         <message>
             <location line="+107" />
             <source>GitHub access is managed by your FleetControl account</source>
-            <translation>Acces GitHub este gestionat de contul dvs. FleetControl</translation>
+            <translation>GitHub acces este gestionat de contul dvs. FleetControl</translation>
         </message>
         <message>
             <location line="+4" />
             <source>Open FleetControl</source>
-            <translation>Deschide FleetControl</translation>
+            <translation>Deschideți FleetControl</translation>
         </message>
         <message>
             <location line="+93" />
@@ -2607,17 +2666,17 @@
         <message>
             <location line="+34" />
             <source>Loading latest GitHub Actions images...</source>
-            <translation>Se încarcă cele mai recente imagini ale acțiunilor GitHub...</translation>
+            <translation>Se încarcă cele mai recente GitHub Actions imagini...</translation>
         </message>
         <message>
             <location line="+269" />
             <source>Use custom image</source>
-            <translation>Folosește imaginea personalizată</translation>
+            <translation>Folosește o imagine personalizată</translation>
         </message>
         <message>
             <location line="+1" />
             <source>Erase / Format</source>
-            <translation>Ștergere / format</translation>
+            <translation>Șterge / Formatează</translation>
         </message>
         <message>
             <location line="+89" />
@@ -2663,7 +2722,7 @@
         <message>
             <location line="+1" />
             <source>All existing data on &lt;b&gt;%1&lt;/b&gt; will be permanently erased.&lt;br&gt;&lt;br&gt;Write &lt;b&gt;%2&lt;/b&gt; to this device?</source>
-            <translation>Toate datele existente pe &lt;b&gt;%1&lt;/b&gt; vor fi șterse definitiv.&lt;br&gt;&lt;br&gt;Scrieți &lt;b&gt;%2&lt;/b&gt; pe acest dispozitiv?</translation>
+            <translation>Toate datele de pe &lt;b&gt;%1&lt;/b&gt; vor fi șterse definitiv.&lt;br&gt;&lt;br&gt;Scrieți &lt;b&gt;%2&lt;/b&gt; pe acest dispozitiv?</translation>
         </message>
         <message>
             <location line="+236" />
@@ -2797,7 +2856,7 @@
         <message>
             <location line="-485" />
             <source>WRITE</source>
-            <translation>SCRIE</translation>
+            <translation>Scrie</translation>
         </message>
         <message>
             <location line="+444" />
@@ -2820,7 +2879,7 @@
             <translation>Terminați sau anulați operațiunea curentă înainte de a părăsi această pagină.</translation>
         </message>
         <message>
-            <location line="+969" />
+            <location line="+972" />
             <source>WEBSITE</source>
             <translation>WEBITE</translation>
         </message>
@@ -2832,7 +2891,7 @@
         <message>
             <location line="+5" />
             <source>DONATE</source>
-            <translation>DONEAZĂ</translation>
+            <translation>Donează</translation>
         </message>
         <message>
             <location line="+120" />
@@ -2880,7 +2939,12 @@
             <translation>ALEGEȚI STOCAREA</translation>
         </message>
         <message>
-            <location line="-863" />
+            <location line="-878" />
+            <source>Update OpenHD</source>
+            <translation>Actualizează OpenHD</translation>
+        </message>
+        <message>
+            <location line="+15" />
             <location line="+278" />
             <location line="+584" />
             <source>CHOOSE UPDATE</source>
@@ -2897,17 +2961,17 @@
         <message>
             <location line="+122" />
             <source>Update complete</source>
-            <translation>Actualizare completă</translation>
+            <translation>Actualizare finalizată</translation>
         </message>
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was flashed to the board.&lt;br&gt;The board is now rebooting.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; a fost flashed la bord. &lt;br&gt; Placa este acum repornirea.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; a fost flashed la bord.&lt;br&gt;Consiliul este acum repornirea.</translation>
         </message>
         <message>
             <location line="+2" />
             <source>&lt;b&gt;%1&lt;/b&gt; was copied to the FAT32 partition on &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;You can now safely remove the card and insert it into your board.</source>
-            <translation>&lt;b&gt;%1&lt;/b&gt; a fost copiat pe partiția FAT32 pe &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;Acum poți scoate în siguranță cardul și îl poți introduce în tablă.</translation>
+            <translation>&lt;b&gt;%1&lt;/b&gt; a fost copiat pe partitia FAT32 pe &lt;b&gt;%2&lt;/b&gt;.&lt;br&gt;Puteți acum elimina în condiții de siguranță cardul și introduceți-l în bord.</translation>
         </message>
         <message>
             <location line="+72" />
@@ -2922,12 +2986,12 @@
         <message>
             <location line="+25" />
             <source>X21 update - %1</source>
-            <translation>Actualizare X21 - %1</translation>
+            <translation>Actualizare X21 -%1</translation>
         </message>
         <message>
             <location line="+1" />
             <source>X21 firmware - %1</source>
-            <translation>X21 firmware - %1</translation>
+            <translation>Firmware- ul X21 -%1</translation>
         </message>
         <message>
             <location line="+2" />
@@ -2937,12 +3001,12 @@
         <message>
             <location line="+1" />
             <source>Complete X21 USB recovery firmware (%1)</source>
-            <translation>Complet X21 USB firmware de recuperare (%1)</translation>
+            <translation>Completează firmware-ul de recuperare USB X21 (%1)</translation>
         </message>
         <message>
             <location line="+15" />
             <source>Dated X21 update and recovery packages from Cloudsmith</source>
-            <translation>Datat X21 Actualizări și pachete de recuperare de la Cloudsmith</translation>
+            <translation>Datat X21 pachete de actualizare și recuperare de la Cloudsmith</translation>
         </message>
         <message>
             <location line="+127" />
@@ -2967,12 +3031,7 @@
         <message>
             <location line="-236" />
             <source>Updating device</source>
-            <translation>Actualizare dispozitiv</translation>
-        </message>
-        <message>
-            <location line="+0" />
-            <source>OpenHD Updaten</source>
-            <translation>OpenHD Actualizat</translation>
+            <translation>Se actualizează dispozitivul</translation>
         </message>
         <message>
             <location line="+2" />
@@ -2997,7 +3056,7 @@
         <message>
             <location line="+1" />
             <source>Choose a current OpenHD release or select a local update package.</source>
-            <translation>Alegeți un pachet curent OpenHD sau selectați un pachet de actualizare locală.</translation>
+            <translation>Alegeți o versiune OpenHD curentă sau selectați un pachet de actualizare locală.</translation>
         </message>
         <message>
             <location line="+1" />
@@ -3007,7 +3066,7 @@
         <message>
             <location line="+7" />
             <source>No target selected</source>
-            <translation>Nicio țintă selectată</translation>
+            <translation>Nu s-a selectat nicio țintă</translation>
         </message>
         <message>
             <location line="+1" />
@@ -3048,7 +3107,7 @@
         <message>
             <location line="+1" />
             <source>Review and update</source>
-            <translation>Revizuirea și actualizarea</translation>
+            <translation>Revizuire și actualizare</translation>
         </message>
         <message>
             <location line="+54" />
@@ -3058,7 +3117,7 @@
         <message>
             <location line="+8" />
             <source>Cancel</source>
-            <translation>Renunță</translation>
+            <translation>Anulare</translation>
         </message>
         <message>
             <location line="+7" />
@@ -3093,7 +3152,7 @@
         <message>
             <location line="+1" />
             <source>Choose the update release to install.</source>
-            <translation>@ info: whatsthis</translation>
+            <translation>Alegeți versiunea de actualizare pentru a instala.</translation>
         </message>
         <message>
             <location line="+1" />
@@ -3254,7 +3313,7 @@
         <message>
             <location line="-490" />
             <source>WRITE</source>
-            <translation>SCRIE</translation>
+            <translation>Scrie</translation>
         </message>
         <message>
             <location line="+453" />

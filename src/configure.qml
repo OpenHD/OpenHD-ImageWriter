@@ -11,6 +11,7 @@ import QtQuick.Controls.Material 2.2
 import Qt.labs.settings 1.0
 import QtQuick.Dialogs 1.3
 import "qmlcomponents"
+import "qmlcomponents/SettingsLabels.js" as SettingsLabels
 
 Rectangle {
     id: window
@@ -190,8 +191,8 @@ ImButton {
 
                 PageHeader {
                     Layout.fillWidth: true
-                    title: qsTr("Einstellungen")
-                    subtitle: qsTr("Sprache auswählen oder die OpenHD-Entwicklung unterstützen.")
+                    title: qsTr("Settings")
+                    subtitle: qsTr("Choose a language or support OpenHD development.")
                 }
 
                 GridLayout {
@@ -202,10 +203,10 @@ ImButton {
 
                     ActionCard {
                         Layout.fillWidth: true
-                        text: qsTr("Sprache")
-                        eyebrow: qsTr("Anwendung")
-                        description: qsTr("Die Sprache des OpenHD ImageWriter ändern.")
-                        actionText: qsTr("Sprache auswählen")
+                        text: qsTr("Language")
+                        eyebrow: qsTr("Application")
+                        description: qsTr("Change the language of OpenHD ImageWriter.")
+                        actionText: qsTr("Choose language")
                         iconSource: "icons/ui/language.svg"
                         onClicked: {
                             if (mainWindow && mainWindow.openLanguagePage)
@@ -216,9 +217,9 @@ ImButton {
                     ActionCard {
                         Layout.fillWidth: true
                         text: qsTr("Donate")
-                        eyebrow: qsTr("OpenHD unterstützen")
-                        description: qsTr("Die Entwicklung von OpenHD mit einer Spende unterstützen.")
-                        actionText: qsTr("Spenden")
+                        eyebrow: qsTr("Support OpenHD")
+                        description: qsTr("Support OpenHD development with a donation.")
+                        actionText: qsTr("Donate")
                         iconSource: "icons/ui/donate.svg"
                         onClicked: Qt.openUrlExternally("https://opencollective.com/openhd")
                     }
@@ -236,7 +237,7 @@ ImButton {
 
                 PageHeader {
                     Layout.fillWidth: true
-                    title: qsTr("OpenHD Einstellungen")
+                    title: qsTr("OpenHD settings")
                     subtitle: driveSelected
                               ? qsTr("Adjust the OpenHD settings stored on the selected device.")
                               : qsTr("Select an OpenHD device to inspect and configure its settings.")
@@ -312,7 +313,7 @@ ImButton {
                                     model: settingsMap.bootType && settingsMap.bootType.options ? settingsMap.bootType.options.filter(function(option) { return option.id && option.id.length > 0 }) : []
                                     delegate: ImCheckBox {
                                         property var option: modelData
-                                        text: option ? option.id : ""
+                                        text: option ? SettingsLabels.translated(option.id) : ""
                                         checked: bootType === (option ? option.id : "")
                                         onClicked: {
                                             if (option) {
@@ -349,7 +350,7 @@ ImButton {
                                 ListModel { id: cameraResolutionOptionsModel }
                                 ListModel { id: camera2ResolutionOptionsModel }
 
-                                ComboBox {
+                                ModernComboBox {
                                     id: vendorSelector
                                     visible: vendorModel.count > 1
                                     textRole: "displayName"
@@ -382,7 +383,7 @@ ImButton {
                                         visible: camera.length > 0 && cameraResolutionOptionsModel.count > 0
                                     }
 
-                                    ComboBox {
+                                    ModernComboBox {
                                         id: cameraSelector
                                         textRole: "displayText"
                                         model: cameraOptionsModel
@@ -401,7 +402,7 @@ ImButton {
                                         }
                                     }
 
-                                    ComboBox {
+                                    ModernComboBox {
                                         id: cameraResolutionSelector
                                         textRole: "label"
                                         model: cameraResolutionOptionsModel
@@ -427,7 +428,7 @@ ImButton {
                                         visible: camera2.length > 0 && camera2ResolutionOptionsModel.count > 0
                                     }
 
-                                    ComboBox {
+                                    ModernComboBox {
                                         id: camera2Selector
                                         textRole: "label"
                                         model: camera2OptionsModel
@@ -442,7 +443,7 @@ ImButton {
                                         }
                                     }
 
-                                    ComboBox {
+                                    ModernComboBox {
                                         id: camera2ResolutionSelector
                                         textRole: "label"
                                         model: camera2ResolutionOptionsModel
@@ -678,7 +679,7 @@ ImButton {
                                 Layout.fillWidth: true
 
                                 Label { text: qsTr("Primary camera connector"); visible: isRpiCsiCamera(camera) }
-                                ComboBox {
+                                ModernComboBox {
                                     visible: isRpiCsiCamera(camera)
                                     model: ["CAM0", "CAM1"]
                                     currentIndex: cameraPort === "cam0" ? 0 : 1
@@ -690,7 +691,7 @@ ImButton {
                                 }
 
                                 Label { text: qsTr("Secondary camera connector"); visible: isRpiCsiCamera(camera2) }
-                                ComboBox {
+                                ModernComboBox {
                                     visible: isRpiCsiCamera(camera2)
                                     model: ["CAM0", "CAM1"]
                                     currentIndex: camera2Port === "cam0" ? 0 : 1
@@ -792,7 +793,7 @@ ImButton {
                                 ImCheckBox {
                                     id: setDebug
                                     visible: settingsMap.mode && settingsMap.mode.options && settingsMap.mode.options.length > 0
-                                    text: settingsMap.mode && settingsMap.mode.options && settingsMap.mode.options.length > 0 ? qsTr(settingsMap.mode.options[0].id || "Debug Mode") : qsTr("Debug Mode")
+                                    text: qsTr("Debug Mode")
                                     onCheckedChanged: {
                                         if (checked) {
                                             mode = "debug"
@@ -805,7 +806,7 @@ ImButton {
                                 ImCheckBox {
                                     id: setWifiHotspot
                                     visible: settingsMap.hotSpot && settingsMap.hotSpot.options && settingsMap.hotSpot.options.length > 0
-                                    text: settingsMap.hotSpot && settingsMap.hotSpot.options && settingsMap.hotSpot.options.length > 0 ? qsTr(settingsMap.hotSpot.options[0].id || "WifiHotspot") : qsTr("WifiHotspot")
+                                    text: qsTr("Wi-Fi hotspot")
                                     onCheckedChanged: {
                                         if (checked) {
                                             hotSpot = "wifi"
