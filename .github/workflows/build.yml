@@ -367,10 +367,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '5.15.2'
-          arch: clang_64
+        run: |
+          brew install qt@5
+          qt_prefix="$(brew --prefix qt@5)"
+          echo "$qt_prefix/bin" >> "$GITHUB_PATH"
+          echo "CMAKE_PREFIX_PATH=$qt_prefix" >> "$GITHUB_ENV"
       - name: Configure
         run: cmake -S src/test -B build-src-tests -DCMAKE_BUILD_TYPE=Release
       - name: Build
