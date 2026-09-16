@@ -371,7 +371,6 @@ jobs:
         with:
           version: '5.15.2'
           arch: clang_64
-          setup-python: false
       - name: Configure
         run: cmake -S src/test -B build-src-tests -DCMAKE_BUILD_TYPE=Release
       - name: Build

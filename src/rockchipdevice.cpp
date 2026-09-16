@@ -162,6 +162,7 @@ std::vector<RockchipDeviceDescriptor> listRockchipUsbDevices()
 #elif defined(Q_OS_MACOS)
 
 #include <CoreFoundation/CoreFoundation.h>
+#include <IOKit/IOCFPlugIn.h>
 #include <IOKit/IOKitLib.h>
 #include <IOKit/usb/IOUSBLib.h>
 #include <IOKit/usb/USBSpec.h>
