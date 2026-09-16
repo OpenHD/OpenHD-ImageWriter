@@ -5,5 +5,5 @@ Name=OpenHD-ImageWriter
 Comment=OpenHD Image Writer
 Icon=openhdimagewriter
 Exec=OpenHDImageWriter
-Categories=Utility
+Categories=Utility;
 StartupNotify=false

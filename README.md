@@ -16,6 +16,33 @@ For the embedded (netboot) build see also "embedded/legal-info" for more informa
 
 ## How to rebuild
 
+### Arch Linux / AUR
+
+The repository includes an AUR recipe for `openhdimagewriter-git`, following
+the latest `dev-branch` source. It replaces `openhdimagewriter` if installed.
+This recipe is prepared for submission; availability on the AUR must be
+confirmed before using an AUR helper.
+
+Build on Arch Linux as a regular user:
+
+```sh
+sudo pacman -S --needed base-devel git
+git clone https://github.com/OpenHD/OpenHD-ImageWriter.git
+cd OpenHD-ImageWriter
+makepkg -si
+```
+
+See [AUR publication instructions](doc/aur.md) for the initial submission and
+maintenance process.
+
+### Continuous integration
+
+All builds and backend tests run from `.github/workflows/build.yml`: Ubuntu
+packages, the Windows installer, Intel and Apple Silicon macOS DMGs, and an
+Arch Linux package with AUR submission files. Pull requests and manual runs
+also build all platforms. Cloudsmith uploads run only on pushes to `release`
+and `dev-release`.
+
 ### Debian/Ubuntu Linux
 
 #### Get dependencies

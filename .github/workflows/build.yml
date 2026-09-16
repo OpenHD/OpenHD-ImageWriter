@@ -1,0 +1,409 @@
+name: OpenHD ImageWriter builds
+
+on:
+  push:
+    branches: [master, debug, dev-release, release, '2.0.4', '2.5-evo', dev-branch, testing]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  aur:
+    name: Arch Linux / AUR package
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Install packaging tools
+        run: pacman -Syu --noconfirm --needed git sudo namcap desktop-file-utils
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Create unprivileged builder
+        run: |
+          useradd --create-home builder
+          echo 'builder ALL=(ALL) NOPASSWD: /usr/bin/pacman' > /etc/sudoers.d/builder
+          chmod 440 /etc/sudoers.d/builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+      - name: Check AUR metadata
+        run: |
+          sudo -u builder makepkg --printsrcinfo > /tmp/SRCINFO
+          diff -u .SRCINFO /tmp/SRCINFO
+      - name: Build the checked-out revision
+        run: |
+          # CI tests this revision; the submission keeps the public source URL.
+          mkdir aur-build
+          cp PKGBUILD aur-build/
+          chown -R builder:builder aur-build
+          sudo -u builder env SOURCE_REPO="$GITHUB_WORKSPACE" bash -c '
+            cd aur-build
+            sed -i "s|git+https://github.com/OpenHD/OpenHD-ImageWriter.git#branch=dev-branch|git+file://${SOURCE_REPO}#commit=$(git -C "$SOURCE_REPO" rev-parse HEAD)|" PKGBUILD
+            makepkg --syncdeps --cleanbuild --force --noconfirm
+          '
+      - name: Inspect package
+        run: |
+          namcap PKGBUILD aur-build/*.pkg.tar.zst
+          package=$(find aur-build -maxdepth 1 -name 'openhdimagewriter-git-*.pkg.tar.zst' ! -name '*-debug-*' -print -quit)
+          mkdir /tmp/package-check
+          bsdtar -xf "$package" -C /tmp/package-check
+          test -x /tmp/package-check/usr/bin/OpenHDImageWriter
+          test -f /tmp/package-check/usr/share/metainfo/openhdimagewriter.metainfo.xml
+          desktop-file-validate /tmp/package-check/usr/share/applications/openhdimagewriter.desktop
+      - name: Prepare AUR submission
+        run: |
+          mkdir aur-submission
+          cp PKGBUILD .SRCINFO aur-submission/
+          tar -czf aur-submission.tar.gz -C aur-submission PKGBUILD .SRCINFO
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OpenHDImageWriter-Arch-AUR
+          path: |
+            aur-build/*.pkg.tar.zst
+            aur-submission.tar.gz
+          if-no-files-found: error
+  ubuntu:
+    runs-on: ubuntu-22.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        distro:
+          - { name: noble, container: 'ubuntu:noble' }
+          - { name: lunar, container: 'ubuntu:lunar' }
+          - { name: jammy, container: '' }
+
+    container: ${{ matrix.distro.container }}
+    
+    steps:
+      - name: Init env
+        run: |
+          echo "DT=$(date +'%Y-%m-%d_%H%M')" >> $GITHUB_ENV
+          echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
+          if [ "${{ matrix.distro.name }}" = "lunar" ]; then
+            sed -i 's|http://archive.ubuntu.com/ubuntu|http://old-releases.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+            sed -i 's|http://security.ubuntu.com/ubuntu|http://old-releases.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+          fi
+          if [ "${{ matrix.distro.name }}" != "jammy" ]; then
+          apt update
+          apt install -y git sudo
+          fi
+
+      - uses: actions/checkout@v5
+
+      - name: Build .deb
+        run: |
+          sudo apt update
+          sudo apt upgrade -y
+          sudo apt install -y --no-install-recommends \
+            libgnutls28-dev build-essential devscripts debhelper cmake git libarchive-dev libcurl4-openssl-dev \
+            qtbase5-dev qtbase5-dev-tools qtdeclarative5-dev libqt5svg5-dev qttools5-dev libssl-dev \
+            qml-module-qtquick2 qml-module-qtquick-controls2 qml-module-qtquick-layouts \
+            qml-module-qtquick-templates2 qml-module-qtquick-window2 qml-module-qtgraphicaleffects
+          
+          source_dir=$(mktemp -d)
+          cp -a . "$source_dir/source"
+          cd "$source_dir/source"
+          debuild -uc -us
+          cp "$source_dir"/*.deb "$GITHUB_WORKSPACE/"
+
+      - name: Upload to GitHub
+        uses: actions/upload-artifact@v7
+        with:
+          name: "OpenHD Image Writer (${{ matrix.distro.name }})"
+          path: |
+            *.deb
+          if-no-files-found: error
+
+      - name: Push to Cloudsmith
+        if: github.event_name == 'push' && (github.ref_name == 'release' || github.ref_name == 'dev-release')
+        id: push
+        uses: cloudsmith-io/action@master
+        with:
+          api-key: ${{ secrets.CLOUDSMITH_API_KEY }}
+          command: "push"
+          format: "deb"
+          owner: "openhd"
+          repo: ${{ github.ref_name }}
+          distro: "ubuntu"
+          release: "${{ matrix.distro.name }}"
+          republish: "true"
+          file: "*.deb"
+  windows:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        working-directory: src
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install Qt
+      id: qt-install
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '5.15.2'
+        aqtversion: '==3.1.*'
+        host: windows
+        target: desktop
+        arch: win32_mingw81
+        setup-python: false
+        tools: tools_cmake tools_mingw81,qt.tools.win32_mingw810
+
+    - name: Download and Extract OpenSSL
+      shell: pwsh
+      working-directory: ${{ github.workspace }}
+      run: |
+        Invoke-WebRequest `
+          -Uri "https://download.firedaemon.com/FireDaemon-OpenSSL/openssl-1.1.1w.zip" `
+          -OutFile openssl-1.1.1w.zip
+        Expand-Archive openssl-1.1.1w.zip -DestinationPath openssl111
+      
+    - name: Copy OpenSSL to Qt MinGW path
+      shell: pwsh
+      working-directory: ${{ github.workspace }}
+      run: |
+          dir ${{ github.workspace }}\..\Qt\
+          dir ${{ github.workspace }}\..\Qt\Tools\
+          dir ${{ github.workspace }}\..\Qt\Tools\mingw810_32\
+      
+          $openssl = (Get-ChildItem -Directory -Path "${{ github.workspace }}\openssl111" | Where-Object { $_.Name -like "openssl-*" } | Select-Object -First 1).FullName + "\x86"
+          $mingwRoot = "${{ github.workspace }}\..\Qt\Tools\mingw810_32"
+      
+          Write-Host "Resolved OpenSSL path: $openssl"
+          if (Test-Path $openssl) {
+            Get-ChildItem -Recurse "$openssl" | ForEach-Object { Write-Host $_.FullName }
+          } else {
+            Write-Error "OpenSSL path not found: $openssl"
+          }
+      
+          Copy-Item "$openssl\bin\libcrypto-1_1.dll" "$mingwRoot\bin\" -Force
+          Copy-Item "$openssl\bin\libssl-1_1.dll"    "$mingwRoot\bin\" -Force
+          Copy-Item "$openssl\lib\libcrypto.lib"     "$mingwRoot\lib\" -Force
+          Copy-Item "$openssl\lib\libssl.lib"        "$mingwRoot\lib\" -Force
+          New-Item -ItemType Directory -Force -Path "$mingwRoot\include\openssl"
+          Write-Host "Copying OpenSSL headers from: $openssl\include\openssl\."
+          Copy-Item "$openssl\include\openssl\." "$mingwRoot\include\" -Recurse -Force -Verbose
+          dir "$mingwRoot\include\openssl\"
+
+    - name: Install NSIS
+      run: choco install nsis --x86 --force -y
+
+    - name: Show Qt & CMake Info
+      run: |
+        where gcc
+        where g++
+        cmake --version
+
+    - name: Debug OpenSSL include headers
+      shell: pwsh
+      working-directory: ${{ github.workspace }}
+      run: |
+        $opensslInclude = "$Env:GITHUB_WORKSPACE\..\Qt\Tools\mingw810_32\include\openssl"
+        $openssl = (Get-ChildItem -Directory -Path "${{ github.workspace }}\openssl111" | Where-Object { $_.Name -like "openssl-*" } | Select-Object -First 1).FullName + "\x86"
+
+        Write-Host "Looking in: $opensslInclude"
+        if (Test-Path $opensslInclude) {
+          Get-ChildItem $opensslInclude | Select-Object -First 20
+        } else {
+          Write-Error "OpenSSL include directory not found!"
+        }
+        
+        dir "$openssl\include\openssl\"
+        
+
+    - name: Configure CMake
+      shell: cmd
+      working-directory: src
+      run: |
+        dir "%GITHUB_WORKSPACE%\openssl111\openssl-1.1\x86\include"
+        mkdir build
+        cd build
+        cmake .. -G "MinGW Makefiles" ^
+        -DCMAKE_BUILD_TYPE=Release ^
+        -DCMAKE_C_COMPILER="%GITHUB_WORKSPACE%\..\Qt\Tools\mingw810_32\bin\gcc.exe" ^
+        -DCMAKE_CXX_COMPILER="%GITHUB_WORKSPACE%\..\Qt\Tools\mingw810_32\bin\g++.exe" ^
+        -DOPENSSL_INCLUDE_DIR="%GITHUB_WORKSPACE%\openssl111\openssl-1.1\x86\include" ^
+        -DOPENSSL_LIBRARIES="%GITHUB_WORKSPACE%\openssl111\openssl-1.1\x86\lib"
+
+
+    - name: Check CMake Cache
+      run: |
+        dir build
+        type build\CMakeCache.txt || echo "Cache missing"
+
+    - name: Build
+      shell: pwsh
+      run: |
+        $env:PATH = "$Env:GITHUB_WORKSPACE\..\Qt\5.15.2\mingw81_32\bin;$Env:GITHUB_WORKSPACE\..\Qt\Tools\mingw810_32\bin;$env:PATH"
+        cd build
+        cmake --build . --verbose
+
+    - name: Copy OpenSSL DLLs to build folder
+      shell: pwsh
+      run: |
+        Copy-Item "$Env:GITHUB_WORKSPACE\..\Qt\Tools\mingw810_32\bin\libssl-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE\src\build\"
+        Copy-Item "$Env:GITHUB_WORKSPACE\..\Qt\Tools\mingw810_32\bin\libcrypto-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE\src\build\"
+
+    - name: Build NSIS Installer
+      shell: pwsh
+      working-directory: src\build
+      run: |
+        & "${Env:ProgramFiles(x86)}\NSIS\makensis.exe" "openhdimagewriter.nsi"
+
+    - name: Upload Installer
+      uses: actions/upload-artifact@v7
+      with:
+        name: OpenHDImageWriter-Build-Full
+        path: src/build/OpenHD-ImageWriter-*
+        if-no-files-found: error
+  macos:
+    name: Build (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: macos-15-intel
+            deployment_target: "10.13"
+            qt_source: archive
+          - arch: arm64
+            runner: macos-15
+            deployment_target: "11.0"
+            qt_source: homebrew
+
+    defaults:
+      run:
+        working-directory: src
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Qt for Intel
+        if: matrix.qt_source == 'archive'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "5.15.2"
+          host: mac
+          target: desktop
+          arch: clang_64
+          cache: true
+
+      - name: Install Qt for Apple Silicon
+        if: matrix.qt_source == 'homebrew'
+        run: |
+          brew install qt@5
+          qt_prefix="$(brew --prefix qt@5)"
+          echo "$qt_prefix/bin" >> "$GITHUB_PATH"
+          echo "CMAKE_PREFIX_PATH=$qt_prefix" >> "$GITHUB_ENV"
+
+      - name: Show build environment
+        run: |
+          uname -m
+          cmake --version
+          qmake -v
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+            -DCMAKE_OSX_ARCHITECTURES="${{ matrix.arch }}" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="${{ matrix.deployment_target }}" \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+
+      - name: Build
+        run: cmake --build build --config "$BUILD_TYPE" --parallel
+
+      - name: Test
+        run: ctest --test-dir build --build-config "$BUILD_TYPE" --output-on-failure
+
+      - name: Verify architecture
+        run: |
+          executable="build/OpenHDImageWriter.app/Contents/MacOS/OpenHDImageWriter"
+          test -x "$executable"
+          file "$executable"
+          lipo "$executable" -verify_arch "${{ matrix.arch }}"
+
+      - name: Create DMG
+        run: |
+          dmg="OpenHDImageWriter-macOS-${{ matrix.arch }}.dmg"
+          hdiutil create \
+            -volname "OpenHD ImageWriter" \
+            -srcfolder build/OpenHDImageWriter.app \
+            -ov \
+            -format UDZO \
+            "build/$dmg"
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenHDImageWriter-macOS-${{ matrix.arch }}
+          path: src/build/OpenHDImageWriter-macOS-${{ matrix.arch }}.dmg
+          if-no-files-found: error
+  backend-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build qtbase5-dev libssl-dev
+      - name: Configure
+        run: cmake -S src/test -B build-src-tests -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build-src-tests
+      - name: Test
+        run: ctest --test-dir build-src-tests --output-on-failure
+
+  backend-macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          arch: clang_64
+          setup-python: false
+      - name: Configure
+        run: cmake -S src/test -B build-src-tests -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build-src-tests --parallel
+      - name: Test
+        run: ctest --test-dir build-src-tests --output-on-failure
+
+  backend-windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          arch: win32_msvc2019
+          setup-python: false
+      - name: Install OpenSSL
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://download.firedaemon.com/FireDaemon-OpenSSL/openssl-1.1.1w.zip" -OutFile openssl.zip
+          Expand-Archive openssl.zip -DestinationPath openssl111
+      - name: Configure
+        shell: pwsh
+        run: |
+          $opensslRoot = (Get-ChildItem -Directory openssl111 | Select-Object -First 1).FullName + "\x86"
+          cmake -S src/test -B build-src-tests -A Win32 -DOPENSSL_ROOT_DIR="$opensslRoot"
+      - name: Build
+        run: cmake --build build-src-tests --config Release --parallel
+      - name: Test
+        shell: pwsh
+        run: |
+          $opensslRoot = (Get-ChildItem -Directory openssl111 | Select-Object -First 1).FullName + "\x86"
+          $env:PATH = "$env:QT_ROOT_DIR\bin;$opensslRoot\bin;$env:PATH"
+          ctest --test-dir build-src-tests -C Release --output-on-failure

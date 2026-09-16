@@ -52,7 +52,7 @@
   </screenshots>
   <url type="homepage">https://github.com/OpenHD/OpenHD-ImageWriter</url>
   <provides>
-    <binary>openhdimagewriter</binary>
+    <binary>OpenHDImageWriter</binary>
   </provides>
   <releases>
     <release version="@IMAGER_VERSION_STR@" />

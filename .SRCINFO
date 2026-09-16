@@ -1,0 +1,33 @@
+pkgbase = openhdimagewriter-git
+	pkgdesc = Graphical utility to write OpenHD disk images and format SD cards
+	pkgver = r68.gbff5f64
+	pkgrel = 1
+	url = https://github.com/OpenHD/OpenHD-ImageWriter
+	arch = x86_64
+	arch = aarch64
+	license = Apache-2.0
+	checkdepends = nodejs
+	makedepends = cmake
+	makedepends = ninja
+	makedepends = git
+	makedepends = qt5-tools
+	depends = qt5-base
+	depends = qt5-declarative
+	depends = qt5-svg
+	depends = qt5-quickcontrols
+	depends = qt5-quickcontrols2
+	depends = qt5-graphicaleffects
+	depends = curl
+	depends = libarchive
+	depends = openssl
+	depends = zlib
+	depends = xz
+	depends = dosfstools
+	depends = util-linux
+	optdepends = udisks2: desktop authorization and device management
+	provides = openhdimagewriter
+	conflicts = openhdimagewriter
+	source = OpenHD-ImageWriter::git+https://github.com/OpenHD/OpenHD-ImageWriter.git#branch=dev-branch
+	sha256sums = SKIP
+
+pkgname = openhdimagewriter-git
