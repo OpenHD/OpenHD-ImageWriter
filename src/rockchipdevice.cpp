@@ -159,6 +159,89 @@ std::vector<RockchipDeviceDescriptor> listRockchipUsbDevices()
     return result;
 }
 
+#elif defined(Q_OS_MACOS)
+
+#include <CoreFoundation/CoreFoundation.h>
+#include <IOKit/IOKitLib.h>
+#include <IOKit/usb/IOUSBLib.h>
+#include <IOKit/usb/USBSpec.h>
+
+namespace {
+
+bool readRegistryNumber(io_service_t service, CFStringRef key, quint32 &value)
+{
+    CFTypeRef property = IORegistryEntryCreateCFProperty(service, key,
+                                                         kCFAllocatorDefault, 0);
+    if (!property || CFGetTypeID(property) != CFNumberGetTypeID())
+    {
+        if (property)
+            CFRelease(property);
+        return false;
+    }
+
+    int64_t number = 0;
+    const bool ok = CFNumberGetValue(static_cast<CFNumberRef>(property),
+                                     kCFNumberSInt64Type, &number);
+    CFRelease(property);
+    if (ok)
+        value = static_cast<quint32>(number);
+    return ok;
+}
+
+void appendRockchipServices(const char *serviceClass,
+                            std::vector<RockchipDeviceDescriptor> &result)
+{
+    io_iterator_t iterator = IO_OBJECT_NULL;
+    CFMutableDictionaryRef matching = IOServiceMatching(serviceClass);
+    if (!matching || IOServiceGetMatchingServices(kIOMasterPortDefault, matching,
+                                                   &iterator) != KERN_SUCCESS)
+        return;
+
+    io_service_t service = IO_OBJECT_NULL;
+    while ((service = IOIteratorNext(iterator)) != IO_OBJECT_NULL)
+    {
+        quint32 vendorId = 0;
+        quint32 productId = 0;
+        quint32 bcdUsb = 0;
+        quint32 locationId = 0;
+        const bool valid =
+                readRegistryNumber(service, CFSTR("idVendor"), vendorId) &&
+                readRegistryNumber(service, CFSTR("idProduct"), productId) &&
+                readRegistryNumber(service, CFSTR("bcdUSB"), bcdUsb) &&
+                vendorId == RockchipVendorId && (productId >> 8) != 0;
+        readRegistryNumber(service, CFSTR("locationID"), locationId);
+
+        if (valid)
+        {
+            const QString location = QStringLiteral("%1").arg(locationId, 8, 16,
+                                                               QLatin1Char('0'));
+            const auto descriptor = makeDescriptor(static_cast<quint16>(productId),
+                                                   static_cast<quint16>(bcdUsb), location);
+            bool duplicate = false;
+            for (const auto &existing : result)
+                duplicate = duplicate || existing.id == descriptor.id;
+            if (!duplicate)
+                result.push_back(descriptor);
+        }
+        IOObjectRelease(service);
+    }
+    IOObjectRelease(iterator);
+}
+
+} // namespace
+
+std::vector<RockchipDeviceDescriptor> listRockchipUsbDevices()
+{
+    std::vector<RockchipDeviceDescriptor> result;
+    // IOUSBDevice is the compatibility service that also permits opening the
+    // user client. IOUSBHostDevice covers newer macOS USB stacks if no legacy
+    // compatibility service was published.
+    appendRockchipServices(kIOUSBDeviceClassName, result);
+    if (result.empty())
+        appendRockchipServices("IOUSBHostDevice", result);
+    return result;
+}
+
 #elif defined(Q_OS_LINUX)
 
 #include <QDir>
@@ -203,8 +286,6 @@ std::vector<RockchipDeviceDescriptor> listRockchipUsbDevices()
 
 std::vector<RockchipDeviceDescriptor> listRockchipUsbDevices()
 {
-    // macOS support will use IOUSBHost in the flashing backend. Keep storage
-    // polling functional on platforms where native USB enumeration is absent.
     return {};
 }
 
@@ -276,7 +357,7 @@ struct RkBootEntry
 {
     quint8 size;
     quint32 type;
-    wchar_t name[20];
+    quint16 name[20];
     quint32 dataOffset;
     quint32 dataSize;
     quint32 dataDelay;
@@ -307,6 +388,10 @@ struct RockchipCSW
     quint8 status = 0; // 0 = success
 };
 #pragma pack(pop)
+
+static_assert(sizeof(RkBootEntry) == 57, "Rockchip loader entry layout must be platform-independent");
+static_assert(sizeof(RockchipCBW) == 31, "Rockchip CBW must match the USB wire format");
+static_assert(sizeof(RockchipCSW) == 13, "Rockchip CSW must match the USB wire format");
 
 #ifdef Q_OS_WIN
 static const GUID GUID_DEVINTERFACE_USB_DEVICE_VAL =
@@ -346,6 +431,60 @@ static QString findRockchipDevicePath()
 
     SetupDiDestroyDeviceInfoList(devInfo);
     return foundPath;
+}
+#elif defined(Q_OS_MACOS)
+
+using AppleDeviceInterface = IOUSBDeviceInterface500 **;
+using AppleUsbInterface = IOUSBInterfaceInterface500 **;
+
+static AppleDeviceInterface openAppleRockchipDevice(QString *errorMsg)
+{
+    io_iterator_t iterator = IO_OBJECT_NULL;
+    CFMutableDictionaryRef matching = IOServiceMatching(kIOUSBDeviceClassName);
+    if (!matching || IOServiceGetMatchingServices(kIOMasterPortDefault, matching,
+                                                   &iterator) != KERN_SUCCESS)
+    {
+        if (errorMsg)
+            *errorMsg = QStringLiteral("Unable to enumerate USB devices on macOS.");
+        return nullptr;
+    }
+
+    AppleDeviceInterface found = nullptr;
+    io_service_t service = IO_OBJECT_NULL;
+    while (!found && (service = IOIteratorNext(iterator)) != IO_OBJECT_NULL)
+    {
+        quint32 vendorId = 0;
+        if (readRegistryNumber(service, CFSTR("idVendor"), vendorId) &&
+                vendorId == RockchipVendorId)
+        {
+            IOCFPlugInInterface **plugin = nullptr;
+            SInt32 score = 0;
+            const IOReturn pluginResult = IOCreatePlugInInterfaceForService(
+                    service, kIOUSBDeviceUserClientTypeID, kIOCFPlugInInterfaceID,
+                    &plugin, &score);
+            if (pluginResult == kIOReturnSuccess && plugin)
+            {
+                const HRESULT queryResult = (*plugin)->QueryInterface(
+                        plugin, CFUUIDGetUUIDBytes(kIOUSBDeviceInterfaceID500),
+                        reinterpret_cast<LPVOID *>(&found));
+                (*plugin)->Release(plugin);
+                if (queryResult || !found)
+                    found = nullptr;
+            }
+        }
+        IOObjectRelease(service);
+    }
+    IOObjectRelease(iterator);
+
+    if (!found && errorMsg)
+        *errorMsg = QStringLiteral("Rockchip USB device not found.");
+    return found;
+}
+
+static QString appleUsbError(const QString &operation, IOReturn result)
+{
+    return QStringLiteral("%1 failed (IOKit error 0x%2).")
+            .arg(operation).arg(static_cast<quint32>(result), 8, 16, QLatin1Char('0'));
 }
 #endif
 
@@ -536,6 +675,105 @@ bool downloadRockchipBootloader(const QByteArray &bootloaderData, QString *error
 
     CloseHandle(hDev);
     return true;
+#elif defined(Q_OS_MACOS)
+    AppleDeviceInterface device = openAppleRockchipDevice(errorMsg);
+    if (!device)
+        return false;
+
+    IOReturn ioResult = (*device)->USBDeviceOpen(device);
+    if (ioResult != kIOReturnSuccess)
+    {
+        if (errorMsg)
+            *errorMsg = appleUsbError(QStringLiteral("Opening Rockchip USB device"), ioResult);
+        (*device)->Release(device);
+        return false;
+    }
+
+    auto sendEntries = [&](quint8 count, quint32 offset, quint8 entrySize,
+                           quint16 requestIndex) -> bool {
+        for (quint8 i = 0; i < count; ++i)
+        {
+            const quint32 entryOffset = offset + i * entrySize;
+            if (entryOffset + sizeof(RkBootEntry) > static_cast<quint32>(bootloaderData.size()))
+                return false;
+
+            const auto *entry = reinterpret_cast<const RkBootEntry *>(
+                    bootloaderData.constData() + entryOffset);
+            if (entry->dataOffset + entry->dataSize > static_cast<quint32>(bootloaderData.size()))
+                return false;
+
+            QByteArray chunk = bootloaderData.mid(entry->dataOffset, entry->dataSize);
+            bool sendPendingPacket = false;
+            switch (chunk.size() % 4096)
+            {
+            case 4095:
+                chunk.append('\0');
+                break;
+            case 4094:
+                sendPendingPacket = true;
+                break;
+            default:
+                break;
+            }
+
+            const quint16 crc = calculateCrcCcitt(
+                    reinterpret_cast<const quint8 *>(chunk.constData()), chunk.size());
+            chunk.append(static_cast<char>((crc >> 8) & 0xff));
+            chunk.append(static_cast<char>(crc & 0xff));
+
+            int sent = 0;
+            while (sent < chunk.size())
+            {
+                const int transferSize = qMin(4096, chunk.size() - sent);
+                IOUSBDevRequestTO request = {};
+                request.bmRequestType = USBmakebmRequestType(kUSBOut, kUSBVendor, kUSBDevice);
+                request.bRequest = 0x0c;
+                request.wValue = 0;
+                request.wIndex = requestIndex;
+                request.wLength = static_cast<UInt16>(transferSize);
+                request.pData = chunk.data() + sent;
+                request.noDataTimeout = 5000;
+                request.completionTimeout = 5000;
+                ioResult = (*device)->DeviceRequestTO(device, &request);
+                if (ioResult != kIOReturnSuccess || request.wLenDone != transferSize)
+                    return false;
+                sent += transferSize;
+            }
+
+            if (sendPendingPacket)
+            {
+                quint8 padding = 0;
+                IOUSBDevRequestTO request = {};
+                request.bmRequestType = USBmakebmRequestType(kUSBOut, kUSBVendor, kUSBDevice);
+                request.bRequest = 0x0c;
+                request.wIndex = requestIndex;
+                request.wLength = 1;
+                request.pData = &padding;
+                request.noDataTimeout = 5000;
+                request.completionTimeout = 5000;
+                ioResult = (*device)->DeviceRequestTO(device, &request);
+                if (ioResult != kIOReturnSuccess)
+                    return false;
+            }
+
+            QThread::msleep(qMax<quint32>(entry->dataDelay, 20));
+        }
+        return true;
+    };
+
+    const bool sent471 = sendEntries(header->count471, header->offset471,
+                                     header->size471, 0x0471);
+    const bool sent472 = sent471 && sendEntries(header->count472, header->offset472,
+                                                header->size472, 0x0472);
+    (*device)->USBDeviceClose(device);
+    (*device)->Release(device);
+    if (!sent471 || !sent472)
+    {
+        if (errorMsg)
+            *errorMsg = appleUsbError(QStringLiteral("Downloading Rockchip bootloader"), ioResult);
+        return false;
+    }
+    return true;
 #else
     Q_UNUSED(bootloaderData);
     if (errorMsg) *errorMsg = QStringLiteral("Bootloader download is only supported on Windows.");
@@ -562,13 +800,13 @@ bool waitForRockchipLoaderMode(int timeoutMs, RockchipDeviceDescriptor *outDescr
             }
         }
 
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) || defined(Q_OS_MACOS)
         // The RV1126B MiniLoader used by the X21 has been observed to keep
         // reporting bcdUSB 2.00 after a successful MaskROM download.  In
         // that case the normal Rockchip odd/even discriminator cannot see
-        // the transition, but the loader's bulk pipes are ready.  This
-        // function is only called after downloadRockchipBootloader succeeds,
-        // so transport readiness is a safe Windows fallback for this PID.
+        // the transition, but the loader's bulk pipes are ready. This function
+        // is only called after downloadRockchipBootloader succeeds, so
+        // transport readiness is a safe fallback for this PID.
         if (timer.elapsed() >= 1000)
         {
             for (auto dev : devices)
@@ -605,6 +843,8 @@ bool RockchipTransport::isOpen() const
 {
 #ifdef Q_OS_WIN
     return _hWritePipe != INVALID_HANDLE_VALUE && _hReadPipe != INVALID_HANDLE_VALUE;
+#elif defined(Q_OS_MACOS)
+    return _usbInterface && _readPipe != 0 && _writePipe != 0;
 #else
     return false;
 #endif
@@ -628,6 +868,23 @@ void RockchipTransport::close()
         CloseHandle(_hDevice);
         _hDevice = INVALID_HANDLE_VALUE;
     }
+#elif defined(Q_OS_MACOS)
+    if (_usbInterface)
+    {
+        AppleUsbInterface interface = reinterpret_cast<AppleUsbInterface>(_usbInterface);
+        (*interface)->USBInterfaceClose(interface);
+        (*interface)->Release(interface);
+        _usbInterface = nullptr;
+    }
+    if (_deviceInterface)
+    {
+        AppleDeviceInterface device = reinterpret_cast<AppleDeviceInterface>(_deviceInterface);
+        (*device)->USBDeviceClose(device);
+        (*device)->Release(device);
+        _deviceInterface = nullptr;
+    }
+    _readPipe = 0;
+    _writePipe = 0;
 #endif
 }
 
@@ -666,6 +923,106 @@ bool RockchipTransport::open(QString *errorMsg)
         return false;
     }
 
+    return true;
+#elif defined(Q_OS_MACOS)
+    AppleDeviceInterface device = openAppleRockchipDevice(errorMsg);
+    if (!device)
+        return false;
+
+    IOReturn ioResult = (*device)->USBDeviceOpen(device);
+    if (ioResult != kIOReturnSuccess)
+    {
+        if (errorMsg)
+            *errorMsg = appleUsbError(QStringLiteral("Opening Rockchip Loader device"), ioResult);
+        (*device)->Release(device);
+        return false;
+    }
+    _deviceInterface = device;
+
+    IOUSBFindInterfaceRequest interfaceRequest = {
+        kIOUSBFindInterfaceDontCare, kIOUSBFindInterfaceDontCare,
+        kIOUSBFindInterfaceDontCare, kIOUSBFindInterfaceDontCare
+    };
+    io_iterator_t iterator = IO_OBJECT_NULL;
+    ioResult = (*device)->CreateInterfaceIterator(device, &interfaceRequest, &iterator);
+    if (ioResult != kIOReturnSuccess)
+    {
+        if (errorMsg)
+            *errorMsg = appleUsbError(QStringLiteral("Finding Rockchip USB interface"), ioResult);
+        close();
+        return false;
+    }
+
+    io_service_t usbInterfaceService = IO_OBJECT_NULL;
+    while (!isOpen() && (usbInterfaceService = IOIteratorNext(iterator)) != IO_OBJECT_NULL)
+    {
+        IOCFPlugInInterface **plugin = nullptr;
+        SInt32 score = 0;
+        ioResult = IOCreatePlugInInterfaceForService(
+                usbInterfaceService, kIOUSBInterfaceUserClientTypeID,
+                kIOCFPlugInInterfaceID, &plugin, &score);
+        IOObjectRelease(usbInterfaceService);
+        if (ioResult != kIOReturnSuccess || !plugin)
+            continue;
+
+        AppleUsbInterface interface = nullptr;
+        const HRESULT queryResult = (*plugin)->QueryInterface(
+                plugin, CFUUIDGetUUIDBytes(kIOUSBInterfaceInterfaceID500),
+                reinterpret_cast<LPVOID *>(&interface));
+        (*plugin)->Release(plugin);
+        if (queryResult || !interface)
+            continue;
+
+        ioResult = (*interface)->USBInterfaceOpen(interface);
+        if (ioResult != kIOReturnSuccess)
+        {
+            (*interface)->Release(interface);
+            continue;
+        }
+
+        UInt8 endpointCount = 0;
+        (*interface)->GetNumEndpoints(interface, &endpointCount);
+        quint8 readPipe = 0;
+        quint8 writePipe = 0;
+        for (UInt8 pipe = 1; pipe <= endpointCount; ++pipe)
+        {
+            UInt8 direction = 0;
+            UInt8 number = 0;
+            UInt8 transferType = 0;
+            UInt16 maxPacketSize = 0;
+            UInt8 interval = 0;
+            if ((*interface)->GetPipeProperties(interface, pipe, &direction, &number,
+                                                &transferType, &maxPacketSize,
+                                                &interval) != kIOReturnSuccess ||
+                    transferType != kUSBBulk)
+                continue;
+            if (direction == kUSBIn && !readPipe)
+                readPipe = pipe;
+            else if (direction == kUSBOut && !writePipe)
+                writePipe = pipe;
+        }
+
+        if (readPipe && writePipe)
+        {
+            _usbInterface = interface;
+            _readPipe = readPipe;
+            _writePipe = writePipe;
+        }
+        else
+        {
+            (*interface)->USBInterfaceClose(interface);
+            (*interface)->Release(interface);
+        }
+    }
+    IOObjectRelease(iterator);
+
+    if (!isOpen())
+    {
+        if (errorMsg)
+            *errorMsg = QStringLiteral("Rockchip Loader bulk interface was not found.");
+        close();
+        return false;
+    }
     return true;
 #else
     if (errorMsg) *errorMsg = QStringLiteral("Rockchip transport is only supported on Windows.");
@@ -729,6 +1086,50 @@ bool RockchipTransport::writeLBA(quint32 lba, quint16 sectorCount, const quint8 
         return false;
     }
 
+    return true;
+#elif defined(Q_OS_MACOS)
+    if (!isOpen())
+    {
+        if (errorMsg)
+            *errorMsg = QStringLiteral("Rockchip transport is not open.");
+        return false;
+    }
+
+    AppleUsbInterface interface = reinterpret_cast<AppleUsbInterface>(_usbInterface);
+    RockchipCBW cbw;
+    cbw.tag = ++_tag;
+    cbw.transferLength = static_cast<quint32>(sectorCount) * 512;
+    cbw.address = qToBigEndian(lba);
+    cbw.sectorCount = qToBigEndian(sectorCount);
+
+    IOReturn ioResult = (*interface)->WritePipeTO(interface, _writePipe, &cbw,
+                                                  sizeof(cbw), 5000, 5000);
+    if (ioResult == kIOReturnSuccess)
+    {
+        const UInt32 dataSize = static_cast<UInt32>(sectorCount) * 512;
+        ioResult = (*interface)->WritePipeTO(interface, _writePipe,
+                                             const_cast<quint8 *>(data), dataSize,
+                                             30000, 30000);
+    }
+
+    RockchipCSW csw = {};
+    UInt32 readSize = sizeof(csw);
+    if (ioResult == kIOReturnSuccess)
+        ioResult = (*interface)->ReadPipeTO(interface, _readPipe, &csw, &readSize,
+                                            30000, 30000);
+    if (ioResult != kIOReturnSuccess)
+    {
+        if (errorMsg)
+            *errorMsg = appleUsbError(QStringLiteral("Writing to Rockchip device"), ioResult);
+        return false;
+    }
+    if (readSize != sizeof(csw) || csw.signature != 0x53425355 ||
+            csw.tag != _tag || csw.status != 0)
+    {
+        if (errorMsg)
+            *errorMsg = QStringLiteral("Rockchip device returned an invalid write status.");
+        return false;
+    }
     return true;
 #else
     Q_UNUSED(lba);
@@ -798,6 +1199,31 @@ bool RockchipTransport::resetDevice(QString *errorMsg)
     // A successful DEVICE_RESET normally removes the USB device before a CSW
     // can be read. Close immediately instead of waiting synchronously for a
     // response that may never arrive from the old device instance.
+    close();
+    return resetSent;
+#elif defined(Q_OS_MACOS)
+    if (!isOpen())
+    {
+        if (errorMsg)
+            *errorMsg = QStringLiteral("Rockchip transport is not open.");
+        return false;
+    }
+
+    RockchipCBW cbw;
+    cbw.tag = ++_tag;
+    cbw.transferLength = 0;
+    cbw.length = 0x06;
+    cbw.opcode = 0xff;
+    cbw.subcode = 0;
+
+    AppleUsbInterface interface = reinterpret_cast<AppleUsbInterface>(_usbInterface);
+    const IOReturn ioResult = (*interface)->WritePipeTO(interface, _writePipe, &cbw,
+                                                        sizeof(cbw), 2000, 2000);
+    const bool resetSent = ioResult == kIOReturnSuccess ||
+                           ioResult == kIOReturnNoDevice ||
+                           ioResult == kIOReturnNotOpen;
+    if (!resetSent && errorMsg)
+        *errorMsg = appleUsbError(QStringLiteral("Resetting Rockchip device"), ioResult);
     close();
     return resetSent;
 #else

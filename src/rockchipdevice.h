@@ -70,6 +70,11 @@ private:
     HANDLE _hReadPipe = INVALID_HANDLE_VALUE;
     HANDLE _hWritePipe = INVALID_HANDLE_VALUE;
     HANDLE _hDevice = INVALID_HANDLE_VALUE;
+#elif defined(Q_OS_MACOS)
+    void *_deviceInterface = nullptr;
+    void *_usbInterface = nullptr;
+    quint8 _readPipe = 0;
+    quint8 _writePipe = 0;
 #endif
     quint32 _tag = 0;
 };
