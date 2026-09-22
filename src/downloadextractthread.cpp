@@ -174,10 +174,16 @@ static bool _isZip64StreamingSizeWarning(struct archive *archive,
     if (!error)
         return false;
 
-    const QString expected = QStringLiteral(
-        "ZIP uncompressed data is wrong size (read %1, expected 0)")
-        .arg(extractedBytes);
-    return QString::fromUtf8(error).trimmed() == expected;
+    const QString message = QString::fromUtf8(error).trimmed();
+    const QString prefix = QStringLiteral("ZIP uncompressed data is wrong size (read ");
+    const QString suffix = QStringLiteral(", expected 0)");
+    if (!message.startsWith(prefix) || !message.endsWith(suffix))
+        return false;
+
+    bool valid = false;
+    const quint64 reportedBytes = message.mid(
+        prefix.size(), message.size() - prefix.size() - suffix.size()).toULongLong(&valid);
+    return valid && reportedBytes == extractedBytes;
 }
 
 // libarchive thread
@@ -237,6 +243,7 @@ void DownloadExtractThread::extractImageRun()
             } while (archive_entry_filetype(entry) == AE_IFDIR);
             imageArchive = nestedArchive;
         }
+        const bool imageIsOuterEntry = nestedArchive == nullptr;
 
         quint64 extractedBytes = 0;
 
@@ -302,7 +309,15 @@ void DownloadExtractThread::extractImageRun()
         if (nestedArchive)
         {
             r = archive_read_next_header(nestedArchive, &entry);
-            _checkResult(r, nestedArchive);
+            if (r == ARCHIVE_WARN &&
+                _isZip64StreamingSizeWarning(nestedArchive, extractedBytes))
+            {
+                qWarning() << "Ignoring known libarchive 3.5 streamed ZIP64 size warning after"
+                           << extractedBytes << "bytes";
+                r = ARCHIVE_EOF;
+            }
+            else
+                _checkResult(r, nestedArchive);
             if (r != ARCHIVE_EOF)
                 throw runtime_error("Disk-image archive contains more than one entry");
 
@@ -315,7 +330,15 @@ void DownloadExtractThread::extractImageRun()
         // regular file is ambiguous and must not be silently flashed.
         do {
             r = archive_read_next_header(a, &entry);
-            _checkResult(r, a);
+            if (r == ARCHIVE_WARN && imageIsOuterEntry &&
+                _isZip64StreamingSizeWarning(a, extractedBytes))
+            {
+                qWarning() << "Ignoring known libarchive 3.5 streamed ZIP64 size warning after"
+                           << extractedBytes << "bytes";
+                r = ARCHIVE_EOF;
+            }
+            else
+                _checkResult(r, a);
         } while (r != ARCHIVE_EOF && archive_entry_filetype(entry) == AE_IFDIR);
         if (r != ARCHIVE_EOF)
             throw runtime_error("Disk-image archive contains more than one file");
