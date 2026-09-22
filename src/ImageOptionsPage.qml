@@ -23,6 +23,7 @@ Rectangle {
     property bool configurationApplied: false
     property bool existingDeviceMode: false
     property string existingDeviceName: ""
+    property string platformHint: ""
     signal configurationSaved()
     signal closeRequested()
 
@@ -1014,6 +1015,7 @@ Rectangle {
         imageWriter.setSetting("fileName", fileName)
         console.log("[ImageOptionsPage] src file:", fileName)
         var normalizedFileName = fileName.toLowerCase()
+        var normalizedPlatform = String(platformHint || "").toLowerCase()
         supportsAir = normalizedFileName.indexOf("lite") === -1 && normalizedFileName.indexOf("minimal") === -1
         supportsGround = normalizedFileName.indexOf("x20") === -1
         if (!supportsGround)
@@ -1021,7 +1023,14 @@ Rectangle {
         else if (!supportsAir)
             bootType = "Ground"
 
-        if (normalizedFileName.includes("rock5a") || normalizedFileName.includes("rock-5a")) {
+        if (normalizedPlatform.indexOf("raspberry-pi") === 0) {
+            imageWriter.setSetting("sbc", "rpi");
+            sbc = "rpi"
+            rpi=true;
+            rock5=false;
+            rock3=false;
+        }
+        else if (normalizedFileName.includes("rock5a") || normalizedFileName.includes("rock-5a")) {
             imageWriter.setSetting("sbc", "rock-5a");
             sbc = "rock-5a"
             rpi=false; rock5=true; rock3=false;

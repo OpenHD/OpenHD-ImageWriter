@@ -157,6 +157,7 @@ protected:
 
     CURL *_c;
     curl_off_t _startOffset;
+    curl_off_t _rangeResponseTotal;
     std::atomic<std::uint64_t> _lastDlTotal, _lastDlNow, _verifyTotal, _lastVerifyNow, _bytesWritten;
     std::uint64_t _lastFailureOffset;
     qint64 _sectorsStart;

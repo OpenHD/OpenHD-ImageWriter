@@ -1988,6 +1988,7 @@ Rectangle {
 
     ImageOptionsPage {
         id: optionsPage
+        platformHint: selectedImagePlatform
     }
 
     function resetDownloadTracking() {

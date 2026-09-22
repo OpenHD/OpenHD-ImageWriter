@@ -43,7 +43,7 @@ using namespace std;
 QSettings settings;
 
 DownloadThread::DownloadThread(const QByteArray &url, const QByteArray &localfilename, const QByteArray &expectedHash, QObject *parent) :
-    QThread(parent), _startOffset(0), _lastDlTotal(0), _lastDlNow(0), _verifyTotal(0), _lastVerifyNow(0), _bytesWritten(0), _lastFailureOffset(0), _sectorsStart(-1), _url(url), _filename(localfilename), _expectedHash(expectedHash),
+    QThread(parent), _startOffset(0), _rangeResponseTotal(-1), _lastDlTotal(0), _lastDlNow(0), _verifyTotal(0), _lastVerifyNow(0), _bytesWritten(0), _lastFailureOffset(0), _sectorsStart(-1), _url(url), _filename(localfilename), _expectedHash(expectedHash),
     _firstBlock(nullptr), _cancelled(false), _deviceOperationActive(false),
     _watchdogRecoveryRequested(false), _successful(false), _verifyEnabled(false), _cacheEnabled(false), _lastModified(0), _serverTime(0),  _lastFailureTime(0),
     _inputBufferSize(0), _lastFileError(FileError::Success), _file(FileOperations::create()),
@@ -393,6 +393,20 @@ void DownloadThread::run()
     CurlRetryPolicy retryPolicy;
     while (!_cancelled)
     {
+        long responseCode = 0;
+        curl_easy_getinfo(_c, CURLINFO_RESPONSE_CODE, &responseCode);
+        if (ret == CURLE_HTTP_RETURNED_ERROR && responseCode == 416 &&
+            _startOffset > 0 &&
+            ((_rangeResponseTotal >= 0 && _startOffset >= _rangeResponseTotal) ||
+             (_rangeResponseTotal < 0 && _lastDlTotal > 0 &&
+              static_cast<std::uint64_t>(_startOffset) >= _lastDlTotal.load())))
+        {
+            qWarning() << "Resume offset" << _startOffset
+                       << "already reached the server object size; accepting HTTP 416 as complete";
+            ret = CURLE_OK;
+            break;
+        }
+
         const bool transferAdvanced = _lastDlNow != _lastFailureOffset;
         const CurlRetryPolicy::Action retryAction = retryPolicy.next(ret, transferAdvanced);
         if (retryAction == CurlRetryPolicy::Action::Stop)
@@ -431,6 +445,7 @@ void DownloadThread::run()
 
         _startOffset = _lastDlNow;
         _lastFailureOffset = _lastDlNow;
+        _rangeResponseTotal = -1;
         curl_easy_setopt(_c, CURLOPT_RESUME_FROM_LARGE, _startOffset);
 
         ret = curl_easy_perform(_c);
@@ -656,6 +671,18 @@ void DownloadThread::_header(const string &header)
     else if (header.compare(0, 15, "Last-Modified: ") == 0)
     {
         _lastModified = curl_getdate(header.data()+15, NULL);
+    }
+    else
+    {
+        const QByteArray value = QByteArray::fromStdString(header).trimmed();
+        const QByteArray prefix("Content-Range: bytes */");
+        if (value.left(prefix.size()).compare(prefix, Qt::CaseInsensitive) == 0)
+        {
+            bool valid = false;
+            const qlonglong total = value.mid(prefix.size()).toLongLong(&valid);
+            if (valid && total >= 0)
+                _rangeResponseTotal = static_cast<curl_off_t>(total);
+        }
     }
     qDebug() << "Received header:" << header.c_str();
 }
