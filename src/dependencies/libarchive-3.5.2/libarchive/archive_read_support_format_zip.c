@@ -2898,7 +2898,20 @@ archive_read_format_zip_read_data(struct archive_read *a,
 		}
 		/* Size field only stores the lower 32 bits of the actual
 		 * size. */
-		if ((zip->entry->uncompressed_size & UINT32_MAX)
+		/*
+		 * Some streaming ZIP writers put zero in the local header for a
+		 * ZIP64 entry and defer the real size to the data descriptor.  This
+		 * libarchive version can misidentify that descriptor as the 32-bit
+		 * form once more than 4 GiB has been read, leaving the expected size
+		 * at zero.  Allow only that ambiguous value so the CRC check below
+		 * still validates the complete entry.
+		 */
+		const int ambiguous_streamed_zip64_size =
+		    (zip->entry->zip_flags & ZIP_LENGTH_AT_END) != 0
+		    && zip->entry->uncompressed_size == 0
+		    && zip->entry_uncompressed_bytes_read > UINT32_MAX;
+		if (!ambiguous_streamed_zip64_size
+		    && (zip->entry->uncompressed_size & UINT32_MAX)
 		    != (zip->entry_uncompressed_bytes_read & UINT32_MAX)) {
 			archive_set_error(&a->archive, ARCHIVE_ERRNO_MISC,
 			    "ZIP uncompressed data is wrong size "
