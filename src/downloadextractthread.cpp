@@ -159,6 +159,27 @@ static bool _isNestedImageArchive(const QString &filename)
            lower.endsWith(QStringLiteral(".zip"));
 }
 
+static bool _isZip64StreamingSizeWarning(struct archive *archive,
+                                         quint64 extractedBytes)
+{
+    // libarchive 3.5 cannot always distinguish the 32-bit and ZIP64 forms of
+    // a streamed data descriptor.  For entries larger than 4 GiB it can
+    // therefore report an expected size of zero after all data was read.
+    // Accept only that exact, internally consistent warning; every other
+    // archive error (including CRC errors) remains fatal.
+    if (extractedBytes <= static_cast<quint64>(UINT32_MAX))
+        return false;
+
+    const char *error = archive_error_string(archive);
+    if (!error)
+        return false;
+
+    const QString expected = QStringLiteral(
+        "ZIP uncompressed data is wrong size (read %1, expected 0)")
+        .arg(extractedBytes);
+    return QString::fromUtf8(error).trimmed() == expected;
+}
+
 // libarchive thread
 void DownloadExtractThread::extractImageRun()
 {
@@ -223,7 +244,15 @@ void DownloadExtractThread::extractImageRun()
         {
             ssize_t size = archive_read_data(imageArchive, _abuf[_activeBuf], _abufsize);
             if (size < 0)
+            {
+                if (_isZip64StreamingSizeWarning(imageArchive, extractedBytes))
+                {
+                    qWarning() << "Ignoring known libarchive 3.5 streamed ZIP64 size warning for"
+                               << extractedBytes << "bytes";
+                    break;
+                }
                 throw runtime_error(archive_error_string(imageArchive));
+            }
             if (size == 0)
                 break;
             extractedBytes += static_cast<quint64>(size);

@@ -51,9 +51,12 @@ public:
         resetCancellation();
         const bool physicalDrive = path.startsWith(QStringLiteral("\\\\.\\PHYSICALDRIVE"),
                                                    Qt::CaseInsensitive);
-        // Physical disks are shared for reads so Windows storage services can keep
-        // their existing handles, while FILE_SHARE_WRITE still remains denied.
-        const DWORD sharing = exclusive ? (physicalDrive ? FILE_SHARE_READ : 0)
+        // Windows storage services and security scanners commonly retain handles
+        // that request read/write sharing even after every mounted volume has been
+        // locked and dismounted.  Permit both share modes for the physical disk;
+        // WindowsDiskPreparation has already locked, dismounted, and cleared the
+        // selected disk before this handle is opened.
+        const DWORD sharing = exclusive ? (physicalDrive ? FILE_SHARE_READ | FILE_SHARE_WRITE : 0)
                                         : FILE_SHARE_READ | FILE_SHARE_WRITE;
         const int attempts = physicalDrive ? 20 : 1;
         FileError result = FileError::IoError;
