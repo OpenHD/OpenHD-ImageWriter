@@ -593,9 +593,12 @@ Rectangle {
             if (fleetControlSignedIn)
                 refreshGithubDevImages()
         }
-        onFatMountUnavailable: {
-            fatReconnectPopup.text = qsTr("Windows could not mount the FAT partition.<br><br>Unplug and reconnect the device, wait for rpiboot to expose it again, then click <b>Rescan</b>.<br><br>%1").arg(msg)
-            fatReconnectPopup.openPopup()
+        Connections {
+            target: imageWriter
+            onFatMountUnavailable: {
+                fatReconnectPopup.text = qsTr("Windows could not mount the FAT partition.<br><br>Unplug and reconnect the device, wait for rpiboot to expose it again, then click <b>Rescan</b>.<br><br>%1").arg(msg)
+                fatReconnectPopup.openPopup()
+            }
         }
 
         onFleetControlSignedInChanged: {
