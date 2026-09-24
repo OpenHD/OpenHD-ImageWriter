@@ -962,7 +962,6 @@ ImButton {
                                     Layout.fillWidth: true
                                     placeholderText: qsTr("No Mapbox access token configured")
                                     text: mapboxApiKey
-                                    echoMode: TextInput.Password
                                     selectByMouse: true
                                     onEditingFinished: mapboxApiKey = text.trim()
                                 }
