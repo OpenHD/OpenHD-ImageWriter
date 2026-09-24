@@ -59,6 +59,7 @@ Rectangle {
     property bool useSettings: true
     property string qopenhdConfPath: ""
     property bool qopenhdConfPresent: false
+    property string mapboxApiKey: ""
     property string premiumCertificatePath: ""
     property bool premiumCertificatePresent: false
     property bool returnHomeAfterPopupClose: false
@@ -67,6 +68,7 @@ Rectangle {
 
     Component.onCompleted: {
         qopenhdConfPath = normalizeLocalFilePath(imageWriter.getValue("qopenhdConfPath"))
+        mapboxApiKey = imageWriter.getValue("mapboxApiKey")
         premiumCertificatePath = normalizeLocalFilePath(imageWriter.getValue("premiumCertificatePath"))
         language = imageWriter.getValue("language")
         token = imageWriter.getValue("token")
@@ -201,16 +203,53 @@ ImButton {
                     columnSpacing: 16
                     rowSpacing: 16
 
-                    ActionCard {
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        text: qsTr("Language")
-                        eyebrow: qsTr("Application")
-                        description: qsTr("Change the language of OpenHD ImageWriter.")
-                        actionText: qsTr("Choose language")
-                        iconSource: "icons/ui/language.svg"
-                        onClicked: {
-                            if (mainWindow && mainWindow.openLanguagePage)
-                                mainWindow.openLanguagePage()
+                        spacing: 12
+
+                        ActionCard {
+                            Layout.fillWidth: true
+                            text: qsTr("Language")
+                            eyebrow: qsTr("Application")
+                            description: qsTr("Change the language of OpenHD ImageWriter.")
+                            actionText: qsTr("Choose language")
+                            iconSource: "icons/ui/language.svg"
+                            onClicked: {
+                                if (mainWindow && mainWindow.openLanguagePage)
+                                    mainWindow.openLanguagePage()
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: internalDriveColumn.implicitHeight + 28
+                            radius: 10
+                            color: "#152130"
+                            border.color: "#1e3347"
+
+                            ColumnLayout {
+                                id: internalDriveColumn
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.leftMargin: 18
+                                anchors.rightMargin: 18
+                                spacing: 6
+
+                                ImCheckBox {
+                                    text: qsTr("Show internal storage devices")
+                                    checked: driveListModel.showInternalDrives
+                                    onClicked: driveListModel.showInternalDrives = checked
+                                }
+
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: qsTr("Disabled by default to protect internal disks. Enable only when the target is built into this computer.")
+                                    color: "#9db0bb"
+                                    wrapMode: Text.WordWrap
+                                    font.pixelSize: 11
+                                }
+                            }
                         }
                     }
 
@@ -911,6 +950,30 @@ ImButton {
                                 }
                             }
                         }
+
+                        SettingsSection {
+                            title: qsTr("Mapbox access token")
+                            Layout.fillWidth: true
+
+                            ColumnLayout {
+                                spacing: 8
+
+                                TextField {
+                                    Layout.fillWidth: true
+                                    placeholderText: qsTr("No Mapbox access token configured")
+                                    text: mapboxApiKey
+                                    echoMode: TextInput.Password
+                                    selectByMouse: true
+                                    onEditingFinished: mapboxApiKey = text.trim()
+                                }
+
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: qsTr("SysUtils imports this token into QOpenHD when the device boots.")
+                                    wrapMode: Text.WordWrap
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -1019,6 +1082,7 @@ ImButton {
         target.beep = beep === true || beep === "true"
         target.eject = eject === true || eject === "true"
         target.qopenhdConfPath = qopenhdConfPath
+        target.mapboxApiKey = mapboxApiKey
         target.premiumCertificatePath = premiumCertificatePath
     }
 
@@ -1046,6 +1110,7 @@ ImButton {
         beep = source.beep
         eject = source.eject
         qopenhdConfPath = source.qopenhdConfPath
+        mapboxApiKey = source.mapboxApiKey
         premiumCertificatePath = source.premiumCertificatePath
     }
 
@@ -1367,6 +1432,7 @@ ImButton {
         displayHeight = 1080
         displayRefreshHz = 60
         mode = ""
+        mapboxApiKey = ""
         qopenhdConfPresent = false
         premiumCertificatePresent = false
 
@@ -1464,6 +1530,10 @@ ImButton {
             token = imageWriter.getValue("token")
         }
 
+        if (settingsObj.mapbox_api_key !== undefined && settingsObj.mapbox_api_key !== null) {
+            mapboxApiKey = settingsObj.mapbox_api_key.toString()
+        }
+
         qopenhdConfPresent = imageWriter.fileExists(drivePath(qopenhdConfRelativePath()))
         premiumCertificatePresent = imageWriter.fileExists(drivePath(premiumCertificateRelativePath()))
 
@@ -1547,6 +1617,8 @@ ImButton {
 
         settingsObj.language = language ? language : ""
         settingsObj.token = token ? token : ""
+        if (mapboxApiKey.trim().length > 0)
+            settingsObj.mapbox_api_key = mapboxApiKey.trim()
 
         var jsonString = JSON.stringify(settingsObj, null, 4)
         if (imageWriter.writeTextFile(drivePath("settings.json"), jsonString)) {
@@ -1617,6 +1689,7 @@ ImButton {
         imageWriter.setSetting("displayRefreshHz", displayRefreshHz)
         imageWriter.setSetting("mode", mode)
         imageWriter.setSetting("qopenhdConfPath", qopenhdConfPath)
+        imageWriter.setSetting("mapboxApiKey", mapboxApiKey.trim())
         imageWriter.setSetting("premiumCertificatePath", premiumCertificatePath)
         imageWriter.setSetting("language", language)
         imageWriter.setSetting("token", token)

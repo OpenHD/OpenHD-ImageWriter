@@ -18,6 +18,23 @@
 #include <algorithm>
 #include <vector>
 
+#ifndef IOCTL_DISK_SET_DISK_ATTRIBUTES
+#define IOCTL_DISK_SET_DISK_ATTRIBUTES \
+    CTL_CODE(IOCTL_DISK_BASE, 0x003d, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
+#define DISK_ATTRIBUTE_OFFLINE 0x0000000000000001ULL
+#define DISK_ATTRIBUTE_READ_ONLY 0x0000000000000002ULL
+typedef struct _OPENHD_SET_DISK_ATTRIBUTES {
+    DWORD Version;
+    BOOLEAN Persist;
+    BYTE Reserved1[3];
+    DWORDLONG Attributes;
+    DWORDLONG AttributesMask;
+    DWORD Reserved2[4];
+} OPENHD_SET_DISK_ATTRIBUTES;
+#else
+typedef SET_DISK_ATTRIBUTES OPENHD_SET_DISK_ATTRIBUTES;
+#endif
+
 namespace WindowsDiskPreparation {
 namespace {
 
@@ -245,6 +262,16 @@ bool rescanDisk(const QString &physicalDrive, QString *error)
         return false;
     }
     DWORD returned = 0;
+    // USB-booted Compute Modules are presented as fixed disks. Windows can
+    // leave such a disk offline or read-only after its partition table is
+    // replaced, which prevents the newly written FAT partition from mounting.
+    OPENHD_SET_DISK_ATTRIBUTES attributes = {};
+    attributes.Version = sizeof(attributes);
+    attributes.Persist = FALSE;
+    attributes.Attributes = 0;
+    attributes.AttributesMask = DISK_ATTRIBUTE_OFFLINE | DISK_ATTRIBUTE_READ_ONLY;
+    DeviceIoControl(handle, IOCTL_DISK_SET_DISK_ATTRIBUTES,
+                    &attributes, sizeof(attributes), nullptr, 0, &returned, nullptr);
     const bool success = DeviceIoControl(handle, IOCTL_DISK_UPDATE_PROPERTIES,
                                          nullptr, 0, nullptr, 0, &returned, nullptr);
     const DWORD code = success ? ERROR_SUCCESS : GetLastError();
@@ -271,6 +298,10 @@ QString ensureDriveLetter(const QString &physicalDrive, int timeoutMs, QString *
     timer.start();
     do
     {
+        // Some USB mass-storage gadgets enumerate their partitions several
+        // seconds after the raw disk write has completed.
+        QString ignoredError;
+        (void)rescanDisk(physicalDrive, &ignoredError);
         std::wstring fallbackVolume;
         wchar_t volumeName[MAX_PATH] = {};
         HANDLE search = FindFirstVolumeW(volumeName, MAX_PATH);
@@ -309,7 +340,7 @@ QString ensureDriveLetter(const QString &physicalDrive, int timeoutMs, QString *
     }
     while (timer.elapsed() < timeoutMs);
 
-    if (error) *error = QStringLiteral("Windows did not expose a mountable FAT volume");
+    if (error) *error = QStringLiteral("Windows did not expose a mountable FAT volume after refreshing the device");
     return {};
 }
 

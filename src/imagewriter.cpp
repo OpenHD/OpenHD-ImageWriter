@@ -14,6 +14,8 @@
 #include "downloadstatstelemetry.h"
 #include "updateuploadthread.h"
 #include "rockchipflashthread.h"
+#include "rockchipdevice.h"
+#include "nxpflashthread.h"
 #include <archive.h>
 #include <archive_entry.h>
 #include <random>
@@ -74,7 +76,10 @@
 ImageWriter::ImageWriter(QObject *parent)
     : QObject(parent), _repo(QUrl(QString(OSLIST_URL))), _dlnow(0), _writenow(0), _verifynow(0),
       _engine(nullptr), _thread(nullptr), _updateThread(nullptr), _rockchipThread(nullptr),
-      _rpiBootProcess(nullptr), _rpiBootCancelled(false),
+      _nxpFlashThread(nullptr),
+      _rpiBootProcess(nullptr), _orqaSshProcess(nullptr),
+      _rpiBootCancelled(false),
+      _orqaBoardReachable(false), _orqaBootloaderReady(false), _nxpFlashPending(false),
       _verifyEnabled(false), _cachingEnabled(false),
       _embeddedMode(false), _online(false), _trans(nullptr)
 {
@@ -222,6 +227,11 @@ ImageWriter::ImageWriter(QObject *parent)
 
 ImageWriter::~ImageWriter()
 {
+    if (_orqaSshProcess)
+    {
+        _orqaSshProcess->kill();
+        _orqaSshProcess->waitForFinished(2000);
+    }
     if (_rpiBootProcess)
     {
         _rpiBootProcess->kill();
@@ -238,6 +248,12 @@ ImageWriter::~ImageWriter()
         _rockchipThread->cancel();
         _rockchipThread->wait();
         delete _rockchipThread;
+    }
+    if (_nxpFlashThread)
+    {
+        _nxpFlashThread->cancel();
+        _nxpFlashThread->wait();
+        delete _nxpFlashThread;
     }
     if (_trans)
     {
@@ -385,6 +401,24 @@ void ImageWriter::startWrite()
     if (!readyToWrite())
         return;
 
+    if (_dst.startsWith(QStringLiteral("nxpusb:")))
+    {
+        _nxpFlashPending = true;
+        if (_orqaBootloaderReady)
+            startNxpFlashThread();
+        else if (_orqaBoardReachable)
+        {
+            emit preparationStatusUpdate(tr("Rebooting the ORQA/NXP board into USB bootloader mode..."));
+            rebootOrqaToBootloader();
+        }
+        else
+        {
+            _nxpFlashPending = false;
+            onError(tr("The ORQA/NXP board is no longer connected. Return to target selection and refresh."));
+        }
+        return;
+    }
+
     if (_dst.startsWith(QStringLiteral("rockusb:")) || _dst.contains(QStringLiteral("rockusb")))
     {
         if (_rockchipThread)
@@ -488,6 +522,9 @@ void ImageWriter::startWrite()
     connect(_thread, SIGNAL(error(QString)), SLOT(onError(QString)));
     connect(_thread, SIGNAL(finalizing()), SLOT(onFinalizing()));
     connect(_thread, SIGNAL(preparationStatusUpdate(QString)), SLOT(onPreparationStatusUpdate(QString)));
+    connect(_thread, &DownloadThread::fatMountUnavailable, this, [this](const QString &msg) {
+        emit fatMountUnavailable(msg);
+    });
     _thread->setVerifyEnabled(_verifyEnabled);
     _thread->setUserAgent(QString("Mozilla/5.0 rpi-imager/%1").arg(constantVersion()).toUtf8());
 
@@ -558,6 +595,15 @@ void ImageWriter::onCacheFileUpdated(QByteArray sha256)
 /* Cancel write */
 void ImageWriter::cancelWrite()
 {
+    if (_nxpFlashThread)
+    {
+        _nxpFlashThread->cancel();
+        _nxpFlashThread->wait();
+        delete _nxpFlashThread;
+        _nxpFlashThread = nullptr;
+        emit cancelled();
+        return;
+    }
     if (_rockchipThread)
     {
         _rockchipThread->cancel();
@@ -1429,6 +1475,12 @@ QString ImageWriter::getValue(const QString &key)
     return _settings.value(key).toString();
 }
 
+void ImageWriter::retryFatMount()
+{
+    if (_thread && _thread->isRunning())
+        _thread->retryFatMount();
+}
+
 void ImageWriter::setSetting(const QString &key, const QVariant &value)
 {
     if (_settings.contains(key) && _settings.value(key) == value)
@@ -1618,6 +1670,236 @@ void ImageWriter::cancelRpiBoot()
         return;
     _rpiBootCancelled = true;
     _rpiBootProcess->kill();
+}
+
+QString ImageWriter::findSshExecutable() const
+{
+    const QString applicationDirectory = QCoreApplication::applicationDirPath();
+    QStringList candidates;
+#ifdef Q_OS_WIN
+    candidates << QDir(applicationDirectory).filePath(QStringLiteral("ssh.exe"));
+    const QString windowsDirectory = qEnvironmentVariable("WINDIR", QStringLiteral("C:/Windows"));
+    // A 32-bit ImageWriter cannot see the native 64-bit OpenSSH client via
+    // System32 because WOW64 redirects it. Sysnative is the supported escape.
+    candidates << QDir(windowsDirectory).filePath(QStringLiteral("Sysnative/OpenSSH/ssh.exe"))
+               << QDir(windowsDirectory).filePath(QStringLiteral("System32/OpenSSH/ssh.exe"));
+#else
+    candidates << QDir(applicationDirectory).filePath(QStringLiteral("ssh"));
+#endif
+    const QString fromPath = QStandardPaths::findExecutable(QStringLiteral("ssh"));
+    if (!fromPath.isEmpty())
+        candidates << fromPath;
+
+    for (const QString &candidate : candidates)
+    {
+        const QFileInfo info(candidate);
+        if (info.exists() && info.isFile() && info.isExecutable())
+            return info.absoluteFilePath();
+    }
+    return QString();
+}
+
+bool ImageWriter::orqaSshAvailable() const
+{
+    return !findSshExecutable().isEmpty();
+}
+
+bool ImageWriter::nxpUuuAvailable() const
+{
+    return !NxpFlashThread::findUuuExecutable().isEmpty();
+}
+
+bool ImageWriter::orqaSshBusy() const
+{
+    return _orqaSshProcess != nullptr;
+}
+
+void ImageWriter::setOrqaSshMessage(const QString &message)
+{
+    if (_orqaSshMessage == message)
+        return;
+    _orqaSshMessage = message;
+    emit orqaSshMessageChanged();
+}
+
+void ImageWriter::scanForOrqaBoard()
+{
+    if (orqaSshBusy())
+        return;
+    const bool found = isNxpBootloaderDevicePresent();
+    if (_orqaBootloaderReady != found)
+    {
+        _orqaBootloaderReady = found;
+        emit orqaBootloaderReadyChanged();
+    }
+    if (found)
+    {
+        if (_orqaBoardReachable)
+        {
+            _orqaBoardReachable = false;
+            emit orqaBoardReachableChanged();
+        }
+        setOrqaSshMessage(tr("ORQA/NXP board found in USB bootloader mode."));
+        return;
+    }
+    startOrqaSshOperation(false);
+}
+
+void ImageWriter::rebootOrqaToBootloader()
+{
+    startOrqaSshOperation(true);
+}
+
+void ImageWriter::startOrqaSshOperation(bool rebootToBootloader)
+{
+    if (orqaSshBusy())
+        return;
+
+    const QString executable = findSshExecutable();
+    if (executable.isEmpty())
+    {
+        const QString message = tr("SSH is not installed. Install an OpenSSH client to discover and prepare ORQA/NXP boards.");
+        setOrqaSshMessage(message);
+        emit orqaSshError(message);
+        return;
+    }
+
+    const QString appDataDirectory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir().mkpath(appDataDirectory);
+    const QString knownHostsFile = QDir(appDataDirectory).filePath(QStringLiteral("orqa_known_hosts"));
+    const QString remoteCommand = rebootToBootloader
+            ? QStringLiteral("fw_setenv bootcmd 'fastboot 0' && fw_printenv bootcmd && sync && echo OPENHD_BOOTLOADER_ARMED && systemctl reboot")
+            : QStringLiteral("echo OPENHD_ORQA_READY && cat /etc/hostname 2>/dev/null");
+
+    QStringList arguments;
+    arguments << QStringLiteral("-o") << QStringLiteral("BatchMode=yes")
+              << QStringLiteral("-o") << QStringLiteral("ConnectTimeout=3")
+              << QStringLiteral("-o") << QStringLiteral("ConnectionAttempts=1")
+              // Reflashing replaces the board's SSH host key. This is a
+              // dedicated USB-network endpoint and a dedicated known-hosts
+              // file, so stale keys must not block recovery.
+              << QStringLiteral("-o") << QStringLiteral("StrictHostKeyChecking=no")
+              << QStringLiteral("-o") << QStringLiteral("UserKnownHostsFile=%1").arg(knownHostsFile)
+              << QStringLiteral("root@192.168.75.1") << remoteCommand;
+
+    _orqaSshProcess = new QProcess(this);
+    QProcess *process = _orqaSshProcess;
+    process->setProcessChannelMode(QProcess::MergedChannels);
+    process->setProperty("orqaReboot", rebootToBootloader);
+    emit orqaSshBusyChanged();
+    const QString startingMessage = rebootToBootloader
+            ? tr("Preparing the ORQA/NXP board for USB bootloader mode...")
+            : tr("Searching for an ORQA/NXP board at 192.168.75.1...");
+    setOrqaSshMessage(startingMessage);
+    emit orqaSshStatus(startingMessage);
+
+    connect(process, &QProcess::errorOccurred, this, [this, process](QProcess::ProcessError error) {
+        if (error != QProcess::FailedToStart || process != _orqaSshProcess)
+            return;
+        _orqaSshProcess = nullptr;
+        emit orqaSshBusyChanged();
+        const QString message = tr("Could not start SSH: %1").arg(process->errorString());
+        setOrqaSshMessage(message);
+        emit orqaSshError(message);
+        process->deleteLater();
+    });
+    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [this, process](int exitCode, QProcess::ExitStatus exitStatus) {
+        if (process != _orqaSshProcess)
+            return;
+        const bool reboot = process->property("orqaReboot").toBool();
+        const QString output = QString::fromLocal8Bit(process->readAll()).trimmed();
+        const bool probeSucceeded = output.contains(QStringLiteral("OPENHD_ORQA_READY"));
+        const bool rebootArmed = output.contains(QStringLiteral("OPENHD_BOOTLOADER_ARMED")) &&
+                                 output.contains(QStringLiteral("bootcmd=fastboot 0"));
+        _orqaSshProcess = nullptr;
+        emit orqaSshBusyChanged();
+        process->deleteLater();
+
+        if (reboot && rebootArmed)
+        {
+            if (_orqaBoardReachable)
+            {
+                _orqaBoardReachable = false;
+                emit orqaBoardReachableChanged();
+            }
+            if (!_orqaBootloaderReady)
+            {
+                _orqaBootloaderReady = true;
+                emit orqaBootloaderReadyChanged();
+            }
+            const QString message = tr("Bootloader command sent. Waiting for the NXP USB download gadget...");
+            setOrqaSshMessage(message);
+            emit orqaSshStatus(message);
+            emit orqaBootloaderRebootSent();
+            if (_nxpFlashPending)
+                startNxpFlashThread();
+            return;
+        }
+        if (!reboot && probeSucceeded && exitStatus == QProcess::NormalExit && exitCode == 0)
+        {
+            if (_orqaBootloaderReady)
+            {
+                _orqaBootloaderReady = false;
+                emit orqaBootloaderReadyChanged();
+            }
+            if (!_orqaBoardReachable)
+            {
+                _orqaBoardReachable = true;
+                emit orqaBoardReachableChanged();
+            }
+            const QString message = tr("ORQA/NXP board found at 192.168.75.1.");
+            setOrqaSshMessage(message);
+            emit orqaSshStatus(message);
+            return;
+        }
+
+        if (_orqaBoardReachable)
+        {
+            _orqaBoardReachable = false;
+            emit orqaBoardReachableChanged();
+        }
+        const QString detail = output.section(QLatin1Char('\n'), -1).trimmed();
+        const QString message = reboot
+                ? tr("Could not reboot the ORQA/NXP board into bootloader mode.%1")
+                  .arg(detail.isEmpty() ? QString() : QStringLiteral(" ") + detail)
+                : tr("No passwordless ORQA/NXP SSH board was found at 192.168.75.1.%1")
+                  .arg(detail.isEmpty() ? QString() : QStringLiteral(" ") + detail);
+        setOrqaSshMessage(message);
+        emit orqaSshError(message);
+        if (reboot && _nxpFlashPending)
+        {
+            _nxpFlashPending = false;
+            onError(message);
+        }
+    });
+
+    process->start(executable, arguments);
+    QTimer::singleShot(rebootToBootloader ? 12000 : 7000, process, [process]() {
+        if (process->state() != QProcess::NotRunning)
+            process->kill();
+    });
+}
+
+void ImageWriter::startNxpFlashThread()
+{
+    _nxpFlashPending = false;
+    if (_nxpFlashThread)
+    {
+        _nxpFlashThread->cancel();
+        _nxpFlashThread->wait();
+        delete _nxpFlashThread;
+    }
+    _nxpFlashThread = new NxpFlashThread(_src, this);
+    connect(_nxpFlashThread, &NxpFlashThread::writeProgress, this, &ImageWriter::writeProgress);
+    connect(_nxpFlashThread, &NxpFlashThread::preparationStatusUpdate,
+            this, &ImageWriter::preparationStatusUpdate);
+    connect(_nxpFlashThread, &NxpFlashThread::finalizing, this, &ImageWriter::onFinalizing);
+    connect(_nxpFlashThread, &NxpFlashThread::success, this, &ImageWriter::onSuccess);
+    connect(_nxpFlashThread, &NxpFlashThread::error, this, [this](QVariant message) {
+        onError(message.toString());
+    });
+    _nxpFlashThread->start(QThread::LowPriority);
 }
 
 QString ImageWriter::stageFleetControlQOpenHDConfig(const QString &profileId,

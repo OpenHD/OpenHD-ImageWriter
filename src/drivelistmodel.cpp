@@ -9,9 +9,11 @@
 #include "drivelist/drivelist.h"
 #include <QSet>
 #include <QDebug>
+#include <QSettings>
 
 DriveListModel::DriveListModel(QObject *parent)
-    : QAbstractListModel(parent)
+    : QAbstractListModel(parent),
+      _showInternalDrives(QSettings().value("showInternalDrives", false).toBool())
 {
     _rolenames = {
         {deviceRole, "device"},
@@ -32,6 +34,21 @@ DriveListModel::DriveListModel(QObject *parent)
     // Enumerate drives in seperate thread, but process results in UI thread
     connect(&_thread, SIGNAL(newDriveList(std::vector<Drivelist::DeviceDescriptor>)), SLOT(processDriveList(std::vector<Drivelist::DeviceDescriptor>)));
     connect(&_thread, SIGNAL(newRockchipDeviceList(std::vector<RockchipDeviceDescriptor>)), SLOT(processRockchipDeviceList(std::vector<RockchipDeviceDescriptor>)));
+}
+
+bool DriveListModel::showInternalDrives() const
+{
+    return _showInternalDrives;
+}
+
+void DriveListModel::setShowInternalDrives(bool show)
+{
+    if (_showInternalDrives == show)
+        return;
+    _showInternalDrives = show;
+    QSettings().setValue("showInternalDrives", show);
+    emit showInternalDrivesChanged();
+    processDriveList(_lastDriveList);
 }
 
 int DriveListModel::rowCount(const QModelIndex &) const
@@ -67,8 +84,9 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
         return;
     }
 
+    _lastDriveList = l;
     bool changes = false;
-    bool filterSystemDrives = DRIVELIST_FILTER_SYSTEM_DRIVES;
+    const bool filterSystemDrives = DRIVELIST_FILTER_SYSTEM_DRIVES && !_showInternalDrives;
     QSet<QString> drivesInNewList;
 
     for (auto &i: l)

@@ -8,6 +8,7 @@ Item {
     property var deviceModel: null
     property string title: qsTr("Choose a target")
     property string subtitle: qsTr("Select the device that should receive the image.")
+    property bool showOrqaBootloader: false
     readonly property bool narrow: width < 720
 
     signal deviceSelected(var device)
@@ -47,6 +48,25 @@ Item {
             }
         }
 
+        SelectionRow {
+            Layout.fillWidth: true
+            visible: root.showOrqaBootloader &&
+                     (imageWriter.orqaBoardReachable || imageWriter.orqaBootloaderReady)
+            compact: root.narrow
+            title: qsTr("ORQA / NXP board")
+            description: imageWriter.orqaBootloaderReady
+                         ? qsTr("USB bootloader mode  •  ready for UUU flashing")
+                         : qsTr("Connected at 192.168.75.1  •  will enter bootloader automatically")
+            iconSource: "../icons/ui/device.svg"
+            onClicked: root.deviceSelected({
+                "device": "nxpusb://orqa-imx8mp",
+                "description": qsTr("ORQA / NXP board"),
+                "size": 0,
+                "isReadOnly": false,
+                "isUsb": true
+            })
+        }
+
         ListView {
             id: deviceList
             Layout.fillWidth: true
@@ -83,7 +103,9 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 104
-            visible: deviceList.count === 0
+            visible: deviceList.count === 0 &&
+                     !(root.showOrqaBootloader &&
+                       (imageWriter.orqaBoardReachable || imageWriter.orqaBootloaderReady))
             radius: 8
             color: "#152130"
             border.color: "#263a4d"

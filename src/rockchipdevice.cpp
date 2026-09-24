@@ -159,6 +159,64 @@ std::vector<RockchipDeviceDescriptor> listRockchipUsbDevices()
     return result;
 }
 
+bool isNxpBootloaderDevicePresent()
+{
+    HDEVINFO deviceInfo = SetupDiGetClassDevsW(&GUID_DEVINTERFACE_USB_HUB, nullptr, nullptr,
+                                               DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+    if (deviceInfo == INVALID_HANDLE_VALUE)
+        return false;
+    bool found = false;
+    for (DWORD index = 0; !found; ++index)
+    {
+        SP_DEVICE_INTERFACE_DATA interfaceData = {};
+        interfaceData.cbSize = sizeof(interfaceData);
+        if (!SetupDiEnumDeviceInterfaces(deviceInfo, nullptr, &GUID_DEVINTERFACE_USB_HUB,
+                                         index, &interfaceData))
+            break;
+        DWORD requiredSize = 0;
+        SetupDiGetDeviceInterfaceDetailW(deviceInfo, &interfaceData, nullptr, 0,
+                                         &requiredSize, nullptr);
+        if (!requiredSize)
+            continue;
+        std::vector<unsigned char> detailBuffer(requiredSize);
+        auto detail = reinterpret_cast<SP_DEVICE_INTERFACE_DETAIL_DATA_W *>(detailBuffer.data());
+        detail->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W);
+        if (!SetupDiGetDeviceInterfaceDetailW(deviceInfo, &interfaceData, detail, requiredSize,
+                                              nullptr, nullptr))
+            continue;
+        HANDLE hub = CreateFileW(detail->DevicePath, GENERIC_WRITE, FILE_SHARE_WRITE,
+                                 nullptr, OPEN_EXISTING, 0, nullptr);
+        if (hub == INVALID_HANDLE_VALUE)
+            continue;
+        USB_NODE_INFORMATION node = {};
+        node.NodeType = UsbHub;
+        DWORD bytesReturned = 0;
+        if (DeviceIoControl(hub, IOCTL_USB_GET_NODE_INFORMATION, &node, sizeof(node),
+                            &node, sizeof(node), &bytesReturned, nullptr))
+        {
+            for (ULONG port = 1; port <= node.u.HubInformation.HubDescriptor.bNumberOfPorts; ++port)
+            {
+                std::vector<unsigned char> buffer(4096);
+                auto connection = reinterpret_cast<PUSB_NODE_CONNECTION_INFORMATION_EX>(buffer.data());
+                connection->ConnectionIndex = port;
+                if (DeviceIoControl(hub, IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX,
+                                    connection, buffer.size(), connection, buffer.size(),
+                                    &bytesReturned, nullptr) &&
+                    connection->ConnectionStatus == DeviceConnected &&
+                    connection->DeviceDescriptor.idVendor == 0x35b6 &&
+                    connection->DeviceDescriptor.idProduct == 0x0210)
+                {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        CloseHandle(hub);
+    }
+    SetupDiDestroyDeviceInfoList(deviceInfo);
+    return found;
+}
+
 #elif defined(Q_OS_MACOS)
 
 #include <CoreFoundation/CoreFoundation.h>
@@ -243,6 +301,28 @@ std::vector<RockchipDeviceDescriptor> listRockchipUsbDevices()
     return result;
 }
 
+bool isNxpBootloaderDevicePresent()
+{
+    io_iterator_t iterator = IO_OBJECT_NULL;
+    CFMutableDictionaryRef matching = IOServiceMatching("IOUSBHostDevice");
+    if (!matching || IOServiceGetMatchingServices(kIOMasterPortDefault, matching,
+                                                   &iterator) != KERN_SUCCESS)
+        return false;
+    bool found = false;
+    io_service_t service = IO_OBJECT_NULL;
+    while (!found && (service = IOIteratorNext(iterator)) != IO_OBJECT_NULL)
+    {
+        quint32 vendor = 0;
+        quint32 product = 0;
+        found = readRegistryNumber(service, CFSTR("idVendor"), vendor) &&
+                readRegistryNumber(service, CFSTR("idProduct"), product) &&
+                vendor == 0x35b6 && product == 0x0210;
+        IOObjectRelease(service);
+    }
+    IOObjectRelease(iterator);
+    return found;
+}
+
 #elif defined(Q_OS_LINUX)
 
 #include <QDir>
@@ -283,11 +363,32 @@ std::vector<RockchipDeviceDescriptor> listRockchipUsbDevices()
     return result;
 }
 
+bool isNxpBootloaderDevicePresent()
+{
+    QDir usbDevices(QStringLiteral("/sys/bus/usb/devices"));
+    const QFileInfoList entries = usbDevices.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
+    for (const QFileInfo &entry : entries)
+    {
+        quint16 vendor = 0;
+        quint16 product = 0;
+        if (readUsbHexValue(entry.filePath() + QStringLiteral("/idVendor"), vendor) &&
+            readUsbHexValue(entry.filePath() + QStringLiteral("/idProduct"), product) &&
+            vendor == 0x35b6 && product == 0x0210)
+            return true;
+    }
+    return false;
+}
+
 #else
 
 std::vector<RockchipDeviceDescriptor> listRockchipUsbDevices()
 {
     return {};
+}
+
+bool isNxpBootloaderDevicePresent()
+{
+    return false;
 }
 
 #endif

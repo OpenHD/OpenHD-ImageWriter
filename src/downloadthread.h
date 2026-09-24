@@ -10,6 +10,8 @@
 #include <QThread>
 #include <QFile>
 #include <QElapsedTimer>
+#include <QMutex>
+#include <QWaitCondition>
 #include <fstream>
 #include <atomic>
 #include <time.h>
@@ -113,6 +115,7 @@ public:
     uint64_t bytesWritten();
     bool deviceOperationActive() const;
     void requestWriteRecovery();
+    void retryFatMount();
 
     virtual bool isImage();
     size_t _writeFile(const char *buf, size_t len);
@@ -123,6 +126,7 @@ signals:
     void cacheFileUpdated(QByteArray sha256);
     void finalizing();
     void preparationStatusUpdate(QString msg);
+    void fatMountUnavailable(QString msg);
 
 protected:
     virtual void run();
@@ -167,6 +171,9 @@ protected:
     std::atomic<bool> _cancelled;
     std::atomic<bool> _deviceOperationActive;
     std::atomic<bool> _watchdogRecoveryRequested;
+    QMutex _fatMountRetryMutex;
+    QWaitCondition _fatMountRetryCondition;
+    bool _fatMountRetryRequested = false;
     bool _successful, _verifyEnabled, _cacheEnabled, _ejectEnabled;
     time_t _lastModified, _serverTime, _lastFailureTime;
     QElapsedTimer _timer;

@@ -20,6 +20,7 @@ class QQmlApplicationEngine;
 class DownloadThread;
 class UpdateUploadThread;
 class RockchipFlashThread;
+class NxpFlashThread;
 class QNetworkReply;
 class QProcess;
 class QWinTaskbarButton;
@@ -29,6 +30,10 @@ class ImageWriter : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool rpiBootRunning READ rpiBootRunning NOTIFY rpiBootRunningChanged)
+    Q_PROPERTY(bool orqaBoardReachable READ orqaBoardReachable NOTIFY orqaBoardReachableChanged)
+    Q_PROPERTY(bool orqaSshBusy READ orqaSshBusy NOTIFY orqaSshBusyChanged)
+    Q_PROPERTY(QString orqaSshMessage READ orqaSshMessage NOTIFY orqaSshMessageChanged)
+    Q_PROPERTY(bool orqaBootloaderReady READ orqaBootloaderReady NOTIFY orqaBootloaderReadyChanged)
 public:
     explicit ImageWriter(QObject *parent = nullptr);
     virtual ~ImageWriter();
@@ -52,6 +57,17 @@ public:
     Q_INVOKABLE void startRpiBoot();
     Q_INVOKABLE void cancelRpiBoot();
 
+    /* Discover an ORQA/NXP board over its USB-network SSH endpoint and ask
+       U-Boot to enter the NXP download gadget on the next reboot. */
+    Q_INVOKABLE bool orqaSshAvailable() const;
+    Q_INVOKABLE bool orqaBoardReachable() const { return _orqaBoardReachable; }
+    Q_INVOKABLE bool orqaSshBusy() const;
+    Q_INVOKABLE QString orqaSshMessage() const { return _orqaSshMessage; }
+    Q_INVOKABLE void scanForOrqaBoard();
+    Q_INVOKABLE void rebootOrqaToBootloader();
+    Q_INVOKABLE bool nxpUuuAvailable() const;
+    Q_INVOKABLE bool orqaBootloaderReady() const { return _orqaBootloaderReady; }
+
     /* Enable/disable verification */
     Q_INVOKABLE void setVerifyEnabled(bool verify);
 
@@ -63,6 +79,7 @@ public:
 
     /* Cancel write */
     Q_INVOKABLE void cancelWrite();
+    Q_INVOKABLE void retryFatMount();
 
     /* Return true if url is in our local disk cache */
     Q_INVOKABLE bool isCached(const QUrl &url, const QByteArray &sha256);
@@ -175,12 +192,20 @@ signals:
     void rpiBootStatus(QVariant msg);
     void rpiBootSuccess();
     void rpiBootError(QVariant msg);
+    void orqaBoardReachableChanged();
+    void orqaSshBusyChanged();
+    void orqaSshMessageChanged();
+    void orqaSshStatus(QVariant msg);
+    void orqaSshError(QVariant msg);
+    void orqaBootloaderRebootSent();
+    void orqaBootloaderReadyChanged();
     void fileSelected(QVariant filename);
     void cancelled();
     void finalizing();
     void networkOnline();
     void cacheChanged();
     void preparationStatusUpdate(QVariant msg);
+    void fatMountUnavailable(QVariant msg);
     void updateUploadProgress(QVariant percentage);
     void updateUploadStatus(QVariant msg);
     void updateUploadError(QVariant msg);
@@ -219,8 +244,14 @@ protected:
     DownloadThread *_thread;
     UpdateUploadThread *_updateThread;
     RockchipFlashThread *_rockchipThread;
+    NxpFlashThread *_nxpFlashThread;
     QProcess *_rpiBootProcess;
+    QProcess *_orqaSshProcess;
     bool _rpiBootCancelled;
+    bool _orqaBoardReachable;
+    bool _orqaBootloaderReady;
+    bool _nxpFlashPending;
+    QString _orqaSshMessage;
     bool _verifyEnabled, _multipleFilesInZip, _cachingEnabled, _embeddedMode, _online;
     QSettings _settings;
     QMap<QString,QString> _translations;
@@ -231,6 +262,10 @@ protected:
 
     void _parseCompressedFile();
     QString findRpiBootExecutable() const;
+    QString findSshExecutable() const;
+    void startOrqaSshOperation(bool rebootToBootloader);
+    void setOrqaSshMessage(const QString &message);
+    void startNxpFlashThread();
 };
 
 #endif // IMAGEWRITER_H

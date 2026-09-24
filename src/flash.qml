@@ -36,8 +36,13 @@ Rectangle {
     property string fleetControlProfileName: ""
     property bool completionHandled: false
     property double selectedTargetSize: 0
+    property bool selectedTargetIsComputeModule: false
     property string selectedImagePlatform: ""
     readonly property bool selectedImageRequiresRockchip: selectedImagePlatform === "x21"
+    readonly property string selectedImageIdentity: (selectedImagePlatform + " " + osbutton.text).toLowerCase()
+    readonly property bool selectedImageUsesOrqaBootloader: selectedImageIdentity.indexOf("orqa") >= 0 ||
+                                                            selectedImageIdentity.indexOf("nxp") >= 0 ||
+                                                            selectedImageIdentity.indexOf("imx8") >= 0
     readonly property bool operationInProgress: progressBar.visible
 
     Connections {
@@ -587,6 +592,10 @@ Rectangle {
             // request here could race it and briefly save false before true.
             if (fleetControlSignedIn)
                 refreshGithubDevImages()
+        }
+        onFatMountUnavailable: {
+            fatReconnectPopup.text = qsTr("Windows could not mount the FAT partition.<br><br>Unplug and reconnect the device, wait for rpiboot to expose it again, then click <b>Rescan</b>.<br><br>%1").arg(msg)
+            fatReconnectPopup.openPopup()
         }
 
         onFleetControlSignedInChanged: {
@@ -1388,6 +1397,7 @@ Rectangle {
         enabled: visible
         z: 2
         deviceModel: driveListModel
+        showOrqaBootloader: selectedImageUsesOrqaBootloader
         title: qsTr("Choose a target device")
         subtitle: selectedImageRequiresRockchip
                   ? qsTr("Connect the OpenHD X21 by USB in MaskROM or Loader mode, then select it below.")
@@ -1403,6 +1413,12 @@ Rectangle {
         onRefreshRequested: {
             imageWriter.stopDriveListPolling()
             imageWriter.startDriveListPolling()
+            if (selectedImageUsesOrqaBootloader)
+                imageWriter.scanForOrqaBoard()
+        }
+        onVisibleChanged: {
+            if (visible && selectedImageUsesOrqaBootloader)
+                imageWriter.scanForOrqaBoard()
         }
     }
 
@@ -1938,6 +1954,18 @@ Rectangle {
         id: msgpopup
     }
     MsgPopup {
+        id: fatReconnectPopup
+        title: qsTr("FAT partition not available")
+        continueButton: false
+        rescanButton: true
+        noButton: true
+        noButtonText: qsTr("CANCEL")
+        showCloseIcon: false
+        closePolicy: Popup.NoAutoClose
+        onRescan: imageWriter.retryFatMount()
+        onNo: imageWriter.cancelWrite()
+    }
+    MsgPopup {
         id: quitpopup
         continueButton: false
         yesButton: true
@@ -2165,6 +2193,7 @@ Rectangle {
         imageWriter.setSetting("eject", "")
         imageWriter.setSetting("justUpdate", "")
         imageWriter.setSetting("qopenhdConfPath", "")
+        imageWriter.setSetting("mapboxApiKey", "")
         imageWriter.setSetting("premiumCertificatePath", "")
         imageWriter.setSetting("useSettings", true)
     }
@@ -2175,6 +2204,7 @@ Rectangle {
         imageWriter.setSrc("")
         imageWriter.setDst("")
         selectedTargetSize = 0
+        selectedTargetIsComputeModule = false
         selectedImagePlatform = ""
         osbutton.text = qsTr("CHOOSE OS")
         dstbutton.text = qsTr("CHOOSE STORAGE")
@@ -2230,7 +2260,12 @@ Rectangle {
         }
 
         msgpopup.title = qsTr("Image was written successfully!")
-        if (osbutton.text === qsTr("Erase"))
+        var isDirectFlashDevice = imageWriter.dst().indexOf("nxpusb:") === 0 ||
+                                  imageWriter.dst().indexOf("rockusb:") === 0 ||
+                                  selectedTargetIsComputeModule
+        if (isDirectFlashDevice)
+            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>!<br>You can now unplug the device from your PC.").arg(osbutton.text).arg(dstbutton.text)
+        else if (osbutton.text === qsTr("Erase"))
             msgpopup.text = qsTr("<b>%1</b> has been erased<br><br> You can now remove the SD card from the reader").arg(dstbutton.text)
         else if (imageWriter.isEmbeddedMode()) {
             //msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>").arg(osbutton.text).arg(dstbutton.text)
@@ -2523,6 +2558,10 @@ Rectangle {
         imageWriter.setDst(d.device, d.size)
         selectedTargetSize = Number(d.size) || 0
         dstbutton.text = d.description
+        var targetIdentity = (String(d.description || "") + " " + String(d.device || "")).toLowerCase()
+        selectedTargetIsComputeModule = targetIdentity.indexOf("compute module") >= 0 ||
+                                        targetIdentity.indexOf("rpi-msd") >= 0 ||
+                                        targetIdentity.indexOf("file-stor gadget") >= 0
 
         if (imageWriter.readyToWrite()) {
             writebutton.enabled = true

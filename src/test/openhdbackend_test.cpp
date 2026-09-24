@@ -58,6 +58,10 @@ bool testGroundSettingsAndCameraMapping()
     settings.setValue("displayWidth", 100);       // Verify lower clamp.
     settings.setValue("displayHeight", 9000);    // Verify upper clamp.
     settings.setValue("displayRefreshHz", 5);    // Verify lower clamp.
+    settings.setValue("mapboxApiKey", "  pk.test-token  ");
+    settings.setValue("fleetcontrol_signed_in", true);
+    settings.setValue("fleetcontrol_username", "pilot@example.test");
+    settings.setValue("fleetcontrol_password", "test-password");
 
     const QJsonObject result = OpenHDImageCustomizer::buildSettings(settings);
     return check(result.value("camera").toString() == "31", "IMX219 mapping changed") &&
@@ -69,7 +73,10 @@ bool testGroundSettingsAndCameraMapping()
            check(result.value("display_width").toInt() == 320, "Display width was not clamped") &&
            check(result.value("display_height").toInt() == 4320, "Display height was not clamped") &&
            check(result.value("display_refresh_hz").toInt() == 20, "Display refresh was not clamped") &&
-           check(result.value("display_connector").toString() == "HDMI-A-1", "Display connector changed");
+           check(result.value("display_connector").toString() == "HDMI-A-1", "Display connector changed") &&
+           check(result.value("mapbox_api_key").toString() == "pk.test-token", "Mapbox token was not generated") &&
+           check(result.value("fleetcontrol_username").toString() == "pilot@example.test", "FleetControl username was not generated") &&
+           check(result.value("fleetcontrol_password").toString() == "test-password", "FleetControl password was not generated");
 }
 
 bool testImageNameRoleOverrides()

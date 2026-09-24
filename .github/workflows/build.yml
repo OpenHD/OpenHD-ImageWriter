@@ -253,11 +253,116 @@ jobs:
         Copy-Item "$Env:GITHUB_WORKSPACE\..\Qt\Tools\mingw810_32\bin\libssl-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE\src\build\"
         Copy-Item "$Env:GITHUB_WORKSPACE\..\Qt\Tools\mingw810_32\bin\libcrypto-1_1.dll" -Destination "$Env:GITHUB_WORKSPACE\src\build\"
 
+    - name: Validate Windows signing configuration
+      shell: pwsh
+      working-directory: ${{ github.workspace }}
+      env:
+        WINDOWS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_BASE64 }}
+        WINDOWS_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_PASSWORD }}
+      run: |
+        $hasCertificate = -not [string]::IsNullOrWhiteSpace($Env:WINDOWS_SIGNING_CERTIFICATE_BASE64)
+        $hasPassword = -not [string]::IsNullOrWhiteSpace($Env:WINDOWS_SIGNING_CERTIFICATE_PASSWORD)
+        if ($hasCertificate -xor $hasPassword) {
+          throw "Configure both Windows signing secrets or neither of them"
+        }
+        if (-not $hasCertificate) {
+          Write-Warning "Windows signing secrets are not configured; this CI artifact will be unsigned"
+        }
+
+    # Sign the executable before NSIS packages it. The two repository secrets
+    # are intentionally optional so pull requests and forks can still build.
+    - name: Sign Windows application
+      shell: pwsh
+      working-directory: ${{ github.workspace }}
+      env:
+        WINDOWS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_BASE64 }}
+        WINDOWS_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_PASSWORD }}
+      run: |
+        if ([string]::IsNullOrWhiteSpace($Env:WINDOWS_SIGNING_CERTIFICATE_BASE64)) {
+          Write-Host "Windows signing is not configured; skipping application signing"
+          exit 0
+        }
+
+        $certificatePath = Join-Path $Env:RUNNER_TEMP "openhd-imagewriter-signing.pfx"
+        [IO.File]::WriteAllBytes(
+          $certificatePath,
+          [Convert]::FromBase64String($Env:WINDOWS_SIGNING_CERTIFICATE_BASE64)
+        )
+
+        $signTool = Get-ChildItem "${Env:ProgramFiles(x86)}\Windows Kits\10\bin" `
+          -Filter signtool.exe -Recurse |
+          Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
+          Sort-Object FullName -Descending |
+          Select-Object -First 1 -ExpandProperty FullName
+        if (-not $signTool) {
+          throw "signtool.exe was not found"
+        }
+
+        & $signTool sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com `
+          /f $certificatePath /p $Env:WINDOWS_SIGNING_CERTIFICATE_PASSWORD `
+          /d "OpenHD ImageWriter" /du "https://openhd.tech" `
+          "src\build\deploy\OpenHDImageWriter.exe"
+        if ($LASTEXITCODE -ne 0) {
+          throw "Signing OpenHDImageWriter.exe failed with exit code $LASTEXITCODE"
+        }
+        & $signTool verify /pa /v "src\build\deploy\OpenHDImageWriter.exe"
+        if ($LASTEXITCODE -ne 0) {
+          throw "Signature verification for OpenHDImageWriter.exe failed with exit code $LASTEXITCODE"
+        }
+
     - name: Build NSIS Installer
       shell: pwsh
       working-directory: src\build
       run: |
         & "${Env:ProgramFiles(x86)}\NSIS\makensis.exe" "openhdimagewriter.nsi"
+
+    - name: Sign Windows installer
+      shell: pwsh
+      working-directory: ${{ github.workspace }}
+      env:
+        WINDOWS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_BASE64 }}
+        WINDOWS_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_PASSWORD }}
+      run: |
+        if ([string]::IsNullOrWhiteSpace($Env:WINDOWS_SIGNING_CERTIFICATE_BASE64)) {
+          Write-Host "Windows signing is not configured; skipping installer signing"
+          exit 0
+        }
+
+        $certificatePath = Join-Path $Env:RUNNER_TEMP "openhd-imagewriter-signing.pfx"
+        $signTool = Get-ChildItem "${Env:ProgramFiles(x86)}\Windows Kits\10\bin" `
+          -Filter signtool.exe -Recurse |
+          Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
+          Sort-Object FullName -Descending |
+          Select-Object -First 1 -ExpandProperty FullName
+        if (-not $signTool) {
+          throw "signtool.exe was not found"
+        }
+
+        $installer = Get-ChildItem "src\build\OpenHD-ImageWriter-*.exe" |
+          Select-Object -First 1
+        if (-not $installer) {
+          throw "NSIS installer was not found"
+        }
+
+        & $signTool sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com `
+          /f $certificatePath /p $Env:WINDOWS_SIGNING_CERTIFICATE_PASSWORD `
+          /d "OpenHD ImageWriter" /du "https://openhd.tech" `
+          $installer.FullName
+        if ($LASTEXITCODE -ne 0) {
+          throw "Signing the NSIS installer failed with exit code $LASTEXITCODE"
+        }
+        & $signTool verify /pa /v $installer.FullName
+        if ($LASTEXITCODE -ne 0) {
+          throw "Signature verification for the NSIS installer failed with exit code $LASTEXITCODE"
+        }
+
+    - name: Remove temporary signing certificate
+      if: always()
+      shell: pwsh
+      working-directory: ${{ github.workspace }}
+      run: |
+        Remove-Item -LiteralPath (Join-Path $Env:RUNNER_TEMP "openhd-imagewriter-signing.pfx") `
+          -Force -ErrorAction SilentlyContinue
 
     - name: Upload Installer
       uses: actions/upload-artifact@v7

@@ -408,6 +408,10 @@
     "_comment": "Optional full configuration file copied verbatim when provided by the user.",
     "file": "openhd/QOpenHD.conf"
   },
+  "mapboxApiKey": {
+    "_comment": "Optional Mapbox public access token. OpenHD SysUtils imports it into QOpenHD's map_api_key setting on first boot.",
+    "key": "mapbox_api_key"
+  },
   "premiumCertificate": {
     "_comment": "Optional signed premium certificate copied verbatim when provided by the user.",
     "file": "openhd/premium_certificate.ohdcert"

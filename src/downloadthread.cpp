@@ -691,7 +691,18 @@ void DownloadThread::cancelDownload()
 {
     _cancelled = true;
     _file->cancel();
+    {
+        QMutexLocker locker(&_fatMountRetryMutex);
+        _fatMountRetryCondition.wakeAll();
+    }
     //deleteDownloadedFile();
+}
+
+void DownloadThread::retryFatMount()
+{
+    QMutexLocker locker(&_fatMountRetryMutex);
+    _fatMountRetryRequested = true;
+    _fatMountRetryCondition.wakeAll();
 }
 
 bool DownloadThread::deviceOperationActive() const
@@ -1000,11 +1011,7 @@ bool DownloadThread::_customizeImage()
 
 #ifdef Q_OS_WIN
     QString nativeError;
-    if (!WindowsDiskPreparation::rescanDisk(QString::fromUtf8(_filename), &nativeError))
-    {
-        _onDownloadError(nativeError);
-        return false;
-    }
+    (void)WindowsDiskPreparation::rescanDisk(QString::fromUtf8(_filename), &nativeError);
 #endif
 
     /* See if OS auto-mounted the device */
@@ -1023,17 +1030,29 @@ bool DownloadThread::_customizeImage()
     }
 
 #ifdef Q_OS_WIN
-    if (mountpoints.empty())
+    while (mountpoints.empty() && !_cancelled.load())
     {
         const QString mountpoint = WindowsDiskPreparation::ensureDriveLetter(
-            QString::fromUtf8(_filename), 7000, &nativeError);
-        if (mountpoint.isEmpty())
+            QString::fromUtf8(_filename), 30000, &nativeError);
+        if (!mountpoint.isEmpty())
         {
-            _onDownloadError(nativeError);
-            return false;
+            mountpoints.push_back(mountpoint.toStdString());
+            break;
         }
-        mountpoints.push_back(mountpoint.toStdString());
+
+        emit fatMountUnavailable(nativeError);
+        emit preparationStatusUpdate(tr("Reconnect the device, then click Rescan"));
+
+        QMutexLocker locker(&_fatMountRetryMutex);
+        while (!_fatMountRetryRequested && !_cancelled.load())
+            _fatMountRetryCondition.wait(&_fatMountRetryMutex);
+        _fatMountRetryRequested = false;
+
+        if (!_cancelled.load())
+            emit preparationStatusUpdate(tr("Rescanning for the FAT partition"));
     }
+    if (_cancelled.load())
+        return false;
 #endif
 
 #ifdef Q_OS_LINUX

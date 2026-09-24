@@ -117,6 +117,10 @@ QJsonObject OpenHDImageCustomizer::buildSettings(const QSettings &settings)
     const int displayWidth = qBound(320, settings.value("displayWidth", 1920).toInt(), 7680);
     const int displayHeight = qBound(240, settings.value("displayHeight", 1080).toInt(), 4320);
     const int displayRefreshHz = qBound(20, settings.value("displayRefreshHz", 60).toInt(), 240);
+    const QString mapboxApiKey = settings.value("mapboxApiKey").toString().trimmed();
+    const bool fleetControlSignedIn = settings.value("fleetcontrol_signed_in", false).toBool();
+    const QString fleetControlUsername = settings.value("fleetcontrol_username").toString().trimmed();
+    const QString fleetControlPassword = settings.value("fleetcontrol_password").toString();
     const QString sbc = settings.value("sbc").toString();
     const QString mode = settings.value("mode").toString();
     QString bootType = settings.value("bootType").toString();
@@ -189,6 +193,13 @@ QJsonObject OpenHDImageCustomizer::buildSettings(const QSettings &settings)
 
     openhdSettings.insert("language", settings.value("language").toString());
     openhdSettings.insert("token", settings.value("token").toString());
+    if (!mapboxApiKey.isEmpty())
+        openhdSettings.insert("mapbox_api_key", mapboxApiKey);
+    if (fleetControlSignedIn && !fleetControlUsername.isEmpty() && !fleetControlPassword.isEmpty())
+    {
+        openhdSettings.insert("fleetcontrol_username", fleetControlUsername);
+        openhdSettings.insert("fleetcontrol_password", fleetControlPassword);
+    }
     return openhdSettings;
 }
 

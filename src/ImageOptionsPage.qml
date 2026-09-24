@@ -60,6 +60,7 @@ Rectangle {
     property bool supportsGround: true
     property bool useSettings:true
     property string qopenhdConfPath: ""
+    property string mapboxApiKey: ""
     property string premiumCertificatePath: ""
     property string premiumCertificateError: ""
     ColumnLayout {
@@ -142,7 +143,8 @@ Rectangle {
                     if (settingsTabs.currentIndex === 1)
                         return cameraSettings.height
                     return Math.max(qopenhdCard.y + qopenhdCard.height,
-                                    premiumCertificateCard.y + premiumCertificateCard.height)
+                                    premiumCertificateCard.y + premiumCertificateCard.height,
+                                    mapboxApiKeyCard.y + mapboxApiKeyCard.height)
                 }
                 property real spacing: 14
                 property bool twoColumns: page.width >= 650
@@ -861,6 +863,42 @@ Rectangle {
                         }
                     }
                 }
+
+                SettingsSection {
+                    id: mapboxApiKeyCard
+                    title: qsTr("Mapbox access token")
+                    description: qsTr("Optionally configure Mapbox maps in QOpenHD.")
+                    iconSource: "icons/ui/files-settings.svg"
+                    width: settingsGrid.cardWidth
+                    x: 0
+                    y: settingsGrid.twoColumns
+                       ? Math.max(qopenhdCard.height, premiumCertificateCard.height) + settingsGrid.spacing
+                       : premiumCertificateCard.y + premiumCertificateCard.height + settingsGrid.spacing
+                    visible: settingsTabs.currentIndex === 2
+
+                    ColumnLayout {
+                        width: mapboxApiKeyCard.availableWidth
+                        spacing: 8
+
+                        TextField {
+                            Layout.fillWidth: true
+                            placeholderText: qsTr("No Mapbox access token configured")
+                            text: mapboxApiKey
+                            echoMode: TextInput.Password
+                            selectByMouse: true
+                            onEditingFinished: mapboxApiKey = text.trim()
+                        }
+
+                        Label {
+                            Layout.fillWidth: true
+                            Layout.maximumWidth: parent.width
+                            text: qsTr("The token is written to the image configuration and imported into QOpenHD on first boot.")
+                            color: "#83a3b5"
+                            wrapMode: Text.WordWrap
+                            font.pixelSize: 10
+                        }
+                    }
+                }
             }
         }
 
@@ -1000,6 +1038,7 @@ Rectangle {
         beep = imageWriter.getBoolSetting("beep")
         eject = imageWriter.getBoolSetting("eject")
         qopenhdConfPath = normalizeLocalFilePath(imageWriter.getValue("qopenhdConfPath"))
+        mapboxApiKey = imageWriter.getValue("mapboxApiKey")
         premiumCertificatePath = normalizeLocalFilePath(imageWriter.getValue("premiumCertificatePath"))
         premiumCertificateError = ""
 
@@ -1182,6 +1221,7 @@ Rectangle {
         eject = true
         useSettings = true
         qopenhdConfPath = ""
+        mapboxApiKey = ""
         premiumCertificatePath = ""
         premiumCertificateError = ""
         supportsAir = true
@@ -1243,6 +1283,7 @@ Rectangle {
         imageWriter.setSetting("eject", eject)
         imageWriter.setSetting("useSettings", useSettings)
         imageWriter.setSetting("qopenhdConfPath", qopenhdConfPath)
+        imageWriter.setSetting("mapboxApiKey", mapboxApiKey.trim())
         imageWriter.setSetting("premiumCertificatePath", premiumCertificatePath)
 
     }

@@ -15,6 +15,7 @@
 class DriveListModel : public QAbstractListModel
 {
     Q_OBJECT
+    Q_PROPERTY(bool showInternalDrives READ showInternalDrives WRITE setShowInternalDrives NOTIFY showInternalDrivesChanged)
 public:
     DriveListModel(QObject *parent = nullptr);
     virtual int rowCount(const QModelIndex &) const;
@@ -22,6 +23,8 @@ public:
     virtual QVariant data(const QModelIndex &index, int role) const;
     void startPolling();
     void stopPolling();
+    bool showInternalDrives() const;
+    void setShowInternalDrives(bool show);
 
     enum driveListRoles {
         deviceRole = Qt::UserRole + 1, descriptionRole, sizeRole, isUsbRole, isScsiRole, isReadOnlyRole, mountpointsRole,
@@ -31,10 +34,14 @@ public:
 public slots:
     void processDriveList(std::vector<Drivelist::DeviceDescriptor> l);
     void processRockchipDeviceList(std::vector<RockchipDeviceDescriptor> l);
+signals:
+    void showInternalDrivesChanged();
 protected:
     QMap<QString,DriveListItem *> _drivelist;
     QHash<int, QByteArray> _rolenames;
     DriveListModelPollThread _thread;
+    std::vector<Drivelist::DeviceDescriptor> _lastDriveList;
+    bool _showInternalDrives;
 };
 
 #endif // DRIVELISTMODEL_H

@@ -42,6 +42,7 @@ struct RockchipPartition
 };
 
 std::vector<RockchipDeviceDescriptor> listRockchipUsbDevices();
+bool isNxpBootloaderDevicePresent();
 QString rockchipSocName(quint16 vendorId, quint16 productId);
 QString rockchipBoardName(quint16 vendorId, quint16 productId);
 QByteArray loadDefaultBootloader();

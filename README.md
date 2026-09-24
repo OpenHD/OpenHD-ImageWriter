@@ -95,8 +95,18 @@ During installation, choose a Qt 5.x with Mingw32 32-bit toolchain and CMake.
 
 - For building installer get Nullsoft scriptable install system: https://nsis.sourceforge.io/Download
 
-- It is assumed you already have a proper code signing certificate, and signtool.exe from the Windows SDK installed.
-If NOT and are you only compiling for your own personal use, comment out all lines mentioning signtool from CMakelists.txt and the .nsi installer script.
+- Public Windows builds must be Authenticode-signed with a publicly trusted code
+  signing certificate. Local builds can remain unsigned.
+
+  GitHub Actions signs both the application executable and the final NSIS
+  installer when these repository secrets are configured:
+
+  - `WINDOWS_SIGNING_CERTIFICATE_BASE64`: base64-encoded PKCS#12 (`.pfx`) file
+  - `WINDOWS_SIGNING_CERTIFICATE_PASSWORD`: password for that file
+
+  If neither secret is present, CI continues to produce an unsigned artifact
+  for pull requests and forks. If only one is present, the Windows job fails to
+  prevent an accidentally incomplete signing configuration.
 
 
 #### Building

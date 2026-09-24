@@ -32,12 +32,16 @@ Popup {
     property bool quitButton: false
     property bool yesButton: false
     property bool noButton: false
+    property string noButtonText: qsTr("NO")
     property bool configureButton: false
     property bool closeButton: false
+    property bool rescanButton: false
+    property bool showCloseIcon: true
     property string detailsSnapshot: ""
     signal yes()
     signal no()
     signal configure()
+    signal rescan()
 
     // background of title
     Rectangle {
@@ -57,6 +61,7 @@ Popup {
 
     Text {
         id: msgx
+        visible: msgpopup.showCloseIcon
         text: "X"
         color: "#dce8ef"
         anchors.right: parent.right
@@ -120,7 +125,7 @@ Popup {
             }
 
             ImButton {
-                text: qsTr("NO")
+                text: msgpopup.noButtonText
                 onClicked: {
                     msgpopup.close()
                     msgpopup.no()
@@ -137,6 +142,17 @@ Popup {
                     msgpopup.yes()
                 }
                 visible: msgpopup.yesButton
+                Material.foreground: activeFocus ? "#d1dcfb" : "#ffffff"
+                Material.background: "#2C3E50"
+            }
+
+            ImButton {
+                text: qsTr("RESCAN")
+                onClicked: {
+                    msgpopup.close()
+                    msgpopup.rescan()
+                }
+                visible: msgpopup.rescanButton
                 Material.foreground: activeFocus ? "#d1dcfb" : "#ffffff"
                 Material.background: "#2C3E50"
             }
