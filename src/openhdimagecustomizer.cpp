@@ -117,6 +117,7 @@ QJsonObject OpenHDImageCustomizer::buildSettings(const QSettings &settings)
     const int displayWidth = qBound(320, settings.value("displayWidth", 1920).toInt(), 7680);
     const int displayHeight = qBound(240, settings.value("displayHeight", 1080).toInt(), 4320);
     const int displayRefreshHz = qBound(20, settings.value("displayRefreshHz", 60).toInt(), 240);
+    const bool disableEthernetLink = settings.value("disableEthernetLink", false).toBool();
     const QString mapboxApiKey = settings.value("mapboxApiKey").toString().trimmed();
     const bool fleetControlSignedIn = settings.value("fleetcontrol_signed_in", false).toBool();
     const QString fleetControlUsername = settings.value("fleetcontrol_username").toString().trimmed();
@@ -173,6 +174,8 @@ QJsonObject OpenHDImageCustomizer::buildSettings(const QSettings &settings)
         openhdSettings.insert("sbc", sbc);
     if (mode == "debug")
         openhdSettings.insert("debug", true);
+    if (disableEthernetLink)
+        openhdSettings.insert("disable_ethernet_link", true);
 
     if (bootType == "Air")
     {

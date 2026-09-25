@@ -60,6 +60,7 @@ Rectangle {
     property string qopenhdConfPath: ""
     property bool qopenhdConfPresent: false
     property string mapboxApiKey: ""
+    property bool disableEthernetLink: false
     property string premiumCertificatePath: ""
     property bool premiumCertificatePresent: false
     property bool returnHomeAfterPopupClose: false
@@ -69,6 +70,7 @@ Rectangle {
     Component.onCompleted: {
         qopenhdConfPath = normalizeLocalFilePath(imageWriter.getValue("qopenhdConfPath"))
         mapboxApiKey = imageWriter.getValue("mapboxApiKey")
+        disableEthernetLink = imageWriter.getBoolSetting("disableEthernetLink")
         premiumCertificatePath = normalizeLocalFilePath(imageWriter.getValue("premiumCertificatePath"))
         language = imageWriter.getValue("language")
         token = imageWriter.getValue("token")
@@ -1082,6 +1084,7 @@ ImButton {
         target.eject = eject === true || eject === "true"
         target.qopenhdConfPath = qopenhdConfPath
         target.mapboxApiKey = mapboxApiKey
+        target.disableEthernetLink = disableEthernetLink
         target.premiumCertificatePath = premiumCertificatePath
     }
 
@@ -1110,6 +1113,7 @@ ImButton {
         eject = source.eject
         qopenhdConfPath = source.qopenhdConfPath
         mapboxApiKey = source.mapboxApiKey
+        disableEthernetLink = source.disableEthernetLink
         premiumCertificatePath = source.premiumCertificatePath
     }
 
@@ -1432,6 +1436,7 @@ ImButton {
         displayRefreshHz = 60
         mode = ""
         mapboxApiKey = ""
+        disableEthernetLink = false
         qopenhdConfPresent = false
         premiumCertificatePresent = false
 
@@ -1532,6 +1537,7 @@ ImButton {
         if (settingsObj.mapbox_api_key !== undefined && settingsObj.mapbox_api_key !== null) {
             mapboxApiKey = settingsObj.mapbox_api_key.toString()
         }
+        disableEthernetLink = settingsObj.disable_ethernet_link === true
 
         qopenhdConfPresent = imageWriter.fileExists(drivePath(qopenhdConfRelativePath()))
         premiumCertificatePresent = imageWriter.fileExists(drivePath(premiumCertificateRelativePath()))
@@ -1618,6 +1624,8 @@ ImButton {
         settingsObj.token = token ? token : ""
         if (mapboxApiKey.trim().length > 0)
             settingsObj.mapbox_api_key = mapboxApiKey.trim()
+        if (disableEthernetLink)
+            settingsObj.disable_ethernet_link = true
 
         var jsonString = JSON.stringify(settingsObj, null, 4)
         if (imageWriter.writeTextFile(drivePath("settings.json"), jsonString)) {
@@ -1689,6 +1697,7 @@ ImButton {
         imageWriter.setSetting("mode", mode)
         imageWriter.setSetting("qopenhdConfPath", qopenhdConfPath)
         imageWriter.setSetting("mapboxApiKey", mapboxApiKey.trim())
+        imageWriter.setSetting("disableEthernetLink", disableEthernetLink)
         imageWriter.setSetting("premiumCertificatePath", premiumCertificatePath)
         imageWriter.setSetting("language", language)
         imageWriter.setSetting("token", token)

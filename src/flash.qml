@@ -2197,6 +2197,7 @@ Rectangle {
         imageWriter.setSetting("justUpdate", "")
         imageWriter.setSetting("qopenhdConfPath", "")
         imageWriter.setSetting("mapboxApiKey", "")
+        imageWriter.setSetting("disableEthernetLink", false)
         imageWriter.setSetting("premiumCertificatePath", "")
         imageWriter.setSetting("useSettings", true)
     }

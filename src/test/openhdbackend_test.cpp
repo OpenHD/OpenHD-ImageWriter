@@ -59,6 +59,7 @@ bool testGroundSettingsAndCameraMapping()
     settings.setValue("displayHeight", 9000);    // Verify upper clamp.
     settings.setValue("displayRefreshHz", 5);    // Verify lower clamp.
     settings.setValue("mapboxApiKey", "  pk.test-token  ");
+    settings.setValue("disableEthernetLink", true);
     settings.setValue("fleetcontrol_signed_in", true);
     settings.setValue("fleetcontrol_username", "pilot@example.test");
     settings.setValue("fleetcontrol_password", "test-password");
@@ -75,6 +76,7 @@ bool testGroundSettingsAndCameraMapping()
            check(result.value("display_refresh_hz").toInt() == 20, "Display refresh was not clamped") &&
            check(result.value("display_connector").toString() == "HDMI-A-1", "Display connector changed") &&
            check(result.value("mapbox_api_key").toString() == "pk.test-token", "Mapbox token was not generated") &&
+           check(result.value("disable_ethernet_link").toBool(), "Ethernet link disable setting was not generated") &&
            check(result.value("fleetcontrol_username").toString() == "pilot@example.test", "FleetControl username was not generated") &&
            check(result.value("fleetcontrol_password").toString() == "test-password", "FleetControl password was not generated");
 }

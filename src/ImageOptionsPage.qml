@@ -61,6 +61,7 @@ Rectangle {
     property bool useSettings:true
     property string qopenhdConfPath: ""
     property string mapboxApiKey: ""
+    property bool disableEthernetLink: false
     property string premiumCertificatePath: ""
     property string premiumCertificateError: ""
     ColumnLayout {
@@ -754,6 +755,22 @@ Rectangle {
                         }
 
                         ImCheckBox {
+                            id: disableEthernetLinkCheck
+                            text: qsTr("Disable Ethernet link")
+                            checked: disableEthernetLink
+                            onClicked: disableEthernetLink = checked
+                        }
+
+                        Label {
+                            Layout.fillWidth: true
+                            Layout.maximumWidth: parent.width
+                            text: qsTr("Prevents OpenHD from using Ethernet as a transport. Ethernet hardware is not disabled.")
+                            color: "#83a3b5"
+                            wrapMode: Text.WordWrap
+                            font.pixelSize: 10
+                        }
+
+                        ImCheckBox {
                             text: qsTr("Play a sound when finished")
                             checked: beep
                             onClicked: beep = checked
@@ -1038,6 +1055,7 @@ Rectangle {
         eject = imageWriter.getBoolSetting("eject")
         qopenhdConfPath = normalizeLocalFilePath(imageWriter.getValue("qopenhdConfPath"))
         mapboxApiKey = imageWriter.getValue("mapboxApiKey")
+        disableEthernetLink = imageWriter.getBoolSetting("disableEthernetLink")
         premiumCertificatePath = normalizeLocalFilePath(imageWriter.getValue("premiumCertificatePath"))
         premiumCertificateError = ""
 
@@ -1221,6 +1239,7 @@ Rectangle {
         useSettings = true
         qopenhdConfPath = ""
         mapboxApiKey = ""
+        disableEthernetLink = false
         premiumCertificatePath = ""
         premiumCertificateError = ""
         supportsAir = true
@@ -1283,6 +1302,7 @@ Rectangle {
         imageWriter.setSetting("useSettings", useSettings)
         imageWriter.setSetting("qopenhdConfPath", qopenhdConfPath)
         imageWriter.setSetting("mapboxApiKey", mapboxApiKey.trim())
+        imageWriter.setSetting("disableEthernetLink", disableEthernetLink)
         imageWriter.setSetting("premiumCertificatePath", premiumCertificatePath)
 
     }
