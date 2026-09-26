@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Tripod Legs -->
+    <line x1="256" y1="310" x2="130" y2="460" stroke-width="16"/>
+    <line x1="256" y1="310" x2="256" y2="466" stroke-width="16"/>
+    <line x1="256" y1="310" x2="382" y2="460" stroke-width="16"/>
+    <line x1="184" y1="390" x2="328" y2="390" stroke-width="10"/>
+    <!-- Tracker Mast & Pan/Tilt Gimbal -->
+    <rect x="240" y="250" width="32" height="64" rx="6" fill="#ffffff" fill-opacity="0.3" stroke-width="12"/>
+    <circle cx="256" cy="230" r="28" fill="#ffffff" fill-opacity="0.4" stroke-width="12"/>
+    <!-- Directional Antenna Array / Dish -->
+    <path d="M148 130 C190 90 322 90 364 130 L310 230 L202 230 Z" 
+          fill="#ffffff" fill-opacity="0.2" stroke-width="14"/>
+    <!-- Feed horn / helical -->
+    <line x1="256" y1="160" x2="256" y2="80" stroke-width="12"/>
+    <circle cx="256" cy="74" r="10" fill="#ffffff"/>
+    <!-- Tracking waves -->
+    <path d="M216 46 A52 52 0 0 1 296 46" stroke-width="8"/>
+    <path d="M192 24 A84 84 0 0 1 320 24" stroke-width="8"/>
+  </g>
+</svg>

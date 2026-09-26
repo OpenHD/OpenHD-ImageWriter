@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Transmitter Body -->
+    <path d="M140 180 L372 180 L400 420 C400 442 384 456 360 456 L152 456 C128 456 112 442 112 420 Z" 
+          fill="#ffffff" fill-opacity="0.16" stroke-width="15"/>
+    <!-- Top Carry Handle -->
+    <path d="M188 180 L188 126 C188 116 198 108 208 108 L304 108 C314 108 324 116 324 126 L324 180" stroke-width="14"/>
+    <!-- Antenna -->
+    <line x1="256" y1="108" x2="256" y2="44" stroke-width="14"/>
+    <circle cx="256" cy="40" r="7" fill="#ffffff"/>
+    <!-- Telemetry Display Screen -->
+    <rect x="186" y="210" width="140" height="76" rx="8" fill="#ffffff" fill-opacity="0.25" stroke-width="10"/>
+    <line x1="204" y1="240" x2="260" y2="240" stroke-width="6"/>
+    <line x1="204" y1="260" x2="308" y2="260" stroke-width="6"/>
+    <!-- Left Gimbal Stick -->
+    <circle cx="180" cy="350" r="38" stroke-width="10"/>
+    <circle cx="180" cy="350" r="14" fill="#ffffff"/>
+    <line x1="180" y1="324" x2="180" y2="376" stroke-width="6"/>
+    <line x1="154" y1="350" x2="206" y2="350" stroke-width="6"/>
+    <!-- Right Gimbal Stick -->
+    <circle cx="332" cy="350" r="38" stroke-width="10"/>
+    <circle cx="332" cy="350" r="14" fill="#ffffff"/>
+    <line x1="332" y1="324" x2="332" y2="376" stroke-width="6"/>
+    <line x1="306" y1="350" x2="358" y2="350" stroke-width="6"/>
+    <!-- Top Switches -->
+    <line x1="150" y1="180" x2="140" y2="150" stroke-width="10"/>
+    <line x1="362" y1="180" x2="372" y2="150" stroke-width="10"/>
+  </g>
+</svg>

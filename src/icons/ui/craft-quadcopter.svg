@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Center fuselage -->
+    <rect x="220" y="200" width="72" height="112" rx="20" fill="#ffffff" fill-opacity="0.15" stroke-width="14"/>
+    <!-- Forward camera/arrow -->
+    <path d="M256 168 L272 196 L240 196 Z" fill="#ffffff" stroke-width="10"/>
+    <!-- Carbon arms -->
+    <line x1="220" y1="226" x2="132" y2="138" stroke-width="16"/>
+    <line x1="292" y1="226" x2="380" y2="138" stroke-width="16"/>
+    <line x1="220" y1="286" x2="132" y2="374" stroke-width="16"/>
+    <line x1="292" y1="286" x2="380" y2="374" stroke-width="16"/>
+    <!-- Motors & Props Top-Left -->
+    <circle cx="118" cy="124" r="28" fill="#ffffff" fill-opacity="0.25" stroke-width="12"/>
+    <circle cx="118" cy="124" r="8" fill="#ffffff"/>
+    <ellipse cx="118" cy="124" rx="46" ry="16" transform="rotate(-30 118 124)" stroke-width="8" stroke-dasharray="14 10"/>
+    <!-- Motors & Props Top-Right -->
+    <circle cx="394" cy="124" r="28" fill="#ffffff" fill-opacity="0.25" stroke-width="12"/>
+    <circle cx="394" cy="124" r="8" fill="#ffffff"/>
+    <ellipse cx="394" cy="124" rx="46" ry="16" transform="rotate(30 394 124)" stroke-width="8" stroke-dasharray="14 10"/>
+    <!-- Motors & Props Bottom-Left -->
+    <circle cx="118" cy="388" r="28" fill="#ffffff" fill-opacity="0.25" stroke-width="12"/>
+    <circle cx="118" cy="388" r="8" fill="#ffffff"/>
+    <ellipse cx="118" cy="388" rx="46" ry="16" transform="rotate(30 118 388)" stroke-width="8" stroke-dasharray="14 10"/>
+    <!-- Motors & Props Bottom-Right -->
+    <circle cx="394" cy="388" r="28" fill="#ffffff" fill-opacity="0.25" stroke-width="12"/>
+    <circle cx="394" cy="388" r="8" fill="#ffffff"/>
+    <ellipse cx="394" cy="388" rx="46" ry="16" transform="rotate(-30 394 388)" stroke-width="8" stroke-dasharray="14 10"/>
+  </g>
+</svg>

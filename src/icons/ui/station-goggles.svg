@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Goggle Headband / Straps -->
+    <path d="M70 264 C70 190 120 160 256 160 C392 160 442 190 442 264" stroke-width="20" stroke-dasharray="24 12"/>
+    <!-- Main Goggle Visor / Faceplate -->
+    <path d="M128 220 L384 220 C410 220 428 238 428 264 L420 330 C420 354 398 372 374 372 L310 372 C288 372 278 344 256 344 C234 344 224 372 202 372 L138 372 C114 372 92 354 92 330 L84 264 C84 238 102 220 128 220 Z" 
+          fill="#ffffff" fill-opacity="0.18" stroke-width="15"/>
+    <!-- Optical Dual Lenses / Screens -->
+    <rect x="136" y="250" width="94" height="66" rx="14" fill="#ffffff" fill-opacity="0.25" stroke-width="10"/>
+    <rect x="282" y="250" width="94" height="66" rx="14" fill="#ffffff" fill-opacity="0.25" stroke-width="10"/>
+    <!-- Dual Top Antennas -->
+    <line x1="168" y1="220" x2="148" y2="130" stroke-width="14"/>
+    <circle cx="144" cy="116" r="14" fill="#ffffff"/>
+    <line x1="344" y1="220" x2="364" y2="130" stroke-width="14"/>
+    <circle cx="368" cy="116" r="14" fill="#ffffff"/>
+    <!-- Signal arcs -->
+    <path d="M120 96 A28 28 0 0 1 168 96" stroke-width="8"/>
+    <path d="M344 96 A28 28 0 0 1 392 96" stroke-width="8"/>
+  </g>
+</svg>

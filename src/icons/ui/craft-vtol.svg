@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Wings -->
+    <path d="M256 190 L448 240 L448 270 L280 250 L280 390 L330 420 L330 440 L256 426 L182 440 L182 420 L232 390 L232 250 L64 270 L64 240 Z" 
+          fill="#ffffff" fill-opacity="0.15" stroke-width="12"/>
+    <!-- Fuselage -->
+    <path d="M256 90 C244 90 238 130 238 220 L238 420 L256 436 L274 420 L274 220 C274 130 268 90 256 90 Z" 
+          fill="#ffffff" fill-opacity="0.25" stroke-width="12"/>
+    <!-- VTOL Twin Booms -->
+    <line x1="160" y1="140" x2="160" y2="380" stroke-width="14"/>
+    <line x1="352" y1="140" x2="352" y2="380" stroke-width="14"/>
+    <!-- VTOL Rotors Front-Left / Rear-Left -->
+    <circle cx="160" cy="140" r="22" fill="#ffffff" fill-opacity="0.3" stroke-width="10"/>
+    <circle cx="160" cy="380" r="22" fill="#ffffff" fill-opacity="0.3" stroke-width="10"/>
+    <!-- VTOL Rotors Front-Right / Rear-Right -->
+    <circle cx="352" cy="140" r="22" fill="#ffffff" fill-opacity="0.3" stroke-width="10"/>
+    <circle cx="352" cy="380" r="22" fill="#ffffff" fill-opacity="0.3" stroke-width="10"/>
+    <!-- Pusher Motor -->
+    <ellipse cx="256" cy="442" rx="26" ry="6" stroke-width="8"/>
+  </g>
+</svg>

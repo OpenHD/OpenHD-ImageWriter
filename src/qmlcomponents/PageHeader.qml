@@ -1,7 +1,6 @@
 import QtQuick 2.9
-import QtQuick.Layouts 1.3
 
-ColumnLayout {
+Column {
     id: root
 
     property string title: ""
@@ -10,7 +9,7 @@ ColumnLayout {
     spacing: 5
 
     Text {
-        Layout.fillWidth: true
+        width: root.width
         text: root.title
         color: "#f3f7fa"
         font.pixelSize: 25
@@ -19,7 +18,7 @@ ColumnLayout {
     }
 
     Text {
-        Layout.fillWidth: true
+        width: root.width
         text: root.subtitle
         color: "#9db0bb"
         font.pixelSize: 13

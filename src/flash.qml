@@ -11,8 +11,7 @@ import QtQuick.Controls.Material 2.2
 import Qt.labs.settings 1.0
 import "qmlcomponents"
 import "catalog.js" as Catalog
-
-
+import "qmlcomponents/FleetProfilesHelper.js" as FleetProfilesHelper
 
 Rectangle {
     id: window
@@ -33,7 +32,35 @@ Rectangle {
     property bool selectingImage: true
     property bool selectingTarget: false
     property bool reviewingOperation: false
+    readonly property bool fleetControlSignedIn: {
+        if (mainWindow && mainWindow.fleetControlSignedIn !== undefined)
+            return mainWindow.fleetControlSignedIn
+        if (imageWriter) {
+            var signed = imageWriter.getBoolSetting("fleetcontrol_signed_in")
+            var user = imageWriter.getValue("fleetcontrol_user") || ""
+            return signed && user.length > 0
+        }
+        return false
+    }
+    onReviewingOperationChanged: {
+        if (reviewingOperation && fleetControlSignedIn && fleetControlProfileName.length === 0) {
+            var savedCraft = imageWriter.getValue("fleetcontrol_craft_name")
+            if (savedCraft && savedCraft.length > 0) {
+                fleetControlProfileName = savedCraft
+                var profs = FleetProfilesHelper.loadProfiles(imageWriter)
+                for (var k = 0; k < profs.length; ++k) {
+                    if (profs[k].craftName === savedCraft) {
+                        fleetControlProfileDetail = FleetProfilesHelper.profileSummary(profs[k])
+                        fleetControlProfileIcon = profs[k].craftIcon || ""
+                        break
+                    }
+                }
+            }
+        }
+    }
     property string fleetControlProfileName: ""
+    property string fleetControlProfileDetail: ""
+    property string fleetControlProfileIcon: ""
     property bool completionHandled: false
     property double selectedTargetSize: 0
     property bool selectedTargetIsComputeModule: false
@@ -159,7 +186,7 @@ Rectangle {
         ColumnLayout {
             id: modernContent
             width: Math.min(modernWorkflow.width - (modernWorkflow.width < 700 ? 40 : 72), 1040)
-            anchors.horizontalCenter: parent.horizontalCenter
+            x: Math.max(0, Math.round((modernWorkflow.width - width) / 2))
             y: modernWorkflow.width < 700 ? 24 : 38
             spacing: 24
 
@@ -169,6 +196,48 @@ Rectangle {
                 subtitle: progressBar.visible
                           ? qsTr("Keep the target connected until writing and verification are complete.")
                           : qsTr("Select an OpenHD image and a target device, then review and start the write.")
+            }
+
+            Rectangle {
+                visible: fleetControlSignedIn && fleetControlProfileName.length > 0 && !progressBar.visible
+                Layout.fillWidth: true
+                Layout.preferredHeight: 38
+                radius: 6
+                color: "#112638"
+                border.color: "#00a6f2"
+                border.width: 1
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
+                    spacing: 10
+
+                    Image {
+                        Layout.preferredWidth: 18
+                        Layout.preferredHeight: 18
+                        source: "icons/ui/fleetcontrol.svg"
+                        fillMode: Image.PreserveAspectFit
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: qsTr("Fleet unit selected: <b>%1</b> (settings preconfigured)").arg(fleetControlProfileName)
+                        color: "#e2f2fc"
+                        font.pixelSize: 12
+                        elide: Text.ElideRight
+                    }
+
+                    ToolButton {
+                        text: qsTr("Clear (Flash Standalone)")
+                        font.pixelSize: 11
+                        onClicked: {
+                            fleetControlProfileName = ""
+                            imageWriter.setSetting("fleetcontrol_craft_id", "")
+                            imageWriter.setSetting("fleetcontrol_craft_name", "")
+                        }
+                    }
+                }
             }
 
             RowLayout {
@@ -260,6 +329,67 @@ Rectangle {
                     primaryAction: true
                     enabled: writebutton.enabled
                     onClicked: writebutton.clicked()
+                }
+            }
+
+            Rectangle {
+                visible: fleetControlSignedIn && fleetControlProfileName.length > 0 && !progressBar.visible
+                Layout.fillWidth: true
+                Layout.preferredHeight: 74
+                radius: 8
+                color: "#0e3146"
+                border.width: 2
+                border.color: "#00a6f2"
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 14
+                    spacing: 14
+
+                    Image {
+                        Layout.preferredWidth: 38
+                        Layout.preferredHeight: 38
+                        source: fleetControlProfileIcon.length > 0
+                                ? FleetProfilesHelper.iconSource(fleetControlProfileIcon)
+                                : "icons/ui/hub.svg"
+                        fillMode: Image.PreserveAspectFit
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 3
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: qsTr("use your profiles setting: %1").arg(fleetControlProfileName)
+                            color: "#ffffff"
+                            font.pixelSize: 15
+                            font.bold: true
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: fleetControlProfileDetail.length > 0
+                                  ? fleetControlProfileDetail
+                                  : qsTr("Hardware platform, role, cameras & network settings from '%1' are active.").arg(fleetControlProfileName)
+                            color: "#4dc5f8"
+                            font.pixelSize: 11
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    ModernActionButton {
+                        text: qsTr("Clear Profile")
+                        implicitHeight: 32
+                        onClicked: {
+                            fleetControlProfileName = ""
+                            fleetControlProfileDetail = ""
+                            fleetControlProfileIcon = ""
+                            imageWriter.setSetting("fleetcontrol_craft_id", "")
+                            imageWriter.setSetting("fleetcontrol_craft_name", "")
+                        }
+                    }
                 }
             }
 
@@ -1439,8 +1569,27 @@ Rectangle {
         targetDetail: imageWriter.dst() + (selectedTargetSize > 0
                       ? "  \u2022  " + formatReviewSize(selectedTargetSize) : "")
         confirmText: qsTr("Erase target and write")
+        fleetControlSignedIn: window.fleetControlSignedIn
+        profileName: fleetControlSignedIn ? fleetControlProfileName : ""
+        profileDetail: fleetControlSignedIn ? fleetControlProfileDetail : ""
+        profileIcon: fleetControlSignedIn ? fleetControlProfileIcon : ""
         configurationRequired: true
-        configurationComplete: optionsPage.configurationApplied
+        configurationComplete: (fleetControlSignedIn && fleetControlProfileName.length > 0 && useProfileSettings) || optionsPage.configurationApplied
+        onProfileSelected: function(profile) {
+            fleetControlProfileName = profile.craftName
+            fleetControlProfileIcon = profile.craftIcon || ""
+            fleetControlProfileDetail = FleetProfilesHelper.profileSummary(profile)
+        }
+        onProfileSettingsToggled: function(enabled) {
+            // Keep fleetControlProfileName so user can toggle back
+        }
+        onClearProfileRequested: {
+            fleetControlProfileName = ""
+            fleetControlProfileDetail = ""
+            fleetControlProfileIcon = ""
+            imageWriter.setSetting("fleetcontrol_craft_id", "")
+            imageWriter.setSetting("fleetcontrol_craft_name", "")
+        }
         onBackRequested: {
             reviewingOperation = false
             selectingTarget = true
@@ -1457,7 +1606,7 @@ Rectangle {
         }
         onConfigureRequested: optionsPage.openPage()
         onConfirmed: {
-            if (optionsPage.configurationApplied)
+            if ((fleetControlSignedIn && fleetControlProfileName.length > 0 && useProfileSettings) || optionsPage.configurationApplied)
                 writeConfirmPopup.openPopup()
         }
     }
@@ -1467,7 +1616,7 @@ Rectangle {
             osswipeview.decrementCurrentIndex()
         imageCatalog.categorySelected = ""
         resetOpenHdSettingsForNewImage()
-        fleetControlProfileName = ""
+        // Retain fleetControlProfileName so selecting a new image doesn't drop the active profile!
         optionsPage.resetPage()
         selectingImage = true
     }
@@ -1478,6 +1627,19 @@ Rectangle {
 
         imageCatalog.categorySelected = ""
         fleetControlProfileName = profileName || ""
+        fleetControlProfileDetail = ""
+        fleetControlProfileIcon = ""
+        if (fleetControlProfileName.length > 0) {
+            var pList = FleetProfilesHelper.loadProfiles(imageWriter)
+            for (var pIdx = 0; pIdx < pList.length; ++pIdx) {
+                if (pList[pIdx].craftName === fleetControlProfileName) {
+                    fleetControlProfileDetail = FleetProfilesHelper.profileSummary(pList[pIdx])
+                    fleetControlProfileIcon = pList[pIdx].craftIcon || ""
+                    FleetProfilesHelper.applyProfile(imageWriter, pList[pIdx])
+                    break
+                }
+            }
+        }
         optionsPage.resetPage()
         selectingImage = true
         selectingTarget = false
@@ -1500,9 +1662,20 @@ Rectangle {
     }
 
     function startWriteNow() {
-        if (!optionsPage.configurationApplied) {
+        var hasActiveProfile = fleetControlSignedIn && fleetControlProfileName.length > 0
+        if (!optionsPage.configurationApplied && !hasActiveProfile) {
             reviewingOperation = true
             return
+        }
+
+        if (hasActiveProfile) {
+            var activeProfiles = FleetProfilesHelper.loadProfiles(imageWriter)
+            for (var aIdx = 0; aIdx < activeProfiles.length; ++aIdx) {
+                if (activeProfiles[aIdx].craftName === fleetControlProfileName) {
+                    FleetProfilesHelper.applyProfile(imageWriter, activeProfiles[aIdx])
+                    break
+                }
+            }
         }
 
         completionHandled = false
@@ -1526,6 +1699,7 @@ Rectangle {
 
     ColumnLayout {
         id: bg
+        visible: false
         spacing: 0
         anchors.fill: parent
         opacity: 0

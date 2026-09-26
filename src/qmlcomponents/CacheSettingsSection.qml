@@ -71,14 +71,15 @@ SettingsSection {
 
     Dialog {
         id: clearCacheDialog
-        parent: Overlay.overlay
-        anchors.centerIn: parent
+        contentWidth: 340
+        parent: window
+        x: Math.round((window.width - width) / 2)
+        y: Math.round((window.height - height) / 2)
         modal: true
         title: qsTr("Remove downloaded image cache?")
         standardButtons: Dialog.Cancel | Dialog.Ok
         onAccepted: imageWriter.clearImageCache()
         contentItem: Text {
-            width: 340
             text: qsTr("All images downloaded by OpenHD ImageWriter will be removed. You can download them again later.")
             color: "#e4eef4"
             wrapMode: Text.WordWrap

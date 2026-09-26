@@ -1,4 +1,4 @@
-﻿import QtQuick 2.9
+import QtQuick 2.9
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
@@ -333,7 +333,7 @@ Rectangle {
 
                     anchors.verticalCenter: parent.verticalCenter
 
-                    source: "../icons/ui/info.svg" // Just reusing info.svg or similar if help doesn't exist
+                    source: "../icons/ui/help.svg"
                     fillMode: Image.PreserveAspectFit
 
                     opacity:
@@ -372,7 +372,7 @@ Rectangle {
                 root.compact && helpButton.hovered
 
             ToolTip.text:
-                qsTr("Help")
+                qsTr("Help & Wiki")
 
             ToolTip.delay:
                 400

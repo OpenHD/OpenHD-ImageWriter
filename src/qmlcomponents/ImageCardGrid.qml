@@ -24,9 +24,23 @@ Item {
         function onCacheChanged() { root.cacheRevision++ }
     }
 
-    readonly property var displayEntries: buildDisplayEntries(activeTab, mainItemCount,
-                                                               rootLevel, sourceModel,
-                                                               includeDevelopment, sourceCount)
+    property var displayEntries: []
+
+    function refreshDisplayEntries() {
+        if (pageIndex !== 0)
+            pageIndex = 0
+        displayEntries = buildDisplayEntries(activeTab, mainItemCount,
+                                            rootLevel, sourceModel,
+                                            includeDevelopment, sourceCount)
+    }
+
+    onActiveTabChanged: refreshDisplayEntries()
+    onMainItemCountChanged: refreshDisplayEntries()
+    onRootLevelChanged: refreshDisplayEntries()
+    onSourceModelChanged: refreshDisplayEntries()
+    onIncludeDevelopmentChanged: refreshDisplayEntries()
+    onSourceCountChanged: refreshDisplayEntries()
+    Component.onCompleted: refreshDisplayEntries()
     readonly property int pageCount: Math.max(1, Math.ceil(displayEntries.length / 6))
     readonly property bool paged: displayEntries.length > 6
     readonly property real gridWidth: width - (paged ? 46 : 0)
@@ -48,12 +62,6 @@ Item {
         platformRowCount * 174 + (platformRowCount - 1) * 10
     readonly property real naturalHeight: content.implicitHeight + 4
 
-    onActiveTabChanged: pageIndex = 0
-    onRootLevelChanged: pageIndex = 0
-    // A changed result set should always start on its first page. Avoid
-    // reading pageCount here: its binding depends on displayEntries and doing
-    // so from this change handler creates a binding cycle in Qt 5.
-    onDisplayEntriesChanged: pageIndex = 0
 
     function itemAt(displayIndex) {
         return sourceModel ? sourceModel.get(displayIndex + (rootLevel ? 0 : 1)) : null

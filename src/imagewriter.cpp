@@ -102,11 +102,9 @@ ImageWriter::ImageWriter(QObject *parent)
         
             QFile f(devFilePath);
              if (f.exists() && f.open(QIODevice::ReadOnly)) {
-                qDebug() << "You are a Developer!";
                 _repo="https://github.com/OpenHD/OpenHD-ImageWriter/releases/download/Json/OpenHD-development-releases.json";
                 f.close();
             } else {
-                qDebug() << "You are no Developer!" << devFilePath;
                 _repo="https://github.com/OpenHD/OpenHD-ImageWriter/releases/download/Json/OpenHD-download-index.json";
             }
 
@@ -480,8 +478,19 @@ void ImageWriter::startWrite()
 
    QByteArray urlstr = _src.toString(_src.FullyEncoded).toLatin1();
    QString lowercaseurl = urlstr.toLower();
+   QString lowercasepath = _src.path().toLower();
    bool containsUpdate = lowercaseurl.contains("update");
-   bool compressed = lowercaseurl.endsWith(".zip") || lowercaseurl.endsWith(".xz") || lowercaseurl.endsWith(".bz2") || lowercaseurl.endsWith(".gz") || lowercaseurl.endsWith(".7z") || lowercaseurl.endsWith(".zst") || lowercaseurl.endsWith(".cache");
+   const auto isCompressedName = [](const QString &s) {
+       return s.endsWith(".zip") || s.endsWith(".xz") || s.endsWith(".bz2") ||
+              s.endsWith(".gz") || s.endsWith(".7z") || s.endsWith(".zst") ||
+              s.endsWith(".cache");
+   };
+   bool compressed = isCompressedName(lowercaseurl) || isCompressedName(lowercasepath) ||
+                     lowercaseurl.contains("archive=.zip") || lowercaseurl.contains("archive=.xz") ||
+                     lowercaseurl.contains("archive=.gz") || lowercaseurl.contains("archive=.bz2") ||
+                     lowercaseurl.contains("archive=.zst");
+   if (lowercaseurl.contains("archive=.img") || lowercaseurl.endsWith(".img") || lowercasepath.endsWith(".img"))
+       compressed = false;
 
     _settings.setValue("justUpdate", containsUpdate);
     _settings.sync();
@@ -1605,11 +1614,6 @@ void ImageWriter::setSetting(const QString &key, const QVariant &value)
 
     _settings.setValue(key, value);
     _settings.sync();
-    const bool sensitive = key.contains(QStringLiteral("token"), Qt::CaseInsensitive) ||
-                           key.contains(QStringLiteral("password"), Qt::CaseInsensitive) ||
-                           key.contains(QStringLiteral("secret"), Qt::CaseInsensitive);
-    qDebug() << "Setting changed:" << key << "->"
-             << (sensitive ? QStringLiteral("<redacted>") : value.toString());
 
 }
 

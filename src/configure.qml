@@ -677,7 +677,6 @@ ImButton {
                                         }
                                     }
 
-                                    console.log("[Configure] camera options rebuilt for vendor", cameraLayout.selectedVendor ? cameraLayout.selectedVendor.id : "none", "->", cameraOptionsModel.count, "entries")
 
                                     var targetIndex = 0
                                     for (var idx = 0; idx < cameraOptionsModel.count; idx++) {
@@ -704,7 +703,6 @@ ImButton {
                                         var vendor = cameraLayout.vendorList[i]
                                         vendorModel.append({ displayName: vendor.displayName, vendorIndex: i })
                                     }
-                                    console.log("[Configure] vendor list rebuilt for boot", bootType, "sbc", sbc, "->", vendorModel.count, "vendors")
 
                                     if (vendorModel.count > 0) {
                                         var index = vendorSelector.currentIndex >= 0 ? vendorSelector.currentIndex : 0
@@ -1300,7 +1298,6 @@ ImButton {
         try {
             settingsMap = JSON.parse(imageWriter.readResourceText(":/doc/openhd_settings_map.json"))
             settingsMapLoaded = true
-            console.log("[Configure] settings map loaded with keys:", Object.keys(settingsMap))
         } catch (e) {
             console.log("[Configure] Failed to load OpenHD settings map: " + e)
         }

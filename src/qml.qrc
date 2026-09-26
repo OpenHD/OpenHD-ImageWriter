@@ -49,6 +49,7 @@
         <file>qmlcomponents/SettingsTabButton.qml</file>
         <file>qmlcomponents/ModernComboBox.qml</file>
         <file>qmlcomponents/SettingsLabels.js</file>
+        <file>qmlcomponents/FleetProfilesHelper.js</file>
         <file>qmlcomponents/FileSelectionControl.qml</file>
         <file>qmlcomponents/ModernActionButton.qml</file>
         <file>qmlcomponents/ActionCard.qml</file>
@@ -86,7 +87,20 @@
         <file>icons/ui/info.svg</file>
         <file>icons/ui/help.svg</file>
         <file>icons/ui/device.svg</file>
-        <file>icons/ui/fleetcontrol.svg</file>
+                <file>icons/ui/fleetcontrol.svg</file>
+        <file>icons/ui/craft-quadcopter.svg</file>
+        <file>icons/ui/craft-plane.svg</file>
+        <file>icons/ui/craft-vtol.svg</file>
+        <file>icons/ui/craft-hexacopter.svg</file>
+        <file>icons/ui/craft-rover.svg</file>
+        <file>icons/ui/station-goggles.svg</file>
+        <file>icons/ui/station-tracker.svg</file>
+        <file>icons/ui/station-transmitter.svg</file>
+        <file>icons/ui/station-military-gcs.svg</file>
+        <file>icons/ui/hub.svg</file>
+        <file>icons/ui/tag.svg</file>
+        <file>icons/ui/chip.svg</file>
+        <file>icons/ui/document.svg</file>
         <file>ImageOptionsPage.qml</file>
         <file>icons/OpenHD-advanced.webp</file>
         <file>icons/OpenHD-old.webp</file>

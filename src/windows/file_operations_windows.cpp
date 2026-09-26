@@ -65,7 +65,16 @@ public:
             _handle = CreateFileW(reinterpret_cast<LPCWSTR>(path.utf16()),
                                   GENERIC_READ | GENERIC_WRITE, sharing, nullptr,
                                   OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-            if (_handle != INVALID_HANDLE_VALUE) return FileError::Success;
+            if (_handle != INVALID_HANDLE_VALUE)
+            {
+                if (physicalDrive || path.startsWith(QStringLiteral("\\\\.\\"), Qt::CaseInsensitive))
+                {
+                    DWORD returned = 0;
+                    DeviceIoControl(_handle, FSCTL_ALLOW_EXTENDED_DASD_IO, nullptr, 0,
+                                    nullptr, 0, &returned, nullptr);
+                }
+                return FileError::Success;
+            }
             result = errorFromWindows(GetLastError());
             if (result != FileError::Busy || attempt + 1 == attempts) break;
             Sleep(100);
@@ -82,11 +91,17 @@ public:
         if (takeOwnership)
         {
             _handle = source;
-            return FileError::Success;
         }
-        return DuplicateHandle(GetCurrentProcess(), source, GetCurrentProcess(), &_handle,
-                               0, FALSE, DUPLICATE_SAME_ACCESS)
-                   ? FileError::Success : errorFromWindows(GetLastError());
+        else
+        {
+            if (!DuplicateHandle(GetCurrentProcess(), source, GetCurrentProcess(), &_handle,
+                                   0, FALSE, DUPLICATE_SAME_ACCESS))
+                return errorFromWindows(GetLastError());
+        }
+        DWORD returned = 0;
+        DeviceIoControl(_handle, FSCTL_ALLOW_EXTENDED_DASD_IO, nullptr, 0,
+                        nullptr, 0, &returned, nullptr);
+        return FileError::Success;
     }
 
     FileError close() override

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Main wings -->
+    <path d="M256 180 L460 270 L460 300 L280 260 L280 400 L340 430 L340 450 L256 436 L172 450 L172 430 L232 400 L232 260 L52 300 L52 270 Z" 
+          fill="#ffffff" fill-opacity="0.18" stroke-width="14"/>
+    <!-- Fuselage nose & body -->
+    <path d="M256 80 C242 80 236 120 236 210 L236 430 L256 450 L276 430 L276 210 C276 120 270 80 256 80 Z" 
+          fill="#ffffff" fill-opacity="0.3" stroke-width="14"/>
+    <!-- Canopy -->
+    <ellipse cx="256" cy="180" rx="12" ry="32" fill="#ffffff" stroke-width="6"/>
+    <!-- Propeller at front -->
+    <ellipse cx="256" cy="74" rx="36" ry="8" stroke-width="8"/>
+    <circle cx="256" cy="74" r="6" fill="#ffffff"/>
+  </g>
+</svg>

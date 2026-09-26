@@ -15,16 +15,16 @@ Item {
     }
 
     // Centered column containing logo + tagline + cards
-    ColumnLayout {
+    Column {
         anchors.centerIn: parent
         width: Math.min(parent.width - 40, 900)
         spacing: 0
 
         // ─── Logo ──────────────────────────────────────────────────────────
         Image {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth:  Math.min(parent.width - 40, 360)
-            Layout.preferredHeight: Math.round(Layout.preferredWidth * (793 / 1983))
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: Math.min(parent.width - 40, 360)
+            height: Math.round(width * (793 / 1983))
             sourceSize.width: 720
             source: "../icons/openhd_imagewriter_logo_v4.png"
             fillMode: Image.PreserveAspectFit
@@ -32,22 +32,22 @@ Item {
             antialiasing: true
         }
 
-        Item { Layout.preferredHeight: 18 }
+        Item { width: 1; height: 18 }
 
         // ─── Tagline ───────────────────────────────────────────────────────
         Text {
-            Layout.alignment: Qt.AlignHCenter
+            anchors.horizontalCenter: parent.horizontalCenter
             text: qsTr("Open Source FPV for Everyone")
             color: "#8fafc4"
             font.pixelSize: 15
             font.letterSpacing: 0.3
         }
 
-        Item { Layout.preferredHeight: 36 }
+        Item { width: 1; height: 36 }
 
         // ─── Cards ─────────────────────────────────────────────────────────
         GridLayout {
-            Layout.fillWidth: true
+            width: parent.width
             columns: width >= 820 ? 4 : 2
             rowSpacing: 16
             columnSpacing: 16
@@ -94,15 +94,15 @@ Item {
                     Behavior on color { ColorAnimation { duration: 130 } }
                     Behavior on border.color { ColorAnimation { duration: 130 } }
 
-                    ColumnLayout {
+                    Column {
                         anchors.centerIn: parent
                         width: parent.width - 32
                         spacing: 0
 
                         Image {
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.preferredWidth: 32
-                            Layout.preferredHeight: 32
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: 32
+                            height: 32
                             sourceSize.width: 72
                             sourceSize.height: 72
                             source: modelData.icon
@@ -111,10 +111,10 @@ Item {
                             Behavior on opacity { NumberAnimation { duration: 130 } }
                         }
 
-                        Item { Layout.preferredHeight: 13 }
+                        Item { width: 1; height: 13 }
 
                         Text {
-                            Layout.fillWidth: true
+                            width: parent.width
                             text: modelData.title
                             color: "#e8f4fc"
                             font.pixelSize: 16
@@ -123,10 +123,10 @@ Item {
                             wrapMode: Text.WordWrap
                         }
 
-                        Item { Layout.preferredHeight: 10 }
+                        Item { width: 1; height: 10 }
 
                         Text {
-                            Layout.fillWidth: true
+                            width: parent.width
                             text: modelData.desc
                             color: "#7a9eb8"
                             font.pixelSize: 12
@@ -153,11 +153,11 @@ Item {
         }
 
         // ─── Status message ────────────────────────────────────────────────
-        Item { Layout.preferredHeight: 16; visible: root.statusMessage !== "" }
+        Item { width: 1; height: 16; visible: root.statusMessage !== "" }
 
         Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: statusText.implicitHeight + 20
+            width: parent.width
+            height: statusText.implicitHeight + 20
             visible: root.statusMessage !== ""
             radius: 7
             color: "#2a2412"

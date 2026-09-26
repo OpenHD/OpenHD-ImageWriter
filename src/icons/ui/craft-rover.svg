@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Chassis Body -->
+    <rect x="180" y="140" width="152" height="232" rx="28" fill="#ffffff" fill-opacity="0.18" stroke-width="14"/>
+    <!-- 4 Wheels -->
+    <rect x="112" y="120" width="48" height="96" rx="12" fill="#ffffff" fill-opacity="0.3" stroke-width="12"/>
+    <rect x="352" y="120" width="48" height="96" rx="12" fill="#ffffff" fill-opacity="0.3" stroke-width="12"/>
+    <rect x="112" y="296" width="48" height="96" rx="12" fill="#ffffff" fill-opacity="0.3" stroke-width="12"/>
+    <rect x="352" y="296" width="48" height="96" rx="12" fill="#ffffff" fill-opacity="0.3" stroke-width="12"/>
+    <!-- Axles -->
+    <line x1="160" y1="168" x2="180" y2="168" stroke-width="14"/>
+    <line x1="332" y1="168" x2="352" y2="168" stroke-width="14"/>
+    <line x1="160" y1="344" x2="180" y2="344" stroke-width="14"/>
+    <line x1="332" y1="344" x2="352" y2="344" stroke-width="14"/>
+    <!-- FPV Camera Turret / Sensor -->
+    <circle cx="256" cy="184" r="22" fill="#ffffff" fill-opacity="0.4" stroke-width="10"/>
+    <circle cx="256" cy="184" r="9" fill="#ffffff"/>
+    <!-- Antenna Mast -->
+    <circle cx="256" cy="300" r="14" stroke-width="8"/>
+    <line x1="256" y1="300" x2="256" y2="330" stroke-width="10"/>
+    <circle cx="256" cy="300" r="5" fill="#ffffff"/>
+  </g>
+</svg>

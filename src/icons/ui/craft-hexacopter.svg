@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Center hex body -->
+    <polygon points="256,190 308,220 308,280 256,310 204,280 204,220" 
+             fill="#ffffff" fill-opacity="0.2" stroke-width="14"/>
+    <!-- 6 Arms -->
+    <line x1="256" y1="190" x2="256" y2="100" stroke-width="15"/>
+    <line x1="308" y1="220" x2="390" y2="175" stroke-width="15"/>
+    <line x1="308" y1="280" x2="390" y2="325" stroke-width="15"/>
+    <line x1="256" y1="310" x2="256" y2="400" stroke-width="15"/>
+    <line x1="204" y1="280" x2="122" y2="325" stroke-width="15"/>
+    <line x1="204" y1="220" x2="122" y2="175" stroke-width="15"/>
+    <!-- 6 Motors & Rotors -->
+    <circle cx="256" cy="90" r="26" fill="#ffffff" fill-opacity="0.25" stroke-width="10"/>
+    <circle cx="398" cy="170" r="26" fill="#ffffff" fill-opacity="0.25" stroke-width="10"/>
+    <circle cx="398" cy="330" r="26" fill="#ffffff" fill-opacity="0.25" stroke-width="10"/>
+    <circle cx="256" cy="410" r="26" fill="#ffffff" fill-opacity="0.25" stroke-width="10"/>
+    <circle cx="114" cy="330" r="26" fill="#ffffff" fill-opacity="0.25" stroke-width="10"/>
+    <circle cx="114" cy="170" r="26" fill="#ffffff" fill-opacity="0.25" stroke-width="10"/>
+    <!-- Forward indicator -->
+    <polygon points="256,220 270,246 242,246" fill="#ffffff"/>
+  </g>
+</svg>

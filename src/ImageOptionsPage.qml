@@ -568,7 +568,6 @@ Rectangle {
                                             }
                                         }
 
-                                        console.log("[ImageOptionsPage] camera options rebuilt for vendor", cameraGroup.selectedVendor ? cameraGroup.selectedVendor.id : "none", "->", cameraOptionsModel.count, "entries")
 
                                         var targetIndex = 0
                                         for (var idx = 0; idx < cameraOptionsModel.count; idx++) {
@@ -587,7 +586,6 @@ Rectangle {
                                             var vendor = cameraGroup.vendorList[i]
                                             vendorModel.append({ displayName: vendor.displayName, vendorIndex: i })
                                         }
-                                        console.log("[ImageOptionsPage] vendor list rebuilt for boot", bootType, "sbc", sbc, "->", vendorModel.count, "vendors")
                                         if (vendorModel.count > 0) {
                                             var index = vendorSelector.currentIndex >= 0 ? vendorSelector.currentIndex : 0
                                             var foundVendor = false
@@ -1003,7 +1001,6 @@ Rectangle {
     }
 
     function initialize() {
-        console.log("[ImageOptionsPage] initialize() called")
         loadSettingsMap()
 
         // The device-settings screen supplies values read directly from the
@@ -1027,7 +1024,6 @@ Rectangle {
         if (!bootType && settingsMap.bootType && settingsMap.bootType.options && settingsMap.bootType.options.length > 0) {
             bootType = settingsMap.bootType.options[0].id
         }
-        console.log("[ImageOptionsPage] bootType:", bootType)
         fileName = imageWriter.srcFileName();
         sbc = imageWriter.getValue("sbc")
         camera= imageWriter.getValue("camera")
@@ -1069,7 +1065,6 @@ Rectangle {
         // Detect the platform and the role capabilities from all current image
         // naming schemes. Lite/minimal images intentionally have no Air stack.
         imageWriter.setSetting("fileName", fileName)
-        console.log("[ImageOptionsPage] src file:", fileName)
         var normalizedFileName = fileName.toLowerCase()
         var normalizedPlatform = String(platformHint || "").toLowerCase()
         supportsAir = normalizedFileName.indexOf("lite") === -1 && normalizedFileName.indexOf("minimal") === -1
@@ -1162,11 +1157,6 @@ Rectangle {
         imageWriter.setSetting("sbc", sbc)
         imageWriter.setSetting("bootType", bootType)
 
-        console.log("[ImageOptionsPage] detected SBC:", sbc)
-        console.log("[ImageOptionsPage] saved camera:", camera)
-        console.log("[ImageOptionsPage] saved camera2:", camera2)
-        console.log("[ImageOptionsPage] saved cameraResolution:", cameraResolution)
-        console.log("[ImageOptionsPage] saved camera2Resolution:", camera2Resolution)
 
         initialized = true
     }
@@ -1335,7 +1325,6 @@ Rectangle {
         try {
             settingsMap = JSON.parse(imageWriter.readResourceText(":/doc/openhd_settings_map.json"))
             settingsMapLoaded = true
-            console.log("[ImageOptionsPage] settings map loaded with keys:", Object.keys(settingsMap))
         } catch (e) {
             console.log("Failed to load OpenHD settings map: " + e)
         }

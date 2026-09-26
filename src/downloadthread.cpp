@@ -44,7 +44,7 @@ QSettings settings;
 
 DownloadThread::DownloadThread(const QByteArray &url, const QByteArray &localfilename, const QByteArray &expectedHash, QObject *parent) :
     QThread(parent), _startOffset(0), _rangeResponseTotal(-1), _lastDlTotal(0), _lastDlNow(0), _verifyTotal(0), _lastVerifyNow(0), _bytesWritten(0), _lastFailureOffset(0), _sectorsStart(-1), _url(url), _filename(localfilename), _expectedHash(expectedHash),
-    _firstBlock(nullptr), _cancelled(false), _deviceOperationActive(false),
+    _firstBlock(nullptr), _firstBlockSize(0), _cancelled(false), _deviceOperationActive(false),
     _watchdogRecoveryRequested(false), _successful(false), _verifyEnabled(false), _cacheEnabled(false), _lastModified(0), _serverTime(0),  _lastFailureTime(0),
     _inputBufferSize(0), _lastFileError(FileError::Success), _file(FileOperations::create()),
     _writehash(OSLIST_HASH_ALGORITHM), _verifyhash(OSLIST_HASH_ALGORITHM)
@@ -631,25 +631,42 @@ size_t DownloadThread::_writeFile(const char *buf, size_t len)
 
     if (!_firstBlock)
     {
-        _writehash.addData(buf, len);
-        _firstBlock = (char *) qMallocAligned(len, 4096);
+        _firstBlock = (char *) qMallocAligned(IMAGEWRITER_BLOCKSIZE, 4096);
         if (!_firstBlock)
         {
             _lastFileError = FileError::IoError;
             return 0;
         }
-        _firstBlockSize = len;
-        ::memcpy(_firstBlock, buf, len);
-
-        _lastFileError = _file->seek(static_cast<quint64>(len));
-        return _lastFileError == FileError::Success ? len : 0;
+        _firstBlockSize = 0;
     }
-    // This method already runs in the background write job. Spawning another
-    // normal-priority pool job for every block can saturate all CPU cores and
-    // make the QML render thread appear frozen while writing. Hash serially in
-    // this worker; verification behavior is unchanged.
+
+    if (_firstBlockSize < IMAGEWRITER_BLOCKSIZE)
+    {
+        const size_t toCopy = std::min(len, static_cast<size_t>(IMAGEWRITER_BLOCKSIZE) - _firstBlockSize);
+        ::memcpy(_firstBlock + _firstBlockSize, buf, toCopy);
+        _firstBlockSize += toCopy;
+        _writehash.addData(buf, toCopy);
+
+        if (_firstBlockSize == IMAGEWRITER_BLOCKSIZE)
+        {
+            _lastFileError = _file->seek(static_cast<quint64>(_firstBlockSize));
+            if (_lastFileError != FileError::Success)
+                return 0;
+        }
+
+        if (toCopy < len)
+        {
+            _hashData(buf + toCopy, len - toCopy);
+            const bool accepted = _writeBatcher->append(
+                reinterpret_cast<const quint8 *>(buf + toCopy), len - toCopy);
+            return accepted ? len : 0;
+        }
+        return len;
+    }
+
     _hashData(buf, len);
-    const bool accepted = _writeBatcher->append(reinterpret_cast<const quint8 *>(buf), len);
+    const bool accepted = _writeBatcher->append(
+        reinterpret_cast<const quint8 *>(buf), len);
     return accepted ? len : 0;
 }
 
@@ -801,8 +818,35 @@ void DownloadThread::_closeFiles()
 
 void DownloadThread::_writeComplete()
 {
+    if (_firstBlock && _firstBlockSize < IMAGEWRITER_BLOCKSIZE)
+    {
+        // Entire image is smaller than 1 MB; align _firstBlock to sector boundary
+        if (_firstBlockSize % 512 != 0)
+        {
+            const size_t padding = 512 - (_firstBlockSize % 512);
+            ::memset(_firstBlock + _firstBlockSize, 0, padding);
+            _firstBlockSize += padding;
+        }
+    }
+    else
+    {
+        // Flush any partial trailing batch; pad to 512-byte sector boundary for raw disk I/O
+        const size_t pending = _writeBatcher->pendingBytes();
+        if (pending > 0 && (pending % 512 != 0))
+        {
+            const size_t paddingBytes = 512 - (pending % 512);
+            const QByteArray padding(static_cast<int>(paddingBytes), '\0');
+            _writeBatcher->append(reinterpret_cast<const quint8 *>(padding.constData()), paddingBytes);
+        }
+    }
+
     if (!_writeBatcher->flush())
     {
+        if (_firstBlock)
+        {
+            qFreeAligned(_firstBlock);
+            _firstBlock = nullptr;
+        }
         if (!_cancelled)
             DownloadThread::_onDownloadError(tr("Error writing final block to storage"));
         _closeFiles();
@@ -902,7 +946,7 @@ bool DownloadThread::_verify()
         return false;
     }
     _lastVerifyNow = 0;
-    _verifyTotal = _file->position();
+    _verifyTotal = std::max(static_cast<quint64>(_file->position()), static_cast<quint64>(_firstBlockSize));
     QElapsedTimer t1;
     t1.start();
 

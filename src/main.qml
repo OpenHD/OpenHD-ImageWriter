@@ -67,6 +67,8 @@ ApplicationWindow {
         imageWriter.getBoolSetting("fleetcontrol_signed_in")
     property bool fleetControlSessionChecking: false
     readonly property string fleetControlApiBaseUrl: "https://openhd.tech"
+    readonly property string openHdWebsiteUrl: "https://openhdfpv.org"
+    readonly property string openHdWikiUrl: "https://openhdfpv.org/introduction/"
 
     property bool compactNavigation: width < 700
     property int navigationWidth: compactNavigation ? 52 : 230
@@ -634,7 +636,7 @@ ApplicationWindow {
 
         onHelpRequested:
             Qt.openUrlExternally(
-                "https://openhd.gitbook.io/open-hd/"
+                window.openHdWikiUrl
             )
 
         Behavior on width {
