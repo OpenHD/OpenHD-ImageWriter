@@ -38,6 +38,7 @@ Item {
     property int editIndex: -1
     property string editorSelectedCategory: "craft"
     property string editorSelectedIcon: "survey"
+    property string editorSelectedFamily: "multirotor"
     property string editorSelectedHardware: "Raspberry Pi (4 / 5 / CM4 / Zero 2W)"
     property bool editorAdvancedOpen: false
 
@@ -53,6 +54,10 @@ Item {
             "rover": "../icons/fleetcontrol/craft-rover-cutout.png",
             "boat": "../icons/fleetcontrol/craft-boat-cutout.png",
             "submarine": "../icons/fleetcontrol/craft-submarine-cutout.png",
+            "station-field-case": "../icons/fleetcontrol/station-field-case-cutout.png",
+            "station-rugged-laptop": "../icons/fleetcontrol/station-rugged-laptop-cutout.png",
+            "station-antenna-tracker": "../icons/fleetcontrol/station-antenna-tracker-cutout.png",
+            "station-handheld-controller": "../icons/fleetcontrol/station-handheld-controller-cutout.png",
             "craft-quadcopter": "../icons/fleetcontrol/craft-survey-cutout.png",
             "craft-plane": "../icons/fleetcontrol/craft-plane-cutout.png",
             "craft-vtol": "../icons/fleetcontrol/craft-plane-cutout.png",
@@ -64,6 +69,14 @@ Item {
             "station-military-gcs": "../icons/ui/station-military-gcs.svg"
         }
         return map[key] || "../icons/ui/hub.svg"
+    }
+
+    function familyForIcon(key) {
+        if (key === "plane" || key === "craft-plane" || key === "craft-vtol") return "planes"
+        if (key === "rover" || key === "craft-rover") return "ground"
+        if (key === "boat" || key === "submarine") return "marine"
+        if (String(key).indexOf("station") === 0) return "stations"
+        return "multirotor"
     }
 
     function request(method, path, body, callback) {
@@ -629,6 +642,7 @@ Item {
         editIndex = -1
         editorSelectedCategory = "craft"
         editorSelectedIcon = "survey"
+        editorSelectedFamily = "multirotor"
         editorSelectedHardware = "Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)"
         craftNameField.text = ""
         craftDescField.text = ""
@@ -666,6 +680,7 @@ Item {
         editIndex = index
         editorSelectedCategory = craft.craftCategory || "craft"
         editorSelectedIcon = craft.craftIcon || (editorSelectedCategory === "craft" ? "survey" : "station-military-gcs")
+        editorSelectedFamily = familyForIcon(editorSelectedIcon)
         editorSelectedHardware = craft.craftHardware || "Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)"
         craftNameField.text = craft.craftName || ""
         craftDescField.text = craft.craftDescription || ""
@@ -1686,8 +1701,10 @@ Item {
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     root.editorSelectedCategory = "craft"
-                                    if (root.editorSelectedIcon.indexOf("station") === 0)
+                                    if (root.editorSelectedIcon.indexOf("station") === 0) {
                                         root.editorSelectedIcon = "survey"
+                                        root.editorSelectedFamily = "multirotor"
+                                    }
                                 }
                             }
                         }
@@ -1727,8 +1744,10 @@ Item {
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     root.editorSelectedCategory = "station"
-                                    if (root.editorSelectedIcon.indexOf("station") !== 0)
-                                        root.editorSelectedIcon = "station-military-gcs"
+                                    if (root.editorSelectedIcon.indexOf("station") !== 0) {
+                                        root.editorSelectedIcon = "station-field-case"
+                                        root.editorSelectedFamily = "stations"
+                                    }
                                 }
                             }
                         }
@@ -1741,7 +1760,7 @@ Item {
                     spacing: 6
 
                     Text {
-                        text: root.editorSelectedCategory === "craft" ? qsTr("VEHICLE TYPE") : qsTr("STATION TYPE")
+                        text: root.editorSelectedCategory === "craft" ? qsTr("VEHICLE FAMILY") : qsTr("GROUND STATION TYPE")
                         color: "#7592a3"
                         font.family: "Courier New"
                         font.pixelSize: 10
@@ -1750,52 +1769,107 @@ Item {
                     }
 
                     Flow {
+                        width: parent.width
+                        spacing: 8
+                        visible: root.editorSelectedCategory === "craft"
+
+                        Repeater {
+                            model: [
+                                { "key": "multirotor", "label": qsTr("Quadcopters") },
+                                { "key": "planes", "label": qsTr("Planes") },
+                                { "key": "ground", "label": qsTr("Ground Vehicles") },
+                                { "key": "marine", "label": qsTr("Marine") }
+                            ]
+
+                            delegate: Rectangle {
+                                width: familyLabel.implicitWidth + 24
+                                height: 34
+                                radius: 17
+                                color: root.editorSelectedFamily === modelData.key ? "#00a6f2" : "#121e2a"
+                                border.color: root.editorSelectedFamily === modelData.key ? "#4cc2f7" : "#294658"
+
+                                Text {
+                                    id: familyLabel
+                                    anchors.centerIn: parent
+                                    text: modelData.label
+                                    color: root.editorSelectedFamily === modelData.key ? "#061722" : "#a6bdc9"
+                                    font.pixelSize: 11
+                                    font.bold: true
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        root.editorSelectedFamily = modelData.key
+                                        if (modelData.key === "multirotor") root.editorSelectedIcon = "survey"
+                                        else if (modelData.key === "planes") root.editorSelectedIcon = "plane"
+                                        else if (modelData.key === "ground") root.editorSelectedIcon = "rover"
+                                        else root.editorSelectedIcon = "boat"
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Flow {
                         id: vehicleTypeCardsFlow
                         width: parent.width
                         spacing: 8
 
-                        readonly property var currentCards: root.editorSelectedCategory === "craft"
+                        readonly property var currentCards: root.editorSelectedCategory === "station"
                             ? [
+                                { "key": "station-field-case", "label": qsTr("Field Case GCS") },
+                                { "key": "station-rugged-laptop", "label": qsTr("Rugged Laptop") },
+                                { "key": "station-handheld-controller", "label": qsTr("Handheld Controller") },
+                                { "key": "station-antenna-tracker", "label": qsTr("Antenna Tracker") },
+                                { "key": "station-goggles", "label": qsTr("FPV Goggles") },
+                                { "key": "station-military-gcs", "label": qsTr("Fixed Tactical GCS") }
+                            ]
+                            : root.editorSelectedFamily === "planes" ? [
+                                { "key": "plane", "label": qsTr("Normal Plane") },
+                                { "key": "craft-vtol", "label": qsTr("VTOL Plane") }
+                            ] : root.editorSelectedFamily === "ground" ? [
+                                { "key": "rover", "label": qsTr("Rover") }
+                            ] : root.editorSelectedFamily === "marine" ? [
+                                { "key": "boat", "label": qsTr("Surface Vessel") },
+                                { "key": "submarine", "label": qsTr("Submarine") }
+                            ] : [
                                 { "key": "survey", "label": qsTr("Survey Copter") },
                                 { "key": "heavy-lift", "label": qsTr("Heavy Lift") },
                                 { "key": "racer", "label": qsTr("FPV Racer") },
-                                { "key": "whoop", "label": qsTr("Cinewhoop") },
-                                { "key": "plane", "label": qsTr("Model Plane") },
-                                { "key": "rover", "label": qsTr("Rover") },
-                                { "key": "boat", "label": qsTr("Surface Vessel") },
-                                { "key": "submarine", "label": qsTr("Submarine") }
-                            ]
-                            : [
-                                { "key": "station-military-gcs", "label": qsTr("Tactical GCS") },
-                                { "key": "station-goggles", "label": qsTr("FPV Goggles") },
-                                { "key": "station-tracker", "label": qsTr("Antenna Tracker") },
-                                { "key": "station-transmitter", "label": qsTr("RC Controller") }
+                                { "key": "whoop", "label": qsTr("Cinewhoop") }
                             ]
 
                         Repeater {
                             model: vehicleTypeCardsFlow.currentCards
 
                             delegate: Rectangle {
-                                width: vehicleTypeCardsFlow.width >= 560
-                                       ? Math.floor((vehicleTypeCardsFlow.width - (vehicleTypeCardsFlow.currentCards.length - 1) * 8) / vehicleTypeCardsFlow.currentCards.length)
-                                       : Math.floor((vehicleTypeCardsFlow.width - 8) / 2)
-                                height: 82
+                                width: vehicleTypeCardsFlow.width >= 720
+                                       ? Math.floor((vehicleTypeCardsFlow.width - 16) / 3)
+                                       : vehicleTypeCardsFlow.width >= 440 ? Math.floor((vehicleTypeCardsFlow.width - 8) / 2) : vehicleTypeCardsFlow.width
+                                height: 156
                                 radius: 8
                                 color: root.editorSelectedIcon === modelData.key ? "#0d2d43" : "#121e2a"
                                 border.color: root.editorSelectedIcon === modelData.key ? "#00a6f2" : "#1e3345"
                                 border.width: root.editorSelectedIcon === modelData.key ? 2 : 1
 
                                 Column {
-                                    anchors.centerIn: parent
-                                    spacing: 6
+                                    anchors.fill: parent
+                                    anchors.margins: 10
+                                    spacing: 7
 
                                     Image {
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        width: 32
-                                        height: 32
+                                        width: parent.width
+                                        height: 110
                                         source: root.iconSource(modelData.key)
                                         fillMode: Image.PreserveAspectFit
                                         smooth: true
+                                        mipmap: true
+                                        asynchronous: false
+                                        sourceSize.width: 420
+                                        sourceSize.height: 280
                                     }
 
                                     Text {
@@ -2086,7 +2160,7 @@ Item {
                                     visible: FleetProfilesHelper.sbcKeyFromHardware(root.editorSelectedHardware) === "rpi" &&
                                              FleetProfilesHelper.isRpiCsiCamera(root.settingsMap, cameraDropdown.currentText)
                                     Text {
-                                        text: qsTr("PRIMARY CAMERA CONNECTOR (PI 5)")
+                                        text: qsTr("PRIMARY CAMERA CONNECTOR")
                                         color: "#7592a3"
                                         font.pixelSize: 9
                                         font.bold: true
@@ -2203,7 +2277,7 @@ Item {
                                     visible: FleetProfilesHelper.sbcKeyFromHardware(root.editorSelectedHardware) === "rpi" &&
                                              FleetProfilesHelper.isRpiCsiCamera(root.settingsMap, camera2Dropdown.currentText)
                                     Text {
-                                        text: qsTr("SECONDARY CAMERA CONNECTOR (PI 5)")
+                                        text: qsTr("SECONDARY CAMERA CONNECTOR")
                                         color: "#7592a3"
                                         font.pixelSize: 9
                                         font.bold: true
