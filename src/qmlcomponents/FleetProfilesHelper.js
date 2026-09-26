@@ -18,11 +18,19 @@ function getSettingsMap(imageWriter) {
 
 function iconSource(key) {
     var map = {
-        "craft-quadcopter": "../icons/ui/craft-quadcopter.svg",
-        "craft-plane": "../icons/ui/craft-plane.svg",
-        "craft-vtol": "../icons/ui/craft-vtol.svg",
-        "craft-hexacopter": "../icons/ui/craft-hexacopter.svg",
-        "craft-rover": "../icons/ui/craft-rover.svg",
+        "survey": "../icons/fleetcontrol/craft-survey-cutout.png",
+        "heavy-lift": "../icons/fleetcontrol/craft-heavy-lift-cutout.png",
+        "racer": "../icons/fleetcontrol/craft-racer-cutout.png",
+        "whoop": "../icons/fleetcontrol/craft-whoop-cutout.png",
+        "plane": "../icons/fleetcontrol/craft-plane-cutout.png",
+        "rover": "../icons/fleetcontrol/craft-rover-cutout.png",
+        "boat": "../icons/fleetcontrol/craft-boat-cutout.png",
+        "submarine": "../icons/fleetcontrol/craft-submarine-cutout.png",
+        "craft-quadcopter": "../icons/fleetcontrol/craft-survey-cutout.png",
+        "craft-plane": "../icons/fleetcontrol/craft-plane-cutout.png",
+        "craft-vtol": "../icons/fleetcontrol/craft-plane-cutout.png",
+        "craft-hexacopter": "../icons/fleetcontrol/craft-heavy-lift-cutout.png",
+        "craft-rover": "../icons/fleetcontrol/craft-rover-cutout.png",
         "station-goggles": "../icons/ui/station-goggles.svg",
         "station-tracker": "../icons/ui/station-tracker.svg",
         "station-transmitter": "../icons/ui/station-transmitter.svg",
@@ -187,144 +195,14 @@ function normalizeResolution(res) {
     return res;
 }
 
-function defaultTemplates() {
-    return [
-        {
-            craftId: "tpl_skysurfer",
-            craftName: "SkySurfer Fixed Wing",
-            craftCategory: "craft",
-            craftIcon: "craft-plane",
-            craftRole: "air",
-            craftHardware: "Radxa Zero 3W / Rock 3 (RK3566)",
-            craftDescription: "High-efficiency aerial surveying and long endurance flight",
-            craftCameraVendor: "Zero3W",
-            craftCamera: "IMX708",
-            craftCameraResolution: "1080p60",
-            craftCamera2: "",
-            craftCamera2Resolution: "",
-            craftHotSpot: "",
-            craftDisplayForceMode: false,
-            craftDisplayWidth: 1920,
-            craftDisplayHeight: 1080,
-            craftDisplayRefreshHz: 60,
-            craftMapboxApiKey: "",
-            isTemplate: true
-        },
-        {
-            craftId: "tpl_tactical_vtol",
-            craftName: "VTOL Hybrid Scout",
-            craftCategory: "craft",
-            craftIcon: "craft-vtol",
-            craftRole: "air",
-            craftHardware: "Raspberry Pi 4 / 5 / CM4 / Zero 2W",
-            craftDescription: "Vertical takeoff with transition to fixed-wing cruise",
-            craftCameraVendor: "Raspberry",
-            craftCamera: "IMX708",
-            craftCameraResolution: "1080p60",
-            craftCamera2: "",
-            craftCamera2Resolution: "",
-            craftHotSpot: "",
-            craftDisplayForceMode: false,
-            craftDisplayWidth: 1920,
-            craftDisplayHeight: 1080,
-            craftDisplayRefreshHz: 60,
-            craftMapboxApiKey: "",
-            isTemplate: true
-        },
-        {
-            craftId: "tpl_heavy_hexacopter",
-            craftName: "Heavy Lifter Hexacopter",
-            craftCategory: "craft",
-            craftIcon: "craft-hexacopter",
-            craftRole: "air",
-            craftHardware: "Raspberry Pi 4 / 5 / CM4 / Zero 2W",
-            craftDescription: "Payload carrier with redundant propulsion and multi-camera support",
-            craftCameraVendor: "Raspberry",
-            craftCamera: "IMX477",
-            craftCameraResolution: "1080p60",
-            craftCamera2: "IMX708",
-            craftCamera2Resolution: "720p60",
-            craftHotSpot: "",
-            craftDisplayForceMode: false,
-            craftDisplayWidth: 1920,
-            craftDisplayHeight: 1080,
-            craftDisplayRefreshHz: 60,
-            craftMapboxApiKey: "",
-            isTemplate: true
-        },
-        {
-            craftId: "tpl_rover_ugv",
-            craftName: "Ground Rover UGV",
-            craftCategory: "craft",
-            craftIcon: "craft-rover",
-            craftRole: "air",
-            craftHardware: "Radxa Zero 3W / Rock 3 (RK3566)",
-            craftDescription: "Unmanned ground vehicle rover with pan-tilt camera control",
-            craftCameraVendor: "Network",
-            craftCamera: "IP-CAMERA",
-            craftCameraResolution: "1080p30",
-            craftCamera2: "",
-            craftCamera2Resolution: "",
-            craftHotSpot: "",
-            craftDisplayForceMode: false,
-            craftDisplayWidth: 1920,
-            craftDisplayHeight: 1080,
-            craftDisplayRefreshHz: 60,
-            craftMapboxApiKey: "",
-            isTemplate: true
-        },
-        {
-            craftId: "tpl_tactical_gcs",
-            craftName: "Dual-Screen Tactical GCS",
-            craftCategory: "station",
-            craftIcon: "station-military-gcs",
-            craftRole: "ground",
-            craftHardware: "PC / x86_64 Station / Laptop",
-            craftDescription: "Industrial field control station with dual tactical screens",
-            craftCameraVendor: "",
-            craftCamera: "",
-            craftCameraResolution: "",
-            craftCamera2: "",
-            craftCamera2Resolution: "",
-            craftHotSpot: "openhd_gcs_secure",
-            craftDisplayForceMode: true,
-            craftDisplayWidth: 1920,
-            craftDisplayHeight: 1080,
-            craftDisplayRefreshHz: 60,
-            craftMapboxApiKey: "",
-            isTemplate: true
-        },
-        {
-            craftId: "tpl_goggles_fpv",
-            craftName: "HD FPV Goggles",
-            craftCategory: "station",
-            craftIcon: "station-goggles",
-            craftRole: "ground",
-            craftHardware: "Raspberry Pi 4 / 5 / CM4 / Zero 2W",
-            craftDescription: "Ultra-low latency wearable display for pilot immersion",
-            craftCameraVendor: "",
-            craftCamera: "",
-            craftCameraResolution: "",
-            craftCamera2: "",
-            craftCamera2Resolution: "",
-            craftHotSpot: "",
-            craftDisplayForceMode: true,
-            craftDisplayWidth: 800,
-            craftDisplayHeight: 480,
-            craftDisplayRefreshHz: 60,
-            craftMapboxApiKey: "",
-            isTemplate: true
-        }
-    ];
-}
-
 function loadProfiles(imageWriter) {
     var list = [];
     if (!imageWriter)
-        return defaultTemplates();
+        return list;
 
-    var accountName = imageWriter.getValue("fleetcontrol_user") || "";
-    var cacheKey = "fleetcontrol_crafts_" + (accountName && accountName.length > 0 ? accountName.toLowerCase() : "default");
+    var accountName = imageWriter.getValue("fleetcontrol_username") || imageWriter.getValue("fleetcontrol_user") || "";
+    var cacheKey = imageWriter.getValue("fleetcontrol_profile_cache_key") ||
+                   ("fleetcontrol_crafts_" + (accountName && accountName.length > 0 ? accountName.toLowerCase() : "default"));
     var localData = imageWriter.getValue(cacheKey);
 
     if (localData && localData.length > 5) {
@@ -338,7 +216,7 @@ function loadProfiles(imageWriter) {
                             craftId: p.id || ("craft_" + i),
                             craftName: p.name,
                             craftCategory: p.category || "craft",
-                            craftIcon: p.icon || (p.category === "station" ? "station-military-gcs" : "craft-quadcopter"),
+                            craftIcon: p.icon || (p.category === "station" ? "station-military-gcs" : "survey"),
                             craftRole: p.role || (p.category === "station" ? "ground" : "air"),
                             craftHardware: p.hardware || "Raspberry Pi",
                             craftDescription: p.description || "",
@@ -352,13 +230,15 @@ function loadProfiles(imageWriter) {
                             craftCamera2Port: p.camera2Port || "cam0",
                             craftIpCameraAddress: p.ipCameraAddress || "",
                             craftIpCameraPipeline: p.ipCameraPipeline || "",
+                            craftCamera2IpAddress: p.camera2IpCameraAddress || p.camera2IpAddress || "",
+                            craftCamera2IpPipeline: p.camera2IpCameraPipeline || p.camera2IpPipeline || "",
+                            craftIpCameraBitrate: p.ipCameraBitrate || 2,
                             craftHotSpot: p.hotSpot || "",
                             craftDisplayForceMode: p.displayForceMode || false,
                             craftDisplayWidth: p.displayWidth || 1920,
                             craftDisplayHeight: p.displayHeight || 1080,
                             craftDisplayRefreshHz: p.displayRefreshHz || 60,
-                            craftMapboxApiKey: p.mapboxApiKey || "",
-                            isTemplate: false
+                            craftMapboxApiKey: p.mapboxApiKey || ""
                         });
                     }
                 }
@@ -366,10 +246,6 @@ function loadProfiles(imageWriter) {
         } catch (e) {}
     }
 
-    var tpls = defaultTemplates();
-    for (var j = 0; j < tpls.length; ++j) {
-        list.push(tpls[j]);
-    }
     return list;
 }
 
@@ -394,10 +270,13 @@ function applyProfile(imageWriter, p) {
     imageWriter.setSetting("cameraResolution", res);
     imageWriter.setSetting("camera2", cam2);
     imageWriter.setSetting("camera2Resolution", res2);
-    if (p.craftCameraPort) imageWriter.setSetting("cameraPort", p.craftCameraPort);
-    if (p.craftCamera2Port) imageWriter.setSetting("camera2Port", p.craftCamera2Port);
-    if (p.craftIpCameraAddress) imageWriter.setSetting("ipCameraAddress", p.craftIpCameraAddress);
-    if (p.craftIpCameraPipeline) imageWriter.setSetting("ipCameraPipeline", p.craftIpCameraPipeline);
+    imageWriter.setSetting("cameraPort", p.craftCameraPort || "cam1");
+    imageWriter.setSetting("camera2Port", p.craftCamera2Port || "cam0");
+    imageWriter.setSetting("ipCameraAddress", p.craftIpCameraAddress || "");
+    imageWriter.setSetting("ipCameraPipeline", p.craftIpCameraPipeline || "");
+    imageWriter.setSetting("camera2IpCameraAddress", p.craftCamera2IpAddress || "");
+    imageWriter.setSetting("camera2IpCameraPipeline", p.craftCamera2IpPipeline || "");
+    imageWriter.setSetting("ipCameraBitrate", p.craftIpCameraBitrate || 2);
 
     imageWriter.setSetting("hotSpot", p.craftHotSpot || "");
 

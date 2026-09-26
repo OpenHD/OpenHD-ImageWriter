@@ -411,8 +411,10 @@ Item {
         focus: true
         dim: true
         width: Math.min(root.width - (root.narrow ? 20 : 40), 620)
+        padding: 16
+        height: Math.min(pickerColumn.implicitHeight + 32, root.height - 30)
         x: Math.round((root.width - width) / 2)
-        y: Math.max(12, Math.round((root.height - implicitHeight) / 2))
+        y: Math.max(12, Math.round((root.height - height) / 2))
         clip: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
@@ -447,7 +449,7 @@ Item {
 
                 Text {
                     Layout.fillWidth: true
-                    text: qsTr("Select Fleet Profile or Preset")
+                    text: qsTr("Select Fleet Profile")
                     color: "#ffffff"
                     font.pixelSize: root.narrow ? 15 : 17
                     font.bold: true
@@ -471,20 +473,20 @@ Item {
 
             Rectangle {
                 Layout.fillWidth: true
-                height: 1
+                Layout.preferredHeight: 1
                 color: "#1c3c50"
             }
 
             Flickable {
                 Layout.fillWidth: true
-                Layout.preferredHeight: Math.min(profileListView.implicitHeight, Math.max(120, Math.min(260, root.height - 240)))
+                Layout.preferredHeight: Math.min(profileListView.implicitHeight, 260)
                 contentWidth: width
                 contentHeight: profileListView.implicitHeight
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
-                Column {
+                ColumnLayout {
                     id: profileListView
                     width: parent.width
                     spacing: 6
@@ -494,8 +496,8 @@ Item {
 
                         Rectangle {
                             id: itemCard
-                            width: profileListView.width
-                            height: 52
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 52
                             radius: 6
                             readonly property bool isSelected: modelData.craftName === root.profileName && root.useProfileSettings
                             readonly property bool isHovered: itemMouse.containsMouse
@@ -568,12 +570,6 @@ Item {
                                             }
                                         }
 
-                                        Text {
-                                            visible: !!modelData.isTemplate
-                                            text: qsTr("[Preset]")
-                                            color: "#7296aa"
-                                            font.pixelSize: 10
-                                        }
                                     }
 
                                     Text {
@@ -600,7 +596,7 @@ Item {
 
             Rectangle {
                 Layout.fillWidth: true
-                height: 1
+                Layout.preferredHeight: 1
                 color: "#1c3c50"
             }
 

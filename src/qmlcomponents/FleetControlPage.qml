@@ -19,7 +19,7 @@ Item {
     property bool signedIn: accountName !== ""
     property bool showPassword: false
     property bool loadingCrafts: false
-    property int activeFilter: 0 // 0: My Fleet, 1: Air Vehicles, 2: Ground Stations, 3: Example Templates
+    property int activeFilter: 0 // 0: My Fleet, 1: Air Vehicles, 2: Ground Stations
     property string activeCraftName: imageWriter.getValue("fleetcontrol_craft_name") || ""
 
     // Settings map from OpenHD specification
@@ -30,245 +30,34 @@ Item {
     property string savedResolution: ""
     property string savedSecondaryCamera: ""
     property string savedSecondaryResolution: ""
+    property string editorCameraPort: "cam0"
+    property string editorCamera2Port: "cam1"
 
     // Full-tab Unit Editor state
     property bool unitEditorVisible: false
     property int editIndex: -1
     property string editorSelectedCategory: "craft"
-    property string editorSelectedIcon: "craft-quadcopter"
+    property string editorSelectedIcon: "survey"
     property string editorSelectedHardware: "Raspberry Pi (4 / 5 / CM4 / Zero 2W)"
     property bool editorAdvancedOpen: false
 
     ListModel { id: craftModel }
 
-    ListModel {
-        id: templateModel
-
-        ListElement {
-            craftId: "tpl_recon_quad"
-            craftName: "Recon Quad 7\""
-            craftCategory: "craft"
-            craftIcon: "craft-quadcopter"
-            craftRole: "air"
-            craftHardware: "Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)"
-            craftDescription: "Long range FPV scout multirotor with HD digital link"
-            craftCameraVendor: "Raspberry"
-            craftCamera: "IMX708"
-            craftCameraResolution: "1080p60"
-            craftCameraPort: "cam0"
-            craftCamera2: ""
-            craftCamera2Resolution: ""
-            craftCamera2Port: "cam1"
-            craftIpCameraAddress: ""
-            craftIpCameraPipeline: ""
-            craftHotSpot: ""
-            craftDisplayForceMode: false
-            craftDisplayWidth: 1920
-            craftDisplayHeight: 1080
-            craftDisplayRefreshHz: 60
-            craftMapboxApiKey: ""
-        }
-        ListElement {
-            craftId: "tpl_skysurfer_wing"
-            craftName: "SkySurfer Fixed Wing"
-            craftCategory: "craft"
-            craftIcon: "craft-plane"
-            craftRole: "air"
-            craftHardware: "Radxa Zero 3W / Rock 3 (RK3566)"
-            craftDescription: "High-efficiency aerial surveying and long endurance flight"
-            craftCameraVendor: "Zero3W"
-            craftCamera: "IMX415"
-            craftCameraResolution: "1080p60"
-            craftCameraPort: "cam0"
-            craftCamera2: ""
-            craftCamera2Resolution: ""
-            craftCamera2Port: "cam1"
-            craftIpCameraAddress: ""
-            craftIpCameraPipeline: ""
-            craftHotSpot: ""
-            craftDisplayForceMode: false
-            craftDisplayWidth: 1920
-            craftDisplayHeight: 1080
-            craftDisplayRefreshHz: 60
-            craftMapboxApiKey: ""
-        }
-        ListElement {
-            craftId: "tpl_tactical_vtol"
-            craftName: "VTOL Hybrid Scout"
-            craftCategory: "craft"
-            craftIcon: "craft-vtol"
-            craftRole: "air"
-            craftHardware: "OpenHD Core X20"
-            craftDescription: "Vertical takeoff with transition to fixed-wing cruise"
-            craftCameraVendor: "X20"
-            craftCamera: "IMX415"
-            craftCameraResolution: "1080p60"
-            craftCameraPort: "cam0"
-            craftCamera2: ""
-            craftCamera2Resolution: ""
-            craftCamera2Port: "cam1"
-            craftIpCameraAddress: ""
-            craftIpCameraPipeline: ""
-            craftHotSpot: ""
-            craftDisplayForceMode: false
-            craftDisplayWidth: 1920
-            craftDisplayHeight: 1080
-            craftDisplayRefreshHz: 60
-            craftMapboxApiKey: ""
-        }
-        ListElement {
-            craftId: "tpl_heavy_hexacopter"
-            craftName: "Heavy Lifter Hexacopter"
-            craftCategory: "craft"
-            craftIcon: "craft-hexacopter"
-            craftRole: "air"
-            craftHardware: "Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)"
-            craftDescription: "Payload carrier with redundant propulsion and multi-camera support"
-            craftCameraVendor: "Raspberry"
-            craftCamera: "IMX477"
-            craftCameraResolution: "1080p60"
-            craftCameraPort: "cam0"
-            craftCamera2: "IMX708"
-            craftCamera2Resolution: "720p60"
-            craftCamera2Port: "cam1"
-            craftIpCameraAddress: ""
-            craftIpCameraPipeline: ""
-            craftHotSpot: ""
-            craftDisplayForceMode: false
-            craftDisplayWidth: 1920
-            craftDisplayHeight: 1080
-            craftDisplayRefreshHz: 60
-            craftMapboxApiKey: ""
-        }
-        ListElement {
-            craftId: "tpl_rover_ugv"
-            craftName: "Ground Rover UGV"
-            craftCategory: "craft"
-            craftIcon: "craft-rover"
-            craftRole: "air"
-            craftHardware: "Radxa Zero 3W / Rock 3 (RK3566)"
-            craftDescription: "Unmanned ground vehicle rover with network IP camera"
-            craftCameraVendor: "Network"
-            craftCamera: "IP-CAMERA"
-            craftCameraResolution: "1080p30"
-            craftCameraPort: "cam0"
-            craftCamera2: ""
-            craftCamera2Resolution: ""
-            craftCamera2Port: "cam1"
-            craftIpCameraAddress: "192.168.144.108"
-            craftIpCameraPipeline: "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
-            craftHotSpot: ""
-            craftDisplayForceMode: false
-            craftDisplayWidth: 1920
-            craftDisplayHeight: 1080
-            craftDisplayRefreshHz: 60
-            craftMapboxApiKey: ""
-        }
-        ListElement {
-            craftId: "tpl_tactical_gcs"
-            craftName: "Dual-Screen Tactical GCS"
-            craftCategory: "station"
-            craftIcon: "station-military-gcs"
-            craftRole: "ground"
-            craftHardware: "PC / x86_64 Ground Station"
-            craftDescription: "Industrial field control station with dual tactical screens"
-            craftCameraVendor: ""
-            craftCamera: ""
-            craftCameraResolution: ""
-            craftCameraPort: "cam0"
-            craftCamera2: ""
-            craftCamera2Resolution: ""
-            craftCamera2Port: "cam1"
-            craftIpCameraAddress: ""
-            craftIpCameraPipeline: ""
-            craftHotSpot: "openhd_gcs_secure"
-            craftDisplayForceMode: true
-            craftDisplayWidth: 1920
-            craftDisplayHeight: 1080
-            craftDisplayRefreshHz: 60
-            craftMapboxApiKey: ""
-        }
-        ListElement {
-            craftId: "tpl_goggles_fpv"
-            craftName: "HD FPV Goggles"
-            craftCategory: "station"
-            craftIcon: "station-goggles"
-            craftRole: "ground"
-            craftHardware: "Radxa Zero 3W / Rock 3 (RK3566)"
-            craftDescription: "Pilot low-latency visual immersion display"
-            craftCameraVendor: ""
-            craftCamera: ""
-            craftCameraResolution: ""
-            craftCameraPort: "cam0"
-            craftCamera2: ""
-            craftCamera2Resolution: ""
-            craftCamera2Port: "cam1"
-            craftIpCameraAddress: ""
-            craftIpCameraPipeline: ""
-            craftHotSpot: ""
-            craftDisplayForceMode: true
-            craftDisplayWidth: 1280
-            craftDisplayHeight: 720
-            craftDisplayRefreshHz: 60
-            craftMapboxApiKey: ""
-        }
-        ListElement {
-            craftId: "tpl_tracker_station"
-            craftName: "Antenna Tracker Unit"
-            craftCategory: "station"
-            craftIcon: "station-tracker"
-            craftRole: "ground"
-            craftHardware: "Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)"
-            craftDescription: "Automated 360-degree directional tracking station"
-            craftCameraVendor: ""
-            craftCamera: ""
-            craftCameraResolution: ""
-            craftCameraPort: "cam0"
-            craftCamera2: ""
-            craftCamera2Resolution: ""
-            craftCamera2Port: "cam1"
-            craftIpCameraAddress: ""
-            craftIpCameraPipeline: ""
-            craftHotSpot: ""
-            craftDisplayForceMode: false
-            craftDisplayWidth: 1920
-            craftDisplayHeight: 1080
-            craftDisplayRefreshHz: 60
-            craftMapboxApiKey: ""
-        }
-        ListElement {
-            craftId: "tpl_rc_controller"
-            craftName: "Field RC Transmitter"
-            craftCategory: "station"
-            craftIcon: "station-transmitter"
-            craftRole: "ground"
-            craftHardware: "Radxa Zero 3W / Rock 3 (RK3566)"
-            craftDescription: "Handheld telemetry and telemetry control unit"
-            craftCameraVendor: ""
-            craftCamera: ""
-            craftCameraResolution: ""
-            craftCameraPort: "cam0"
-            craftCamera2: ""
-            craftCamera2Resolution: ""
-            craftCamera2Port: "cam1"
-            craftIpCameraAddress: ""
-            craftIpCameraPipeline: ""
-            craftHotSpot: ""
-            craftDisplayForceMode: false
-            craftDisplayWidth: 800
-            craftDisplayHeight: 480
-            craftDisplayRefreshHz: 60
-            craftMapboxApiKey: ""
-        }
-    }
-
     function iconSource(key) {
         var map = {
-            "craft-quadcopter": "../icons/ui/craft-quadcopter.svg",
-            "craft-plane": "../icons/ui/craft-plane.svg",
-            "craft-vtol": "../icons/ui/craft-vtol.svg",
-            "craft-hexacopter": "../icons/ui/craft-hexacopter.svg",
-            "craft-rover": "../icons/ui/craft-rover.svg",
+            "survey": "../icons/fleetcontrol/craft-survey-cutout.png",
+            "heavy-lift": "../icons/fleetcontrol/craft-heavy-lift-cutout.png",
+            "racer": "../icons/fleetcontrol/craft-racer-cutout.png",
+            "whoop": "../icons/fleetcontrol/craft-whoop-cutout.png",
+            "plane": "../icons/fleetcontrol/craft-plane-cutout.png",
+            "rover": "../icons/fleetcontrol/craft-rover-cutout.png",
+            "boat": "../icons/fleetcontrol/craft-boat-cutout.png",
+            "submarine": "../icons/fleetcontrol/craft-submarine-cutout.png",
+            "craft-quadcopter": "../icons/fleetcontrol/craft-survey-cutout.png",
+            "craft-plane": "../icons/fleetcontrol/craft-plane-cutout.png",
+            "craft-vtol": "../icons/fleetcontrol/craft-plane-cutout.png",
+            "craft-hexacopter": "../icons/fleetcontrol/craft-heavy-lift-cutout.png",
+            "craft-rover": "../icons/fleetcontrol/craft-rover-cutout.png",
             "station-goggles": "../icons/ui/station-goggles.svg",
             "station-tracker": "../icons/ui/station-tracker.svg",
             "station-transmitter": "../icons/ui/station-transmitter.svg",
@@ -299,7 +88,9 @@ Item {
     }
 
     function getCacheKey() {
-        return "fleetcontrol_crafts_" + (accountName && accountName.length > 0 ? accountName.toLowerCase() : "default")
+        var key = "fleetcontrol_crafts_" + (accountName && accountName.length > 0 ? accountName.toLowerCase() : "default")
+        imageWriter.setSetting("fleetcontrol_profile_cache_key", key)
+        return key
     }
 
     function saveCraftsLocally() {
@@ -325,6 +116,7 @@ Item {
                 "ipCameraPipeline": item.craftIpCameraPipeline || "",
                 "camera2IpAddress": item.craftCamera2IpAddress || "",
                 "camera2IpPipeline": item.craftCamera2IpPipeline || "",
+                "ipCameraBitrate": item.craftIpCameraBitrate || 2,
                 "hotSpot": item.craftHotSpot || "",
                 "displayForceMode": item.craftDisplayForceMode || false,
                 "displayWidth": item.craftDisplayWidth || 1920,
@@ -358,7 +150,7 @@ Item {
                             "craftId": p.id || ("craft_" + j),
                             "craftName": p.name || "",
                             "craftCategory": p.category || "craft",
-                            "craftIcon": p.icon || (p.category === "station" ? "station-military-gcs" : "craft-quadcopter"),
+                            "craftIcon": p.icon || (p.category === "station" ? "station-military-gcs" : "survey"),
                             "craftRole": p.role || (p.category === "station" ? "ground" : "air"),
                             "craftHardware": p.hardware || "Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)",
                             "craftDescription": p.description || "",
@@ -373,6 +165,7 @@ Item {
                             "craftIpCameraPipeline": p.ipCameraPipeline || "",
                             "craftCamera2IpAddress": p.camera2IpAddress || "",
                             "craftCamera2IpPipeline": p.camera2IpPipeline || "",
+                            "craftIpCameraBitrate": p.ipCameraBitrate || 2,
                             "craftHotSpot": p.hotSpot || "",
                             "craftDisplayForceMode": p.displayForceMode || false,
                             "craftDisplayWidth": p.displayWidth || 1920,
@@ -401,7 +194,7 @@ Item {
                                     (profile.name || "").toLowerCase().indexOf("goggle") >= 0 ||
                                     role === "ground"
                     var category = s.craftCategory || (isStation ? "station" : "craft")
-                    var icon = s.craftIcon || (category === "station" ? "station-military-gcs" : "craft-quadcopter")
+                    var icon = s.craftIcon || (category === "station" ? "station-military-gcs" : "survey")
                     var hardware = s.craftHardware || s.sbc || "Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)"
 
                     craftModel.append({
@@ -421,8 +214,9 @@ Item {
                         "craftCamera2Port": s.camera2Port || "cam1",
                         "craftIpCameraAddress": s.ipCameraAddress || "",
                         "craftIpCameraPipeline": s.ipCameraPipeline || "",
-                        "craftCamera2IpAddress": s.camera2IpAddress || "",
-                        "craftCamera2IpPipeline": s.camera2IpPipeline || "",
+                        "craftCamera2IpAddress": s.camera2IpCameraAddress || s.camera2IpAddress || "",
+                        "craftCamera2IpPipeline": s.camera2IpCameraPipeline || s.camera2IpPipeline || "",
+                        "craftIpCameraBitrate": s.ipCameraBitrate || 2,
                         "craftHotSpot": s.hotSpot || "",
                         "craftDisplayForceMode": s.displayForceMode || false,
                         "craftDisplayWidth": s.displayWidth || 1920,
@@ -462,6 +256,7 @@ Item {
             "craftIpCameraPipeline": advancedOptions.ipCameraPipeline || "",
             "craftCamera2IpAddress": advancedOptions.camera2IpAddress || "",
             "craftCamera2IpPipeline": advancedOptions.camera2IpPipeline || "",
+            "craftIpCameraBitrate": advancedOptions.ipCameraBitrate || 2,
             "craftHotSpot": advancedOptions.hotSpot || "",
             "craftDisplayForceMode": category === "station" ? (advancedOptions.displayForceMode || false) : false,
             "craftDisplayWidth": advancedOptions.displayWidth || 1920,
@@ -486,7 +281,9 @@ Item {
             "description": description,
             "openhdSettings": {
                 "mode": role,
+                "bootType": role === "ground" ? "Ground" : "Air",
                 "sbc": sbcKey,
+                "useSettings": true,
                 "craftCategory": category,
                 "craftIcon": icon,
                 "craftHardware": hardware,
@@ -499,8 +296,9 @@ Item {
                 "camera2Port": craftObj.craftCamera2Port,
                 "ipCameraAddress": craftObj.craftIpCameraAddress,
                 "ipCameraPipeline": craftObj.craftIpCameraPipeline,
-                "camera2IpAddress": craftObj.craftCamera2IpAddress,
-                "camera2IpPipeline": craftObj.craftCamera2IpPipeline,
+                "camera2IpCameraAddress": craftObj.craftCamera2IpAddress,
+                "camera2IpCameraPipeline": craftObj.craftCamera2IpPipeline,
+                "ipCameraBitrate": craftObj.craftIpCameraBitrate,
                 "hotSpot": craftObj.craftHotSpot,
                 "displayForceMode": craftObj.craftDisplayForceMode,
                 "displayWidth": craftObj.craftDisplayWidth,
@@ -510,7 +308,13 @@ Item {
             }
         }
 
-        request("POST", "/api/imagewriter/profiles", payload, function(xhr, resp) {
+        var existingCloudProfile = editIdx >= 0 && editIdx < craftModel.count &&
+                                   String(tempId).indexOf("craft_") !== 0
+        var method = existingCloudProfile ? "PUT" : "POST"
+        var path = existingCloudProfile
+                   ? "/api/imagewriter/profiles/" + encodeURIComponent(tempId)
+                   : "/api/imagewriter/profiles"
+        request(method, path, payload, function(xhr, resp) {
             if (xhr.status >= 200 && xhr.status < 300 && resp && resp.profile && resp.profile.id) {
                 for (var k = 0; k < craftModel.count; ++k) {
                     if (craftModel.get(k).craftId === tempId) {
@@ -541,38 +345,11 @@ Item {
         }
     }
 
-    function importTemplate(tpl) {
-        var adv = {
-            "cameraVendor": tpl.craftCameraVendor || "",
-            "camera": tpl.craftCamera || "",
-            "cameraResolution": tpl.craftCameraResolution || "",
-            "cameraPort": tpl.craftCameraPort || "cam0",
-            "camera2": tpl.craftCamera2 || "",
-            "camera2Resolution": tpl.craftCamera2Resolution || "",
-            "camera2Port": tpl.craftCamera2Port || "cam1",
-            "ipCameraAddress": tpl.craftIpCameraAddress || "",
-            "ipCameraPipeline": tpl.craftIpCameraPipeline || "",
-            "camera2IpAddress": tpl.craftCamera2IpAddress || "",
-            "camera2IpPipeline": tpl.craftCamera2IpPipeline || "",
-            "hotSpot": tpl.craftHotSpot || "",
-            "displayForceMode": tpl.craftDisplayForceMode || false,
-            "displayWidth": tpl.craftDisplayWidth || 1920,
-            "displayHeight": tpl.craftDisplayHeight || 1080,
-            "displayRefreshHz": tpl.craftDisplayRefreshHz || 60,
-            "mapboxApiKey": tpl.craftCategory === "station" ? (tpl.craftMapboxApiKey || "") : ""
-        }
-        saveCraft(tpl.craftName, tpl.craftCategory, tpl.craftIcon, tpl.craftHardware, tpl.craftDescription, adv, -1)
-        activeFilter = 0
-        message = qsTr("Preset '%1' added to your FleetControl account.").arg(tpl.craftName)
-    }
-
     function selectAndFlashCraft(craft) {
         FleetProfilesHelper.applyProfile(imageWriter, craft)
         activeCraftName = craft.craftName
         var role = craft.craftRole || (craft.craftCategory === "station" ? "ground" : "air")
         message = qsTr("Configured for %1 (%2). Choose an image to continue.").arg(craft.craftName).arg(role.toUpperCase())
-        if (mainWindow && mainWindow.writeWithFleetControlProfile)
-            mainWindow.writeWithFleetControlProfile(craft.craftName)
     }
 
     function clearActiveCraft() {
@@ -851,7 +628,7 @@ Item {
     function openNewUnitEditor() {
         editIndex = -1
         editorSelectedCategory = "craft"
-        editorSelectedIcon = "craft-quadcopter"
+        editorSelectedIcon = "survey"
         editorSelectedHardware = "Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)"
         craftNameField.text = ""
         craftDescField.text = ""
@@ -871,8 +648,8 @@ Item {
         ipCamPipelineField.text = "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
         camera2IpAddressField.text = "192.168.144.108"
         camera2IpPipelineField.text = "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
+        ipCameraBitrateSpin.value = 2
 
-        hotspotField.text = ""
         displayForceSwitch.checked = false
         displayWidthField.text = "1920"
         displayHeightField.text = "1080"
@@ -888,7 +665,7 @@ Item {
         var craft = craftModel.get(index)
         editIndex = index
         editorSelectedCategory = craft.craftCategory || "craft"
-        editorSelectedIcon = craft.craftIcon || (editorSelectedCategory === "craft" ? "craft-quadcopter" : "station-military-gcs")
+        editorSelectedIcon = craft.craftIcon || (editorSelectedCategory === "craft" ? "survey" : "station-military-gcs")
         editorSelectedHardware = craft.craftHardware || "Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)"
         craftNameField.text = craft.craftName || ""
         craftDescField.text = craft.craftDescription || ""
@@ -918,8 +695,8 @@ Item {
         ipCamPipelineField.text = craft.craftIpCameraPipeline || "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
         camera2IpAddressField.text = craft.craftCamera2IpAddress || "192.168.144.108"
         camera2IpPipelineField.text = craft.craftCamera2IpPipeline || "rtspsrc location=rtsp://{IP}:554/stream=0 latency=0 ! rtph264depay"
+        ipCameraBitrateSpin.value = craft.craftIpCameraBitrate || 2
 
-        hotspotField.text = craft.craftHotSpot || ""
         displayForceSwitch.checked = craft.craftDisplayForceMode || false
         displayWidthField.text = String(craft.craftDisplayWidth || 1920)
         displayHeightField.text = String(craft.craftDisplayHeight || 1080)
@@ -965,7 +742,7 @@ Item {
             "ipCameraPipeline": ipCamPipelineField.text.trim(),
             "camera2IpAddress": camera2IpAddressField.text.trim(),
             "camera2IpPipeline": camera2IpPipelineField.text.trim(),
-            "hotSpot": hotspotField.text.trim(),
+            "ipCameraBitrate": ipCameraBitrateSpin.value,
             "displayForceMode": displayForceSwitch.checked,
             "displayWidth": parseInt(displayWidthField.text) || 1920,
             "displayHeight": parseInt(displayHeightField.text) || 1080,
@@ -1389,8 +1166,7 @@ Item {
                             model: [
                                 { "text": qsTr("My Account Fleet (%1)").arg(craftModel.count), "val": 0 },
                                 { "text": qsTr("Air Crafts"), "val": 1 },
-                                { "text": qsTr("Ground Stations"), "val": 2 },
-                                { "text": qsTr("Example Templates (%1)").arg(templateModel.count), "val": 3 }
+                                { "text": qsTr("Ground Stations"), "val": 2 }
                             ]
 
                             delegate: Rectangle {
@@ -1431,14 +1207,12 @@ Item {
                         height: Math.max(120, parent.height - y - 10)
                         clip: true
                         spacing: 8
-                        model: root.activeFilter === 3 ? templateModel : craftModel
+                        model: craftModel
 
                         delegate: Item {
                             id: craftDelegateItem
                             width: craftsListView.width
-                            readonly property bool isTemplate: root.activeFilter === 3
                             readonly property bool isMatchingFilter:
-                                isTemplate ||
                                 root.activeFilter === 0 ||
                                 (root.activeFilter === 1 && craftCategory === "craft") ||
                                 (root.activeFilter === 2 && craftCategory === "station")
@@ -1512,25 +1286,6 @@ Item {
                                             }
 
                                             Rectangle {
-                                                visible: isTemplate
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                width: templateBadgeText.implicitWidth + 8
-                                                height: 16
-                                                radius: 3
-                                                color: "#302611"
-
-                                                Text {
-                                                    id: templateBadgeText
-                                                    anchors.centerIn: parent
-                                                    text: qsTr("TEMPLATE")
-                                                    color: "#f3c25b"
-                                                    font.family: "Courier New"
-                                                    font.pixelSize: 8
-                                                    font.bold: true
-                                                }
-                                            }
-
-                                            Rectangle {
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 width: hwBadgeText.implicitWidth + 8
                                                 height: 16
@@ -1562,22 +1317,6 @@ Item {
                                         Layout.alignment: Qt.AlignVCenter
 
                                         ModernActionButton {
-                                            visible: isTemplate
-                                            text: qsTr("Flash with Template")
-                                            primary: true
-                                            implicitHeight: 32
-                                            onClicked: root.selectAndFlashCraft(templateModel.get(index))
-                                        }
-
-                                        ModernActionButton {
-                                            visible: isTemplate
-                                            text: qsTr("+ Save")
-                                            implicitHeight: 32
-                                            onClicked: root.importTemplate(templateModel.get(index))
-                                        }
-
-                                        ModernActionButton {
-                                            visible: !isTemplate
                                             text: craftCategory === "craft" ? qsTr("Flash Craft") : qsTr("Flash Station")
                                             primary: true
                                             implicitHeight: 32
@@ -1585,7 +1324,6 @@ Item {
                                         }
 
                                         ToolButton {
-                                            visible: !isTemplate
                                             text: "⚙"
                                             font.pixelSize: 15
                                             ToolTip.visible: hovered
@@ -1594,7 +1332,6 @@ Item {
                                         }
 
                                         ToolButton {
-                                            visible: !isTemplate
                                             text: "×"
                                             font.pixelSize: 16
                                             ToolTip.visible: hovered
@@ -1618,7 +1355,7 @@ Item {
                             anchors.centerIn: parent
                             width: Math.min(parent.width - 24, 520)
                             height: emptyCol.implicitHeight + 36
-                            visible: root.activeFilter !== 3 && craftModel.count === 0 && !root.loadingCrafts
+                            visible: craftModel.count === 0 && !root.loadingCrafts
                             color: "#0f1c29"
                             border.color: "#21364a"
                             radius: 8
@@ -1656,12 +1393,6 @@ Item {
                                         primary: true
                                         implicitHeight: 32
                                         onClicked: root.openNewUnitEditor()
-                                    }
-
-                                    ModernActionButton {
-                                        text: qsTr("Browse Templates (%1)").arg(templateModel.count)
-                                        implicitHeight: 32
-                                        onClicked: root.activeFilter = 3
                                     }
 
                                     ModernActionButton {
@@ -1956,7 +1687,7 @@ Item {
                                 onClicked: {
                                     root.editorSelectedCategory = "craft"
                                     if (root.editorSelectedIcon.indexOf("station") === 0)
-                                        root.editorSelectedIcon = "craft-quadcopter"
+                                        root.editorSelectedIcon = "survey"
                                 }
                             }
                         }
@@ -1996,7 +1727,7 @@ Item {
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     root.editorSelectedCategory = "station"
-                                    if (root.editorSelectedIcon.indexOf("craft") === 0)
+                                    if (root.editorSelectedIcon.indexOf("station") !== 0)
                                         root.editorSelectedIcon = "station-military-gcs"
                                 }
                             }
@@ -2025,11 +1756,14 @@ Item {
 
                         readonly property var currentCards: root.editorSelectedCategory === "craft"
                             ? [
-                                { "key": "craft-quadcopter", "label": qsTr("Quadcopter") },
-                                { "key": "craft-plane", "label": qsTr("Fixed Wing") },
-                                { "key": "craft-vtol", "label": qsTr("VTOL Hybrid") },
-                                { "key": "craft-hexacopter", "label": qsTr("Hexacopter") },
-                                { "key": "craft-rover", "label": qsTr("UGV Rover") }
+                                { "key": "survey", "label": qsTr("Survey Copter") },
+                                { "key": "heavy-lift", "label": qsTr("Heavy Lift") },
+                                { "key": "racer", "label": qsTr("FPV Racer") },
+                                { "key": "whoop", "label": qsTr("Cinewhoop") },
+                                { "key": "plane", "label": qsTr("Model Plane") },
+                                { "key": "rover", "label": qsTr("Rover") },
+                                { "key": "boat", "label": qsTr("Surface Vessel") },
+                                { "key": "submarine", "label": qsTr("Submarine") }
                             ]
                             : [
                                 { "key": "station-military-gcs", "label": qsTr("Tactical GCS") },
@@ -2221,9 +1955,14 @@ Item {
                         spacing: 12
 
                         // Toggle Header
-                        RowLayout {
+                        Item {
                             width: parent.width
-                            spacing: 8
+                            height: advancedHeader.implicitHeight
+
+                            RowLayout {
+                                id: advancedHeader
+                                anchors.fill: parent
+                                spacing: 8
 
                             Text {
                                 text: "⚙"
@@ -2249,8 +1988,11 @@ Item {
                                 font.bold: true
                             }
 
+                            }
+
                             MouseArea {
                                 anchors.fill: parent
+                                z: 10
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: root.editorAdvancedOpen = !root.editorAdvancedOpen
                             }
@@ -2530,6 +2272,29 @@ Item {
                                         }
                                     }
                                 }
+
+                                Row {
+                                    width: parent.width
+                                    spacing: 10
+                                    visible: cameraDropdown.currentText === "IP-CAMERA" ||
+                                             camera2Dropdown.currentText === "IP-CAMERA"
+
+                                    Text {
+                                        text: qsTr("RESERVED LINK BITRATE (MBIT/S)")
+                                        color: "#7592a3"
+                                        font.pixelSize: 9
+                                        font.bold: true
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    SpinBox {
+                                        id: ipCameraBitrateSpin
+                                        from: 1
+                                        to: 20
+                                        value: 2
+                                        editable: true
+                                    }
+                                }
                             }
 
                             // ----------------------------------------------------
@@ -2624,26 +2389,6 @@ Item {
                                         placeholderText: qsTr("pk.eyJ1... (optional online satellite map)")
                                         selectByMouse: true
                                     }
-                                }
-                            }
-
-                            // ----------------------------------------------------
-                            // WiFi HotSpot Passphrase (Common)
-                            // ----------------------------------------------------
-                            Column {
-                                width: parent.width
-                                spacing: 4
-                                Text {
-                                    text: root.editorSelectedCategory === "craft" ? qsTr("AIR HOTSPOT PASSPHRASE") : qsTr("GROUND STATION HOTSPOT PASSPHRASE")
-                                    color: "#7592a3"
-                                    font.pixelSize: 9
-                                    font.bold: true
-                                }
-                                TextField {
-                                    id: hotspotField
-                                    width: parent.width
-                                    placeholderText: root.editorSelectedCategory === "craft" ? qsTr("Default OpenHD AP if blank") : qsTr("openhd_gcs_secure (optional)")
-                                    selectByMouse: true
                                 }
                             }
                         }
