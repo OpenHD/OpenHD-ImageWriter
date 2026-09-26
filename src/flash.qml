@@ -405,7 +405,7 @@ Rectangle {
             mainWindow ? mainWindow.fleetControlSignedIn : false
 
         readonly property string githubArtifactsApi:
-            "https://openhd.tech/api/imagewriter/github/artifacts"
+            "https://openhd.tech/api/imagewriter/dev-images"
 
         readonly property int sourceCount:
             sourceModel ? sourceModel.count : 0
@@ -543,9 +543,7 @@ Rectangle {
                     "subitems_url": "",
                     "subitems_json": "",
                     "name": String(artifact.name),
-                    "description": source === "cloudsmith"
-                                   ? qsTr("X21 developer firmware from Cloudsmith - %1").arg(created)
-                                   : qsTr("Latest dev-release image from GitHub Actions - %1").arg(created),
+                    "description": qsTr("Latest verified development image - %1").arg(created),
                     "tooltip": "",
                     "website": String(artifact.url || ""),
                     "init_format": "systemd"
@@ -2299,7 +2297,7 @@ Rectangle {
                                   imageWriter.dst().indexOf("rockusb:") === 0 ||
                                   selectedTargetIsComputeModule
         if (isDirectFlashDevice)
-            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>!<br>You can now unplug the device from your PC.").arg(osbutton.text).arg(dstbutton.text)
+            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>!<br>You can now disconnect the board from your PC.").arg(osbutton.text).arg(dstbutton.text)
         else if (osbutton.text === qsTr("Erase"))
             msgpopup.text = qsTr("<b>%1</b> has been erased<br><br> You can now remove the SD card from the reader").arg(dstbutton.text)
         else if (imageWriter.isEmbeddedMode()) {
