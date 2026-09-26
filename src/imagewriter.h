@@ -266,6 +266,10 @@ protected:
     void startOrqaSshOperation(bool rebootToBootloader);
     void setOrqaSshMessage(const QString &message);
     void startNxpFlashThread();
+    QString cacheDirectory() const;
+    QString cacheFileNameForHash(const QByteArray &sha256) const;
+    qint64 cacheLimitBytes() const;
+    qint64 evictCache(qint64 incomingBytes = 0);
 };
 
 #endif // IMAGEWRITER_H

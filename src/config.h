@@ -37,6 +37,9 @@
 /* Enable caching */
 #define IMAGEWRITER_ENABLE_CACHE_DEFAULT        true
 
+/* Default total size for the persistent, multi-image download cache. */
+#define IMAGEWRITER_CACHE_LIMIT_GB_DEFAULT      5
+
 /* Do not cache if it would bring free disk space under 5 GB */
 #define IMAGEWRITER_MINIMAL_SPACE_FOR_CACHING   5*1024*1024*1024ll
 

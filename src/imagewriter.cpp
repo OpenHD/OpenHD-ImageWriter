@@ -175,10 +175,16 @@ ImageWriter::ImageWriter(QObject *parent)
     _cachingEnabled = !_embeddedMode && _settings.value("enabled", IMAGEWRITER_ENABLE_CACHE_DEFAULT).toBool();
     _cachedFileHash = _settings.value("lastDownloadSHA256").toByteArray();
     _cacheFileName = QStandardPaths::writableLocation(QStandardPaths::CacheLocation)+QDir::separator()+"lastdownload.cache";
+    QDir().mkpath(cacheDirectory());
+    // Preserve a completed cache from older ImageWriter versions, then use
+    // hash-addressed files so several images can coexist.
     if (!_cachedFileHash.isEmpty())
     {
         QFileInfo f(_cacheFileName);
-        if (!f.exists() || !f.isReadable() || !f.size())
+        const QString migratedFile = cacheFileNameForHash(_cachedFileHash);
+        if (f.exists() && f.isReadable() && f.size() && !QFileInfo::exists(migratedFile))
+            QFile::rename(_cacheFileName, migratedFile);
+        if (!QFileInfo(migratedFile).isReadable() || !QFileInfo(migratedFile).size())
         {
             _cachedFileHash.clear();
             _settings.remove("lastDownloadSHA256");
@@ -492,10 +498,12 @@ void ImageWriter::startWrite()
         return;
     }
 
-    if (!_expectedHash.isEmpty() && _cachedFileHash == _expectedHash)
+    const QString cachedFile = cacheFileNameForHash(_expectedHash);
+    if (!_expectedHash.isEmpty() && QFileInfo(cachedFile).isReadable() && QFileInfo(cachedFile).size() > 0)
     {
         // Use cached file
-        urlstr = QUrl::fromLocalFile(_cacheFileName).toString(_src.FullyEncoded).toLatin1();
+        QFile(cachedFile).setFileTime(QDateTime::currentDateTime(), QFileDevice::FileModificationTime);
+        urlstr = QUrl::fromLocalFile(cachedFile).toString(_src.FullyEncoded).toLatin1();
     }
 
     if (QUrl(urlstr).isLocalFile())
@@ -528,25 +536,8 @@ void ImageWriter::startWrite()
     _thread->setVerifyEnabled(_verifyEnabled);
     _thread->setUserAgent(QString("Mozilla/5.0 rpi-imager/%1").arg(constantVersion()).toUtf8());
 
-    if (!_expectedHash.isEmpty() && _cachedFileHash != _expectedHash && _cachingEnabled)
+    if (!_expectedHash.isEmpty() && !QFileInfo::exists(cachedFile) && _cachingEnabled)
     {
-        if (!_cachedFileHash.isEmpty())
-        {
-            if (_settings.isWritable() && QFile::remove(_cacheFileName))
-            {
-                _settings.remove("caching/lastDownloadSHA256");
-                _settings.sync();
-                _cachedFileHash.clear();
-                emit cacheChanged();
-            }
-            else
-            {
-                qDebug() << "Error removing old cache file. Disabling caching";
-                _cachingEnabled = false;
-            }
-        }
-
-        if (_cachingEnabled)
         {
             QStorageInfo si(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
             qint64 avail = si.bytesAvailable();
@@ -558,8 +549,17 @@ void ImageWriter::startWrite()
             }
             else
             {
-                _thread->setCacheFile(_cacheFileName, _downloadLen);
-                connect(_thread, SIGNAL(cacheFileUpdated(QByteArray)), SLOT(onCacheFileUpdated(QByteArray)));
+                const qint64 remaining = evictCache(_downloadLen);
+                const qint64 effectiveLimit = qMax(cacheLimitBytes(), qint64(_downloadLen));
+                if (remaining + qint64(_downloadLen) <= effectiveLimit)
+                {
+                    _thread->setCacheFile(cachedFile, _downloadLen);
+                    connect(_thread, SIGNAL(cacheFileUpdated(QByteArray)), SLOT(onCacheFileUpdated(QByteArray)));
+                }
+                else
+                {
+                    qDebug() << "Unable to free enough cache space; not caching this download.";
+                }
             }
         }
     }
@@ -588,6 +588,7 @@ void ImageWriter::onCacheFileUpdated(QByteArray sha256)
     _settings.setValue("caching/lastDownloadSHA256", sha256);
     _settings.sync();
     _cachedFileHash = sha256;
+    evictCache();
     emit cacheChanged();
     qDebug() << "Done writing cache file";
 }
@@ -649,7 +650,53 @@ void ImageWriter::onCancelled()
 /* Return true if url is in our local disk cache */
 bool ImageWriter::isCached(const QUrl &, const QByteArray &sha256)
 {
-    return !sha256.isEmpty() && _cachedFileHash == sha256;
+    const QFileInfo file(cacheFileNameForHash(sha256));
+    return !sha256.isEmpty() && file.isReadable() && file.size() > 0;
+}
+
+QString ImageWriter::cacheDirectory() const
+{
+    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + QDir::separator() + "images";
+}
+
+QString ImageWriter::cacheFileNameForHash(const QByteArray &sha256) const
+{
+    const QString hash = QString::fromLatin1(sha256);
+    if (hash.isEmpty() || !QRegularExpression("^[a-fA-F0-9]{64}$").match(hash).hasMatch())
+        return QString();
+    return cacheDirectory() + QDir::separator() + hash.toLower() + ".cache";
+}
+
+qint64 ImageWriter::cacheLimitBytes() const
+{
+    const int limitGb = qBound(1, _settings.value("caching/limitGb", IMAGEWRITER_CACHE_LIMIT_GB_DEFAULT).toInt(), 1000);
+    return qint64(limitGb) * 1024 * 1024 * 1024;
+}
+
+qint64 ImageWriter::evictCache(qint64 incomingBytes)
+{
+    QFileInfoList files = QDir(cacheDirectory()).entryInfoList(QStringList() << "*.cache", QDir::Files, QDir::Time | QDir::Reversed);
+    qint64 total = 0;
+    qint64 largestImage = incomingBytes;
+    for (const QFileInfo &file : files)
+    {
+        total += file.size();
+        largestImage = qMax(largestImage, file.size());
+    }
+
+    // The configured value is the normal cache budget, but retaining one
+    // complete image is more useful than evicting a valid download solely
+    // because that image is larger than the budget.
+    const qint64 effectiveLimit = qMax(cacheLimitBytes(), largestImage);
+
+    for (const QFileInfo &file : files)
+    {
+        if (total + incomingBytes <= effectiveLimit)
+            break;
+        if (QFile::remove(file.absoluteFilePath()))
+            total -= file.size();
+    }
+    return total;
 }
 
 /* Utility function to return filename part from URL */
