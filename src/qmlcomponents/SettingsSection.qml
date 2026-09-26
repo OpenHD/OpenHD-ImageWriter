@@ -7,24 +7,27 @@ GroupBox {
 
     property url iconSource
     property string description: ""
+    property color surfaceColor: "#0e2734"
+    property color outlineColor: "#20556e"
+    property real surfaceRadius: 9
 
-    topPadding: iconSource.toString().length > 0 || description.length > 0 ? 58 : 34
-    leftPadding: iconSource.toString().length > 0 ? 58 : 14
-    rightPadding: 14
-    bottomPadding: 14
+    topPadding: iconSource.toString().length > 0 || description.length > 0 ? 50 : 30
+    leftPadding: iconSource.toString().length > 0 ? 50 : 12
+    rightPadding: 12
+    bottomPadding: 12
 
     label: Item {
-        x: 14
-        y: 10
-        width: root.width - 28
+        x: 12
+        y: 8
+        width: root.width - 24
         height: root.topPadding - 18
 
         Image {
             id: sectionIcon
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            width: 32
-            height: 32
+            width: 28
+            height: 28
             visible: root.iconSource.toString().length > 0
             source: root.iconSource
             sourceSize.width: 192
@@ -43,7 +46,7 @@ GroupBox {
                 width: parent.width
                 text: root.title
                 color: "#eef5f9"
-                font.pixelSize: 13
+                font.pixelSize: 12
                 font.bold: true
                 elide: Text.ElideRight
             }
@@ -53,7 +56,7 @@ GroupBox {
                 visible: root.description.length > 0
                 text: root.description
                 color: "#83a3b5"
-                font.pixelSize: 10
+                font.pixelSize: 9
                 elide: Text.ElideRight
             }
         }
@@ -62,9 +65,9 @@ GroupBox {
     background: Rectangle {
         y: 0
         height: root.height
-        radius: 9
-        color: "#0e2734"
-        border.color: "#20556e"
+        radius: root.surfaceRadius
+        color: root.surfaceColor
+        border.color: root.outlineColor
         border.width: 1
     }
 }

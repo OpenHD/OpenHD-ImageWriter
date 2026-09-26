@@ -1332,12 +1332,8 @@ Rectangle {
         if (settingsMapLoaded)
             return
 
-        var xhr = new XMLHttpRequest()
-        xhr.open("GET", Qt.resolvedUrl("qrc:/doc/openhd_settings_map.json"), false)
-        xhr.send()
-
         try {
-            settingsMap = JSON.parse(xhr.responseText)
+            settingsMap = JSON.parse(imageWriter.readResourceText(":/doc/openhd_settings_map.json"))
             settingsMapLoaded = true
             console.log("[ImageOptionsPage] settings map loaded with keys:", Object.keys(settingsMap))
         } catch (e) {

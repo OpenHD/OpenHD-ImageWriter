@@ -358,6 +358,14 @@ QString ImageWriter::readTextFile(const QString &filePath) const
     return OpenHDStorageService::readTextFile(filePath);
 }
 
+QString ImageWriter::readResourceText(const QString &resourcePath) const
+{
+    QFile file(resourcePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return QString();
+    return QString::fromUtf8(file.readAll());
+}
+
 bool ImageWriter::writeTextFile(const QString &filePath, const QString &content) const
 {
     return OpenHDStorageService::writeTextFile(filePath, content);
@@ -654,6 +662,30 @@ bool ImageWriter::isCached(const QUrl &, const QByteArray &sha256)
     return !sha256.isEmpty() && file.isReadable() && file.size() > 0;
 }
 
+void ImageWriter::retryWrite()
+{
+    if (_retryWriteRequested)
+        return;
+
+    _retryWriteRequested = true;
+    const auto restart = [this]() {
+        if (!_retryWriteRequested)
+            return;
+        _retryWriteRequested = false;
+        if (_thread)
+        {
+            _thread->deleteLater();
+            _thread = nullptr;
+        }
+        startWrite();
+    };
+
+    if (_thread && _thread->isRunning())
+        connect(_thread, &QThread::finished, this, restart);
+    else
+        QTimer::singleShot(0, this, restart);
+}
+
 QString ImageWriter::cacheDirectory() const
 {
     return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + QDir::separator() + "images";
@@ -671,6 +703,44 @@ qint64 ImageWriter::cacheLimitBytes() const
 {
     const int limitGb = qBound(1, _settings.value("caching/limitGb", IMAGEWRITER_CACHE_LIMIT_GB_DEFAULT).toInt(), 1000);
     return qint64(limitGb) * 1024 * 1024 * 1024;
+}
+
+int ImageWriter::cacheLimitGb() const
+{
+    return qBound(1, _settings.value("caching/limitGb", IMAGEWRITER_CACHE_LIMIT_GB_DEFAULT).toInt(), 1000);
+}
+
+void ImageWriter::setCacheLimitGb(int gigabytes)
+{
+    _settings.setValue("caching/limitGb", qBound(1, gigabytes, 1000));
+    _settings.sync();
+    evictCache();
+    emit cacheLimitChanged();
+    emit cacheChanged();
+}
+
+qint64 ImageWriter::cacheSizeBytes() const
+{
+    qint64 total = 0;
+    const QFileInfoList files = QDir(cacheDirectory()).entryInfoList(QStringList() << "*.cache", QDir::Files);
+    for (const QFileInfo &file : files)
+        total += file.size();
+    return total;
+}
+
+bool ImageWriter::clearImageCache()
+{
+    bool complete = true;
+    const QFileInfoList files = QDir(cacheDirectory()).entryInfoList(QStringList() << "*.cache", QDir::Files);
+    for (const QFileInfo &file : files)
+        complete = QFile::remove(file.absoluteFilePath()) && complete;
+    if (complete) {
+        _cachedFileHash.clear();
+        _settings.remove("caching/lastDownloadSHA256");
+        _settings.sync();
+        emit cacheChanged();
+    }
+    return complete;
 }
 
 qint64 ImageWriter::evictCache(qint64 incomingBytes)

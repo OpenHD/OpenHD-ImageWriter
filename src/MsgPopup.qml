@@ -36,12 +36,16 @@ Popup {
     property bool configureButton: false
     property bool closeButton: false
     property bool rescanButton: false
+    property bool retryButton: false
+    property bool resetButton: false
     property bool showCloseIcon: true
     property string detailsSnapshot: ""
     signal yes()
     signal no()
     signal configure()
     signal rescan()
+    signal retry()
+    signal reset()
 
     // background of title
     Rectangle {
@@ -153,6 +157,28 @@ Popup {
                     msgpopup.rescan()
                 }
                 visible: msgpopup.rescanButton
+                Material.foreground: activeFocus ? "#d1dcfb" : "#ffffff"
+                Material.background: "#2C3E50"
+            }
+
+            ImButton {
+                text: qsTr("RETRY")
+                onClicked: {
+                    msgpopup.close()
+                    msgpopup.retry()
+                }
+                visible: msgpopup.retryButton
+                Material.foreground: activeFocus ? "#d1dcfb" : "#ffffff"
+                Material.background: "#2C3E50"
+            }
+
+            ImButton {
+                text: qsTr("RESET")
+                onClicked: {
+                    msgpopup.close()
+                    msgpopup.reset()
+                }
+                visible: msgpopup.resetButton
                 Material.foreground: activeFocus ? "#d1dcfb" : "#ffffff"
                 Material.background: "#2C3E50"
             }

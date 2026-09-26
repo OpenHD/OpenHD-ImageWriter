@@ -59,6 +59,7 @@
         <file>qmlcomponents/SettingsSection.qml</file>
         <file>qmlcomponents/OperationReviewPage.qml</file>
         <file>qmlcomponents/LanguageSettingsPage.qml</file>
+        <file>qmlcomponents/CacheSettingsSection.qml</file>
         <file>qmlcomponents/FleetControlPage.qml</file>
         <file>icons/ui/home.svg</file>
         <file>icons/ui/tab-download.svg</file>

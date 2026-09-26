@@ -85,7 +85,9 @@ void CurlNetworkConfig::applyLargeFileSettings(CURL *curl,
     curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 10L);
     curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L);
-    curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, 60L);
+    // GitHub release downloads can pause temporarily while a CDN edge catches
+    // up. Allow a longer stall before libcurl hands control to the retry UI.
+    curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, 300L);
     curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, 100L);
     curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
     curl_easy_setopt(curl, CURLOPT_TCP_KEEPIDLE, 30L);

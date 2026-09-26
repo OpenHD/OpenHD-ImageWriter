@@ -31,7 +31,7 @@ Item {
         id: reviewScroll
         anchors.fill: parent
         contentWidth: width
-        contentHeight: Math.max(height, reviewContent.implicitHeight + 28)
+        contentHeight: reviewContent.implicitHeight + 28
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
@@ -40,7 +40,7 @@ Item {
             id: reviewContent
             width: Math.min(reviewScroll.width - (root.narrow ? 24 : 48), 780)
             anchors.horizontalCenter: parent.horizontalCenter
-            y: root.shortWindow ? 14 : Math.max(14, (reviewScroll.height - implicitHeight) / 2)
+            y: 14
             spacing: root.narrow ? 8 : 11
 
             RowLayout {

@@ -187,82 +187,110 @@ ImButton {
             Layout.preferredHeight: driveSelected ? window.height : window.height * 0.7
             color: "#0d1b26"
 
-            ColumnLayout {
-                anchors.centerIn: parent
-                width: Math.min(parent.width - 40, 760)
-                spacing: 18
+            Flickable {
+                id: applicationSettingsFlickable
+                anchors.fill: parent
                 visible: !window.openHdDeviceAvailable
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                contentWidth: width
+                contentHeight: settingsOverview.y + settingsOverview.height + 24
 
-                PageHeader {
-                    Layout.fillWidth: true
-                    title: qsTr("Settings")
-                    subtitle: qsTr("Choose a language or support OpenHD development.")
+                ScrollBar.vertical: ScrollBar {
+                    policy: applicationSettingsFlickable.contentHeight > applicationSettingsFlickable.height
+                            ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
                 }
 
-                GridLayout {
-                    Layout.fillWidth: true
-                    columns: width >= 620 ? 2 : 1
-                    columnSpacing: 16
-                    rowSpacing: 16
+                ColumnLayout {
+                    id: settingsOverview
+                    x: Math.max(20, (applicationSettingsFlickable.width - width) / 2)
+                    y: Math.max(24, (applicationSettingsFlickable.height - height) / 2)
+                    width: Math.min(applicationSettingsFlickable.width - 40, 760)
+                    spacing: 12
 
-                    ColumnLayout {
+                    PageHeader {
                         Layout.fillWidth: true
-                        spacing: 12
+                        title: qsTr("Settings")
+                        subtitle: qsTr("Choose a language or support OpenHD development.")
+                    }
 
-                        ActionCard {
-                            Layout.fillWidth: true
-                            text: qsTr("Language")
-                            eyebrow: qsTr("Application")
-                            description: qsTr("Change the language of OpenHD ImageWriter.")
-                            actionText: qsTr("Choose language")
-                            iconSource: "icons/ui/language.svg"
-                            onClicked: {
-                                if (mainWindow && mainWindow.openLanguagePage)
-                                    mainWindow.openLanguagePage()
-                            }
-                        }
+                    GridLayout {
+                        Layout.fillWidth: true
+                        columns: width >= 620 ? 2 : 1
+                        columnSpacing: 12
+                        rowSpacing: 12
 
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: internalDriveColumn.implicitHeight + 28
-                            radius: 10
-                            color: "#152130"
-                            border.color: "#1e3347"
-
-                            ColumnLayout {
-                                id: internalDriveColumn
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.leftMargin: 18
-                                anchors.rightMargin: 18
-                                spacing: 6
-
-                                ImCheckBox {
-                                    text: qsTr("Show internal storage devices")
-                                    checked: driveListModel.showInternalDrives
-                                    onClicked: driveListModel.showInternalDrives = checked
-                                }
-
-                                Label {
-                                    Layout.fillWidth: true
-                                    text: qsTr("Disabled by default to protect internal disks. Enable only when the target is built into this computer.")
-                                    color: "#9db0bb"
-                                    wrapMode: Text.WordWrap
-                                    font.pixelSize: 11
-                                }
-                            }
+                    ActionCard {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        Layout.preferredWidth: (parent.width - parent.columnSpacing) / parent.columns
+                        Layout.preferredHeight: 220
+                        text: qsTr("Language")
+                        eyebrow: qsTr("Application")
+                        description: qsTr("Change the language of OpenHD ImageWriter.")
+                        actionText: qsTr("Choose language")
+                        iconSource: "icons/ui/language.svg"
+                        onClicked: {
+                            if (mainWindow && mainWindow.openLanguagePage)
+                                mainWindow.openLanguagePage()
                         }
                     }
 
                     ActionCard {
                         Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        Layout.preferredWidth: (parent.width - parent.columnSpacing) / parent.columns
+                        Layout.preferredHeight: 220
                         text: qsTr("Donate")
                         eyebrow: qsTr("Support OpenHD")
                         description: qsTr("Support OpenHD development with a donation.")
                         actionText: qsTr("Donate")
                         iconSource: "icons/ui/donate.svg"
                         onClicked: Qt.openUrlExternally("https://opencollective.com/openhd")
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        Layout.preferredWidth: (parent.width - parent.columnSpacing) / parent.columns
+                        Layout.preferredHeight: 220
+                        radius: 10
+                        color: "#152130"
+                        border.color: "#1e3347"
+                        border.width: 1
+
+                        ColumnLayout {
+                            id: internalDriveColumn
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: 14
+                            anchors.rightMargin: 14
+                            spacing: 5
+
+                            ImCheckBox {
+                                text: qsTr("Show internal storage devices")
+                                font.pixelSize: 11
+                                checked: driveListModel.showInternalDrives
+                                onClicked: driveListModel.showInternalDrives = checked
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: qsTr("Disabled by default to protect internal disks. Enable only when the target is built into this computer.")
+                                color: "#9db0bb"
+                                wrapMode: Text.WordWrap
+                                font.pixelSize: 9
+                            }
+                        }
+                    }
+
+                        CacheSettingsSection {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            Layout.preferredWidth: (parent.width - parent.columnSpacing) / parent.columns
+                            Layout.preferredHeight: 220
+                        }
                     }
                 }
             }
@@ -1269,12 +1297,8 @@ ImButton {
         if (settingsMapLoaded)
             return
 
-        var xhr = new XMLHttpRequest()
-        xhr.open("GET", Qt.resolvedUrl("qrc:/doc/openhd_settings_map.json"), false)
-        xhr.send()
-
         try {
-            settingsMap = JSON.parse(xhr.responseText)
+            settingsMap = JSON.parse(imageWriter.readResourceText(":/doc/openhd_settings_map.json"))
             settingsMapLoaded = true
             console.log("[Configure] settings map loaded with keys:", Object.keys(settingsMap))
         } catch (e) {

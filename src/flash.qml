@@ -47,7 +47,7 @@ Rectangle {
 
     Connections {
         target: imageWriter
-        onRockchipWriteCompleted: {
+        function onRockchipWriteCompleted() {
             if (!window.completionHandled && progressBar.visible)
                 window.onSuccess()
         }
@@ -595,7 +595,7 @@ Rectangle {
         }
         Connections {
             target: imageWriter
-            onFatMountUnavailable: {
+            function onFatMountUnavailable(msg) {
                 fatReconnectPopup.text = qsTr("Windows could not mount the FAT partition.<br><br>Unplug and reconnect the device, wait for rpiboot to expose it again, then click <b>Rescan</b>.<br><br>%1").arg(msg)
                 fatReconnectPopup.openPopup()
             }
@@ -1376,7 +1376,10 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.topMargin: imageSelectionPage.rootLevel ? 8 : 10
-                height: Math.min(naturalHeight, Math.max(0, parent.height - y))
+                // Let the grid own its internal scroll height. Feeding its
+                // content-derived naturalHeight back into this geometry made
+                // Qt repeatedly rearrange the same layout.
+                height: Math.max(0, parent.height - y)
 
                 sourceModel: imageSelectionPage.sourceModel
                 rootLevel: imageSelectionPage.rootLevel
@@ -1955,6 +1958,25 @@ Rectangle {
 
     MsgPopup {
         id: msgpopup
+        onRetry: {
+            retryButton = false
+            resetButton = false
+            completionHandled = false
+            resetDownloadTracking()
+            progressText.text = qsTr("Retrying download...")
+            progressText.visible = true
+            progressBar.visible = true
+            progressBar.indeterminate = true
+            osbutton.enabled = false
+            dstbutton.enabled = false
+            imageWriter.retryWrite()
+        }
+        onReset: {
+            retryButton = false
+            resetButton = false
+            resetWriteButton()
+            reviewingOperation = true
+        }
     }
     MsgPopup {
         id: fatReconnectPopup
@@ -2228,6 +2250,15 @@ Rectangle {
         rockchipFinalizationFallback.stop()
         msgpopup.title = qsTr("Error")
         msgpopup.text = msg
+        var downloadFailure = String(msg).indexOf("Error downloading:") === 0
+        msgpopup.retryButton = false
+        msgpopup.resetButton = false
+        msgpopup.continueButton = true
+        msgpopup.showCloseIcon = true
+        msgpopup.continueButton = !downloadFailure
+        msgpopup.retryButton = downloadFailure
+        msgpopup.resetButton = downloadFailure
+        msgpopup.showCloseIcon = !downloadFailure
         msgpopup.openPopup()
         resetWriteButton()
     }

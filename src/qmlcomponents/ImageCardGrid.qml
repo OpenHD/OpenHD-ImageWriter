@@ -21,7 +21,7 @@ Item {
 
     Connections {
         target: typeof imageWriter !== "undefined" ? imageWriter : null
-        onCacheChanged: root.cacheRevision++
+        function onCacheChanged() { root.cacheRevision++ }
     }
 
     readonly property var displayEntries: buildDisplayEntries(activeTab, mainItemCount,

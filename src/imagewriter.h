@@ -79,10 +79,16 @@ public:
 
     /* Cancel write */
     Q_INVOKABLE void cancelWrite();
+    Q_INVOKABLE void retryWrite();
     Q_INVOKABLE void retryFatMount();
 
     /* Return true if url is in our local disk cache */
     Q_INVOKABLE bool isCached(const QUrl &url, const QByteArray &sha256);
+    Q_INVOKABLE int cacheLimitGb() const;
+    Q_INVOKABLE void setCacheLimitGb(int gigabytes);
+    Q_INVOKABLE qint64 cacheSizeBytes() const;
+    Q_INVOKABLE bool clearImageCache();
+    Q_INVOKABLE QString readResourceText(const QString &resourcePath) const;
 
     /* Start polling the list of available drives */
     Q_INVOKABLE void startDriveListPolling();
@@ -204,6 +210,7 @@ signals:
     void finalizing();
     void networkOnline();
     void cacheChanged();
+    void cacheLimitChanged();
     void preparationStatusUpdate(QVariant msg);
     void fatMountUnavailable(QVariant msg);
     void updateUploadProgress(QVariant percentage);
@@ -248,6 +255,7 @@ protected:
     QProcess *_rpiBootProcess;
     QProcess *_orqaSshProcess;
     bool _rpiBootCancelled;
+    bool _retryWriteRequested = false;
     bool _orqaBoardReachable;
     bool _orqaBootloaderReady;
     bool _nxpFlashPending;

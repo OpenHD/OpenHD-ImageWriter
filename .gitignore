@@ -10,3 +10,4 @@ openssl-1.1.1w.zip
 /build-codex-tests
 /build-ui-verify-win32
 __pycache__/
+/seestar_analysis
