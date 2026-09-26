@@ -572,6 +572,7 @@ Item {
         var role = craft.craftRole || (craft.craftCategory === "station" ? "ground" : "air")
         message = qsTr("Configured for %1 (%2). Choose an image to continue.").arg(craft.craftName).arg(role.toUpperCase())
         if (mainWindow && mainWindow.writeWithFleetControlProfile)
+            mainWindow.writeWithFleetControlProfile(craft.craftName)
     }
 
     function clearActiveCraft() {

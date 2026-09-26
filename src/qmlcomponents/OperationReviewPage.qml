@@ -411,9 +411,8 @@ Item {
         focus: true
         dim: true
         width: Math.min(root.width - (root.narrow ? 20 : 40), 620)
-        height: Math.min(implicitHeight, root.height - 30)
         x: Math.round((root.width - width) / 2)
-        y: Math.max(12, Math.round((root.height - height) / 2))
+        y: Math.max(12, Math.round((root.height - implicitHeight) / 2))
         clip: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
@@ -478,14 +477,14 @@ Item {
 
             Flickable {
                 Layout.fillWidth: true
-                Layout.preferredHeight: Math.min(profileListView.implicitHeight, 260)
+                Layout.preferredHeight: Math.min(profileListView.implicitHeight, Math.max(120, Math.min(260, root.height - 240)))
                 contentWidth: width
                 contentHeight: profileListView.implicitHeight
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
-                ColumnLayout {
+                Column {
                     id: profileListView
                     width: parent.width
                     spacing: 6
@@ -495,8 +494,8 @@ Item {
 
                         Rectangle {
                             id: itemCard
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 52
+                            width: profileListView.width
+                            height: 52
                             radius: 6
                             readonly property bool isSelected: modelData.craftName === root.profileName && root.useProfileSettings
                             readonly property bool isHovered: itemMouse.containsMouse
