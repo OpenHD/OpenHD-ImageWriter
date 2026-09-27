@@ -85,14 +85,16 @@ Item {
                 border.width: 1
                 border.color: "#20556e"
 
-                RowLayout {
+                Item {
                     anchors.fill: parent
                     anchors.margins: root.narrow ? 10 : 14
-                    spacing: root.narrow ? 9 : 13
 
                     Image {
-                        Layout.preferredWidth: root.narrow ? 38 : 46
-                        Layout.preferredHeight: root.narrow ? 38 : 46
+                        id: srcImg
+                        width: root.narrow ? 38 : 46
+                        height: root.narrow ? 38 : 46
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
                         source: root.updateOperation ? "../icons/ui/update.svg" : "../icons/ui/image-file.svg"
                         sourceSize.width: 256
                         sourceSize.height: 256
@@ -100,12 +102,27 @@ Item {
                         smooth: true
                     }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
+                    ModernActionButton {
+                        id: srcBtn
+                        width: root.narrow ? 86 : 126
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root.narrow
+                              ? qsTr("Change")
+                              : (root.updateOperation ? qsTr("Change update") : qsTr("Change image"))
+                        onClicked: root.changeSourceRequested()
+                    }
+
+                    Column {
+                        anchors.left: srcImg.right
+                        anchors.leftMargin: root.narrow ? 10 : 14
+                        anchors.right: srcBtn.left
+                        anchors.rightMargin: root.narrow ? 10 : 14
+                        anchors.verticalCenter: parent.verticalCenter
                         spacing: 4
 
                         Text {
-                            Layout.fillWidth: true
+                            width: parent.width
                             text: root.sourceName
                             color: "#f3f7fa"
                             font.pixelSize: root.narrow ? 15 : 17
@@ -120,21 +137,13 @@ Item {
                         }
 
                         Text {
-                            Layout.fillWidth: true
+                            width: parent.width
                             visible: text.length > 0
                             text: root.sourceDetail
                             color: "#7fa4b8"
                             font.pixelSize: 10
                             elide: Text.ElideMiddle
                         }
-                    }
-
-                    ModernActionButton {
-                        Layout.preferredWidth: root.narrow ? 86 : 126
-                        text: root.narrow
-                              ? qsTr("Change")
-                              : (root.updateOperation ? qsTr("Change update") : qsTr("Change image"))
-                        onClicked: root.changeSourceRequested()
                     }
                 }
             }
@@ -147,14 +156,16 @@ Item {
                 border.width: 1
                 border.color: "#20556e"
 
-                RowLayout {
+                Item {
                     anchors.fill: parent
                     anchors.margins: root.narrow ? 10 : 14
-                    spacing: root.narrow ? 9 : 13
 
                     Image {
-                        Layout.preferredWidth: root.narrow ? 38 : 44
-                        Layout.preferredHeight: root.narrow ? 38 : 44
+                        id: dstImg
+                        width: root.narrow ? 38 : 44
+                        height: root.narrow ? 38 : 44
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
                         source: "../icons/ui/storage-card.svg"
                         sourceSize.width: 256
                         sourceSize.height: 256
@@ -162,12 +173,25 @@ Item {
                         smooth: true
                     }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
+                    ModernActionButton {
+                        id: dstBtn
+                        width: root.narrow ? 86 : 126
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root.narrow ? qsTr("Change") : qsTr("Change device")
+                        onClicked: root.changeTargetRequested()
+                    }
+
+                    Column {
+                        anchors.left: dstImg.right
+                        anchors.leftMargin: root.narrow ? 10 : 14
+                        anchors.right: dstBtn.left
+                        anchors.rightMargin: root.narrow ? 10 : 14
+                        anchors.verticalCenter: parent.verticalCenter
                         spacing: 4
 
                         Text {
-                            Layout.fillWidth: true
+                            width: parent.width
                             text: root.targetName
                             color: "#f3f7fa"
                             font.pixelSize: root.narrow ? 15 : 17
@@ -182,19 +206,13 @@ Item {
                         }
 
                         Text {
-                            Layout.fillWidth: true
+                            width: parent.width
                             visible: text.length > 0
                             text: root.targetDetail
                             color: "#7fa4b8"
                             font.pixelSize: 10
                             elide: Text.ElideMiddle
                         }
-                    }
-
-                    ModernActionButton {
-                        Layout.preferredWidth: root.narrow ? 86 : 126
-                        text: root.narrow ? qsTr("Change") : qsTr("Change device")
-                        onClicked: root.changeTargetRequested()
                     }
                 }
             }
@@ -218,14 +236,16 @@ Item {
                     onClicked: profilePickerPopup.openPicker()
                 }
 
-                RowLayout {
+                Item {
                     anchors.fill: parent
                     anchors.margins: root.narrow ? 10 : 14
-                    spacing: root.narrow ? 9 : 13
 
                     Image {
-                        Layout.preferredWidth: root.narrow ? 38 : 46
-                        Layout.preferredHeight: root.narrow ? 38 : 46
+                        id: profImg
+                        width: root.narrow ? 38 : 46
+                        height: root.narrow ? 38 : 46
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
                         source: (root.profileIcon && root.profileIcon.length > 0)
                                 ? FleetProfilesHelper.iconSource(root.profileIcon)
                                 : "../icons/ui/hub.svg"
@@ -235,12 +255,51 @@ Item {
                         smooth: true
                     }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
+                    Row {
+                        id: profActions
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: root.narrow ? 6 : 8
+
+                        ModernActionButton {
+                            visible: profileCard.hasProfile
+                            width: root.narrow ? 68 : 82
+                            implicitHeight: root.narrow ? 32 : 36
+                            text: qsTr("Change")
+                            onClicked: profilePickerPopup.openPicker()
+                        }
+
+                        Switch {
+                            id: profileSwitch
+                            visible: profileCard.hasProfile
+                            anchors.verticalCenter: parent.verticalCenter
+                            checked: root.useProfileSettings
+                            onToggled: {
+                                root.useProfileSettings = checked
+                                root.profileSettingsToggled(checked)
+                            }
+                        }
+
+                        ModernActionButton {
+                            visible: !profileCard.hasProfile
+                            width: root.narrow ? 116 : 142
+                            implicitHeight: root.narrow ? 34 : 38
+                            primary: true
+                            text: qsTr("Select profile ▾")
+                            onClicked: profilePickerPopup.openPicker()
+                        }
+                    }
+
+                    Column {
+                        anchors.left: profImg.right
+                        anchors.leftMargin: root.narrow ? 10 : 14
+                        anchors.right: profActions.left
+                        anchors.rightMargin: root.narrow ? 10 : 14
+                        anchors.verticalCenter: parent.verticalCenter
                         spacing: 4
 
                         Text {
-                            Layout.fillWidth: true
+                            width: parent.width
                             text: profileCard.hasProfile
                                   ? qsTr("Use craft settings: %1").arg(root.profileName)
                                   : qsTr("Use craft settings")
@@ -251,7 +310,7 @@ Item {
                         }
 
                         Text {
-                            Layout.fillWidth: true
+                            width: parent.width
                             text: {
                                 if (profileCard.isActive) {
                                     return root.profileDetail.length > 0
@@ -266,37 +325,6 @@ Item {
                             color: profileCard.isActive ? "#4dc5f8" : "#89aebb"
                             font.pixelSize: root.narrow ? 10 : 11
                             elide: Text.ElideRight
-                        }
-                    }
-
-                    RowLayout {
-                        spacing: root.narrow ? 6 : 8
-
-                        ModernActionButton {
-                            visible: profileCard.hasProfile
-                            Layout.preferredWidth: root.narrow ? 68 : 82
-                            implicitHeight: root.narrow ? 32 : 36
-                            text: qsTr("Change")
-                            onClicked: profilePickerPopup.openPicker()
-                        }
-
-                        Switch {
-                            id: profileSwitch
-                            visible: profileCard.hasProfile
-                            checked: root.useProfileSettings
-                            onToggled: {
-                                root.useProfileSettings = checked
-                                root.profileSettingsToggled(checked)
-                            }
-                        }
-
-                        ModernActionButton {
-                            visible: !profileCard.hasProfile
-                            Layout.preferredWidth: root.narrow ? 116 : 142
-                            implicitHeight: root.narrow ? 34 : 38
-                            primary: true
-                            text: qsTr("Select profile \u25be")
-                            onClicked: profilePickerPopup.openPicker()
                         }
                     }
                 }
@@ -316,13 +344,14 @@ Item {
                     border.color: root.configurationComplete ? "#41c98a" : "#159ae9"
                 }
 
-                contentItem: RowLayout {
-                    spacing: root.narrow ? 10 : 14
-
+                contentItem: Item {
                     Image {
-                        Layout.leftMargin: root.narrow ? 6 : 12
-                        Layout.preferredWidth: root.narrow ? 40 : 48
-                        Layout.preferredHeight: root.narrow ? 40 : 48
+                        id: cfgImg
+                        anchors.left: parent.left
+                        anchors.leftMargin: root.narrow ? 6 : 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: root.narrow ? 40 : 48
+                        height: root.narrow ? 40 : 48
                         source: "../icons/ui/configure-write.svg"
                         sourceSize.width: 256
                         sourceSize.height: 256
@@ -330,12 +359,26 @@ Item {
                         smooth: true
                     }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
+                    Text {
+                        id: cfgArrow
+                        anchors.right: parent.right
+                        anchors.rightMargin: root.narrow ? 6 : 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root.configurationComplete ? "✓" : "›"
+                        color: "white"
+                        font.pixelSize: root.configurationComplete ? 20 : 28
+                    }
+
+                    Column {
+                        anchors.left: cfgImg.right
+                        anchors.leftMargin: root.narrow ? 10 : 14
+                        anchors.right: cfgArrow.left
+                        anchors.rightMargin: root.narrow ? 10 : 14
+                        anchors.verticalCenter: parent.verticalCenter
                         spacing: 5
 
                         Text {
-                            Layout.fillWidth: true
+                            width: parent.width
                             text: qsTr("Configure write options")
                             color: "white"
                             font.pixelSize: root.narrow ? 16 : 18
@@ -344,7 +387,7 @@ Item {
                         }
 
                         Text {
-                            Layout.fillWidth: true
+                            width: parent.width
                             text: {
                                 if (root.fleetControlSignedIn && root.useProfileSettings && root.profileName.length > 0)
                                     return qsTr("Pre-configured from '%1'. Select to review or adjust.").arg(root.profileName)
@@ -356,13 +399,6 @@ Item {
                             font.pixelSize: root.narrow ? 10 : 11
                             wrapMode: Text.WordWrap
                         }
-                    }
-
-                    Text {
-                        Layout.rightMargin: root.narrow ? 6 : 12
-                        text: root.configurationComplete ? "\u2713" : "\u203a"
-                        color: "white"
-                        font.pixelSize: root.configurationComplete ? 20 : 28
                     }
                 }
             }
@@ -412,7 +448,6 @@ Item {
         dim: true
         width: Math.min(root.width - (root.narrow ? 20 : 40), 620)
         padding: 16
-        height: Math.min(pickerColumn.implicitHeight + 32, root.height - 30)
         x: Math.round((root.width - width) / 2)
         y: Math.max(12, Math.round((root.height - height) / 2))
         clip: true
@@ -432,12 +467,12 @@ Item {
             border.color: "#00a6f2"
         }
 
-        contentItem: ColumnLayout {
+        contentItem: Column {
             id: pickerColumn
             spacing: 10
 
             RowLayout {
-                Layout.fillWidth: true
+                width: parent.width
                 spacing: 10
 
                 Image {
@@ -464,7 +499,7 @@ Item {
             }
 
             Text {
-                Layout.fillWidth: true
+                width: parent.width
                 text: qsTr("Choose a craft from your fleet or a preset to automatically preconfigure write options:")
                 color: "#89aebb"
                 font.pixelSize: 11
@@ -472,21 +507,21 @@ Item {
             }
 
             Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 1
+                width: parent.width
+                height: 1
                 color: "#1c3c50"
             }
 
             Flickable {
-                Layout.fillWidth: true
-                Layout.preferredHeight: Math.min(profileListView.implicitHeight, 260)
+                width: parent.width
+                height: Math.min(profileListView.implicitHeight, Math.max(120, Math.min(260, root.height - 230)))
                 contentWidth: width
                 contentHeight: profileListView.implicitHeight
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
-                ColumnLayout {
+                Column {
                     id: profileListView
                     width: parent.width
                     spacing: 6
@@ -496,8 +531,8 @@ Item {
 
                         Rectangle {
                             id: itemCard
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 52
+                            width: profileListView.width
+                            height: 52
                             radius: 6
                             readonly property bool isSelected: modelData.craftName === root.profileName && root.useProfileSettings
                             readonly property bool isHovered: itemMouse.containsMouse
@@ -569,7 +604,6 @@ Item {
                                                 font.bold: true
                                             }
                                         }
-
                                     }
 
                                     Text {
@@ -595,13 +629,13 @@ Item {
             }
 
             Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 1
+                width: parent.width
+                height: 1
                 color: "#1c3c50"
             }
 
             RowLayout {
-                Layout.fillWidth: true
+                width: parent.width
                 spacing: 10
 
                 ToolButton {

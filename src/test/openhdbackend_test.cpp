@@ -130,6 +130,32 @@ bool testCustomizationInstall()
            check(copiedConfig.readAll() == "test-setting=true\n", "Installed QOpenHD.conf contents changed");
 }
 
+bool testGroundOfflineMapInstall()
+{
+    QTemporaryDir temporaryDirectory;
+    const QString bootPartition = temporaryDirectory.filePath("boot");
+    QDir().mkpath(bootPartition);
+    const QString source = temporaryDirectory.filePath("field.glidemap");
+    const QByteArray package("GLDMAP1\0test", 12);
+    if (!writeFile(source, package))
+        return check(false, "Could not create temporary offline map");
+    QSettings settings(temporaryDirectory.filePath("settings.ini"), QSettings::IniFormat);
+    settings.setValue("bootType", "Ground");
+    settings.setValue("offlineMapPackagePath", source);
+    if (!check(OpenHDImageCustomizer::apply(bootPartition, settings).succeeded(),
+               "Ground offline map customization failed")) return false;
+    QFile installed(QDir(bootPartition).filePath("openhd/maps/field.glidemap"));
+    if (!check(installed.open(QIODevice::ReadOnly) && installed.readAll() == package,
+               "Ground offline map was not copied to Config")) return false;
+    settings.setValue("bootType", "Air");
+    const QString airPartition = temporaryDirectory.filePath("air-boot");
+    QDir().mkpath(airPartition);
+    return check(OpenHDImageCustomizer::apply(airPartition, settings).succeeded(),
+                 "Air customization failed with a ground map selected") &&
+           check(!QFile::exists(QDir(airPartition).filePath("openhd/maps/field.glidemap")),
+                 "Offline map was copied to an aircraft image");
+}
+
 bool testInvalidCertificateRejected()
 {
     QTemporaryDir temporaryDirectory;
@@ -533,6 +559,7 @@ int main(int argc, char *argv[])
     failures += testGroundSettingsAndCameraMapping() ? 0 : 1;
     failures += testImageNameRoleOverrides() ? 0 : 1;
     failures += testCustomizationInstall() ? 0 : 1;
+    failures += testGroundOfflineMapInstall() ? 0 : 1;
     failures += testInvalidCertificateRejected() ? 0 : 1;
     failures += testStorageSelection() ? 0 : 1;
     failures += testPlatformFileOperations() ? 0 : 1;

@@ -1326,6 +1326,15 @@ bool DownloadThread::_customizeImage()
         case OpenHDImageCustomizer::Error::CopyQOpenHDConfig:
             message = tr("Error copying QOpenHD.conf to FAT partition");
             break;
+        case OpenHDImageCustomizer::Error::OfflineMapNotFound:
+            message = tr("Offline map package not found at the selected path.");
+            break;
+        case OpenHDImageCustomizer::Error::InvalidOfflineMap:
+            message = tr("Selected offline map is not a valid .glidemap package.");
+            break;
+        case OpenHDImageCustomizer::Error::CopyOfflineMap:
+            message = tr("Error copying offline map to the FAT partition");
+            break;
         case OpenHDImageCustomizer::Error::InvalidCertificate:
             message = tr("Premium certificate is invalid: %1").arg(customizationResult.detail);
             break;

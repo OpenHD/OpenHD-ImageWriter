@@ -170,6 +170,8 @@ public:
     Q_INVOKABLE bool imageSupportsCustomization();
     Q_INVOKABLE QString stageFleetControlQOpenHDConfig(const QString &profileId,
                                                        const QString &content) const;
+    Q_INVOKABLE void stageFleetControlOfflineMap(const QString &profileId, const QString &mapId,
+                                                const QUrl &downloadUrl, const QString &sha256);
 
     Q_INVOKABLE QString crypt(const QByteArray &password);
     Q_INVOKABLE QString pbkdf2(const QByteArray &psk, const QByteArray &ssid);
@@ -217,6 +219,7 @@ signals:
     void updateUploadStatus(QVariant msg);
     void updateUploadError(QVariant msg);
     void updateUploadSuccess();
+    void fleetControlOfflineMapStaged(const QString &mapId, const QString &filePath, const QString &error);
 
 protected slots:
 

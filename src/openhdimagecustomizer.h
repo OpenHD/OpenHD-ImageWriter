@@ -22,6 +22,9 @@ public:
         QOpenHDConfigNotFound,
         ReplaceQOpenHDConfig,
         CopyQOpenHDConfig,
+        OfflineMapNotFound,
+        InvalidOfflineMap,
+        CopyOfflineMap,
         InvalidCertificate,
         ReplaceCertificate,
         CopyCertificate

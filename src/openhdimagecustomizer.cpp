@@ -239,6 +239,27 @@ OpenHDImageCustomizer::Result OpenHDImageCustomizer::apply(const QString &bootPa
             return Result(Error::CopyQOpenHDConfig);
     }
 
+    QString offlineMapPath = settings.value("offlineMapPackagePath").toString();
+    if (offlineMapPath.startsWith("file:"))
+        offlineMapPath = QUrl(offlineMapPath).toLocalFile();
+    if (!offlineMapPath.isEmpty() && settings.value("bootType").toString() == "Ground")
+    {
+        const QFileInfo mapInfo(offlineMapPath);
+        if (!mapInfo.isFile())
+            return Result(Error::OfflineMapNotFound);
+        QFile mapFile(offlineMapPath);
+        if (!mapFile.open(QIODevice::ReadOnly) || mapFile.read(8) != QByteArray("GLDMAP1\0", 8))
+            return Result(Error::InvalidOfflineMap);
+        QDir mapDir(openhdDir.filePath("maps"));
+        if (!mapDir.exists() && !mapDir.mkpath("."))
+            return Result(Error::CopyOfflineMap);
+        const QString target = mapDir.filePath(mapInfo.fileName());
+        if (QFileInfo::exists(target) && !QFile::remove(target))
+            return Result(Error::CopyOfflineMap);
+        if (!QFile::copy(offlineMapPath, target))
+            return Result(Error::CopyOfflineMap);
+    }
+
     QString certificatePath = settings.value("premiumCertificatePath").toString();
     if (certificatePath.startsWith("file:"))
         certificatePath = QUrl(certificatePath).toLocalFile();

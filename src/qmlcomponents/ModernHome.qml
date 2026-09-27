@@ -46,7 +46,8 @@ Item {
         Item { width: 1; height: 36 }
 
         // ─── Cards ─────────────────────────────────────────────────────────
-        GridLayout {
+        Grid {
+            id: cardsGrid
             width: parent.width
             columns: width >= 820 ? 4 : 2
             rowSpacing: 16
@@ -84,8 +85,8 @@ Item {
                 ]
 
                 delegate: Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 176
+                    width: Math.floor((cardsGrid.width - (cardsGrid.columns - 1) * cardsGrid.columnSpacing) / cardsGrid.columns)
+                    height: 176
                     radius: 10
                     color: cardMouse.containsMouse ? "#1a2e40" : "#152130"
                     border.color: cardMouse.containsMouse ? "#2a6fa8" : "#1e3347"

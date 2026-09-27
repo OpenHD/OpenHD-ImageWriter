@@ -19,6 +19,10 @@ Item {
     property bool signedIn: accountName !== ""
     property bool showPassword: false
     property bool loadingCrafts: false
+    property var offlineMaps: []
+    property bool offlineMapBusy: false
+    property string offlineMapMessage: ""
+    property string stagingMapId: ""
     property int activeFilter: 0 // 0: My Fleet, 1: Air Vehicles, 2: Ground Stations
     property string activeCraftName: imageWriter.getValue("fleetcontrol_craft_name") || ""
 
@@ -39,7 +43,7 @@ Item {
     property string editorSelectedCategory: "craft"
     property string editorSelectedIcon: "survey"
     property string editorSelectedFamily: "multirotor"
-    property string editorSelectedHardware: "Raspberry Pi (4 / 5 / CM4 / Zero 2W)"
+    property string editorSelectedHardware: "Raspberry Pi 4"
     property bool editorAdvancedOpen: false
 
     ListModel { id: craftModel }
@@ -81,14 +85,14 @@ Item {
         return "multirotor"
     }
 
-    function request(method, path, body, callback) {
+    function request(method, path, body, callback, timeoutMs) {
         var xhr = new XMLHttpRequest()
         xhr.onreadystatechange = function() {
             if (xhr.readyState === XMLHttpRequest.DONE)
                 callback(xhr, parseResponse(xhr))
         }
         xhr.open(method, apiBaseUrl + path)
-        xhr.timeout = 15000
+        xhr.timeout = timeoutMs || 15000
         if (body !== undefined)
             xhr.setRequestHeader("Content-Type", "application/json")
         xhr.send(body === undefined ? null : JSON.stringify(body))
@@ -147,6 +151,76 @@ Item {
         return FleetProfilesHelper.sbcKeyFromHardware(hw)
     }
 
+    function loadOfflineMaps(profileId) {
+        offlineMaps = []
+        if (!profileId || String(profileId).indexOf("craft_") === 0) return
+        request("GET", "/api/imagewriter/profiles/" + encodeURIComponent(profileId) + "/offline-maps",
+                undefined, function(xhr, response) {
+            if (xhr.status === 200 && response.maps)
+                offlineMaps = response.maps
+            else
+                offlineMapMessage = response.message || qsTr("Could not load offline maps.")
+        })
+    }
+
+    function generateOfflineMap() {
+        if (editIndex < 0 || editIndex >= craftModel.count) {
+            offlineMapMessage = qsTr("Save this ground station before generating a map.")
+            return
+        }
+        var profileId = craftModel.get(editIndex).craftId
+        var bounds = [Number(mapSouthField.text), Number(mapWestField.text),
+                      Number(mapNorthField.text), Number(mapEastField.text)]
+        if (bounds.some(function(value) { return !isFinite(value) }) ||
+            bounds[0] >= bounds[2] || bounds[1] >= bounds[3]) {
+            offlineMapMessage = qsTr("Enter valid south, west, north and east coordinates.")
+            return
+        }
+        offlineMapBusy = true
+        offlineMapMessage = qsTr("Generating the offline map. This can take several minutes.")
+        request("POST", "/api/imagewriter/profiles/" + encodeURIComponent(profileId) + "/offline-maps",
+                { "name": mapNameField.text.trim() || craftNameField.text.trim(),
+                  "south": bounds[0], "west": bounds[1], "north": bounds[2], "east": bounds[3],
+                  "minZoom": 12, "maxZoom": 15 }, function(xhr, response) {
+            offlineMapBusy = false
+            if (xhr.status >= 200 && xhr.status < 300) {
+                offlineMapMessage = qsTr("Offline map generated and saved to this FleetControl profile.")
+                loadOfflineMaps(profileId)
+            } else {
+                offlineMapMessage = response.message || qsTr("Offline map generation failed.")
+            }
+        }, 300000)
+    }
+
+    function installOfflineMapForProfile(profileId, map) {
+        stagingMapId = map.id
+        offlineMapBusy = true
+        imageWriter.setSetting("offlineMapsPending", true)
+        offlineMapMessage = qsTr("Downloading and verifying the offline map for flashing.")
+        imageWriter.stageFleetControlOfflineMap(profileId, map.id,
+                                                apiBaseUrl + map.downloadUrl, map.sha256)
+    }
+
+    function installOfflineMap(map) {
+        if (editIndex < 0 || editIndex >= craftModel.count) return
+        installOfflineMapForProfile(craftModel.get(editIndex).craftId, map)
+    }
+
+    Connections {
+        target: imageWriter
+        function onFleetControlOfflineMapStaged(mapId, filePath, error) {
+            if (mapId !== root.stagingMapId) return
+            root.offlineMapBusy = false
+            if (error.length > 0) {
+                root.offlineMapMessage = error
+            } else {
+                imageWriter.setSetting("offlineMapPackagePath", filePath)
+                root.offlineMapMessage = qsTr("Offline map ready for the next ground-station flash.")
+            }
+            imageWriter.setSetting("offlineMapsPending", false)
+        }
+    }
+
     function loadCrafts() {
         var selectedCraftId = imageWriter.getValue("fleetcontrol_craft_id") || ""
         loadingCrafts = true
@@ -175,7 +249,7 @@ Item {
                                     role === "ground"
                     var category = s.craftCategory || (isStation ? "station" : "craft")
                     var icon = s.craftIcon || (category === "station" ? "station-military-gcs" : "survey")
-                    var hardware = s.craftHardware || s.sbc || "Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)"
+                    var hardware = s.craftHardware || s.sbc || "Raspberry Pi 4"
 
                     craftModel.append({
                         "craftId": profile.id || ("craft_" + i),
@@ -324,14 +398,32 @@ Item {
 
     function selectAndFlashCraft(craft) {
         FleetProfilesHelper.applyProfile(imageWriter, craft)
+        imageWriter.setSetting("offlineMapPackagePath", "")
         activeCraftName = craft.craftName
         var role = craft.craftRole || (craft.craftCategory === "station" ? "ground" : "air")
         message = qsTr("Configured for %1 (%2). Choose an image to continue.").arg(craft.craftName).arg(role.toUpperCase())
+        if (role === "ground") {
+            imageWriter.setSetting("offlineMapsPending", true)
+            request("GET", "/api/imagewriter/profiles/" + encodeURIComponent(craft.craftId) + "/offline-maps",
+                    undefined, function(xhr, response) {
+                if (xhr.status === 200 && response.maps && response.maps.length > 0) {
+                    installOfflineMapForProfile(craft.craftId, response.maps[0])
+                } else {
+                    imageWriter.setSetting("offlineMapsPending", false)
+                    if (xhr.status !== 200)
+                        message = response.message || qsTr("Could not load the ground-station offline maps.")
+                }
+            })
+        } else {
+            imageWriter.setSetting("offlineMapsPending", false)
+        }
     }
 
     function clearActiveCraft() {
         imageWriter.setSetting("fleetcontrol_craft_id", "")
         imageWriter.setSetting("fleetcontrol_craft_name", "")
+        imageWriter.setSetting("offlineMapPackagePath", "")
+        imageWriter.setSetting("offlineMapsPending", false)
         activeCraftName = ""
         message = qsTr("Craft selection cleared. Flashing will proceed with default standalone settings.")
     }
@@ -609,7 +701,7 @@ Item {
         editorSelectedCategory = "craft"
         editorSelectedIcon = "survey"
         editorSelectedFamily = "multirotor"
-        editorSelectedHardware = "Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)"
+        editorSelectedHardware = "Raspberry Pi 4"
         craftNameField.text = ""
         craftDescField.text = ""
         hardwareDropdown.currentIndex = 0
@@ -635,6 +727,8 @@ Item {
         displayHeightField.text = "1080"
         displayFpsField.text = "60"
         mapboxKeyField.text = ""
+        offlineMaps = []
+        offlineMapMessage = ""
 
         refreshEditorVendors(true)
         unitEditorVisible = true
@@ -647,20 +741,20 @@ Item {
         editorSelectedCategory = craft.craftCategory || "craft"
         editorSelectedIcon = craft.craftIcon || (editorSelectedCategory === "craft" ? "survey" : "station-military-gcs")
         editorSelectedFamily = familyForIcon(editorSelectedIcon)
-        editorSelectedHardware = craft.craftHardware || "Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)"
+        editorSelectedHardware = craft.craftHardware || "Raspberry Pi 4"
         craftNameField.text = craft.craftName || ""
         craftDescField.text = craft.craftDescription || ""
 
-        var hwIdx = 0
+        var hwIdx = -1
         for (var h = 0; h < hardwareDropdown.model.length; ++h) {
-            if (hardwareDropdown.model[h] === editorSelectedHardware ||
-                hardwareDropdown.model[h].indexOf(editorSelectedHardware) >= 0 ||
-                editorSelectedHardware.indexOf(hardwareDropdown.model[h]) >= 0) {
+            if (hardwareDropdown.model[h] === editorSelectedHardware) {
                 hwIdx = h
                 break
             }
         }
         hardwareDropdown.currentIndex = hwIdx
+        if (hwIdx < 0)
+            editorSelectedHardware = ""
 
         savedVendor = craft.craftCameraVendor || ""
         savedCamera = craft.craftCamera || ""
@@ -683,6 +777,9 @@ Item {
         displayHeightField.text = String(craft.craftDisplayHeight || 1080)
         displayFpsField.text = String(craft.craftDisplayRefreshHz || 60)
         mapboxKeyField.text = craft.craftMapboxApiKey || ""
+        offlineMapMessage = ""
+        if (editorSelectedCategory === "station") loadOfflineMaps(craft.craftId)
+        else offlineMaps = []
 
         refreshEditorVendors(true)
         unitEditorVisible = true
@@ -694,35 +791,40 @@ Item {
     }
 
     function collectAndSaveEditor() {
+        if (hardwareDropdown.currentIndex < 0) {
+            message = qsTr("Select a specific hardware platform before saving.")
+            return
+        }
         var name = craftNameField.text.trim()
         if (name.length === 0)
             name = editorSelectedCategory === "craft" ? qsTr("New Air Craft") : qsTr("New Ground Station")
 
-        var selectedCam = (cameraDropdown.currentIndex >= 0 && cameraDropdown.currentIndex < cameraDropdown.model.length)
+        var isAir = editorSelectedCategory === "craft"
+        var selectedCam = isAir && (cameraDropdown.currentIndex >= 0 && cameraDropdown.currentIndex < cameraDropdown.model.length)
                           ? cameraDropdown.model[cameraDropdown.currentIndex] : ""
         if (selectedCam === "NONE") selectedCam = ""
 
-        var selectedVendorName = (vendorDropdown.currentIndex >= 0 && vendorDropdown.currentIndex < vendorDropdown.model.length)
+        var selectedVendorName = isAir && (vendorDropdown.currentIndex >= 0 && vendorDropdown.currentIndex < vendorDropdown.model.length)
                                  ? vendorDropdown.model[vendorDropdown.currentIndex] : ""
 
         var secOpts = FleetProfilesHelper.getSecondaryCameraOptions(settingsMap, FleetProfilesHelper.sbcKeyFromHardware(editorSelectedHardware))
-        var selectedSecId = (camera2Dropdown.currentIndex >= 0 && camera2Dropdown.currentIndex < secOpts.length)
+        var selectedSecId = isAir && (camera2Dropdown.currentIndex >= 0 && camera2Dropdown.currentIndex < secOpts.length)
                             ? secOpts[camera2Dropdown.currentIndex].id : ""
 
         var adv = {
             "cameraVendor": selectedVendorName,
             "camera": selectedCam,
-            "cameraResolution": (resDropdown.currentIndex >= 0 && resDropdown.currentIndex < resDropdown.model.length)
-                                ? resDropdown.model[resDropdown.currentIndex] : (resDropdown.currentText || ""),
+            "cameraResolution": isAir ? ((resDropdown.currentIndex >= 0 && resDropdown.currentIndex < resDropdown.model.length)
+                                 ? resDropdown.model[resDropdown.currentIndex] : (resDropdown.currentText || "")) : "",
             "cameraPort": primaryPortDropdown.currentIndex === 0 ? "cam0" : "cam1",
             "camera2": selectedSecId,
-            "camera2Resolution": (res2Dropdown.currentIndex >= 0 && res2Dropdown.currentIndex < res2Dropdown.model.length)
-                                 ? res2Dropdown.model[res2Dropdown.currentIndex] : (res2Dropdown.currentText || ""),
+            "camera2Resolution": isAir ? ((res2Dropdown.currentIndex >= 0 && res2Dropdown.currentIndex < res2Dropdown.model.length)
+                                  ? res2Dropdown.model[res2Dropdown.currentIndex] : (res2Dropdown.currentText || "")) : "",
             "camera2Port": secondaryPortDropdown.currentIndex === 0 ? "cam0" : "cam1",
-            "ipCameraAddress": ipCamAddressField.text.trim(),
-            "ipCameraPipeline": ipCamPipelineField.text.trim(),
-            "camera2IpAddress": camera2IpAddressField.text.trim(),
-            "camera2IpPipeline": camera2IpPipelineField.text.trim(),
+            "ipCameraAddress": isAir ? ipCamAddressField.text.trim() : "",
+            "ipCameraPipeline": isAir ? ipCamPipelineField.text.trim() : "",
+            "camera2IpAddress": isAir ? camera2IpAddressField.text.trim() : "",
+            "camera2IpPipeline": isAir ? camera2IpPipelineField.text.trim() : "",
             "ipCameraBitrate": ipCameraBitrateSpin.value,
             "displayForceMode": displayForceSwitch.checked,
             "displayWidth": parseInt(displayWidthField.text) || 1920,
@@ -736,6 +838,7 @@ Item {
 
     Component.onCompleted: {
         settingsMap = FleetProfilesHelper.getSettingsMap(imageWriter)
+        imageWriter.setSetting("offlineMapsPending", false)
         imageWriter.setSetting(getCacheKey(), "[]")
         activeCraftName = ""
         checkSession()
@@ -1899,9 +2002,14 @@ Item {
                             anchors.rightMargin: 8
                             anchors.verticalCenter: parent.verticalCenter
                             model: [
-                                "Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)",
-                                "Radxa Zero 3W / Rock 3 (RK3566)",
-                                "Radxa Rock 5B / CM5 (RK3588)",
+                                "Raspberry Pi 4",
+                                "Raspberry Pi 5",
+                                "Raspberry Pi CM4",
+                                "Raspberry Pi Zero 2W",
+                                "Radxa Zero 3W",
+                                "Radxa Rock 3",
+                                "Radxa Rock 5B",
+                                "Radxa CM5",
                                 "OpenHD Core X20",
                                 "OpenHD Core X21",
                                 "PC / x86_64 Ground Station"
@@ -2429,6 +2537,93 @@ Item {
                                         width: parent.width
                                         placeholderText: qsTr("pk.eyJ1... (optional online satellite map)")
                                         selectByMouse: true
+                                    }
+                                    Text {
+                                        text: "<a href=\"https://console.mapbox.com/account/access-tokens/\">" +
+                                              qsTr("Get a Mapbox access token") + "</a>"
+                                        color: "#4dc5f8"
+                                        font.pixelSize: 11
+                                        linkColor: "#4dc5f8"
+                                        onLinkActivated: Qt.openUrlExternally(link)
+                                    }
+                                }
+
+                                Column {
+                                    width: parent.width
+                                    spacing: 6
+
+                                    Text {
+                                        text: qsTr("OFFLINE MAP AREA")
+                                        color: "#7592a3"
+                                        font.pixelSize: 9
+                                        font.bold: true
+                                    }
+                                    Text {
+                                        width: parent.width
+                                        wrapMode: Text.WordWrap
+                                        text: qsTr("Enter a rectangle around the area where you will fly. The generated road and waterway map works in QOpenHD without internet.")
+                                        color: "#8eafbf"
+                                        font.pixelSize: 11
+                                    }
+                                    TextField {
+                                        id: mapNameField
+                                        width: parent.width
+                                        placeholderText: qsTr("Map name, e.g. South field")
+                                        selectByMouse: true
+                                    }
+                                    Row {
+                                        width: parent.width
+                                        spacing: 8
+                                        TextField { id: mapSouthField; width: (parent.width - 8) / 2; placeholderText: qsTr("South latitude"); selectByMouse: true }
+                                        TextField { id: mapWestField; width: (parent.width - 8) / 2; placeholderText: qsTr("West longitude"); selectByMouse: true }
+                                    }
+                                    Row {
+                                        width: parent.width
+                                        spacing: 8
+                                        TextField { id: mapNorthField; width: (parent.width - 8) / 2; placeholderText: qsTr("North latitude"); selectByMouse: true }
+                                        TextField { id: mapEastField; width: (parent.width - 8) / 2; placeholderText: qsTr("East longitude"); selectByMouse: true }
+                                    }
+                                    ModernActionButton {
+                                        text: root.offlineMapBusy ? qsTr("Generating or downloading...") : qsTr("Generate and save to FleetControl")
+                                        enabled: !root.offlineMapBusy && root.editIndex >= 0
+                                        onClicked: root.generateOfflineMap()
+                                    }
+                                    Text {
+                                        visible: root.editIndex < 0
+                                        text: qsTr("Save this ground station first to attach offline maps.")
+                                        color: "#8eafbf"
+                                        font.pixelSize: 11
+                                    }
+                                    Text {
+                                        visible: root.offlineMapMessage.length > 0
+                                        width: parent.width
+                                        wrapMode: Text.WordWrap
+                                        text: root.offlineMapMessage
+                                        color: "#4dc5f8"
+                                        font.pixelSize: 11
+                                    }
+                                    Repeater {
+                                        model: root.offlineMaps
+                                        delegate: Row {
+                                            width: parent.width
+                                            spacing: 10
+                                            Text {
+                                                width: Math.max(90, parent.width - 250)
+                                                text: modelData.name + " (" + modelData.minZoom + "–" + modelData.maxZoom + ")"
+                                                color: "#e1f2fc"
+                                                elide: Text.ElideRight
+                                                font.pixelSize: 11
+                                            }
+                                            ModernActionButton {
+                                                text: qsTr("Use for flash")
+                                                enabled: !root.offlineMapBusy
+                                                onClicked: root.installOfflineMap(modelData)
+                                            }
+                                            ModernActionButton {
+                                                text: qsTr("Download")
+                                                onClicked: Qt.openUrlExternally(root.apiBaseUrl + modelData.downloadUrl)
+                                            }
+                                        }
                                     }
                                 }
                             }

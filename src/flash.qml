@@ -32,6 +32,8 @@ Rectangle {
     property bool selectingImage: true
     property bool selectingTarget: false
     property bool reviewingOperation: false
+    property bool isFlashing: false
+    property bool isVerifying: false
     readonly property bool fleetControlSignedIn: {
         if (mainWindow && mainWindow.fleetControlSignedIn !== undefined)
             return mainWindow.fleetControlSignedIn
@@ -61,6 +63,9 @@ Rectangle {
     property string fleetControlProfileName: ""
     property string fleetControlProfileDetail: ""
     property string fleetControlProfileIcon: ""
+    property bool useProfileSettings: true
+    property string offlineMapStatus: ""
+    property string pendingOfflineMapId: ""
     property bool completionHandled: false
     property double selectedTargetSize: 0
     property bool selectedTargetIsComputeModule: false
@@ -74,10 +79,50 @@ Rectangle {
 
     Connections {
         target: imageWriter
+        function onFleetControlOfflineMapStaged(mapId, filePath, error) {
+            if (mapId !== window.pendingOfflineMapId) return
+            imageWriter.setSetting("offlineMapsPending", false)
+            if (error.length > 0) {
+                window.offlineMapStatus = error
+            } else {
+                imageWriter.setSetting("offlineMapPackagePath", filePath)
+                window.offlineMapStatus = qsTr("Offline map ready for ground-station flashing.")
+            }
+            writebutton.enabled = imageWriter.readyToWrite()
+        }
         function onRockchipWriteCompleted() {
             if (!window.completionHandled && progressBar.visible)
                 window.onSuccess()
         }
+    }
+
+    function stageProfileOfflineMap(profile) {
+        imageWriter.setSetting("offlineMapPackagePath", "")
+        offlineMapStatus = ""
+        if ((profile.craftRole || "") !== "ground") return
+        imageWriter.setSetting("offlineMapsPending", true)
+        var xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE) return
+            var response = {}
+            try { response = JSON.parse(xhr.responseText) } catch (error) {}
+            if (xhr.status === 200 && response.maps && response.maps.length > 0) {
+                var map = response.maps[0]
+                pendingOfflineMapId = map.id
+                offlineMapStatus = qsTr("Downloading offline map for ground station...")
+                imageWriter.stageFleetControlOfflineMap(profile.craftId, map.id,
+                    "https://openhd.tech" + map.downloadUrl, map.sha256)
+            } else {
+                imageWriter.setSetting("offlineMapsPending", false)
+                if (xhr.status !== 200)
+                    offlineMapStatus = response.message || qsTr("Could not load the ground-station offline map.")
+                writebutton.enabled = imageWriter.readyToWrite()
+            }
+        }
+        xhr.open("GET", "https://openhd.tech/api/imagewriter/profiles/" +
+                 encodeURIComponent(profile.craftId) + "/offline-maps")
+        xhr.timeout = 15000
+        xhr.send()
     }
 
     Timer {
@@ -172,330 +217,202 @@ Rectangle {
         onClicked: navigateBack()
     }
 
-    Flickable {
-        id: modernWorkflow
+    Item {
+        id: writeProgressPage
         anchors.fill: parent
-        visible: progressBar.visible && !selectingImage && !selectingTarget && !reviewingOperation && !optionsPage.visible
+        visible: isFlashing || progressBar.visible
         enabled: visible
-        contentWidth: width
-        contentHeight: modernContent.implicitHeight + 72
-        clip: true
-        boundsBehavior: Flickable.StopAtBounds
-        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+        z: 2
 
-        ColumnLayout {
-            id: modernContent
-            width: Math.min(modernWorkflow.width - (modernWorkflow.width < 700 ? 40 : 72), 1040)
-            x: Math.max(0, Math.round((modernWorkflow.width - width) / 2))
-            y: modernWorkflow.width < 700 ? 24 : 38
-            spacing: 24
+        onVisibleChanged: {
+            console.log("[Flash] writeProgressPage visible changed to:", visible)
+        }
 
-            PageHeader {
-                Layout.fillWidth: true
-                title: progressBar.visible ? qsTr("Writing image") : qsTr("Write an image")
-                subtitle: progressBar.visible
-                          ? qsTr("Keep the target connected until writing and verification are complete.")
-                          : qsTr("Select an OpenHD image and a target device, then review and start the write.")
-            }
+        Rectangle {
+            anchors.fill: parent
+            color: "#0d1b26"
+        }
 
-            Rectangle {
-                visible: fleetControlSignedIn && fleetControlProfileName.length > 0 && !progressBar.visible
-                Layout.fillWidth: true
-                Layout.preferredHeight: 38
-                radius: 6
-                color: "#112638"
-                border.color: "#00a6f2"
-                border.width: 1
+        Column {
+            id: progressCol
+            width: Math.min(parent.width - (parent.width < 700 ? 36 : 72), 780)
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 20
 
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 12
-                    spacing: 10
+            Row {
+                width: parent.width
+                spacing: progressCol.width < 720 ? 12 : 16
 
-                    Image {
-                        Layout.preferredWidth: 18
-                        Layout.preferredHeight: 18
-                        source: "icons/ui/fleetcontrol.svg"
-                        fillMode: Image.PreserveAspectFit
-                    }
+                Image {
+                    width: progressCol.width < 720 ? 38 : 46
+                    height: progressCol.width < 720 ? 38 : 46
+                    source: "icons/ui/write.svg"
+                    fillMode: Image.PreserveAspectFit
+                    sourceSize.width: 256
+                    sourceSize.height: 256
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Column {
+                    width: parent.width - (progressCol.width < 720 ? 38 : 46) - (progressCol.width < 720 ? 12 : 16)
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 4
 
                     Text {
-                        Layout.fillWidth: true
-                        text: qsTr("Fleet unit selected: <b>%1</b> (settings preconfigured)").arg(fleetControlProfileName)
-                        color: "#e2f2fc"
-                        font.pixelSize: 12
+                        width: parent.width
+                        text: qsTr("Writing image")
+                        color: "#f3f7fa"
+                        font.pixelSize: progressCol.width < 720 ? 20 : 24
+                        font.bold: true
                         elide: Text.ElideRight
                     }
 
-                    ToolButton {
-                        text: qsTr("Clear (Flash Standalone)")
-                        font.pixelSize: 11
-                        onClicked: {
-                            fleetControlProfileName = ""
-                            imageWriter.setSetting("fleetcontrol_craft_id", "")
-                            imageWriter.setSetting("fleetcontrol_craft_name", "")
-                        }
+                    Text {
+                        width: parent.width
+                        text: qsTr("Keep the target connected until writing and verification are complete.")
+                        color: "#9db0bb"
+                        font.pixelSize: 13
+                        wrapMode: Text.WordWrap
                     }
-                }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                visible: !progressBar.visible
-                spacing: 8
-
-                Repeater {
-                    model: [
-                        { "number": "1", "label": qsTr("Image") },
-                        { "number": "2", "label": qsTr("Target") },
-                        { "number": "3", "label": qsTr("Write") }
-                    ]
-
-                    delegate: RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-
-                        Rectangle {
-                            width: 24
-                            height: 24
-                            radius: 12
-                            color: index === 0 || (index === 1 && imageWriter.srcFileName() !== "")
-                                   || (index === 2 && writebutton.enabled) ? "#137fd3" : "#183442"
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: modelData.number
-                                color: "#eef7fc"
-                                font.pixelSize: 11
-                                font.bold: true
-                            }
-                        }
-
-                        Text {
-                            text: modelData.label
-                            color: "#9fb3bf"
-                            font.pixelSize: 11
-                        }
-
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 1
-                            visible: index < 2
-                            color: "#294754"
-                        }
-                    }
-                }
-            }
-
-            GridLayout {
-                id: modernCardGrid
-                Layout.fillWidth: true
-                visible: !progressBar.visible
-                columns: width >= 840 ? 3 : 1
-                rowSpacing: 14
-                columnSpacing: 14
-
-                ActionCard {
-                    Layout.fillWidth: true
-                    text: osbutton.text === qsTr("CHOOSE OS") ? qsTr("No image selected") : osbutton.text
-                    eyebrow: qsTr("Source image")
-                    description: qsTr("Choose an official release or select a local image file.")
-                    actionText: qsTr("Choose image")
-                    iconSource: "icons/ui/image.svg"
-                    onClicked: openImageSelector()
-                }
-
-                ActionCard {
-                    Layout.fillWidth: true
-                    text: dstbutton.text === qsTr("CHOOSE STORAGE") ? qsTr("No target selected") : dstbutton.text
-                    eyebrow: qsTr("Target device")
-                    description: qsTr("Select the SD card, USB drive, or supported OpenHD device to overwrite.")
-                    actionText: qsTr("Choose target")
-                    iconSource: "icons/ui/drive.svg"
-                    onClicked: {
-                        imageWriter.startDriveListPolling()
-                        selectingTarget = true
-                    }
-                }
-
-                ActionCard {
-                    Layout.fillWidth: true
-                    text: writebutton.enabled ? qsTr("Ready to write") : qsTr("Complete the selections")
-                    eyebrow: qsTr("Final step")
-                    description: qsTr("Review the selected image and target before starting the operation.")
-                    actionText: qsTr("Review and write")
-                    iconSource: "icons/ui/write.svg"
-                    primaryAction: true
-                    enabled: writebutton.enabled
-                    onClicked: writebutton.clicked()
                 }
             }
 
             Rectangle {
-                visible: fleetControlSignedIn && fleetControlProfileName.length > 0 && !progressBar.visible
-                Layout.fillWidth: true
-                Layout.preferredHeight: 74
-                radius: 8
-                color: "#0e3146"
-                border.width: 2
-                border.color: "#00a6f2"
+                width: parent.width
+                height: 168
+                radius: 10
+                color: "#0e2734"
+                border.width: 1
+                border.color: "#20556e"
 
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: 14
-                    spacing: 14
+                Column {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.leftMargin: 20
+                    anchors.rightMargin: 20
+                    spacing: 16
 
-                    Image {
-                        Layout.preferredWidth: 38
-                        Layout.preferredHeight: 38
-                        source: fleetControlProfileIcon.length > 0
-                                ? FleetProfilesHelper.iconSource(fleetControlProfileIcon)
-                                : "icons/ui/hub.svg"
-                        fillMode: Image.PreserveAspectFit
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 3
+                    Item {
+                        width: parent.width
+                        height: 26
 
                         Text {
-                            Layout.fillWidth: true
-                            text: qsTr("Use craft settings: %1").arg(fleetControlProfileName)
-                            color: "#ffffff"
+                            anchors.left: parent.left
+                            anchors.right: percentText.left
+                            anchors.rightMargin: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: progressText.text
+                            color: "#edf5f9"
                             font.pixelSize: 15
                             font.bold: true
                             elide: Text.ElideRight
                         }
 
                         Text {
-                            Layout.fillWidth: true
-                            text: fleetControlProfileDetail.length > 0
-                                  ? fleetControlProfileDetail
-                                  : qsTr("Hardware platform, role, cameras & network settings from '%1' are active.").arg(fleetControlProfileName)
-                            color: "#4dc5f8"
-                            font.pixelSize: 11
-                            elide: Text.ElideRight
-                        }
-                    }
-
-                    ModernActionButton {
-                        text: qsTr("Clear Craft")
-                        implicitHeight: 32
-                        onClicked: {
-                            fleetControlProfileName = ""
-                            fleetControlProfileDetail = ""
-                            fleetControlProfileIcon = ""
-                            imageWriter.setSetting("fleetcontrol_craft_id", "")
-                            imageWriter.setSetting("fleetcontrol_craft_name", "")
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: progressPanelContent.implicitHeight + 40
-                visible: progressBar.visible
-                radius: 10
-                color: "#0e2734"
-                border.color: "#294754"
-
-                ColumnLayout {
-                    id: progressPanelContent
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: 20
-                    spacing: 14
-
-                    RowLayout {
-                        Layout.fillWidth: true
-
-                        Text {
-                            Layout.fillWidth: true
-                            text: progressText.text
-                            color: "#edf5f9"
-                            font.pixelSize: 14
-                            font.bold: true
-                            wrapMode: Text.WordWrap
-                        }
-
-                        Text {
-                            text: Math.round(progressBar.value * 100) + "%"
-                            color: "#5bb4ff"
-                            font.pixelSize: 18
+                            id: percentText
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: progressBar.indeterminate ? "" : Math.round(progressBar.value * 100) + "%"
+                            color: progressBar.Material.accent ? progressBar.Material.accent : "#5bb4ff"
+                            font.pixelSize: 20
                             font.bold: true
                         }
                     }
 
                     ProgressBar {
-                        Layout.fillWidth: true
+                        width: parent.width
                         value: progressBar.value
+                        indeterminate: progressBar.indeterminate
+                        Material.accent: progressBar.Material.accent
                     }
 
-                    RowLayout {
-                        Layout.fillWidth: true
+                    Item {
+                        width: parent.width
+                        height: 38
 
                         Text {
-                            Layout.fillWidth: true
+                            anchors.left: parent.left
+                            anchors.right: actionButtonsRow.left
+                            anchors.rightMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
                             text: qsTr("Do not remove or disconnect the target.")
                             color: "#8299a7"
-                            font.pixelSize: 11
+                            font.pixelSize: 12
+                            elide: Text.ElideRight
                         }
 
-                        ModernActionButton {
-                            visible: cancelwritebutton.visible
-                            enabled: cancelwritebutton.enabled
-                            text: qsTr("Cancel write")
-                            onClicked: cancelwritebutton.clicked()
-                        }
+                        Row {
+                            id: actionButtonsRow
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 8
 
-                        ModernActionButton {
-                            visible: cancelverifybutton.visible
-                            enabled: cancelverifybutton.enabled
-                            text: qsTr("Skip verification")
-                            onClicked: cancelverifybutton.clicked()
+                            ModernActionButton {
+                                visible: cancelwritebutton.visible
+                                enabled: cancelwritebutton.enabled
+                                text: qsTr("Cancel write")
+                                onClicked: cancelwritebutton.clicked()
+                            }
+
+                            ModernActionButton {
+                                visible: cancelverifybutton.visible
+                                enabled: cancelverifybutton.enabled
+                                text: cancelverifybutton.enabled ? qsTr("Skip verification") : qsTr("Verification skipped")
+                                onClicked: cancelverifybutton.clicked()
+                            }
                         }
                     }
                 }
             }
 
             Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 1
-                visible: !progressBar.visible
-                color: "#213d4a"
-            }
+                width: parent.width
+                height: 84
+                radius: 8
+                color: "#0e2734"
+                border.width: 1
+                border.color: "#20556e"
 
-            RowLayout {
-                Layout.fillWidth: true
-                visible: !progressBar.visible
-                spacing: 12
+                Item {
+                    anchors.fill: parent
+                    anchors.margins: 16
 
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 2
-
-                    Text {
-                        text: qsTr("Advanced image options")
-                        color: "#dbe7ed"
-                        font.pixelSize: 13
-                        font.bold: true
+                    Image {
+                        id: targetIcon
+                        width: 36
+                        height: 36
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        source: "icons/ui/drive.svg"
+                        fillMode: Image.PreserveAspectFit
                     }
 
-                    Text {
-                        text: qsTr("Configure device role, cameras, networking, and display settings.")
-                        color: "#8198a5"
-                        font.pixelSize: 11
-                        wrapMode: Text.WordWrap
-                    }
-                }
+                    Column {
+                        anchors.left: targetIcon.right
+                        anchors.leftMargin: 16
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 4
 
-                ModernActionButton {
-                    text: qsTr("Configure")
-                    primary: true
-                    onClicked: optionsPage.openPage()
+                        Text {
+                            width: parent.width
+                            text: dstbutton.text
+                            color: "#f3f7fa"
+                            font.pixelSize: 14
+                            font.bold: true
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            width: parent.width
+                            text: osbutton.text
+                            color: "#8299a7"
+                            font.pixelSize: 12
+                            elide: Text.ElideRight
+                        }
+                    }
                 }
             }
         }
@@ -1579,9 +1496,10 @@ Rectangle {
             fleetControlProfileName = profile.craftName
             fleetControlProfileIcon = profile.craftIcon || ""
             fleetControlProfileDetail = FleetProfilesHelper.profileSummary(profile)
+            stageProfileOfflineMap(profile)
         }
         onProfileSettingsToggled: function(enabled) {
-            // Keep fleetControlProfileName so user can toggle back
+            useProfileSettings = enabled
         }
         onClearProfileRequested: {
             fleetControlProfileName = ""
@@ -1606,6 +1524,10 @@ Rectangle {
         }
         onConfigureRequested: optionsPage.openPage()
         onConfirmed: {
+            if (imageWriter.getBoolSetting("offlineMapsPending")) {
+                offlineMapStatus = qsTr("Wait for the offline map to finish downloading before flashing.")
+                return
+            }
             if ((fleetControlSignedIn && fleetControlProfileName.length > 0 && useProfileSettings) || optionsPage.configurationApplied)
                 writeConfirmPopup.openPopup()
         }
@@ -1636,6 +1558,7 @@ Rectangle {
                     fleetControlProfileDetail = FleetProfilesHelper.profileSummary(pList[pIdx])
                     fleetControlProfileIcon = pList[pIdx].craftIcon || ""
                     FleetProfilesHelper.applyProfile(imageWriter, pList[pIdx])
+                    stageProfileOfflineMap(pList[pIdx])
                     break
                 }
             }
@@ -1688,10 +1611,14 @@ Rectangle {
         cancelwritebutton.enabled = true
         cancelwritebutton.visible = true
         cancelverifybutton.enabled = true
+        cancelverifybutton.visible = true
+        isVerifying = false
         resetDownloadTracking()
         progressText.text = qsTr("Preparing to write...")
         progressText.visible = true
+        isFlashing = true
         progressBar.visible = true
+        console.log("[Flash] startWriteNow() -> isFlashing set to true")
         progressBar.indeterminate = true
         progressBar.Material.accent = "#ffffff"
         osbutton.enabled = false
@@ -1837,6 +1764,8 @@ Rectangle {
                         enabled: false
                         onClicked: {
                             if (!imageWriter.readyToWrite()) {
+                                if (imageWriter.getBoolSetting("offlineMapsPending"))
+                                    offlineMapStatus = qsTr("Wait for the offline map to finish downloading before flashing.")
                                 return
                             }
                             image_name=imageWriter.srcFileName();
@@ -1924,6 +1853,7 @@ Rectangle {
                         text: qsTr("CANCEL WRITE")
                         onClicked: {
                             enabled = false
+                            cancelverifybutton.enabled = false
                             progressText.text = qsTr("Cancelling...")
                             imageWriter.cancelWrite()
                         }
@@ -1935,7 +1865,9 @@ Rectangle {
                         text: qsTr("CANCEL VERIFY")
                         onClicked: {
                             enabled = false
-                            progressText.text = qsTr("Finalizing...")
+                            if (isVerifying) {
+                                progressText.text = qsTr("Finalizing...")
+                            }
                             imageWriter.setVerifyEnabled(false)
                         }
                         Layout.alignment: Qt.AlignRight
@@ -2300,6 +2232,7 @@ Rectangle {
         } else {
             newPos = 0
         }
+        console.log("[Flash] onWriteProgress:", Math.round(newPos * 100) + "%")
         if (progressBar.value !== newPos) {
             if (progressText.text === qsTr("Cancelling..."))
                 return
@@ -2337,12 +2270,13 @@ Rectangle {
             newPos = 0
         }
 
-        if (progressBar.value !== newPos) {
-            if (cancelwritebutton.visible) {
-                cancelwritebutton.visible = false
-                cancelverifybutton.visible = true
-            }
+        isVerifying = true
+        if (cancelwritebutton.visible) {
+            cancelwritebutton.visible = false
+            cancelverifybutton.visible = true
+        }
 
+        if (progressBar.value !== newPos) {
             if (progressText.text === qsTr("Finalizing..."))
                 return
 
@@ -2358,6 +2292,8 @@ Rectangle {
 
     function resetWriteButton() {
         progressText.visible = false
+        isFlashing = false
+        isVerifying = false
         progressBar.visible = false
         resetDownloadTracking()
         osbutton.enabled = true
@@ -2447,6 +2383,8 @@ Rectangle {
 
         // Dismiss the busy page before opening the result dialog so no later
         // UI operation can strand a completed write at Finalizing / 100%.
+        isFlashing = false
+        isVerifying = false
         progressBar.visible = false
         cancelwritebutton.enabled = false
         cancelwritebutton.visible = false

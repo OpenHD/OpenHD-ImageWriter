@@ -38,6 +38,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QSaveFile>
+#include <QCryptographicHash>
 #include <QDateTime>
 #include <QDebug>
 #include <QVersionNumber>
@@ -402,7 +403,7 @@ QVariantMap ImageWriter::openHdSettingsDevice() const
 /* Returns true if src and dst are set */
 bool ImageWriter::readyToWrite()
 {
-    return !_src.isEmpty() && !_dst.isEmpty();
+    return !_src.isEmpty() && !_dst.isEmpty() && !_settings.value("offlineMapsPending", false).toBool();
 }
 
 /* Start writing */
@@ -2049,6 +2050,75 @@ QString ImageWriter::stageFleetControlQOpenHDConfig(const QString &profileId,
         return QString();
 
     return filePath;
+}
+
+void ImageWriter::stageFleetControlOfflineMap(const QString &profileId, const QString &mapId,
+                                              const QUrl &downloadUrl, const QString &sha256)
+{
+    const QRegularExpression safeId("^[A-Za-z0-9_-]{1,100}$");
+    if (!safeId.match(profileId).hasMatch() || !safeId.match(mapId).hasMatch() ||
+        downloadUrl.scheme() != "https" || !sha256.contains(QRegularExpression("^[a-fA-F0-9]{64}$"))) {
+        emit fleetControlOfflineMapStaged(mapId, QString(), tr("Invalid offline map download."));
+        return;
+    }
+
+    QDir directory(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation));
+    if (!directory.mkpath("fleetcontrol/" + profileId) || !directory.cd("fleetcontrol/" + profileId)) {
+        emit fleetControlOfflineMapStaged(mapId, QString(), tr("Could not create the offline map folder."));
+        return;
+    }
+    const QString filePath = directory.filePath(mapId + ".glidemap");
+    auto *output = new QSaveFile(filePath);
+    if (!output->open(QIODevice::WriteOnly)) {
+        delete output;
+        emit fleetControlOfflineMapStaged(mapId, QString(), tr("Could not save the offline map."));
+        return;
+    }
+    auto *manager = new QNetworkAccessManager(this);
+    QNetworkRequest request(downloadUrl);
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+    QNetworkReply *reply = manager->get(request);
+    auto *hash = new QCryptographicHash(QCryptographicHash::Sha256);
+    auto *size = new qint64(0);
+    auto *prefix = new QByteArray;
+    connect(reply, &QIODevice::readyRead, this, [reply, output, hash, size, prefix]() {
+        const QByteArray chunk = reply->readAll();
+        if (prefix->size() < 8) prefix->append(chunk.left(8 - prefix->size()));
+        *size += chunk.size();
+        if (*size <= 100 * 1024 * 1024) {
+            output->write(chunk);
+            hash->addData(chunk);
+        }
+    });
+    connect(reply, &QNetworkReply::finished, this,
+            [this, reply, manager, output, hash, size, prefix, filePath, mapId, sha256]() {
+        const QByteArray tail = reply->readAll();
+        if (prefix->size() < 8) prefix->append(tail.left(8 - prefix->size()));
+        *size += tail.size();
+        if (*size <= 100 * 1024 * 1024) {
+            output->write(tail);
+            hash->addData(tail);
+        }
+        QString error;
+        if (reply->error() != QNetworkReply::NoError ||
+            reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() != 200)
+            error = tr("Offline map download failed.");
+        else if (*size > 100 * 1024 * 1024 ||
+                 QString::fromLatin1(hash->result().toHex()).compare(sha256, Qt::CaseInsensitive) != 0)
+            error = tr("Offline map size or checksum is invalid.");
+        if (error.isEmpty() && *prefix != QByteArray("GLDMAP1\0", 8))
+            error = tr("Downloaded file is not an OpenHD offline map.");
+        if (error.isEmpty() && !output->commit())
+            error = tr("Could not save the offline map.");
+        if (!error.isEmpty()) output->cancelWriting();
+        emit fleetControlOfflineMapStaged(mapId, error.isEmpty() ? filePath : QString(), error);
+        delete output;
+        delete hash;
+        delete size;
+        delete prefix;
+        reply->deleteLater();
+        manager->deleteLater();
+    });
 }
 
 QStringList ImageWriter::getTranslations()

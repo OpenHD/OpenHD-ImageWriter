@@ -266,11 +266,13 @@ function applyProfile(imageWriter, p) {
     imageWriter.setSetting("useSettings", true);
     imageWriter.setSetting("fleetcontrol_craft_id", p.craftId || "");
     imageWriter.setSetting("fleetcontrol_craft_name", p.craftName || "");
+    imageWriter.setSetting("offlineMapPackagePath", "");
+    imageWriter.setSetting("offlineMapsPending", false);
 
-    var cam = normalizeCamera(p.craftCamera);
-    var res = normalizeResolution(p.craftCameraResolution);
-    var cam2 = normalizeCamera(p.craftCamera2);
-    var res2 = normalizeResolution(p.craftCamera2Resolution);
+    var cam = role === "air" ? normalizeCamera(p.craftCamera) : "";
+    var res = role === "air" ? normalizeResolution(p.craftCameraResolution) : "";
+    var cam2 = role === "air" ? normalizeCamera(p.craftCamera2) : "";
+    var res2 = role === "air" ? normalizeResolution(p.craftCamera2Resolution) : "";
 
     imageWriter.setSetting("camera", cam);
     imageWriter.setSetting("cameraResolution", res);
@@ -278,10 +280,10 @@ function applyProfile(imageWriter, p) {
     imageWriter.setSetting("camera2Resolution", res2);
     imageWriter.setSetting("cameraPort", p.craftCameraPort || "cam1");
     imageWriter.setSetting("camera2Port", p.craftCamera2Port || "cam0");
-    imageWriter.setSetting("ipCameraAddress", p.craftIpCameraAddress || "");
-    imageWriter.setSetting("ipCameraPipeline", p.craftIpCameraPipeline || "");
-    imageWriter.setSetting("camera2IpCameraAddress", p.craftCamera2IpAddress || "");
-    imageWriter.setSetting("camera2IpCameraPipeline", p.craftCamera2IpPipeline || "");
+    imageWriter.setSetting("ipCameraAddress", role === "air" ? (p.craftIpCameraAddress || "") : "");
+    imageWriter.setSetting("ipCameraPipeline", role === "air" ? (p.craftIpCameraPipeline || "") : "");
+    imageWriter.setSetting("camera2IpCameraAddress", role === "air" ? (p.craftCamera2IpAddress || "") : "");
+    imageWriter.setSetting("camera2IpCameraPipeline", role === "air" ? (p.craftCamera2IpPipeline || "") : "");
     imageWriter.setSetting("ipCameraBitrate", p.craftIpCameraBitrate || 2);
 
     imageWriter.setSetting("hotSpot", p.craftHotSpot || "");
@@ -306,7 +308,7 @@ function profileSummary(p) {
     if (p.craftHardware && p.craftHardware.length > 0)
         parts.push(p.craftHardware);
     var cam = p.craftCamera || "";
-    if (cam.length > 0 && cam !== "None (Single Camera)" && cam !== "NONE") {
+    if (role === "AIR" && cam.length > 0 && cam !== "None (Single Camera)" && cam !== "NONE") {
         var res = p.craftCameraResolution || "";
         parts.push(cam + (res.length > 0 ? " (" + res + ")" : ""));
     }
