@@ -19,6 +19,9 @@
 #include "acceleratedcryptographichash.h"
 #include "blockbatcher.h"
 #include "file_operations.h"
+#ifdef Q_OS_WIN
+#include "windows/windowsdiskpreparation.h"
+#endif
 
 class DownloadThread : public QThread
 {
@@ -183,6 +186,9 @@ protected:
     FileError _lastFileError;
     std::unique_ptr<FileOperations> _file;
     std::unique_ptr<BlockBatcher> _writeBatcher;
+#ifdef Q_OS_WIN
+    std::unique_ptr<WindowsDiskPreparation::LockedVolumes> _lockedVolumes;
+#endif
 
     void _openCacheFile();
     QString _cacheFilename;

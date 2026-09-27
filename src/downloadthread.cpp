@@ -66,7 +66,9 @@ DownloadThread::~DownloadThread()
 
     if (_firstBlock)
         qFreeAligned(_firstBlock);
-
+#ifdef Q_OS_WIN
+    _lockedVolumes.reset();
+#endif
 }
 
 void DownloadThread::setProxy(const QByteArray &proxy)
@@ -143,7 +145,7 @@ bool DownloadThread::_openAndPrepareDevice()
 
 #ifdef Q_OS_WIN
     qDebug() << "device" << _filename;
-    WindowsDiskPreparation::LockedVolumes lockedVolumes;
+    _lockedVolumes.reset(new WindowsDiskPreparation::LockedVolumes());
 
     std::regex windriveregex("\\\\\\\\.\\\\PHYSICALDRIVE([0-9]+)", std::regex_constants::icase);
     std::cmatch m;
@@ -174,15 +176,17 @@ bool DownloadThread::_openAndPrepareDevice()
         }
 
         QString preparationError;
-        if (!lockedVolumes.lockAndDismount(targetDevice->mountpoints, &preparationError))
+        if (!_lockedVolumes->lockAndDismount(targetDevice->mountpoints, &preparationError))
         {
             emit error(tr("Cannot lock the target volumes: %1").arg(preparationError));
+            _lockedVolumes.reset();
             return false;
         }
         if (!WindowsDiskPreparation::clearPartitionTable(
                 QString::fromUtf8(_filename), &preparationError))
         {
             emit error(preparationError);
+            _lockedVolumes.reset();
             return false;
         }
     }
@@ -242,7 +246,10 @@ bool DownloadThread::_openAndPrepareDevice()
 #ifdef Q_OS_WIN
     // The physical drive handle now prevents competing writers. Releasing the
     // volume handles here also restores their mount-manager bindings later.
-    lockedVolumes.release();
+    if (_lockedVolumes)
+    {
+        _lockedVolumes->release();
+    }
 #endif
 
 #ifdef Q_OS_LINUX
@@ -824,6 +831,9 @@ void DownloadThread::_closeFiles()
     _file->close();
     if (_cachefile.isOpen())
         _cachefile.close();
+#ifdef Q_OS_WIN
+    _lockedVolumes.reset();
+#endif
 }
 
 void DownloadThread::_writeComplete()

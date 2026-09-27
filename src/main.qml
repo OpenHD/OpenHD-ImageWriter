@@ -89,11 +89,15 @@ ApplicationWindow {
     Timer {
         interval: 2000
         repeat: true
-        running: true
+        running: (currentView === "home" || currentView === "configure") && !imageWriter.isWriting()
         onTriggered: window.refreshOpenHdDeviceAvailability()
     }
 
     function refreshOpenHdDeviceAvailability() {
+        if (imageWriter.isWriting()) {
+            openHdDeviceAvailable = false
+            return
+        }
         openHdDeviceAvailable = imageWriter.hasOpenHdSettingsCard()
     }
 

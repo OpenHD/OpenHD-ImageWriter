@@ -392,12 +392,23 @@ QString ImageWriter::validatePremiumCertificate(const QString &filePath) const
 
 bool ImageWriter::hasOpenHdSettingsCard() const
 {
+    if (isWriting())
+        return false;
     return OpenHDStorageService::hasSettingsCard();
 }
 
 QVariantMap ImageWriter::openHdSettingsDevice() const
 {
+    if (isWriting())
+        return {};
     return OpenHDStorageService::settingsDevice();
+}
+
+bool ImageWriter::isWriting() const
+{
+    return (_thread && _thread->isRunning()) ||
+           (_rockchipThread && _rockchipThread->isRunning()) ||
+           (_nxpFlashThread && _nxpFlashThread->isRunning());
 }
 
 /* Returns true if src and dst are set */
@@ -410,6 +421,7 @@ bool ImageWriter::readyToWrite()
 void ImageWriter::startWrite()
 {
     qDebug() << "Write function executed.";
+    stopDriveListPolling();
 
     if (!readyToWrite())
         return;

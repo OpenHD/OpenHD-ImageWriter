@@ -9,6 +9,10 @@
 #include "drivelist/drivelist.h"
 #include "openhdstorageselector.h"
 #ifdef Q_OS_WIN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
 #include "windows/windowsdiskpreparation.h"
 #endif
 
@@ -150,7 +154,26 @@ bool OpenHDStorageService::removeFile(const QString &filePath)
 
 bool OpenHDStorageService::hasSettingsCard()
 {
+#ifdef Q_OS_WIN
+    const DWORD drives = GetLogicalDrives();
+    for (int i = 0; i < 26; ++i)
+    {
+        if (!(drives & (1 << i)))
+            continue;
+        if (i == 2)
+            continue;
+        const wchar_t root[] = { static_cast<wchar_t>(L'A' + i), L':', L'\\', L'\0' };
+        const UINT type = GetDriveTypeW(root);
+        if (type != DRIVE_REMOVABLE && type != DRIVE_FIXED)
+            continue;
+        const QString rootPath = QString::fromWCharArray(root);
+        if (QFileInfo::exists(rootPath + QStringLiteral("openhd/settings.json")))
+            return true;
+    }
+    return false;
+#else
     return !settingsDevice().isEmpty();
+#endif
 }
 
 QVariantMap OpenHDStorageService::settingsDevice()

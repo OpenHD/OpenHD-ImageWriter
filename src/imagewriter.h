@@ -160,6 +160,7 @@ public:
     Q_INVOKABLE QString validatePremiumCertificate(const QString &filePath) const;
     Q_INVOKABLE bool hasOpenHdSettingsCard() const;
     Q_INVOKABLE QVariantMap openHdSettingsDevice() const;
+    Q_INVOKABLE bool isWriting() const;
 
     Q_INVOKABLE bool getBoolSetting(const QString &key);
     Q_INVOKABLE QString getValue(const QString &key);

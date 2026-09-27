@@ -64,7 +64,7 @@ public:
         {
             _handle = CreateFileW(reinterpret_cast<LPCWSTR>(path.utf16()),
                                   GENERIC_READ | GENERIC_WRITE, sharing, nullptr,
-                                  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+                                  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
             if (_handle != INVALID_HANDLE_VALUE)
             {
                 if (physicalDrive || path.startsWith(QStringLiteral("\\\\.\\"), Qt::CaseInsensitive))
