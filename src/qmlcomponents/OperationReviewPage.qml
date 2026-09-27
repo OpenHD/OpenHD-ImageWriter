@@ -242,8 +242,8 @@ Item {
                         Text {
                             Layout.fillWidth: true
                             text: profileCard.hasProfile
-                                  ? qsTr("use your profiles setting: %1").arg(root.profileName)
-                                  : qsTr("use your profiles setting")
+                                  ? qsTr("Use craft settings: %1").arg(root.profileName)
+                                  : qsTr("Use craft settings")
                             color: "#f3f7fa"
                             font.pixelSize: root.narrow ? 15 : 17
                             font.bold: true
@@ -261,7 +261,7 @@ Item {
                                 if (profileCard.hasProfile) {
                                     return qsTr("Inactive: toggle on to apply settings from '%1'.").arg(root.profileName)
                                 }
-                                return qsTr("Select a FleetControl craft or preset to preconfigure write options.")
+                                return qsTr("Select a craft from your FleetControl Hangar to configure this image.")
                             }
                             color: profileCard.isActive ? "#4dc5f8" : "#89aebb"
                             font.pixelSize: root.narrow ? 10 : 11
@@ -449,7 +449,7 @@ Item {
 
                 Text {
                     Layout.fillWidth: true
-                    text: qsTr("Select Fleet Profile")
+                    text: qsTr("Select Hangar Craft")
                     color: "#ffffff"
                     font.pixelSize: root.narrow ? 15 : 17
                     font.bold: true

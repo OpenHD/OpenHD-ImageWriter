@@ -148,60 +148,25 @@ Item {
     }
 
     function loadCrafts() {
+        var selectedCraftId = imageWriter.getValue("fleetcontrol_craft_id") || ""
         loadingCrafts = true
         message = ""
-        activeCraftName = imageWriter.getValue("fleetcontrol_craft_name") || ""
+        craftModel.clear()
+        imageWriter.setSetting(getCacheKey(), "[]")
+        activeCraftName = ""
 
-        // Fast load cached account profile data
-        var localData = imageWriter.getValue(getCacheKey())
-        if (localData && localData.length > 5) {
-            try {
-                var parsed = JSON.parse(localData)
-                if (parsed && Array.isArray(parsed)) {
-                    craftModel.clear()
-                    for (var j = 0; j < parsed.length; ++j) {
-                        var p = parsed[j]
-                        craftModel.append({
-                            "craftId": p.id || ("craft_" + j),
-                            "craftName": p.name || "",
-                            "craftCategory": p.category || "craft",
-                            "craftIcon": p.icon || (p.category === "station" ? "station-military-gcs" : "survey"),
-                            "craftRole": p.role || (p.category === "station" ? "ground" : "air"),
-                            "craftHardware": p.hardware || "Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)",
-                            "craftDescription": p.description || "",
-                            "craftCameraVendor": p.cameraVendor || "",
-                            "craftCamera": p.camera || "",
-                            "craftCameraResolution": p.cameraResolution || "",
-                            "craftCameraPort": p.cameraPort || "cam0",
-                            "craftCamera2": p.camera2 || "",
-                            "craftCamera2Resolution": p.camera2Resolution || "",
-                            "craftCamera2Port": p.camera2Port || "cam1",
-                            "craftIpCameraAddress": p.ipCameraAddress || "",
-                            "craftIpCameraPipeline": p.ipCameraPipeline || "",
-                            "craftCamera2IpAddress": p.camera2IpAddress || "",
-                            "craftCamera2IpPipeline": p.camera2IpPipeline || "",
-                            "craftIpCameraBitrate": p.ipCameraBitrate || 2,
-                            "craftHotSpot": p.hotSpot || "",
-                            "craftDisplayForceMode": p.displayForceMode || false,
-                            "craftDisplayWidth": p.displayWidth || 1920,
-                            "craftDisplayHeight": p.displayHeight || 1080,
-                            "craftDisplayRefreshHz": p.displayRefreshHz || 60,
-                            "craftMapboxApiKey": p.mapboxApiKey || ""
-                        })
-                    }
-                }
-            } catch (e) {
-                // fall through
-            }
-        }
-
-        // Sync with FleetControl account profiles
+        // FleetControl is the source of crafts. The local list is refreshed only after a successful fetch.
         request("GET", "/api/imagewriter/profiles", undefined, function(xhr, response) {
             loadingCrafts = false
             if (xhr.status >= 200 && xhr.status < 300 && response.profiles) {
                 craftModel.clear()
+                var selectedStillExists = false
                 for (var i = 0; i < response.profiles.length; ++i) {
                     var profile = response.profiles[i]
+                    if (profile.id === selectedCraftId) {
+                        activeCraftName = profile.name || ""
+                        selectedStillExists = true
+                    }
                     var s = profile.openhdSettings || {}
                     var role = s.mode || "air"
                     var isStation = (profile.name || "").toLowerCase().indexOf("station") >= 0 ||
@@ -241,6 +206,13 @@ Item {
                     })
                 }
                 saveCraftsLocally()
+                if (selectedCraftId && !selectedStillExists)
+                    clearActiveCraft()
+            } else {
+                clearActiveCraft()
+                message = response && response.message
+                          ? response.message
+                          : qsTr("Could not load crafts from FleetControl.")
             }
         })
     }
@@ -279,17 +251,6 @@ Item {
             "craftDisplayRefreshHz": advancedOptions.displayRefreshHz || 60,
             "craftMapboxApiKey": category === "station" ? (advancedOptions.mapboxApiKey || "") : ""
         }
-
-        if (editIdx >= 0 && editIdx < craftModel.count) {
-            for (var prop in craftObj) {
-                craftModel.setProperty(editIdx, prop, craftObj[prop])
-            }
-            message = qsTr("Updated '%1' in your fleet.").arg(name)
-        } else {
-            craftModel.append(craftObj)
-            message = qsTr("Created '%1' in your fleet.").arg(name)
-        }
-        saveCraftsLocally()
 
         var payload = {
             "name": name,
@@ -331,14 +292,13 @@ Item {
                    : "/api/imagewriter/profiles"
         request(method, path, payload, function(xhr, resp) {
             if (xhr.status >= 200 && xhr.status < 300 && resp && resp.profile && resp.profile.id) {
-                for (var k = 0; k < craftModel.count; ++k) {
-                    if (craftModel.get(k).craftId === tempId) {
-                        craftModel.setProperty(k, "craftId", resp.profile.id)
-                        break
-                    }
-                }
-                saveCraftsLocally()
-                message = qsTr("Synced '%1' to FleetControl account.").arg(name)
+                closeEditor()
+                loadCrafts()
+                message = qsTr("Saved '%1' in your Hangar.").arg(name)
+            } else {
+                message = resp && resp.message
+                          ? resp.message
+                          : qsTr("Could not save '%1' to FleetControl. Please try again.").arg(name)
             }
         })
     }
@@ -348,15 +308,17 @@ Item {
             var item = craftModel.get(index)
             var craftId = item.craftId
             var craftName = item.craftName
-            craftModel.remove(index)
-            saveCraftsLocally()
-            message = qsTr("Removed '%1' from fleet.").arg(craftName)
-
-            if (craftId && String(craftId).indexOf("craft_") !== 0) {
-                request("DELETE", "/api/imagewriter/profiles/" + encodeURIComponent(craftId), undefined, function(xhr, resp) {
-                    // Removed on cloud
-                })
-            }
+            request("DELETE", "/api/imagewriter/profiles/" + encodeURIComponent(craftId), undefined, function(xhr, resp) {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    craftModel.remove(index)
+                    saveCraftsLocally()
+                    message = qsTr("Removed '%1' from Hangar.").arg(craftName)
+                } else {
+                    message = resp && resp.message
+                              ? resp.message
+                              : qsTr("Could not remove '%1' from FleetControl.").arg(craftName)
+                }
+            })
         }
     }
 
@@ -463,6 +425,8 @@ Item {
         var xhr = new XMLHttpRequest()
         xhr.onreadystatechange = function() {
             if (xhr.readyState === XMLHttpRequest.DONE) {
+                imageWriter.setSetting(getCacheKey(), "[]")
+                clearActiveCraft()
                 accountName = ""
                 accountRole = ""
                 username = ""
@@ -768,11 +732,12 @@ Item {
         }
 
         root.saveCraft(name, editorSelectedCategory, editorSelectedIcon, editorSelectedHardware, craftDescField.text.trim(), adv, editIndex)
-        closeEditor()
     }
 
     Component.onCompleted: {
         settingsMap = FleetProfilesHelper.getSettingsMap(imageWriter)
+        imageWriter.setSetting(getCacheKey(), "[]")
+        activeCraftName = ""
         checkSession()
     }
 

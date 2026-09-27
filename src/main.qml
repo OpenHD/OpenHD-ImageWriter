@@ -223,8 +223,8 @@ ApplicationWindow {
                 fleetControlSessionChecking = false
                 setFleetControlSignedIn(true)
             } else if (xhr.status === 0 || xhr.status >= 500) {
-                // Keep the cached state during a temporary network/server outage.
                 fleetControlSessionChecking = false
+                setFleetControlSignedIn(false)
             } else {
                 restoreFleetControlCredentials()
             }
@@ -751,7 +751,7 @@ ApplicationWindow {
             anchors.fill: parent
 
             source: "qmlcomponents/FleetControlPage.qml"
-            active: currentView === "fleetcontrol"
+            active: true
 
             visible: currentView === "fleetcontrol"
             enabled: visible

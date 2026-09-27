@@ -46,10 +46,10 @@ Rectangle {
         if (reviewingOperation && fleetControlSignedIn && fleetControlProfileName.length === 0) {
             var savedCraft = imageWriter.getValue("fleetcontrol_craft_name")
             if (savedCraft && savedCraft.length > 0) {
-                fleetControlProfileName = savedCraft
                 var profs = FleetProfilesHelper.loadProfiles(imageWriter)
                 for (var k = 0; k < profs.length; ++k) {
                     if (profs[k].craftName === savedCraft) {
+                        fleetControlProfileName = savedCraft
                         fleetControlProfileDetail = FleetProfilesHelper.profileSummary(profs[k])
                         fleetControlProfileIcon = profs[k].craftIcon || ""
                         break
@@ -361,7 +361,7 @@ Rectangle {
 
                         Text {
                             Layout.fillWidth: true
-                            text: qsTr("use your profiles setting: %1").arg(fleetControlProfileName)
+                            text: qsTr("Use craft settings: %1").arg(fleetControlProfileName)
                             color: "#ffffff"
                             font.pixelSize: 15
                             font.bold: true
@@ -380,7 +380,7 @@ Rectangle {
                     }
 
                     ModernActionButton {
-                        text: qsTr("Clear Profile")
+                        text: qsTr("Clear Craft")
                         implicitHeight: 32
                         onClicked: {
                             fleetControlProfileName = ""
@@ -1662,21 +1662,24 @@ Rectangle {
     }
 
     function startWriteNow() {
-        var hasActiveProfile = fleetControlSignedIn && fleetControlProfileName.length > 0
+        var selectedCraft = null
+        if (fleetControlSignedIn && useProfileSettings && fleetControlProfileName.length > 0) {
+            var activeProfiles = FleetProfilesHelper.loadProfiles(imageWriter)
+            for (var aIdx = 0; aIdx < activeProfiles.length; ++aIdx) {
+                if (activeProfiles[aIdx].craftName === fleetControlProfileName) {
+                    selectedCraft = activeProfiles[aIdx]
+                    break
+                }
+            }
+        }
+        var hasActiveProfile = selectedCraft !== null
         if (!optionsPage.configurationApplied && !hasActiveProfile) {
             reviewingOperation = true
             return
         }
 
-        if (hasActiveProfile) {
-            var activeProfiles = FleetProfilesHelper.loadProfiles(imageWriter)
-            for (var aIdx = 0; aIdx < activeProfiles.length; ++aIdx) {
-                if (activeProfiles[aIdx].craftName === fleetControlProfileName) {
-                    FleetProfilesHelper.applyProfile(imageWriter, activeProfiles[aIdx])
-                    break
-                }
-            }
-        }
+        if (hasActiveProfile)
+            FleetProfilesHelper.applyProfile(imageWriter, selectedCraft)
 
         completionHandled = false
         rockchipFinalizationFallback.stop()
