@@ -27,6 +27,8 @@ function iconSource(key) {
         "boat": "../icons/fleetcontrol/craft-boat-cutout.png",
         "submarine": "../icons/fleetcontrol/craft-submarine-cutout.png",
         "station-field-case": "../icons/fleetcontrol/station-field-case-cutout.png",
+        "station-fpv-goggles": "../icons/fleetcontrol/station-fpv-goggles-cutout.png",
+        "station-raphas-workbench": "../icons/fleetcontrol/station-raphas-workbench-cutout.png",
         "station-rugged-laptop": "../icons/fleetcontrol/station-rugged-laptop-cutout.png",
         "station-antenna-tracker": "../icons/fleetcontrol/station-antenna-tracker-cutout.png",
         "station-handheld-controller": "../icons/fleetcontrol/station-handheld-controller-cutout.png",
@@ -35,10 +37,10 @@ function iconSource(key) {
         "craft-vtol": "../icons/fleetcontrol/craft-plane-cutout.png",
         "craft-hexacopter": "../icons/fleetcontrol/craft-heavy-lift-cutout.png",
         "craft-rover": "../icons/fleetcontrol/craft-rover-cutout.png",
-        "station-goggles": "../icons/ui/station-goggles.svg",
+        "station-goggles": "../icons/fleetcontrol/station-fpv-goggles-cutout.png",
         "station-tracker": "../icons/ui/station-tracker.svg",
         "station-transmitter": "../icons/ui/station-transmitter.svg",
-        "station-military-gcs": "../icons/ui/station-military-gcs.svg",
+        "station-military-gcs": "../icons/fleetcontrol/station-raphas-workbench-cutout.png",
         "hub": "../icons/ui/hub.svg"
     };
     return map[key] || "../icons/ui/hub.svg";
