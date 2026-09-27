@@ -34,6 +34,8 @@ Rectangle {
     property bool reviewingOperation: false
     property bool isFlashing: false
     property bool isVerifying: false
+    property bool cancelWriteVisible: false
+    property bool skipVerifyVisible: false
     readonly property bool fleetControlSignedIn: {
         if (mainWindow && mainWindow.fleetControlSignedIn !== undefined)
             return mainWindow.fleetControlSignedIn
@@ -350,67 +352,18 @@ Rectangle {
                             spacing: 8
 
                             ModernActionButton {
-                                visible: cancelwritebutton.visible
+                                visible: cancelWriteVisible
                                 enabled: cancelwritebutton.enabled
                                 text: qsTr("Cancel write")
                                 onClicked: cancelwritebutton.clicked()
                             }
 
                             ModernActionButton {
-                                visible: cancelverifybutton.visible
+                                visible: skipVerifyVisible
                                 enabled: cancelverifybutton.enabled
                                 text: cancelverifybutton.enabled ? qsTr("Skip verification") : qsTr("Verification skipped")
                                 onClicked: cancelverifybutton.clicked()
                             }
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                width: parent.width
-                height: 84
-                radius: 8
-                color: "#0e2734"
-                border.width: 1
-                border.color: "#20556e"
-
-                Item {
-                    anchors.fill: parent
-                    anchors.margins: 16
-
-                    Image {
-                        id: targetIcon
-                        width: 36
-                        height: 36
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        source: "icons/ui/drive.svg"
-                        fillMode: Image.PreserveAspectFit
-                    }
-
-                    Column {
-                        anchors.left: targetIcon.right
-                        anchors.leftMargin: 16
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 4
-
-                        Text {
-                            width: parent.width
-                            text: dstbutton.text
-                            color: "#f3f7fa"
-                            font.pixelSize: 14
-                            font.bold: true
-                            elide: Text.ElideRight
-                        }
-
-                        Text {
-                            width: parent.width
-                            text: osbutton.text
-                            color: "#8299a7"
-                            font.pixelSize: 12
-                            elide: Text.ElideRight
                         }
                     }
                 }
@@ -1609,9 +1562,10 @@ Rectangle {
         langbar.visible = false
         writebutton.enabled = false
         cancelwritebutton.enabled = true
-        cancelwritebutton.visible = true
-        cancelverifybutton.enabled = true
-        cancelverifybutton.visible = true
+        cancelWriteVisible = true
+        var skipVerify = imageWriter.getBoolSetting("alwaysSkipVerify")
+        cancelverifybutton.enabled = !skipVerify
+        skipVerifyVisible = true
         isVerifying = false
         resetDownloadTracking()
         progressText.text = qsTr("Preparing to write...")
@@ -1623,7 +1577,7 @@ Rectangle {
         progressBar.Material.accent = "#ffffff"
         osbutton.enabled = false
         dstbutton.enabled = false
-        imageWriter.setVerifyEnabled(true)
+        imageWriter.setVerifyEnabled(!skipVerify)
         imageWriter.startWrite()
     }
 
@@ -1880,7 +1834,7 @@ Rectangle {
                         onClicked: {
                             optionsPage.openPage()
                         }
-                        visible: !progressBar.visible && !cancelwritebutton.visible && !cancelverifybutton.visible
+                        visible: !progressBar.visible && !cancelWriteVisible && !skipVerifyVisible
                         Accessible.description: qsTr("Select this button to configure Settings")
                         contentItem: Image {
                             source: "icons/ic_cog_red.svg"
@@ -2271,9 +2225,9 @@ Rectangle {
         }
 
         isVerifying = true
-        if (cancelwritebutton.visible) {
-            cancelwritebutton.visible = false
-            cancelverifybutton.visible = true
+        if (cancelWriteVisible) {
+            cancelWriteVisible = false
+            skipVerifyVisible = true
         }
 
         if (progressBar.value !== newPos) {
@@ -2300,8 +2254,8 @@ Rectangle {
         dstbutton.enabled = true
         writebutton.visible = true
         writebutton.enabled = imageWriter.readyToWrite()
-        cancelwritebutton.visible = false
-        cancelverifybutton.visible = false
+        cancelWriteVisible = false
+        skipVerifyVisible = false
     }
 
     function resetOpenHdSettingsForNewImage() {
@@ -2387,9 +2341,9 @@ Rectangle {
         isVerifying = false
         progressBar.visible = false
         cancelwritebutton.enabled = false
-        cancelwritebutton.visible = false
+        cancelWriteVisible = false
         cancelverifybutton.enabled = false
-        cancelverifybutton.visible = false
+        skipVerifyVisible = false
 
         if (imageWriter.isOhdFile(imageWriter.src())) {
             var isRockusb = (imageWriter.dst().indexOf("rockusb:") === 0);
@@ -2469,9 +2423,9 @@ Rectangle {
     function onFinalizing() {
         progressText.text = qsTr("Finalizing...")
         cancelwritebutton.enabled = false
-        cancelwritebutton.visible = false
+        cancelWriteVisible = false
         cancelverifybutton.enabled = false
-        cancelverifybutton.visible = false
+        skipVerifyVisible = false
 
         if (imageWriter.dst().indexOf("rockusb:") === 0)
             rockchipFinalizationFallback.restart()

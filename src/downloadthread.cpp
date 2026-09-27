@@ -357,6 +357,8 @@ void DownloadThread::run()
         return;
     }
 
+    _openCacheFile();
+
     qDebug() << "Image URL:" << _url;
     if (_url.startsWith("file://") && _url.at(7) != '/')
     {
@@ -539,15 +541,23 @@ void DownloadThread::_writeCache(const char *buf, size_t len)
 
 void DownloadThread::setCacheFile(const QString &filename, qint64 filesize)
 {
-    _cachefile.setFileName(filename);
+    // Only record configuration here: this setter runs on the GUI thread.
+    _cacheFilename = filename;
+    _cacheFileSize = filesize;
+}
+
+void DownloadThread::_openCacheFile()
+{
+    if (_cacheFilename.isEmpty() || _cancelled)
+        return;
+
+    _cachefile.setFileName(_cacheFilename);
     if (_cachefile.open(QIODevice::WriteOnly))
     {
         _cacheEnabled = true;
-        if (filesize)
-        {
-            /* Pre-allocate space */
-            _cachefile.resize(filesize);
-        }
+        // Preallocation can take seconds for a multi-GB image. Run it in the worker.
+        if (_cacheFileSize > 0)
+            _cachefile.resize(_cacheFileSize);
     }
     else
     {

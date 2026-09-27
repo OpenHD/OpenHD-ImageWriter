@@ -31,6 +31,8 @@ void LocalFileExtractThread::run()
     if (isImage() && !_openAndPrepareDevice())
         return;
 
+    _openCacheFile();
+
     emit preparationStatusUpdate(tr("opening image file"));
     _timer.start();
     _inputfile.setFileName( QUrl(_url).toLocalFile() );

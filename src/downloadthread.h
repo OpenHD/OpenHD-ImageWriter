@@ -174,7 +174,9 @@ protected:
     QMutex _fatMountRetryMutex;
     QWaitCondition _fatMountRetryCondition;
     bool _fatMountRetryRequested = false;
-    bool _successful, _verifyEnabled, _cacheEnabled, _ejectEnabled;
+    bool _successful;
+    std::atomic<bool> _verifyEnabled;
+    bool _cacheEnabled, _ejectEnabled;
     time_t _lastModified, _serverTime, _lastFailureTime;
     QElapsedTimer _timer;
     int _inputBufferSize;
@@ -182,6 +184,9 @@ protected:
     std::unique_ptr<FileOperations> _file;
     std::unique_ptr<BlockBatcher> _writeBatcher;
 
+    void _openCacheFile();
+    QString _cacheFilename;
+    qint64 _cacheFileSize = 0;
     QFile _cachefile;
 
     AcceleratedCryptographicHash _writehash, _verifyhash;

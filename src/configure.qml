@@ -282,6 +282,13 @@ ImButton {
                                 wrapMode: Text.WordWrap
                                 font.pixelSize: 9
                             }
+
+                            ImCheckBox {
+                                text: qsTr("Always skip verify")
+                                font.pixelSize: 11
+                                checked: imageWriter.getBoolSetting("alwaysSkipVerify")
+                                onClicked: imageWriter.setSetting("alwaysSkipVerify", checked)
+                            }
                         }
                     }
 

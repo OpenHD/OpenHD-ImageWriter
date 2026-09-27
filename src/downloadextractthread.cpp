@@ -77,7 +77,7 @@ size_t DownloadExtractThread::_writeData(const char *buf, size_t len)
     {
         // Extract thread is started when first data comes in
         _ethreadStarted = true;
-        _extractThread->start();
+        _extractThread->start(QThread::LowPriority);
         msleep(100);
     }
 
