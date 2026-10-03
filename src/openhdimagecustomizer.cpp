@@ -43,6 +43,7 @@ QString OpenHDImageCustomizer::cameraTypeForName(const QString &cameraName, cons
         else if (cameraName == "CSIMX307") cameraType = "61";
         else if (cameraName == "CSSC137") cameraType = "62";
         else if (cameraName == "MVCAM") cameraType = "63";
+        else if (cameraName == "GX/GXC IMX662 (ISP)") cameraType = "64";
     }
     else if (sbc == "zero3w")
     {
