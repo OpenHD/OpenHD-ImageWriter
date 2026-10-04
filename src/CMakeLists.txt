@@ -470,5 +470,7 @@ if(BUILD_TESTING)
     if(NODE_EXECUTABLE)
         add_test(NAME openhd_catalog_normalization
             COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test/catalog_test.js")
+        add_test(NAME openhd_fleetcontrol_catalog
+            COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test/fleetcontrol_catalog_test.js")
     endif()
 endif()

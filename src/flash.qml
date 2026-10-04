@@ -460,8 +460,14 @@ Rectangle {
                     .replace(/-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}$/, "")
         }
 
-        function isFlashableGithubArtifact(name) {
-            var value = String(name || "").toLowerCase()
+        function isFlashableGithubArtifact(artifact) {
+            var platform = String(artifact.platform || "").toLowerCase()
+            if (platform === "x21b" || platform === "x21")
+                return /^firmware(?:-[\w-]+)?\.zip$/i.test(String(artifact.filename || ""))
+            if (platform === "x21b-update")
+                return false
+
+            var value = String(artifact.name || "").toLowerCase()
             return value.indexOf("openhd-image-") === 0 ||
                    value.indexOf("openhd-lite-image-") === 0 ||
                    value.indexOf("openhd-rpi5-") === 0
@@ -521,20 +527,20 @@ Rectangle {
             var images = []
             for (var i = 0; i < artifacts.length; ++i) {
                 var artifact = artifacts[i]
-                if (!isFlashableGithubArtifact(artifact.name))
+                if (!isFlashableGithubArtifact(artifact))
                     continue
 
-                var key = githubArtifactKey(artifact.name)
+                var key = String(artifact.platform || "") || githubArtifactKey(artifact.name)
                 if (latest[key])
                     continue
                 latest[key] = true
 
                 var created = String(artifact.created_at || "").substring(0, 10)
-                var source = String(artifact.source || "github")
                 images.push({
                     "url": String(artifact.archive_download_url),
                     "icon": "",
                     "channel": "development",
+                    "platform": String(artifact.platform || ""),
                     "extract_size": 0,
                     "image_download_size": Number(artifact.size_in_bytes || 0),
                     "extract_sha256": String(artifact.extract_sha256 || ""),
