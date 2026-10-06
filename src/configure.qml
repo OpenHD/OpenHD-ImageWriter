@@ -60,7 +60,7 @@ Rectangle {
     property string qopenhdConfPath: ""
     property bool qopenhdConfPresent: false
     property string mapboxApiKey: ""
-    property bool disableEthernetLink: false
+    property bool disableEthernetLink: true
     property string premiumCertificatePath: ""
     property bool premiumCertificatePresent: false
     property bool returnHomeAfterPopupClose: false
@@ -1464,7 +1464,7 @@ ImButton {
         displayRefreshHz = 60
         mode = ""
         mapboxApiKey = ""
-        disableEthernetLink = false
+        disableEthernetLink = true
         qopenhdConfPresent = false
         premiumCertificatePresent = false
 
@@ -1565,7 +1565,7 @@ ImButton {
         if (settingsObj.mapbox_api_key !== undefined && settingsObj.mapbox_api_key !== null) {
             mapboxApiKey = settingsObj.mapbox_api_key.toString()
         }
-        disableEthernetLink = settingsObj.disable_ethernet_link === true
+        disableEthernetLink = settingsObj.disable_ethernet_link !== false
 
         qopenhdConfPresent = imageWriter.fileExists(drivePath(qopenhdConfRelativePath()))
         premiumCertificatePresent = imageWriter.fileExists(drivePath(premiumCertificateRelativePath()))
@@ -1652,8 +1652,7 @@ ImButton {
         settingsObj.token = token ? token : ""
         if (mapboxApiKey.trim().length > 0)
             settingsObj.mapbox_api_key = mapboxApiKey.trim()
-        if (disableEthernetLink)
-            settingsObj.disable_ethernet_link = true
+        settingsObj.disable_ethernet_link = disableEthernetLink
 
         var jsonString = JSON.stringify(settingsObj, null, 4)
         if (imageWriter.writeTextFile(drivePath("settings.json"), jsonString)) {

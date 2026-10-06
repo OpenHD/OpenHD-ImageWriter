@@ -61,7 +61,7 @@ Rectangle {
     property bool useSettings:true
     property string qopenhdConfPath: ""
     property string mapboxApiKey: ""
-    property bool disableEthernetLink: false
+    property bool disableEthernetLink: true
     property string premiumCertificatePath: ""
     property string premiumCertificateError: ""
     ColumnLayout {
@@ -754,15 +754,15 @@ Rectangle {
 
                         ImCheckBox {
                             id: disableEthernetLinkCheck
-                            text: qsTr("Disable Ethernet link")
-                            checked: disableEthernetLink
-                            onClicked: disableEthernetLink = checked
+                            text: qsTr("Enable Ethernet link")
+                            checked: !disableEthernetLink
+                            onClicked: disableEthernetLink = !checked
                         }
 
                         Label {
                             Layout.fillWidth: true
                             Layout.maximumWidth: parent.width
-                            text: qsTr("Prevents OpenHD from using Ethernet as a transport. Ethernet hardware is not disabled.")
+                            text: qsTr("Use Ethernet for OpenHD video and telemetry. Off by default; LAN access remains available.")
                             color: "#83a3b5"
                             wrapMode: Text.WordWrap
                             font.pixelSize: 10
@@ -1229,7 +1229,7 @@ Rectangle {
         useSettings = true
         qopenhdConfPath = ""
         mapboxApiKey = ""
-        disableEthernetLink = false
+        disableEthernetLink = true
         premiumCertificatePath = ""
         premiumCertificateError = ""
         supportsAir = true

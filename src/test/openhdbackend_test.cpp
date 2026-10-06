@@ -47,6 +47,16 @@ bool testGroundSettingsAndCameraMapping()
 {
     QTemporaryDir temporaryDirectory;
     QSettings settings(temporaryDirectory.filePath("settings.ini"), QSettings::IniFormat);
+    const QJsonObject defaults = OpenHDImageCustomizer::buildSettings(settings);
+    if (!check(defaults.value("disable_ethernet_link").toBool(),
+               "Ethernet transport must be disabled by default"))
+        return false;
+    settings.setValue("disableEthernetLink", false);
+    const QJsonObject ethernetEnabled = OpenHDImageCustomizer::buildSettings(settings);
+    if (!check(ethernetEnabled.contains("disable_ethernet_link") &&
+               !ethernetEnabled.value("disable_ethernet_link").toBool(),
+               "Explicit Ethernet opt-in must be written as false"))
+        return false;
     settings.setValue("sbc", "rpi");
     settings.setValue("camera", "IMX219");
     settings.setValue("camera2", "IP-CAMERA");
