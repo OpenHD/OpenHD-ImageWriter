@@ -34,7 +34,12 @@ VIAddVersionKey "FileVersion"  "${VERSION}"
 SetCompressor LZMA
 Name "${APP_NAME}"
 Caption "${APP_NAME}"
+!ifdef INNER
+RequestExecutionLevel user
+OutFile "ImageWriter-uninstaller-generator.exe"
+!else
 OutFile "${INSTALLER_NAME}"
+!endif
 BrandingText "${APP_NAME}"
 XPStyle on
 InstallDirRegKey "${REG_ROOT}" "${REG_APP_PATH}" ""
@@ -181,6 +186,7 @@ LangString win7Msg ${LANG_ITALIAN} "Per l'esecuzione del programma è richiesto 
 
 ######################################################################
 
+!ifndef INNER
 Section -MainProgram
 ${INSTALL_TYPE}
 !insertmacro TerminateApp
@@ -285,7 +291,11 @@ SectionEnd
 Section -Icons_Reg
 !ifndef INNER
 SetOutPath "$INSTDIR"
+!ifdef SIGNED_UNINSTALLER
+File /oname=uninstall.exe "${SIGNED_UNINSTALLER}"
+!else
 WriteUninstaller "$INSTDIR\uninstall.exe"
+!endif
 !endif
 
 !ifdef REG_START_MENU
@@ -331,6 +341,12 @@ WriteRegStr SHCTX "Software\Classes\RPI_IMAGINGUTILITY\shell\open\command" "" '"
 SectionEnd
 
 ######################################################################
+
+!else
+; The generator needs only the uninstaller code, not the application payload.
+Section -GenerateUninstaller
+SectionEnd
+!endif
 
 Section Uninstall
 ${INSTALL_TYPE}
@@ -446,8 +462,17 @@ Function .onInit
   ; the uninstaller.  This is better than processing a command line option as it means
   ; this entire code path is not present in the final (real) installer.
   SetSilent silent
-  WriteUninstaller "$%TEMP%\uninstall.exe"
+  !ifndef UNINSTALLER_OUTPUT
+    !error "INNER requires UNINSTALLER_OUTPUT"
+  !endif
+  ClearErrors
+  WriteUninstaller "${UNINSTALLER_OUTPUT}"
+  IfErrors generator_failed
+  SetErrorLevel 0
   Quit  ; just bail out quickly when running the "inner" installer
+generator_failed:
+  SetErrorLevel 1
+  Quit
 !else
   ${IfNot} ${AtLeastWin7}
     MessageBox MB_OK "$(win7Msg)"
