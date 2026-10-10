@@ -1,0 +1,30 @@
+name: Sign Windows ImageWriter
+
+on:
+  workflow_dispatch:
+    inputs:
+      signing_mode:
+        description: Test for SignPath onboarding, release for public distribution
+        type: choice
+        options: [test, release]
+        default: test
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  imagewriter:
+    if: github.repository == 'OpenHD/OpenHD-ImageWriter'
+    uses: ./.github/workflows/windows.yml
+    with:
+      source-ref: ${{ github.sha }}
+      sign: true
+      signing-mode: ${{ inputs.signing_mode }}
+      organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+      project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+      signing-policy-slug: ${{ inputs.signing_mode == 'test' && vars.SIGNPATH_TEST_SIGNING_POLICY_SLUG || vars.SIGNPATH_RELEASE_SIGNING_POLICY_SLUG }}
+      test-certificate-base64: ${{ vars.SIGNPATH_TEST_CERTIFICATE_BASE64 }}
+    secrets:
+      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}

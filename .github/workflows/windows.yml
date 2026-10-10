@@ -12,9 +12,17 @@ on:
         type: string
         required: true
       sign:
-        description: Sign using the caller's approved OpenHD SignPath project
+        description: Sign using ImageWriter's approved SignPath project
         type: boolean
         default: false
+      signing-mode:
+        description: Test or release signing; test artifacts are not for distribution
+        type: string
+        default: release
+      test-certificate-base64:
+        description: Public self-signed onboarding certificate (DER, base64)
+        type: string
+        default: ''
       organization-id:
         type: string
         default: ''
@@ -39,7 +47,7 @@ jobs:
   windows:
     runs-on: windows-latest
 
-    # Signing is requested only by the workflow in the approved OpenHD origin.
+    # Signing is requested only by the manual workflow in the ImageWriter origin.
     # Pull requests and normal ImageWriter builds always remain unsigned.
 
     defaults:
@@ -57,9 +65,21 @@ jobs:
         SIGNPATH_PROJECT_SLUG: ${{ inputs.project-slug }}
         SIGNPATH_SIGNING_POLICY_SLUG: ${{ inputs.signing-policy-slug }}
         SOURCE_REPOSITORY: ${{ inputs.source-repository }}
+        SOURCE_REF: ${{ inputs.source-ref }}
+        SIGNING_MODE: ${{ inputs.signing-mode }}
+        TEST_CERTIFICATE_BASE64: ${{ inputs.test-certificate-base64 }}
       run: |
-        if ($Env:GITHUB_REPOSITORY -ne 'OpenHD/OpenHD' -or $Env:GITHUB_EVENT_NAME -ne 'workflow_dispatch') {
-          throw "Signing must be requested by the manual OpenHD/OpenHD workflow"
+        if ($Env:GITHUB_REPOSITORY -ne 'OpenHD/OpenHD-ImageWriter' -or $Env:GITHUB_EVENT_NAME -ne 'workflow_dispatch') {
+          throw "Signing must be requested by the manual ImageWriter workflow"
+        }
+        if ($Env:SOURCE_REF -ne $Env:GITHUB_SHA) {
+          throw 'Signed source must match the workflow revision for origin verification'
+        }
+        if ($Env:SIGNING_MODE -notin @('test', 'release')) {
+          throw 'signing-mode must be test or release'
+        }
+        if ($Env:SIGNING_MODE -eq 'test' -and [string]::IsNullOrWhiteSpace($Env:TEST_CERTIFICATE_BASE64)) {
+          throw 'Test signing requires the public SignPath test certificate'
         }
         if ($Env:SOURCE_REPOSITORY -ne 'OpenHD/OpenHD-ImageWriter') {
           throw "Signed builds must use the canonical ImageWriter source repository"
@@ -85,6 +105,15 @@ jobs:
         repository: ${{ inputs.source-repository }}
         ref: ${{ inputs.source-ref }}
         persist-credentials: false
+
+    - name: Trust the pinned onboarding certificate on this test runner
+      if: inputs.sign && inputs.signing-mode == 'test'
+      shell: pwsh
+      working-directory: ${{ github.workspace }}
+      env:
+        TEST_CERTIFICATE_BASE64: ${{ inputs.test-certificate-base64 }}
+      run: |
+        & scripts/trust_signpath_test_certificate.ps1 -CertificateBase64 $Env:TEST_CERTIFICATE_BASE64
 
     - name: Install Qt
       id: qt-install
@@ -236,10 +265,12 @@ jobs:
       if: inputs.sign
       shell: pwsh
       working-directory: ${{ github.workspace }}
+      env:
+        SIGNING_MODE: ${{ inputs.signing-mode }}
       run: |
         foreach ($file in @('OpenHDImageWriter.exe', 'fat32format.exe', 'uninstall.exe')) {
           $source = Join-Path $Env:RUNNER_TEMP "imagewriter-signed-application/$file"
-          & scripts/verify_windows_signature.ps1 -Path $source
+          & scripts/verify_windows_signature.ps1 -Path $source -SigningMode $Env:SIGNING_MODE -ExpectedSignerThumbprint $Env:SIGNPATH_TEST_CERTIFICATE_THUMBPRINT
           Copy-Item -LiteralPath $source -Destination "src/build/deploy/$file" -Force
         }
 
@@ -284,23 +315,25 @@ jobs:
       if: inputs.sign
       shell: pwsh
       working-directory: ${{ github.workspace }}
+      env:
+        SIGNING_MODE: ${{ inputs.signing-mode }}
       run: |
         $installers = @(Get-ChildItem "$Env:RUNNER_TEMP/imagewriter-signed-installer/OpenHD-ImageWriter-*.exe")
         if ($installers.Count -ne 1) { throw 'Expected exactly one signed installer' }
-        & scripts/verify_windows_signature.ps1 -Path $installers[0].FullName
+        & scripts/verify_windows_signature.ps1 -Path $installers[0].FullName -SigningMode $Env:SIGNING_MODE -ExpectedSignerThumbprint $Env:SIGNPATH_TEST_CERTIFICATE_THUMBPRINT
         Copy-Item -LiteralPath $installers[0].FullName -Destination src/build -Force
 
     - name: Upload installer
       uses: actions/upload-artifact@v4
       with:
-        name: OpenHDImageWriter-Build-Full${{ inputs.sign && '-Signed' || '-Unsigned' }}
+        name: OpenHDImageWriter-Build-Full${{ inputs.sign && (inputs.signing-mode == 'test' && '-Test-Signed' || '-Signed') || '-Unsigned' }}
         path: src/build/OpenHD-ImageWriter-*.exe
         if-no-files-found: error
 
     - name: Upload portable application
       uses: actions/upload-artifact@v4
       with:
-        name: OpenHDImageWriter-Windows-Portable${{ inputs.sign && '-Signed' || '-Unsigned' }}
+        name: OpenHDImageWriter-Windows-Portable${{ inputs.sign && (inputs.signing-mode == 'test' && '-Test-Signed' || '-Signed') || '-Unsigned' }}
         path: src/build/deploy/
         if-no-files-found: error
 
