@@ -13,6 +13,8 @@
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QSettings>
+#include <QSaveFile>
+#include <QRegularExpression>
 #include <QUrl>
 #include <QtGlobal>
 
@@ -206,9 +208,75 @@ QJsonObject OpenHDImageCustomizer::buildSettings(const QSettings &settings)
     return openhdSettings;
 }
 
+OpenHDImageCustomizer::Result OpenHDImageCustomizer::prepareBootSplash(const QString &bootPartition)
+{
+    const QDir boot(bootPartition);
+    QFile capability(boot.filePath("openhd-boot-splash.version"));
+    if (!capability.exists())
+        return Result(); // Older images and other platforms do not contain the runtime support.
+    if (!capability.open(QIODevice::ReadOnly))
+        return Result(Error::WriteBootConfiguration);
+    if (capability.readAll().trimmed() != "1")
+        return Result(); // Leave future image formats to their matching writer.
+
+    QFile cmdline(boot.filePath("cmdline.txt"));
+    QFile config(boot.filePath("config.txt"));
+    if (!cmdline.open(QIODevice::ReadOnly) || !config.open(QIODevice::ReadOnly))
+        return Result(Error::WriteBootConfiguration);
+    const QString originalCmdline = QString::fromUtf8(cmdline.readAll());
+    const QString originalConfig = QString::fromUtf8(config.readAll());
+    cmdline.close();
+    config.close();
+
+    const QStringList required = {"quiet", "splash", "logo.nologo", "plymouth.ignore-serial-consoles",
+                                  "console=tty3", "loglevel=3", "systemd.show_status=false",
+                                  "vt.global_cursor_default=0"};
+    QStringList tokens;
+    for (const QString &token : originalCmdline.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts))
+    {
+        if (token == "console=tty1" || token == "console=tty3" || required.contains(token) ||
+            token.startsWith("loglevel=") || token.startsWith("systemd.show_status=") ||
+            token.startsWith("vt.global_cursor_default="))
+            continue;
+        tokens.append(token);
+    }
+    tokens.append(required);
+    const QByteArray newCmdline = (tokens.join(' ') + '\n').toUtf8();
+
+    QStringList lines;
+    const QRegularExpression disableSplash("^\\s*disable_splash\\s*=");
+    QString configWithoutBlock = originalConfig;
+    configWithoutBlock.remove("[all]\n# OpenHD boot splash\ndisable_splash=1\n");
+    for (const QString &line : configWithoutBlock.split('\n'))
+    {
+        if (disableSplash.match(line).hasMatch() || line.trimmed() == "# OpenHD boot splash")
+            continue;
+        lines.append(line);
+    }
+    QString newConfig = lines.join('\n');
+    const QString block = "[all]\n# OpenHD boot splash\ndisable_splash=1\n";
+    const int dynamicStart = newConfig.indexOf("#OPENHD_DYNAMIC_CONTENT_BEGIN#");
+    if (dynamicStart >= 0)
+        newConfig.insert(dynamicStart, block);
+    else
+        newConfig += (newConfig.endsWith('\n') ? "" : "\n") + block;
+
+    const auto save = [](const QString &path, const QByteArray &contents) {
+        QSaveFile file(path);
+        return file.open(QIODevice::WriteOnly) && file.write(contents) == contents.size() && file.commit();
+    };
+    if (!save(boot.filePath("cmdline.txt"), newCmdline) ||
+        !save(boot.filePath("config.txt"), newConfig.toUtf8()))
+        return Result(Error::WriteBootConfiguration);
+    return Result();
+}
+
 OpenHDImageCustomizer::Result OpenHDImageCustomizer::apply(const QString &bootPartition,
                                                             const QSettings &settings)
 {
+    const Result bootResult = prepareBootSplash(bootPartition);
+    if (!bootResult.succeeded()) return bootResult;
+
     QDir openhdDir(QDir(bootPartition).filePath("openhd"));
     if (!openhdDir.exists() && !openhdDir.mkpath("."))
         return Result(Error::CreateDirectory);

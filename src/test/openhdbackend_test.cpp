@@ -140,6 +140,46 @@ bool testCustomizationInstall()
            check(copiedConfig.readAll() == "test-setting=true\n", "Installed QOpenHD.conf contents changed");
 }
 
+bool testBootSplashPreparation()
+{
+    QTemporaryDir directory;
+    QSettings settings(directory.filePath("writer.ini"), QSettings::IniFormat);
+    const QString boot = directory.filePath("boot");
+    QDir().mkpath(boot);
+    const auto read = [](const QString &path) {
+        QFile file(path);
+        return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
+    };
+    const QByteArray originalCmdline = "console=tty1 root=PARTUUID=1234-02 rootwait video=HDMI-A-1:1280x720@60 loglevel=7 quiet quiet\n";
+    const QByteArray originalConfig = "[pi4]\ngpu_mem=256\ndisable_splash=0\n#OPENHD_DYNAMIC_CONTENT_BEGIN#\ndtoverlay=vc4-fkms-v3d\n";
+    writeFile(QDir(boot).filePath("cmdline.txt"), originalCmdline);
+    writeFile(QDir(boot).filePath("config.txt"), originalConfig);
+    if (!check(OpenHDImageCustomizer::prepareBootSplash(boot).succeeded() &&
+               read(QDir(boot).filePath("cmdline.txt")) == originalCmdline &&
+               read(QDir(boot).filePath("config.txt")) == originalConfig,
+               "An image without bundled splash support was modified")) return false;
+
+    writeFile(QDir(boot).filePath("openhd-boot-splash.version"), "1\n");
+    if (!check(OpenHDImageCustomizer::apply(boot, settings).succeeded(),
+               "Flashing customization did not prepare the supported Pi image")) return false;
+    const QByteArray cmdline = read(QDir(boot).filePath("cmdline.txt"));
+    const QByteArray config = read(QDir(boot).filePath("config.txt"));
+    if (!check(cmdline.contains("root=PARTUUID=1234-02") && cmdline.contains("video=HDMI-A-1:1280x720@60") &&
+               cmdline.contains("plymouth.ignore-serial-consoles") && cmdline.contains("console=tty3") &&
+               cmdline.contains("systemd.show_status=false") && cmdline.count("quiet") == 1 &&
+               !cmdline.contains("console=tty1") && !cmdline.contains("loglevel=7") && cmdline.count('\n') == 1,
+               "Pi splash preparation lost root/display settings or retained visible boot output") ||
+        !check(config.contains("[all]\n# OpenHD boot splash\ndisable_splash=1\n#OPENHD_DYNAMIC_CONTENT_BEGIN#") &&
+               config.contains("gpu_mem=256") && config.contains("dtoverlay=vc4-fkms-v3d"),
+               "Firmware splash suppression was not global or dynamic display content was lost")) return false;
+    if (!check(OpenHDImageCustomizer::prepareBootSplash(boot).succeeded() &&
+               cmdline == read(QDir(boot).filePath("cmdline.txt")) && config == read(QDir(boot).filePath("config.txt")),
+               "Repeated Pi boot preparation changed the configuration")) return false;
+    QFile::remove(QDir(boot).filePath("cmdline.txt"));
+    return check(OpenHDImageCustomizer::prepareBootSplash(boot).error == OpenHDImageCustomizer::Error::WriteBootConfiguration,
+                 "Missing boot files on a supported image did not report failure");
+}
+
 bool testGroundOfflineMapInstall()
 {
     QTemporaryDir temporaryDirectory;
@@ -569,6 +609,7 @@ int main(int argc, char *argv[])
     failures += testGroundSettingsAndCameraMapping() ? 0 : 1;
     failures += testImageNameRoleOverrides() ? 0 : 1;
     failures += testCustomizationInstall() ? 0 : 1;
+    failures += testBootSplashPreparation() ? 0 : 1;
     failures += testGroundOfflineMapInstall() ? 0 : 1;
     failures += testInvalidCertificateRejected() ? 0 : 1;
     failures += testStorageSelection() ? 0 : 1;

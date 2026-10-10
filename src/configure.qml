@@ -1589,6 +1589,11 @@ ImButton {
             return
         }
 
+        if (!imageWriter.prepareBootSplash(selectedMountpoint + "/")) {
+            onError(qsTr("Error preparing Raspberry Pi boot animation settings"))
+            return
+        }
+
         console.log("[Configure] Writing settings to", openhdRoot)
 
         var settingsObj = {}

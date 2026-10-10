@@ -19,6 +19,7 @@ public:
         None,
         CreateDirectory,
         WriteSettings,
+        WriteBootConfiguration,
         QOpenHDConfigNotFound,
         ReplaceQOpenHDConfig,
         CopyQOpenHDConfig,
@@ -45,6 +46,7 @@ public:
     };
 
     static QJsonObject buildSettings(const QSettings &settings);
+    static Result prepareBootSplash(const QString &bootPartition);
     static Result apply(const QString &bootPartition, const QSettings &settings);
 
 private:

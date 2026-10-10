@@ -153,6 +153,7 @@ public:
     /* Helpers for reading and writing configuration files on target devices */
     Q_INVOKABLE QVariantList listTextFilesOnDevice(const QString &device) const;
     Q_INVOKABLE QString readTextFile(const QString &filePath) const;
+    Q_INVOKABLE bool prepareBootSplash(const QString &bootPartition) const;
     Q_INVOKABLE bool writeTextFile(const QString &filePath, const QString &content) const;
     Q_INVOKABLE bool fileExists(const QString &filePath) const;
     Q_INVOKABLE bool copyFile(const QString &sourcePath, const QString &destinationPath) const;

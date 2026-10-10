@@ -5,6 +5,7 @@
 
 #include "imagewriter.h"
 #include "certificatevalidator.h"
+#include "openhdimagecustomizer.h"
 #include "openhdstorageservice.h"
 #include "drivelistitem.h"
 #include "downloadextractthread.h"
@@ -363,6 +364,11 @@ QString ImageWriter::readResourceText(const QString &resourcePath) const
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         return QString();
     return QString::fromUtf8(file.readAll());
+}
+
+bool ImageWriter::prepareBootSplash(const QString &bootPartition) const
+{
+    return OpenHDImageCustomizer::prepareBootSplash(bootPartition).succeeded();
 }
 
 bool ImageWriter::writeTextFile(const QString &filePath, const QString &content) const

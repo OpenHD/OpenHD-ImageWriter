@@ -1337,6 +1337,9 @@ bool DownloadThread::_customizeImage()
         case OpenHDImageCustomizer::Error::WriteSettings:
             message = tr("Error writing settings.json on FAT partition");
             break;
+        case OpenHDImageCustomizer::Error::WriteBootConfiguration:
+            message = tr("Error preparing Raspberry Pi boot animation settings");
+            break;
         case OpenHDImageCustomizer::Error::QOpenHDConfigNotFound:
             message = tr("QOpenHD.conf not found at the selected path.");
             break;
