@@ -58,6 +58,7 @@
         <file>qmlcomponents/ImageCardGrid.qml</file>
         <file>qmlcomponents/DeviceSelectionPage.qml</file>
         <file>qmlcomponents/SettingsSection.qml</file>
+        <file>qmlcomponents/InitialSettingsPanel.qml</file>
         <file>qmlcomponents/OperationReviewPage.qml</file>
         <file>qmlcomponents/LanguageSettingsPage.qml</file>
         <file>qmlcomponents/CacheSettingsSection.qml</file>

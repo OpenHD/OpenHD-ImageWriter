@@ -12,6 +12,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
+#include <QJsonArray>
 #include <QSettings>
 #include <QSaveFile>
 #include <QRegularExpression>
@@ -20,85 +21,25 @@
 
 QString OpenHDImageCustomizer::cameraTypeForName(const QString &cameraName, const QString &sbc)
 {
-    if (cameraName.isEmpty())
-        return QString();
-
-    qDebug() << "Camera found" << cameraName;
-
-    QString cameraType;
-    if (sbc == "rpi")
-    {
-        if (cameraName == "OV5647") cameraType = "30";
-        else if (cameraName == "IMX219") cameraType = "31";
-        else if (cameraName == "IMX708") cameraType = "32";
-        else if (cameraName == "IMX477") cameraType = "33";
-        else if (cameraName == "HDMI") cameraType = "20";
-        else if (cameraName == "SkyMasterHDR708") cameraType = "40";
-        else if (cameraName == "SkyVisionPro519") cameraType = "41";
-        else if (cameraName == "IMX477m") cameraType = "42";
-        else if (cameraName == "IMX462") cameraType = "43";
-        else if (cameraName == "IMX327") cameraType = "44";
-        else if (cameraName == "IMX290") cameraType = "45";
-        else if (cameraName == "IMX462MINI") cameraType = "46";
-        else if (cameraName == "IMX662") cameraType = "47";
-        else if (cameraName == "2MPCAMERAS") cameraType = "60";
-        else if (cameraName == "CSIMX307") cameraType = "61";
-        else if (cameraName == "CSSC137") cameraType = "62";
-        else if (cameraName == "MVCAM") cameraType = "63";
-        else if (cameraName == "GX/GXC IMX662 (ISP)") cameraType = "64";
+    QFile file(":/doc/openhd_settings_map.json");
+    if (!file.open(QIODevice::ReadOnly)) return {};
+    const auto camera=QJsonDocument::fromJson(file.readAll()).object().value("camera").toObject();
+    const auto search=[&](const QJsonArray& vendors) -> QString {
+        for (const auto& vendor:vendors) for (const auto& option:vendor.toObject().value("options").toArray()) {
+            const auto object=option.toObject();
+            if (object.value("id").toString()==cameraName) return object.value("valueWritten").toVariant().toString();
+        }
+        return {};
+    };
+    for (const auto& group:camera.value("sbcGroups").toArray()) {
+        const auto object=group.toObject();
+        if (object.value("sbc").toArray().contains(sbc)) {
+            const auto result=search(object.value("vendors").toArray());
+            if (!result.isEmpty()) return result;
+        }
     }
-    else if (sbc == "zero3w")
-    {
-        if (cameraName == "HDMI") cameraType = "90";
-        else if (cameraName == "IMX462") cameraType = "94";
-        else if (cameraName == "IMX519") cameraType = "95";
-        else if (cameraName == "IMX219") cameraType = "92";
-        else if (cameraName == "OV5647") cameraType = "91";
-        else if (cameraName == "IMX708") cameraType = "93";
-        else if (cameraName == "VEYE") cameraType = "97";
-        else if (cameraName == "OHD-JAGUAR") cameraType = "96";
-    }
-    else if (sbc == "rock-5b" || sbc == "rock-5a" || sbc == "radxa-cm5")
-    {
-        if (cameraName == "HDMI") cameraType = "80";
-        else if (cameraName == "IMX219") cameraType = "82";
-        else if (cameraName == "OV5647") cameraType = "81";
-        else if (cameraName == "IMX708") cameraType = "83";
-        else if (cameraName == "IMX462") cameraType = "84";
-        else if (cameraName == "IMX415") cameraType = "85";
-        else if (cameraName == "IMX477") cameraType = "86";
-        else if (cameraName == "IMX519") cameraType = "87";
-        else if (cameraName == "OHD-JAGUAR") cameraType = "88";
-    }
+    return search(camera.value("commonVendors").toArray());
 
-    if (cameraName == "FILESRC") cameraType = "4";
-    else if (cameraName == "IP-CAMERA") cameraType = "3";
-    else if (cameraName == "EXTERNAL") cameraType = "2";
-    else if (cameraName == "USB") cameraType = "10";
-    else if (cameraName == "TESTPATTERN") cameraType = "0";
-    else if (cameraName == "INFIRAY") cameraType = "11";
-    else if (cameraName == "INFIRAY_T2") cameraType = "12";
-    else if (cameraName == "INFIRAY_X2") cameraType = "13";
-    else if (cameraName == "INFIRAY_P2_PRO") cameraType = "14";
-    else if (cameraName == "FLIR_VUE" || cameraName == "FLIR VUE") cameraType = "15";
-    else if (cameraName == "FLIR_BOSON" || cameraName == "FLIR BOSON") cameraType = "16";
-    else if (cameraName == "HDZERO") cameraType = "70";
-    else if (cameraName == "RUNCAM_V1") cameraType = "71";
-    else if (cameraName == "RUNCAM_V2") cameraType = "72";
-    else if (cameraName == "RUNCAM_V3") cameraType = "73";
-    else if (cameraName == "RUNCAM_NANO_90") cameraType = "74";
-    else if (cameraName == "OHD-JAGUAR-X21") cameraType = "76";
-    else if (cameraName == "OPENIPC") cameraType = "110";
-    else if (cameraName == "XAVIER-IMX577") cameraType = "101";
-    else if (cameraName == "ORQA-HORNET") cameraType = "122";
-    else if (cameraName == "ORQA-JAGUAR") cameraType = "123";
-    else if (cameraName == "ORQA-REKINDLE") cameraType = "124";
-    else if (cameraName == "ROCKCHIP-RV") cameraType = "125";
-    else if (sbc == "x20" && cameraName == "OHD-JAGUAR") cameraType = "75";
-    else if ((sbc == "qcs405" || sbc == "qrb5165") && cameraName == "IMX577") cameraType = "120";
-    else if ((sbc == "qcs405" || sbc == "qrb5165") && cameraName == "OV9282") cameraType = "121";
-
-    return cameraType;
 }
 
 QJsonObject OpenHDImageCustomizer::buildSettings(const QSettings &settings)
@@ -175,6 +116,8 @@ QJsonObject OpenHDImageCustomizer::buildSettings(const QSettings &settings)
 
     if (!sbc.isEmpty())
         openhdSettings.insert("sbc", sbc);
+    if (!settings.value("platform").toString().isEmpty())
+        openhdSettings.insert("platform", settings.value("platform").toString());
     if (mode == "debug")
         openhdSettings.insert("debug", true);
     openhdSettings.insert("disable_ethernet_link", disableEthernetLink);
@@ -205,7 +148,26 @@ QJsonObject OpenHDImageCustomizer::buildSettings(const QSettings &settings)
         openhdSettings.insert("fleetcontrol_username", fleetControlUsername);
         openhdSettings.insert("fleetcontrol_password", fleetControlPassword);
     }
+    const auto defaults=QJsonDocument::fromJson(settings.value("initialParameterDefaults").toString().toUtf8()).object();
+    if (defaults.value("version").toInt()==1 && defaults.value("components").isObject())
+        openhdSettings.insert("parameter_defaults",defaults);
     return openhdSettings;
+}
+
+QJsonObject OpenHDImageCustomizer::initialConfiguration(const QSettings &settings)
+{
+    auto file = buildSettings(settings);
+    for (const auto &key : {"fleetcontrol_username", "fleetcontrol_password", "token"}) file.remove(key);
+    QJsonObject selections;
+    for (const auto &key : {"bootType", "platform", "sbc", "camera", "camera2", "cameraResolution", "camera2Resolution",
+         "cameraPort", "camera2Port", "ipCameraAddress", "ipCameraPipeline", "camera2IpCameraAddress", "camera2IpCameraPipeline",
+         "ipCameraBitrate", "displayForceMode", "displayWidth", "displayHeight", "displayRefreshHz", "mode", "hotSpot",
+         "useSettings", "mapboxApiKey", "disableEthernetLink", "initialParameterDefaults", "language"})
+        if (settings.contains(key)) selections.insert(key, QJsonValue::fromVariant(settings.value(key)));
+    selections.insert("mode", file.value("role"));
+    selections.insert("bootType", file.value("role").toString() == "ground" ? "Ground" : "Air");
+    selections.insert("debug", file.value("debug").toBool());
+    return {{"version", 1}, {"settings", file}, {"imageWriterSettings", selections}};
 }
 
 OpenHDImageCustomizer::Result OpenHDImageCustomizer::prepareBootSplash(const QString &bootPartition)

@@ -602,10 +602,27 @@ bool testRockchipFirmwareLayoutDiscovery()
 
 } // namespace
 
+bool testInitialConfigurationSnapshot()
+{
+    QTemporaryDir directory;
+    QSettings settings(directory.filePath("initial.ini"),QSettings::IniFormat);
+    settings.setValue("bootType","Air"); settings.setValue("platform","rpi4"); settings.setValue("sbc","rpi");
+    settings.setValue("camera","IMX219"); settings.setValue("fleetcontrol_signed_in",true);
+    settings.setValue("fleetcontrol_username","user"); settings.setValue("fleetcontrol_password","secret"); settings.setValue("token","secret");
+    settings.setValue("initialParameterDefaults",R"({"version":1,"components":{"100":{"AIR_RECORDING_E":2}}})");
+    const auto snapshot=OpenHDImageCustomizer::initialConfiguration(settings);
+    const auto file=snapshot.value("settings").toObject();
+    return check(snapshot.value("version").toInt()==1,"Snapshot version missing") &&
+      check(!file.contains("token") && !file.contains("fleetcontrol_password") && !file.contains("fleetcontrol_username"),"Snapshot leaked login credentials") &&
+      check(file.value("platform").toString()=="rpi4" && file.value("camera").toString()=="31","Snapshot lost hardware selections") &&
+      check(file.value("parameter_defaults").toObject().value("components").toObject().value("100").toObject().value("AIR_RECORDING_E").toInt()==2,"Snapshot lost initial defaults");
+}
+
 int main(int argc, char *argv[])
 {
     QCoreApplication application(argc, argv);
     int failures = 0;
+    failures += testInitialConfigurationSnapshot() ? 0 : 1;
     failures += testGroundSettingsAndCameraMapping() ? 0 : 1;
     failures += testImageNameRoleOverrides() ? 0 : 1;
     failures += testCustomizationInstall() ? 0 : 1;

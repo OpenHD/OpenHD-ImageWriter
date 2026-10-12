@@ -35,7 +35,10 @@ Rectangle {
     // Settings map and values shared with the image configuration page.
     property var settingsMap: ({})
     property bool settingsMapLoaded: false
+    property string settingsMapSourceRoot: ""
+    property bool hasImageSettingsManifest: false
     property string bootType: ""
+    property string platform: imageWriter.getValue("platform") || ""
     property string sbc: ""
     property string camera: ""
     property string camera2: ""
@@ -66,6 +69,11 @@ Rectangle {
     property bool returnHomeAfterPopupClose: false
     property string language: ""
     property string token: ""
+    function platformSupportsRole(role) {
+        var boards = settingsMap.platforms || []
+        for (var n=0; n<boards.length; ++n) if (boards[n].id === platform) return boards[n].roles.indexOf(role.toLowerCase()) >= 0
+        return true
+    }
 
     Component.onCompleted: {
         qopenhdConfPath = normalizeLocalFilePath(imageWriter.getValue("qopenhdConfPath"))
@@ -376,9 +384,36 @@ ImButton {
                     }
                     ColumnLayout {
                         id: settingsBody
+                        InitialSettingsPanel {
+                            id: initialDefaults
+                            settingsOwner: imageWriter
+                            Layout.fillWidth: true
+                            fields: hasImageSettingsManifest ? (settingsMap.initialFields || []) : []
+                            role: bootType.toLowerCase()
+                        }
                         width: settingsScroll.width - settingsScroll.leftPadding - settingsScroll.rightPadding
                         spacing: 16
 
+                        Label { text: qsTr("Hardware platform"); Layout.fillWidth: true }
+                        ModernComboBox {
+                            Layout.fillWidth: true
+                            model: settingsMap.platforms || []
+                            textRole: "label"
+                            currentIndex: {
+                                for (var n=0; n<model.length; ++n) if (model[n].id === window.platform) return n
+                                return -1
+                            }
+                            displayText: currentIndex >= 0 ? currentText : qsTr("Choose hardware platform")
+                            onActivated: {
+                                var board = model[currentIndex]
+                                window.platform = board.id
+                                sbc = board.sbc
+                                imageWriter.setSetting("platform", board.id)
+                                imageWriter.setSetting("sbc", board.sbc)
+                                if (board.roles.indexOf(bootType.toLowerCase()) < 0) bootType = board.roles[0] === "air" ? "Air" : "Ground"
+                                rebuildCameraSelectors()
+                            }
+                        }
                         SettingsSection {
                             title: qsTr("Boot Mode")
                             Layout.fillWidth: true
@@ -386,7 +421,7 @@ ImButton {
                             ColumnLayout {
                                 spacing: 0
                                 Repeater {
-                                    model: settingsMap.bootType && settingsMap.bootType.options ? settingsMap.bootType.options.filter(function(option) { return option.id && option.id.length > 0 }) : []
+                                    model: settingsMap.bootType && settingsMap.bootType.options ? settingsMap.bootType.options.filter(function(option) { return option.id && option.id.length > 0 && platformSupportsRole(option.id) }) : []
                                     delegate: ImCheckBox {
                                         property var option: modelData
                                         text: option ? SettingsLabels.translated(option.id) : ""
@@ -576,7 +611,7 @@ ImButton {
                                     }
 
                                     var targetIndex = 0
-                                    if (cameraResolution && cameraResolution.length > 0) {
+                                            if (cameraResolution && cameraResolution.length > 0) {
                                         for (var idx = 0; idx < cameraResolutionOptionsModel.count; idx++) {
                                             if (cameraResolutionOptionsModel.get(idx).value === cameraResolution) {
                                                 targetIndex = idx
@@ -1299,11 +1334,19 @@ ImButton {
     }
 
     function loadSettingsMap() {
-        if (settingsMapLoaded)
+        if (settingsMapLoaded && settingsMapSourceRoot === openhdRoot)
             return
 
         try {
-            settingsMap = JSON.parse(imageWriter.readResourceText(":/doc/openhd_settings_map.json"))
+            var manifestText = openhdRoot ? imageWriter.readTextFile(drivePath("settings-manifest.json")) : ""
+            hasImageSettingsManifest = manifestText.length > 0
+            settingsMap = JSON.parse(hasImageSettingsManifest ? manifestText : imageWriter.readResourceText(":/doc/openhd_settings_map.json"))
+            if (hasImageSettingsManifest && (!settingsMap._settingsContract || settingsMap._settingsContract.version !== 1)) {
+                settingsMap = {}
+                hasImageSettingsManifest = false
+                throw new Error("Unsupported image settings manifest")
+            }
+            settingsMapSourceRoot = openhdRoot
             settingsMapLoaded = true
         } catch (e) {
             console.log("[Configure] Failed to load OpenHD settings map: " + e)
@@ -1470,9 +1513,11 @@ ImButton {
 
         var settingsJson = imageWriter.readTextFile(drivePath("settings.json"))
         var settingsObj = {}
+        if (platform) settingsObj.platform = platform
         if (settingsJson && settingsJson.length > 0) {
             try {
                 settingsObj = JSON.parse(settingsJson)
+            initialDefaults.defaults = settingsObj.parameter_defaults || {version: 1, components: {}}
             } catch (e) {
                 console.log("[Configure] Error parsing settings.json:", e)
             }
@@ -1491,6 +1536,7 @@ ImButton {
         } else if (settingsMap.sbc && settingsMap.sbc.options && settingsMap.sbc.options.length > 0) {
             sbc = settingsMap.sbc.options[0].id
         }
+        platform = settingsObj.platform || ""
 
         if (settingsObj.debug) {
             mode = "debug"
@@ -1597,6 +1643,7 @@ ImButton {
         console.log("[Configure] Writing settings to", openhdRoot)
 
         var settingsObj = {}
+        settingsObj.parameter_defaults = initialDefaults.exportDefaults()
         if (bootType === "Air") {
             settingsObj.role = "air"
         } else if (bootType === "Ground") {
@@ -1709,11 +1756,13 @@ ImButton {
             premiumCertificatePresent = imageWriter.fileExists(drivePath(premiumCertificateRelativePath()))
         }
 
+        imageWriter.setSetting("platform", platform)
         imageWriter.setSetting("bootType", bootType)
         imageWriter.setSetting("sbc", sbc)
         imageWriter.setSetting("camera", camera)
         imageWriter.setSetting("camera2", camera2)
         imageWriter.setSetting("cameraResolution", cameraResolution)
+        imageWriter.setSetting("initialParameterDefaults", JSON.stringify(initialDefaults.exportDefaults()))
         imageWriter.setSetting("camera2Resolution", camera2Resolution)
         imageWriter.setSetting("cameraPort", cameraPort)
         imageWriter.setSetting("camera2Port", camera2Port)

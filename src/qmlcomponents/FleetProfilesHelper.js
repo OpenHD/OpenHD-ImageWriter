@@ -46,17 +46,49 @@ function iconSource(key) {
     return map[key] || "../icons/ui/hub.svg";
 }
 
+function platformForHardware(hw) {
+    var key = String(hw || "").toLowerCase();
+    var platforms = _cachedSettingsMap ? _cachedSettingsMap.platforms || [] : [];
+    for (var i=0; i<platforms.length; ++i) {
+        var p = platforms[i];
+        if (p.id.toLowerCase() === key || p.label.toLowerCase() === key) return p;
+        var aliases = p.aliases || [];
+        for (var j=0; j<aliases.length; ++j) if (aliases[j].toLowerCase() === key) return p;
+    }
+    return null;
+}
+function installPlatforms(platforms) {
+    if (!_cachedSettingsMap || !Array.isArray(platforms) || !platforms.length || platforms.length > 512) return false;
+    var seen = {};
+    for (var i=0; i<platforms.length; ++i) {
+        var p=platforms[i];
+        if (!p || !/^[a-z0-9-]{1,40}$/.test(p.id) || seen[p.id] || !p.label || !p.sbc || !Array.isArray(p.roles) || !Array.isArray(p.aliases)) return false;
+        seen[p.id] = true;
+    }
+    _cachedSettingsMap.platforms=platforms;
+    return true;
+}
+function platformForHint(hint) {
+    var exact = platformForHardware(hint); if (exact) return exact;
+    var text = String(hint || "").toLowerCase();
+    var platforms = _cachedSettingsMap ? _cachedSettingsMap.platforms || [] : [];
+    var best = null, length = 0;
+    for (var i=0; i<platforms.length; ++i) {
+        var keys = [platforms[i].id].concat(platforms[i].aliases || []);
+        for (var n=0; n<keys.length; ++n) {
+            var key = keys[n].toLowerCase();
+            var start = text.indexOf(key);
+            if (start < 0 || key.length <= length) continue;
+            var before = start === 0 ? "" : text.charAt(start - 1);
+            var after = text.charAt(start + key.length);
+            if ((!before || !/[a-z0-9]/.test(before)) && (!after || !/[a-z0-9]/.test(after))) { best = platforms[i]; length = key.length; }
+        }
+    }
+    return best;
+}
 function sbcKeyFromHardware(hw) {
-    hw = (hw || "").toLowerCase();
-    if (hw.indexOf("x21") >= 0) return "x21";
-    if (hw.indexOf("x20") >= 0) return "x20";
-    if (hw.indexOf("rock 5") >= 0 || hw.indexOf("rock-5") >= 0 || hw.indexOf("cm5") >= 0 || hw.indexOf("rk3588") >= 0) return "rock-5b";
-    if (hw.indexOf("zero 3") >= 0 || hw.indexOf("zero3") >= 0 || hw.indexOf("rock 3") >= 0 || hw.indexOf("cm3") >= 0 || hw.indexOf("rk3566") >= 0) return "zero3w";
-    if (hw.indexOf("x86") >= 0 || hw.indexOf("pc") >= 0 || hw.indexOf("laptop") >= 0) return "x86";
-    if (hw.indexOf("qualcomm") >= 0 || hw.indexOf("qcs") >= 0 || hw.indexOf("qrb") >= 0) return "qcs405";
-    if (hw.indexOf("openipc") >= 0) return "openipc";
-    if (hw.indexOf("raspberry") >= 0 || hw.indexOf("rpi") >= 0) return "rpi";
-    return "rpi";
+    var platform = platformForHardware(hw);
+    return platform ? platform.sbc : "";
 }
 
 function getVendorsForSbc(settingsMap, sbcKey) {
@@ -220,6 +252,9 @@ function loadProfiles(imageWriter) {
                     if (p && p.name) {
                         list.push({
                             craftId: p.id || ("craft_" + i),
+                            craftPlatform: p.platform || "",
+                            craftWriterSettings: p.writerSettings || "{}",
+                            craftInitialDefaults: p.initialParameterDefaults || "{\"version\":1,\"components\":{}}",
                             craftName: p.name,
                             craftCategory: p.category || "craft",
                             craftIcon: p.icon || (p.category === "station" ? "station-military-gcs" : "survey"),
@@ -258,11 +293,15 @@ function loadProfiles(imageWriter) {
 function applyProfile(imageWriter, p) {
     if (!imageWriter || !p) return;
     var role = p.craftRole || (p.craftCategory === "station" ? "ground" : "air");
-    var sbcKey = sbcKeyFromHardware(p.craftHardware);
+    var board = platformForHardware(p.craftPlatform || p.craftHardware);
+    var sbcKey = board ? board.sbc : "";
 
     imageWriter.setSetting("mode", role);
     imageWriter.setSetting("bootType", role === "ground" ? "Ground" : "Air");
     imageWriter.setSetting("sbc", sbcKey);
+    imageWriter.setSetting("platform", board ? board.id : "");
+    // Clear a previous craft plan when this profile has no defaults.
+    imageWriter.setSetting("initialParameterDefaults", p.craftInitialDefaults || "{\"version\":1,\"components\":{}}");
     imageWriter.setSetting("useSettings", true);
     imageWriter.setSetting("fleetcontrol_craft_id", p.craftId || "");
     imageWriter.setSetting("fleetcontrol_craft_name", p.craftName || "");
@@ -286,6 +325,13 @@ function applyProfile(imageWriter, p) {
     imageWriter.setSetting("camera2IpCameraPipeline", role === "air" ? (p.craftCamera2IpPipeline || "") : "");
     imageWriter.setSetting("ipCameraBitrate", p.craftIpCameraBitrate || 2);
 
+    try {
+        var extra = JSON.parse(p.craftWriterSettings || "{}");
+        ["disableEthernetLink", "language"].forEach(function(key) {
+            if (extra[key] !== undefined) imageWriter.setSetting(key, extra[key]);
+        });
+        imageWriter.setSetting("mode", extra.debug ? "debug" : role);
+    } catch(e) {}
     imageWriter.setSetting("hotSpot", p.craftHotSpot || "");
 
     if (role === "ground") {

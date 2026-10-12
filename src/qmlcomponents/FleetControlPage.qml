@@ -1,6 +1,7 @@
 import QtQuick 2.9
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
+import QtQuick.Dialogs 1.3
 import "FleetProfilesHelper.js" as FleetProfilesHelper
 
 Item {
@@ -123,6 +124,9 @@ Item {
                 "icon": item.craftIcon,
                 "role": item.craftRole,
                 "hardware": item.craftHardware,
+                "platform": item.craftPlatform || "",
+                "writerSettings": item.craftWriterSettings || "{}",
+                "initialParameterDefaults": item.craftInitialDefaults || "{\"version\":1,\"components\":{}}",
                 "description": item.craftDescription,
                 "cameraVendor": item.craftCameraVendor || "",
                 "camera": item.craftCamera || "",
@@ -222,12 +226,16 @@ Item {
     }
 
     function loadCrafts() {
+        request("GET", "/api/imagewriter/platforms", undefined, function(xhr, response) {
+            if (xhr.status >= 200 && xhr.status < 300 && response && response.version === 1 && FleetProfilesHelper.installPlatforms(response.platforms)) {
+                var copy = JSON.parse(JSON.stringify(root.settingsMap))
+                copy.platforms = response.platforms
+                root.settingsMap = copy
+            }
+        })
         var selectedCraftId = imageWriter.getValue("fleetcontrol_craft_id") || ""
         loadingCrafts = true
         message = ""
-        craftModel.clear()
-        imageWriter.setSetting(getCacheKey(), "[]")
-        activeCraftName = ""
 
         // FleetControl is the source of crafts. The local list is refreshed only after a successful fetch.
         request("GET", "/api/imagewriter/profiles", undefined, function(xhr, response) {
@@ -253,6 +261,9 @@ Item {
 
                     craftModel.append({
                         "craftId": profile.id || ("craft_" + i),
+                        "craftPlatform": s.platform || "",
+                        "craftWriterSettings": JSON.stringify(s),
+                        "craftInitialDefaults": s.initialParameterDefaults || "{\"version\":1,\"components\":{}}",
                         "craftName": profile.name || "",
                         "craftCategory": category,
                         "craftIcon": icon,
@@ -296,7 +307,9 @@ Item {
         var tempId = (editIdx >= 0 && editIdx < craftModel.count)
                      ? craftModel.get(editIdx).craftId
                      : ("craft_" + Date.now())
-        var sbcKey = sbcKeyFromHardware(hardware)
+        var board = FleetProfilesHelper.platformForHardware(hardware)
+        if (!board) { message = qsTr("Choose a concrete hardware platform."); return }
+        var sbcKey = board.sbc
 
         var craftObj = {
             "craftId": tempId,
@@ -333,6 +346,7 @@ Item {
                 "mode": role,
                 "bootType": role === "ground" ? "Ground" : "Air",
                 "sbc": sbcKey,
+                "platform": board.id,
                 "useSettings": true,
                 "craftCategory": category,
                 "craftIcon": icon,
@@ -358,6 +372,12 @@ Item {
             }
         }
 
+        if (editIdx >= 0 && editIdx < craftModel.count) {
+            var previousSettings = JSON.parse(craftModel.get(editIdx).craftWriterSettings || "{}");
+            Object.keys(previousSettings).forEach(function(key) {
+                if (payload.openhdSettings[key] === undefined) payload.openhdSettings[key] = previousSettings[key];
+            });
+        }
         var existingCloudProfile = editIdx >= 0 && editIdx < craftModel.count &&
                                    String(tempId).indexOf("craft_") !== 0
         var method = existingCloudProfile ? "PUT" : "POST"
@@ -377,6 +397,32 @@ Item {
         })
     }
 
+    property bool savingConfiguration: false
+    function saveInitialConfiguration() {
+        var craftId = imageWriter.getValue("fleetcontrol_craft_id")
+        if (!signedIn || !craftId || savingConfiguration) return
+        var snapshot = imageWriter.initialConfiguration()
+        savingConfiguration = true
+        request("PUT", "/api/imagewriter/profiles/" + encodeURIComponent(craftId) + "/initial-configuration", snapshot, function(xhr, response) {
+            savingConfiguration = false
+            if (xhr.status >= 200 && xhr.status < 300) {
+                loadCrafts()
+                message = qsTr("Initial configuration saved on this craft.")
+            } else message = response && response.message ? response.message : qsTr("Could not save the initial configuration.")
+        })
+    }
+    FileDialog {
+        id: exportConfigurationDialog
+        title: qsTr("Save initial OpenHD configuration")
+        selectExisting: false
+        nameFilters: ["JSON files (*.json)"]
+        onAccepted: {
+            var localPath = decodeURIComponent(String(fileUrl).replace(/^file:\/\//, ""))
+            if (Qt.platform.os === "windows" && localPath.charAt(0) === "/") localPath = localPath.substring(1)
+            message = imageWriter.writeTextFile(localPath, JSON.stringify(imageWriter.initialConfiguration().settings, null, 2) + "\n")
+                      ? qsTr("Initial configuration exported.") : qsTr("Could not export the initial configuration.")
+        }
+    }
     function deleteCraft(index) {
         if (index >= 0 && index < craftModel.count) {
             var item = craftModel.get(index)
@@ -741,7 +787,8 @@ Item {
         editorSelectedCategory = craft.craftCategory || "craft"
         editorSelectedIcon = craft.craftIcon || (editorSelectedCategory === "craft" ? "survey" : "station-military-gcs")
         editorSelectedFamily = familyForIcon(editorSelectedIcon)
-        editorSelectedHardware = craft.craftHardware || "Raspberry Pi 4"
+        var board = FleetProfilesHelper.platformForHardware(craft.craftPlatform || craft.craftHardware)
+        editorSelectedHardware = board ? board.label : craft.craftHardware || ""
         craftNameField.text = craft.craftName || ""
         craftDescField.text = craft.craftDescription || ""
 
@@ -1216,6 +1263,17 @@ Item {
                                 elide: Text.ElideRight
                             }
 
+                            ModernActionButton {
+                                text: root.savingConfiguration ? qsTr("Saving…") : qsTr("Save configuration")
+                                enabled: root.signedIn && !root.savingConfiguration
+                                implicitHeight: 26
+                                onClicked: root.saveInitialConfiguration()
+                            }
+                            ModernActionButton {
+                                text: qsTr("Export JSON")
+                                implicitHeight: 26
+                                onClicked: exportConfigurationDialog.open()
+                            }
                             ModernActionButton {
                                 text: qsTr("Clear Selection")
                                 implicitHeight: 26
@@ -2001,19 +2059,7 @@ Item {
                             anchors.right: parent.right
                             anchors.rightMargin: 8
                             anchors.verticalCenter: parent.verticalCenter
-                            model: [
-                                "Raspberry Pi 4",
-                                "Raspberry Pi 5",
-                                "Raspberry Pi CM4",
-                                "Raspberry Pi Zero 2W",
-                                "Radxa Zero 3W",
-                                "Radxa Rock 3",
-                                "Radxa Rock 5B",
-                                "Radxa CM5",
-                                "OpenHD Core X20",
-                                "OpenHD Core X21",
-                                "PC / x86_64 Ground Station"
-                            ]
+                            model: (root.settingsMap.platforms || []).map(function(p) { return p.label })
                             background: Rectangle { color: "transparent" }
                             onCurrentTextChanged: {
                                 root.editorSelectedHardware = currentText

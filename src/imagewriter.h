@@ -166,6 +166,7 @@ public:
     Q_INVOKABLE bool getBoolSetting(const QString &key);
     Q_INVOKABLE QString getValue(const QString &key);
     Q_INVOKABLE void setSetting(const QString &key, const QVariant &value);
+    Q_INVOKABLE QVariantMap initialConfiguration() const;
     Q_INVOKABLE QVariantMap getSavedCustomizationSettings();
     Q_INVOKABLE void clearSavedCustomizationSettings();
     Q_INVOKABLE bool hasSavedCustomizationSettings();
@@ -190,6 +191,7 @@ public:
     Q_INVOKABLE bool hasMouse();
 
 signals:
+    void settingChanged(const QString &key, const QVariant &value);
     /* We are emiting signals with QVariant as parameters because QML likes it that way */
 
     void downloadProgress(QVariant dlnow, QVariant dltotal);

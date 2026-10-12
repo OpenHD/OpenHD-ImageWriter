@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt5 REQUIRED COMPONENTS Core)
+find_package(Qt5 REQUIRED COMPONENTS Gui Qml Quick)
+qt5_add_resources(SETTINGS_TEST_RESOURCES settings-test.qrc)
 if(NOT APPLE)
     find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 endif()
@@ -18,6 +20,7 @@ else()
 endif()
 
 add_executable(openhd_backend_tests
+    ${SETTINGS_TEST_RESOURCES}
     openhdbackend_test.cpp
     ../archivepathvalidator.cpp
     ../blockbatcher.cpp
@@ -40,3 +43,9 @@ endif()
 
 enable_testing()
 add_test(NAME openhd_backend_characterization COMMAND openhd_backend_tests)
+add_executable(initialsettings_qml_test initialsettings_qml_test.cpp ${SETTINGS_TEST_RESOURCES})
+set_target_properties(initialsettings_qml_test PROPERTIES AUTOMOC ON)
+target_link_libraries(initialsettings_qml_test PRIVATE Qt5::Gui Qt5::Qml Qt5::Quick)
+target_compile_definitions(initialsettings_qml_test PRIVATE INITIAL_SETTINGS_QML_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../qmlcomponents/InitialSettingsPanel.qml")
+add_test(NAME initialsettings_qml_contract COMMAND initialsettings_qml_test)
+set_tests_properties(initialsettings_qml_contract PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")

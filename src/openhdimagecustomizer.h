@@ -46,6 +46,7 @@ public:
     };
 
     static QJsonObject buildSettings(const QSettings &settings);
+    static QJsonObject initialConfiguration(const QSettings &settings);
     static Result prepareBootSplash(const QString &bootPartition);
     static Result apply(const QString &bootPartition, const QSettings &settings);
 

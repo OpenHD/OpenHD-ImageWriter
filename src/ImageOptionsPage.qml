@@ -11,6 +11,7 @@ import Qt.labs.settings 1.0
 import QtQuick.Dialogs 1.3
 import "qmlcomponents"
 import "qmlcomponents/SettingsLabels.js" as SettingsLabels
+import "qmlcomponents/FleetProfilesHelper.js" as FleetProfilesHelper
 
 Rectangle {
     id: page
@@ -29,10 +30,14 @@ Rectangle {
 
     property var settingsMap: ({})
     property bool settingsMapLoaded: false
+    onVisibleChanged: {
+        if (visible && settingsMapLoaded) settingsMap = JSON.parse(JSON.stringify(FleetProfilesHelper.getSettingsMap(imageWriter)))
+    }
 
     // refactored settings
     property string bootType
     property string fileName
+    property string platform: imageWriter.getValue("platform") || ""
     property string sbc
     property string camera
     property string camera2
@@ -165,6 +170,33 @@ Rectangle {
                         width: deviceRoleCard.availableWidth
                         spacing: 10
 
+                        Label { text: qsTr("Hardware platform"); Layout.fillWidth: true }
+                        ModernComboBox {
+                            Layout.fillWidth: true
+                            model: settingsMap.platforms || []
+                            textRole: "label"
+                            currentIndex: {
+                                for (var n=0; n<model.length; ++n) if (model[n].id === page.platform) return n
+                                return -1
+                            }
+                            displayText: currentIndex >= 0 ? currentText : qsTr("Choose hardware platform")
+                            onActivated: {
+                                var board = model[currentIndex]
+                                page.platform = board.id
+                                sbc = board.sbc
+                                imageWriter.setSetting("platform", board.id)
+                                imageWriter.setSetting("sbc", board.sbc)
+                                if (board.roles.indexOf(bootType.toLowerCase()) < 0) bootType = board.roles[0] === "air" ? "Air" : "Ground"
+                                rpi = sbc === "rpi"; rock5 = sbc === "rock-5a" || sbc === "rock-5b" || sbc === "radxa-cm5"; rock3 = sbc === "zero3w" || sbc === "radxa-cm3"; page.refreshCameraOptions()
+                            }
+                        }
+                        InitialSettingsPanel {
+                            id: initialDefaults
+                            Layout.fillWidth: true
+                            settingsOwner: imageWriter
+                            fields: settingsMap.initialFields || []
+                            role: String(bootType).toLowerCase()
+                        }
                         ModernComboBox {
                             id: bootTypeSelector
                             Layout.fillWidth: true
@@ -1074,86 +1106,15 @@ Rectangle {
         else if (!supportsAir)
             bootType = "Ground"
 
-        if (normalizedPlatform.indexOf("raspberry-pi") === 0) {
-            imageWriter.setSetting("sbc", "rpi");
-            sbc = "rpi"
-            rpi=true;
-            rock5=false;
-            rock3=false;
-        }
-        else if (normalizedFileName.includes("rock5a") || normalizedFileName.includes("rock-5a")) {
-            imageWriter.setSetting("sbc", "rock-5a");
-            sbc = "rock-5a"
-            rpi=false; rock5=true; rock3=false;
-        }
-        else if (normalizedFileName.includes("rock5b") || normalizedFileName.includes("rock-5b")) {
-            imageWriter.setSetting("sbc", "rock-5b");
-            sbc = "rock-5b"
-            rpi=false; rock5=true; rock3=false;
-        }
-        else if (normalizedFileName.includes("zero3") || normalizedFileName.includes("zero-3")) {
-            imageWriter.setSetting("sbc", "zero3w");
-            sbc = "zero3w"
-            rpi=false; rock5=false; rock3=true;
-        }
-        else if (normalizedFileName.includes("radxa-cm5") || normalizedFileName.includes("radxa_cm5")) {
-            sbc = "radxa-cm5"; rpi=false; rock5=true; rock3=false;
-        }
-        else if (normalizedFileName.includes("radxa-cm3") || normalizedFileName.includes("radxa_cm3")) {
-            imageWriter.setSetting("sbc", "radxa-cm3");
-            sbc = "radxa-cm3"
-            rpi=false; rock5=false; rock3=true;
-        }
-        else if (normalizedFileName.includes("qrb5165")) {
-            sbc = "qrb5165"; rpi=false; rock5=false; rock3=false;
-        }
-        else if (normalizedFileName.includes("qcs405")) {
-            sbc = "qcs405"; rpi=false; rock5=false; rock3=false;
-        }
-        else if (normalizedFileName.includes("openipc")) {
-            sbc = "openipc"; rpi=false; rock5=false; rock3=false;
-        }
-        else if (normalizedFileName.includes("rv1103") || normalizedFileName.includes("rv1106") || normalizedFileName.includes("rv1126") || normalizedFileName.includes("luckfox")) {
-            sbc = "rockchip-rv"; rpi=false; rock5=false; rock3=false;
-        }
-        else if (normalizedFileName.includes("orqa")) {
-            sbc = "orqa"; rpi=false; rock5=false; rock3=false;
-        }
-        else if (normalizedFileName.includes("x20")) {
-            sbc = "x20"; rpi=false; rock5=false; rock3=false;
-        }
-        else if (normalizedFileName.includes("x21")) {
-            sbc = "x21"; rpi=false; rock5=false; rock3=false;
-        }
-        else if (normalizedFileName.includes("cubie") || normalizedFileName.includes("a733")) {
-            sbc = "cubie"; rpi=false; rock5=false; rock3=false;
-        }
-        else if (normalizedFileName.includes("xavier") || normalizedFileName.includes("jetson")) {
-            sbc = "nvidia-xavier"; rpi=false; rock5=false; rock3=false;
-        }
-        else if (normalizedFileName.includes("uvx") || normalizedFileName.includes("uvx-mod")) {
-            sbc = "uvx"; rpi=false; rock5=false; rock3=false;
-        }
-        else if (normalizedFileName.includes("imx8") || normalizedFileName.includes("nxp")) {
-            sbc = "nxp-imx8"; rpi=false; rock5=false; rock3=false;
-        }
-        else if (normalizedFileName.includes("x86") || normalizedFileName.includes("amd64")) {
-            sbc = "x86"; rpi=false; rock5=false; rock3=false;
-        }
-        else if (normalizedFileName.includes("raspberry") || normalizedFileName.includes("rpi") || normalizedFileName.includes("image-pi") || normalizedFileName.includes("image_pi")) {
-            imageWriter.setSetting("sbc", "rpi");
-            sbc = "rpi"
-            rpi=true;
-            rock5=false;
-            rock3=false;
-        }
-        else{
-           imageWriter.setSetting("sbc", "unknown");
-           sbc = "unknown"
-           rpi=false;
-           rock5=false;
-           rock3=false;
-        }
+        FleetProfilesHelper.getSettingsMap(imageWriter)
+        var board = FleetProfilesHelper.platformForHint(normalizedPlatform) || FleetProfilesHelper.platformForHint(normalizedFileName) ||
+                    FleetProfilesHelper.platformForHardware(imageWriter.getValue("platform"))
+        platform = board ? board.id : ""
+        sbc = board ? board.sbc : "unknown"
+        rpi = sbc === "rpi"
+        rock5 = sbc === "rock-5a" || sbc === "rock-5b" || sbc === "radxa-cm5"
+        rock3 = sbc === "zero3w" || sbc === "radxa-cm3"
+        imageWriter.setSetting("platform", platform)
         imageWriter.setSetting("sbc", sbc)
         imageWriter.setSetting("bootType", bootType)
 
@@ -1241,8 +1202,10 @@ Rectangle {
     function availableBootOptions() {
         if (!settingsMap.bootType || !settingsMap.bootType.options)
             return []
+        var board = FleetProfilesHelper.platformForHardware(platform)
         return settingsMap.bootType.options.filter(function(option) {
             return option.id && option.id.length > 0 &&
+                   (!board || board.roles.indexOf(option.id.toLowerCase()) >= 0) &&
                    ((option.id === "Air" && supportsAir) ||
                     (option.id === "Ground" && supportsGround))
         })
@@ -1269,6 +1232,8 @@ Rectangle {
             }
         }
 
+        imageWriter.setSetting("platform", platform)
+        imageWriter.setSetting("initialParameterDefaults", JSON.stringify(initialDefaults.exportDefaults()))
         imageWriter.setSetting("bootType", bootType)
         imageWriter.setSetting("camera", camera)
         imageWriter.setSetting("camera2", camera2)
@@ -1323,7 +1288,7 @@ Rectangle {
             return
 
         try {
-            settingsMap = JSON.parse(imageWriter.readResourceText(":/doc/openhd_settings_map.json"))
+            settingsMap = FleetProfilesHelper.getSettingsMap(imageWriter)
             settingsMapLoaded = true
         } catch (e) {
             console.log("Failed to load OpenHD settings map: " + e)

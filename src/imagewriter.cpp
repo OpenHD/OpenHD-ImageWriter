@@ -1635,7 +1635,13 @@ void ImageWriter::setSetting(const QString &key, const QVariant &value)
 
     _settings.setValue(key, value);
     _settings.sync();
+    emit settingChanged(key, value);
 
+}
+
+QVariantMap ImageWriter::initialConfiguration() const
+{
+    return OpenHDImageCustomizer::initialConfiguration(_settings).toVariantMap();
 }
 
 QString ImageWriter::crypt(const QByteArray &password)
