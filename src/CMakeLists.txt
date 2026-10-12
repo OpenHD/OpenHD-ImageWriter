@@ -441,7 +441,9 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+    qt5_add_resources(SETTINGS_TEST_RESOURCES test/settings-test.qrc)
     add_executable(openhd_backend_tests
+        ${SETTINGS_TEST_RESOURCES}
         test/openhdbackend_test.cpp
         archivepathvalidator.cpp
         blockbatcher.cpp
@@ -465,6 +467,12 @@ if(BUILD_TESTING)
         target_link_libraries(openhd_backend_tests PRIVATE ${OPENSSL_LIBRARIES})
     endif()
     add_test(NAME openhd_backend_characterization COMMAND openhd_backend_tests)
+    add_executable(initialsettings_qml_test test/initialsettings_qml_test.cpp ${SETTINGS_TEST_RESOURCES})
+    set_target_properties(initialsettings_qml_test PROPERTIES AUTOMOC ON)
+    target_link_libraries(initialsettings_qml_test PRIVATE Qt5::Gui Qt5::Qml Qt5::Quick)
+    target_compile_definitions(initialsettings_qml_test PRIVATE INITIAL_SETTINGS_QML_PATH="${CMAKE_CURRENT_SOURCE_DIR}/qmlcomponents/InitialSettingsPanel.qml")
+    add_test(NAME initialsettings_qml_contract COMMAND initialsettings_qml_test)
+    set_tests_properties(initialsettings_qml_contract PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
     find_program(NODE_EXECUTABLE node)
     if(NODE_EXECUTABLE)
@@ -472,5 +480,7 @@ if(BUILD_TESTING)
             COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test/catalog_test.js")
         add_test(NAME openhd_fleetcontrol_catalog
             COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test/fleetcontrol_catalog_test.js")
+        add_test(NAME openhd_initial_settings_profiles
+            COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test/fleet_profiles_test.js")
     endif()
 endif()
