@@ -233,7 +233,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build qtbase5-dev qtdeclarative5-dev libssl-dev qml-module-qtquick2 qml-module-qtquick-controls2 qml-module-qtquick-layouts qml-module-qtquick-window2
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build qtbase5-dev qtdeclarative5-dev libssl-dev qml-module-qtquick2 qml-module-qtquick-controls2 qml-module-qtquick-layouts qml-module-qtquick-window2 qml-module-qt-labs-settings
       - name: Configure
         run: cmake -S src/test -B build-src-tests -G Ninja -DCMAKE_BUILD_TYPE=Release
       - name: Build
