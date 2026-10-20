@@ -24,7 +24,7 @@ jobs:
     steps:
       - name: Install packaging tools
         run: pacman -Syu --noconfirm --needed git sudo namcap desktop-file-utils
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Create unprivileged builder
@@ -62,7 +62,7 @@ jobs:
           mkdir aur-submission
           cp PKGBUILD .SRCINFO aur-submission/
           tar -czf aur-submission.tar.gz -C aur-submission PKGBUILD .SRCINFO
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: OpenHDImageWriter-Arch-AUR
           path: |
@@ -96,7 +96,7 @@ jobs:
           apt install -y git sudo
           fi
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Build .deb
         run: |
@@ -165,7 +165,7 @@ jobs:
         working-directory: src
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install Qt for Intel
         if: matrix.qt_source == 'archive'
@@ -223,7 +223,7 @@ jobs:
             "build/$dmg"
 
       - name: Upload DMG
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: OpenHDImageWriter-macOS-${{ matrix.arch }}
           path: src/build/OpenHDImageWriter-macOS-${{ matrix.arch }}.dmg
@@ -231,7 +231,7 @@ jobs:
   backend-linux:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y cmake ninja-build qtbase5-dev qtdeclarative5-dev libssl-dev qml-module-qtquick2 qml-module-qtquick-controls2 qml-module-qtquick-layouts qml-module-qtquick-window2 qml-module-qt-labs-settings
       - name: Configure
@@ -244,7 +244,7 @@ jobs:
   backend-macos:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Install Qt
         run: |
           brew install qt@5
@@ -261,7 +261,7 @@ jobs:
   backend-windows:
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:

@@ -100,7 +100,7 @@ jobs:
           throw "source-ref must be the full ImageWriter commit SHA"
         }
 
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
       with:
         repository: ${{ inputs.source-repository }}
         ref: ${{ inputs.source-ref }}
@@ -240,7 +240,7 @@ jobs:
     - name: Upload unsigned application
       if: inputs.sign
       id: unsigned-application
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ImageWriter-unsigned-application
         path: ${{ runner.temp }}/imagewriter-unsigned-application/*
@@ -290,7 +290,7 @@ jobs:
     - name: Upload unsigned installer
       if: inputs.sign
       id: unsigned-installer
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ImageWriter-unsigned-installer
         path: src/build/OpenHD-ImageWriter-*.exe
@@ -324,14 +324,14 @@ jobs:
         Copy-Item -LiteralPath $installers[0].FullName -Destination src/build -Force
 
     - name: Upload installer
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: OpenHDImageWriter-Build-Full${{ inputs.sign && (inputs.signing-mode == 'test' && '-Test-Signed' || '-Signed') || '-Unsigned' }}
         path: src/build/OpenHD-ImageWriter-*.exe
         if-no-files-found: error
 
     - name: Upload portable application
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: OpenHDImageWriter-Windows-Portable${{ inputs.sign && (inputs.signing-mode == 'test' && '-Test-Signed' || '-Signed') || '-Unsigned' }}
         path: src/build/deploy/
