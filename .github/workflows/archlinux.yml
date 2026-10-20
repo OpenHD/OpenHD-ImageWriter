@@ -23,7 +23,7 @@ jobs:
           pacman -Syu --noconfirm
           pacman -S --noconfirm base-devel git sudo
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
             fetch-depth: 0
 
