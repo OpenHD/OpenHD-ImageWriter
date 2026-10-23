@@ -1118,7 +1118,7 @@ Rectangle {
         imageWriter.setSrc(normalized)
         selectedUpdateSource = normalized
         var lower = normalized.toLowerCase()
-        if (lower.endsWith(".ohd")) {
+        if (imageWriter.isOhdFile(normalized)) {
             selectedUpdateSubdirectory = ""
             selectedUpdateFilename = ""
         } else {
@@ -1242,7 +1242,8 @@ Rectangle {
             var item = packages[i]
             var filename = String(item.filename || item.name || "")
             var lower = filename.toLowerCase()
-            var isUpdate = lower.endsWith(".ohd")
+            var isFullUpdate = lower.endsWith(".ohd_base")
+            var isUpdate = isFullUpdate || lower.endsWith(".ohd")
             var isFirmware = lower.indexOf("firmware-") === 0 && lower.endsWith(".zip")
             if (!isUpdate && !isFirmware)
                 continue
@@ -1253,7 +1254,8 @@ Rectangle {
                         ? qsTr("X21 update - %1").arg(uploaded)
                         : qsTr("X21 firmware - %1").arg(uploaded),
                 "description": isUpdate
-                        ? qsTr("Update the X21 OHD partition (%1)").arg(filename)
+                        ? (isFullUpdate ? qsTr("Update the X21 system and applications (%1)").arg(filename)
+                                        : qsTr("Update the X21 applications (%1)").arg(filename))
                         : qsTr("Complete X21 USB recovery firmware (%1)").arg(filename),
                 "icon": "",
                 "url": String(item.cdn_url || ""),

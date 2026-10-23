@@ -1,4 +1,5 @@
 #include "openhdstorageservice.h"
+#include "openhdupdatefile.h"
 
 /*
  * SPDX-License-Identifier: Apache-2.0
@@ -238,7 +239,7 @@ bool OpenHDStorageService::isOhdFile(const QUrl &url)
     QString path = url.isLocalFile() ? url.toLocalFile() : url.path();
     if (path.isEmpty())
         path = url.toString();
-    return path.endsWith(QStringLiteral(".ohd"), Qt::CaseInsensitive);
+    return isOpenHDUpdateFile(path);
 }
 
 QString OpenHDStorageService::findFatPartition(const QString &device)

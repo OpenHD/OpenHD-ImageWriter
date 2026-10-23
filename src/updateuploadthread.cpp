@@ -4,6 +4,7 @@
  */
 
 #include "updateuploadthread.h"
+#include "openhdupdatefile.h"
 
 #include <QDebug>
 #include <QCryptographicHash>
@@ -77,7 +78,7 @@ void UpdateUploadThread::run()
 
     QString targetSubdir = _targetSubdirectory;
     // .ohd update files belong directly on the root of the FAT32 partition
-    if (destinationFileName.endsWith(QStringLiteral(".ohd"), Qt::CaseInsensitive) && targetSubdir == QStringLiteral("openhd"))
+    if (isOpenHDUpdateFile(destinationFileName) && targetSubdir == QStringLiteral("openhd"))
     {
         targetSubdir.clear();
     }
@@ -95,9 +96,9 @@ void UpdateUploadThread::run()
     }
 
     // If writing a .ohd update, clean up any older/stale .ohd files to prevent boot ambiguity and free space
-    if (destinationFileName.endsWith(QStringLiteral(".ohd"), Qt::CaseInsensitive))
+    if (isOpenHDUpdateFile(destinationFileName))
     {
-        const QStringList oldOhdFiles = destinationDir.entryList(QStringList() << QStringLiteral("*.ohd"), QDir::Files);
+        const QStringList oldOhdFiles = destinationDir.entryList(QStringList() << QStringLiteral("*.ohd") << QStringLiteral("*.ohd_base"), QDir::Files);
         for (const QString &oldFile : oldOhdFiles)
         {
             if (oldFile.compare(destinationFileName, Qt::CaseInsensitive) != 0)

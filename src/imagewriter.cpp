@@ -1067,8 +1067,8 @@ void ImageWriter::startUpdateUpload(const QString &sourceFile, const QString &de
     }
 
     QString targetSubdir = targetSubdirectory;
-    bool isOhd = sourceFile.toLower().endsWith(QStringLiteral(".ohd")) ||
-                 destinationFileName.toLower().endsWith(QStringLiteral(".ohd"));
+    bool isOhd = isOhdFile(QUrl::fromUserInput(sourceFile)) ||
+                 isOhdFile(QUrl::fromUserInput(destinationFileName));
     if (isOhd && targetSubdir == QStringLiteral("openhd"))
     {
         targetSubdir.clear(); // .ohd files belong directly on the FAT32 partition root
@@ -1181,7 +1181,7 @@ void ImageWriter::openFileDialog()
 
     QFileDialog *fd = new QFileDialog(nullptr, tr("Select image"),
                                       path,
-                                      "Image & Update files (*.img *.zip *.iso *.gz *.xz *.zst *.ohd);;OpenHD Update (*.ohd);;All files (*.*)");
+                                      "Image & Update files (*.img *.zip *.iso *.gz *.xz *.zst *.ohd *.ohd_base);;OpenHD Update (*.ohd *.ohd_base);;All files (*.*)");
     connect(fd, SIGNAL(fileSelected(QString)), SLOT(onFileSelected(QString)));
 
     if (_engine)

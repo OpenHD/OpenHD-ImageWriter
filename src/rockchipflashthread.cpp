@@ -4,6 +4,7 @@
  */
 
 #include "rockchipflashthread.h"
+#include "openhdupdatefile.h"
 #include "archivepathvalidator.h"
 #include "rockchipdevice.h"
 #include "rockchipfirmwarelayout.h"
@@ -306,12 +307,16 @@ void RockchipFlashThread::run()
 
     QString extractedDir = tempDir.path();
     QString lowerPath = localPackagePath.toLower();
-    bool isOhd = lowerPath.endsWith(QStringLiteral(".ohd"));
+    if (isOpenHDUpdateFile(lowerPath))
+    {
+        emit error(tr("Copy SWUpdate files to the update card. For USB recovery, select the complete firmware ZIP."));
+        return;
+    }
     bool isRawImg = lowerPath.endsWith(QStringLiteral(".img"));
     // GitHub's artifact endpoint commonly ends in /download, so the URL and
     // temporary filename do not identify the ZIP. Inspect the downloaded
     // content instead.
-    bool isFirmwarePackage = !isOhd && !isRawImg && isReadableArchive(localPackagePath);
+    bool isFirmwarePackage = !isRawImg && isReadableArchive(localPackagePath);
 
     if (isFirmwarePackage)
     {
@@ -456,16 +461,6 @@ void RockchipFlashThread::run()
                 targets.append(target);
             }
         }
-    }
-    else if (isOhd)
-    {
-        // Direct SWUpdate OpenHD NAND image -> LBA 0x0009a100 (sector 631040)
-        FlashTarget target;
-        target.name = QStringLiteral("ohd");
-        target.lbaOffset = 0x0009a100;
-        target.filePath = localPackagePath;
-        target.sizeBytes = QFileInfo(localPackagePath).size();
-        targets.append(target);
     }
     else if (isRawImg)
     {

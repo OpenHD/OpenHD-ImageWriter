@@ -240,7 +240,12 @@ bool testStorageSelection()
 
     writeFile(QDir(updateVolume).filePath("release.ohd"), "update");
     selected = OpenHDStorageSelector::selectBestMountPoint({settingsVolume, updateVolume});
-    return check(selected == updateVolume, ".ohd plus config.txt volume was not preferred") &&
+    if (!check(selected == updateVolume, ".ohd plus config.txt volume was not preferred"))
+        return false;
+    QFile::remove(QDir(updateVolume).filePath("release.ohd"));
+    writeFile(QDir(updateVolume).filePath("release.ohd_base"), "full update");
+    selected = OpenHDStorageSelector::selectBestMountPoint({settingsVolume, updateVolume});
+    return check(selected == updateVolume, ".ohd_base update volume was not preferred") &&
            check(OpenHDStorageSelector::selectBestMountPoint({temporaryDirectory.filePath("missing")}).isEmpty(),
                  "Missing mount point was selected");
 }

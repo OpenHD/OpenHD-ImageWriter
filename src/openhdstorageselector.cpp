@@ -36,7 +36,7 @@ int OpenHDStorageSelector::scoreMountPoint(const QString &mountPoint)
 
     if (QFileInfo::exists(mountDir.filePath("config.txt")))
         score += 35;
-    if (!mountDir.entryList(QStringList() << "*.ohd", QDir::Files).isEmpty())
+    if (!mountDir.entryList(QStringList() << "*.ohd" << "*.ohd_base", QDir::Files).isEmpty())
         score += 40;
 
     return score;
