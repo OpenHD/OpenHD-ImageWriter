@@ -68,13 +68,12 @@ public:
     bool isOpen() const;
 
     bool writeLBA(quint32 lba, quint16 sectorCount, const quint8 *data, QString *errorMsg = nullptr);
+    bool readLBA(quint32 lba, quint16 sectorCount, quint8 *data, QString *errorMsg = nullptr);
     bool resetDevice(QString *errorMsg = nullptr);
 
 private:
 #ifdef Q_OS_WIN
-    HANDLE _hReadPipe = INVALID_HANDLE_VALUE;
-    HANDLE _hWritePipe = INVALID_HANDLE_VALUE;
-    HANDLE _hDevice = INVALID_HANDLE_VALUE;
+    QString _devicePath;
 #elif defined(Q_OS_MACOS)
     void *_deviceInterface = nullptr;
     void *_usbInterface = nullptr;

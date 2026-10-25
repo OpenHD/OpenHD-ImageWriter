@@ -7,8 +7,10 @@
 #include "archivepathvalidator.h"
 #include "rockchipdevice.h"
 #include "rockchipfirmwarelayout.h"
+#include "rockchipimageverify.h"
 
 #include <QDebug>
+#include <QBuffer>
 #include <QDir>
 #include <QDirIterator>
 #include <QElapsedTimer>
@@ -682,8 +684,11 @@ void RockchipFlashThread::run()
         {
             chunkBuffer.fill('\0');
             qint64 readBytes = partFile.read(chunkBuffer.data(), ChunkBytes);
-            if (readBytes <= 0)
-                break;
+            if (readBytes != static_cast<qint64>(qMin<quint64>(fileRemaining, ChunkBytes)))
+            {
+                emit error(tr("Unable to read the complete image: %1").arg(target.filePath));
+                return;
+            }
 
             quint16 sectorsInChunk = static_cast<quint16>((readBytes + 511) / 512);
             QString writeErr;
@@ -715,6 +720,56 @@ void RockchipFlashThread::run()
     {
         transport.close();
         return;
+    }
+
+    // A successful bulk write is not proof that eMMC contains the image.
+    // Verify every padded sector before reporting success or resetting.
+    emit preparationStatusUpdate(tr("Verifying flashed image..."));
+    if (!parameterData.isEmpty())
+    {
+        QByteArray parameter = makeParameterBuffer(parameterData);
+        parameter.append(QByteArray((512 - parameter.size() % 512) % 512, '\0'));
+        QBuffer source(&parameter);
+        source.open(QIODevice::ReadOnly);
+        QString verifyError;
+        if (!verifyRockchipImage(source, parameter.size(), 0x2000,
+                [&transport](quint32 lba, quint16 count, quint8 *data, QString *message) {
+                    return transport.readLBA(lba, count, data, message);
+                }, [this]() { return _cancelled.load(); }, &verifyError))
+        {
+            if (!_cancelled)
+                emit error(tr("Failed verifying partition metadata: %1").arg(verifyError));
+            return;
+        }
+    }
+    quint64 verified = 0;
+    for (const auto &target : targets)
+    {
+        QFile source(target.filePath);
+        if (!source.open(QIODevice::ReadOnly))
+        {
+            emit error(tr("Unable to reopen image for verification: %1").arg(target.filePath));
+            return;
+        }
+        QString verifyError;
+        const bool valid = verifyRockchipImage(source, target.sizeBytes, target.lbaOffset,
+            [&transport](quint32 lba, quint16 count, quint8 *data, QString *message) {
+                return transport.readLBA(lba, count, data, message);
+            }, [this]() { return _cancelled.load(); }, &verifyError,
+            [this, &progressUpdateTimer, verified, totalBytes](quint64 done) {
+                if (progressUpdateTimer.elapsed() >= 100) {
+                    progressUpdateTimer.restart();
+                    emit preparationStatusUpdate(tr("Verifying flashed image: %1%")
+                        .arg((verified + done) * 100 / totalBytes));
+                }
+            });
+        if (!valid)
+        {
+            if (!_cancelled)
+                emit error(tr("Failed verifying %1: %2").arg(target.name, verifyError));
+            return;
+        }
+        verified += target.sizeBytes;
     }
 
     emit preparationStatusUpdate(tr("Flashing complete. Rebooting OpenHD device..."));

@@ -441,6 +441,16 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(rockchip_device_tests test/rockchipdevice_test.cpp rockchipdevice.cpp)
+    target_include_directories(rockchip_device_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(rockchip_device_tests PRIVATE Qt5::Core)
+    if(WIN32)
+        target_compile_definitions(rockchip_device_tests PRIVATE _WIN32_WINNT=0x0601 WINVER=0x0601)
+        target_link_libraries(rockchip_device_tests PRIVATE setupapi uuid)
+    elseif(APPLE)
+        target_link_libraries(rockchip_device_tests PRIVATE "-framework IOKit" "-framework CoreFoundation")
+    endif()
+    add_test(NAME rockchip_device_policy COMMAND rockchip_device_tests)
     qt5_add_resources(SETTINGS_TEST_RESOURCES test/settings-test.qrc)
     add_executable(openhd_backend_tests
         ${SETTINGS_TEST_RESOURCES}
