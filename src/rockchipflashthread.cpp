@@ -507,42 +507,65 @@ void RockchipFlashThread::run()
     auto devices = listRockchipUsbDevices();
     bool deviceFound = false;
     bool isMaskrom = false;
+    RockchipDeviceDescriptor selectedDevice;
+
+    // The native transport opens the first Rockusb interface. Refuse an
+    // ambiguous setup rather than flashing a different connected board.
+    if (devices.size() > 1)
+    {
+        emit error(tr("Connect only the Rockchip device selected for flashing, then retry."));
+        return;
+    }
 
     for (const auto &dev : devices)
     {
-        if (dev.vendorId == 0x2207)
+        if (dev.vendorId == 0x2207 && dev.id == _deviceId)
         {
             deviceFound = true;
             isMaskrom = dev.isMaskrom;
+            selectedDevice = dev;
             break;
         }
     }
 
     if (!deviceFound)
     {
-        emit error(tr("Rockchip device not detected. Please ensure your OpenHD X21 is connected via USB."));
+        emit error(tr("The selected Rockchip device is not connected. Reconnect it and select it again."));
+        return;
+    }
+
+    if (isOhd && selectedDevice.productId != 0x110f)
+    {
+        emit error(tr("This .ohd update uses the X21/RV1126B partition layout. Select a full firmware package for %1.")
+                   .arg(selectedDevice.socName));
+        return;
+    }
+
+    QByteArray bootloader;
+    const QString customLoaderPath = packageLoaderPath(extractedDir);
+    if (!customLoaderPath.isEmpty())
+    {
+        QFile loaderFile(customLoaderPath);
+        if (loaderFile.open(QIODevice::ReadOnly))
+            bootloader = loaderFile.readAll();
+    }
+    // Check package compatibility even if a loader is already running.
+    if (!bootloader.isEmpty() && !rockchipLoaderMatchesDevice(
+                bootloader, selectedDevice.vendorId, selectedDevice.productId))
+    {
+        emit error(tr("The firmware loader does not match the connected %1. Select firmware built for this device.")
+                   .arg(selectedDevice.socName));
         return;
     }
 
     if (isMaskrom)
     {
-        emit preparationStatusUpdate(tr("OpenHD X21 detected in MaskROM mode. Loading bootloader..."));
+        emit preparationStatusUpdate(tr("%1 detected in MaskROM mode. Loading bootloader...")
+                                     .arg(selectedDevice.socName));
 
-        QByteArray bootloader;
         // Full ImageBuilder firmware ZIPs are self-contained. Their loader
         // must match the firmware package and must never be substituted with
         // the copy embedded in ImageWriter.
-        const QString customLoaderPath = packageLoaderPath(extractedDir);
-        if (!customLoaderPath.isEmpty())
-        {
-            QFile lf(customLoaderPath);
-            if (lf.open(QIODevice::ReadOnly))
-            {
-                bootloader = lf.readAll();
-                lf.close();
-            }
-        }
-
         if (isFirmwarePackage && bootloader.isEmpty())
         {
             emit error(tr("The selected firmware ZIP does not contain a readable Rockchip loader."));
@@ -550,12 +573,13 @@ void RockchipFlashThread::run()
         }
         if (!isFirmwarePackage && bootloader.isEmpty())
         {
-            bootloader = loadDefaultBootloader();
+            bootloader = loadDefaultBootloader(selectedDevice.vendorId, selectedDevice.productId);
         }
 
         if (bootloader.isEmpty())
         {
-            emit error(tr("Failed to load Rockchip bootloader binary (MiniLoaderAll.bin)."));
+            emit error(tr("A matching loader is required for %1 in MaskROM mode. Select a full firmware ZIP containing its MiniLoaderAll.bin or download.bin.")
+                       .arg(selectedDevice.socName));
             return;
         }
 

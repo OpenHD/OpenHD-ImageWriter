@@ -2,6 +2,8 @@
 
 #include <QDebug>
 #include <QFile>
+#include <QtEndian>
+#include <cstddef>
 
 namespace {
 
@@ -18,6 +20,8 @@ QString rockchipSocName(quint16 vendorId, quint16 productId)
         return QStringLiteral("RV1126B");
     case 0x110b:
         return QStringLiteral("RV1126 / RV1109");
+    case 0x110c:
+        return QStringLiteral("RV1106 / RV1103");
     case 0x350a:
         return QStringLiteral("RK3566 / RK3568");
     case 0x350b:
@@ -41,8 +45,29 @@ QString rockchipBoardName(quint16 vendorId, quint16 productId)
     return rockchipSocName(vendorId, productId);
 }
 
-QByteArray loadDefaultBootloader()
+bool rockchipLoaderMatchesDevice(const QByteArray &loader, quint16 vendorId, quint16 productId)
 {
+    // The packed LDR header stores chipType at byte 21. These are ASCII
+    // family tags encoded as little-endian integers, not USB product IDs.
+    if (loader.size() < 25 || loader.left(4) != QByteArrayLiteral("LDR "))
+        return false;
+    const quint32 chip = qFromLittleEndian<quint32>(
+            reinterpret_cast<const uchar *>(loader.constData() + 21));
+    if (vendorId != RockchipVendorId)
+        return false;
+    if (productId == 0x110c)
+        return chip == 0x31313036; // RV1106 / RV1103: "1106"
+    if (productId == 0x110f)
+        return chip == 0x31313046; // RV1126B: "110F"
+    // Other Rockchip families retain their existing package-loader support.
+    return true;
+}
+
+QByteArray loadDefaultBootloader(quint16 vendorId, quint16 productId)
+{
+    // This resource belongs to the X21/RV1126B. It cannot initialise RV1106 DDR.
+    if (vendorId != RockchipVendorId || productId != 0x110f)
+        return {};
     QFile f(QStringLiteral(":/rockchip/MiniLoaderAll.bin"));
     if (f.open(QIODevice::ReadOnly))
     {
@@ -54,16 +79,16 @@ QByteArray loadDefaultBootloader()
 namespace {
 
 RockchipDeviceDescriptor makeDescriptor(quint16 productId, quint16 bcdUsb,
-                                        const QString &location)
+                                        const QString &location, bool hasBulkPipes = false,
+                                        bool hasLoaderStrings = false)
 {
     RockchipDeviceDescriptor result;
     result.vendorId = RockchipVendorId;
     result.productId = productId;
     result.bcdUsb = bcdUsb;
     result.location = location;
-    // This is the same discriminator used by Rockchip's rkdeveloptool.
-    result.isMaskrom = (bcdUsb & 1u) == 0;
-    result.isLoader = !result.isMaskrom;
+    result.isLoader = rockchipIsLoaderMode(productId, bcdUsb, hasBulkPipes, hasLoaderStrings);
+    result.isMaskrom = !result.isLoader;
     result.socName = rockchipSocName(RockchipVendorId, productId);
     result.displayName = rockchipBoardName(RockchipVendorId, productId);
     result.id = QStringLiteral("rockusb://%1:%2/%3")
@@ -74,6 +99,18 @@ RockchipDeviceDescriptor makeDescriptor(quint16 productId, quint16 bcdUsb,
 }
 
 } // namespace
+
+bool rockchipIsLoaderMode(quint16 productId, quint16 bcdUsb,
+                         bool hasBulkPipes, bool hasLoaderStrings)
+{
+    // Most loaders set the low bit of bcdUSB. RV1106 usbplug may retain 2.00;
+    // require both bulk endpoints and loader string indices. Windows may
+    // report cached pipes during re-enumeration while the ROM descriptor
+    // still has no manufacturer/product strings.
+    return (bcdUsb & 1u) != 0 ||
+            (productId == 0x110c && hasBulkPipes && hasLoaderStrings) ||
+            (productId == 0x110f && hasBulkPipes);
+}
 
 #ifdef Q_OS_WIN
 
@@ -150,7 +187,23 @@ std::vector<RockchipDeviceDescriptor> listRockchipUsbDevices()
 
             const QString hubPath = QString::fromWCharArray(detail->DevicePath);
             const QString location = QStringLiteral("%1#%2").arg(hubPath).arg(port);
-            result.push_back(makeDescriptor(descriptor.idProduct, descriptor.bcdUSB, location));
+            bool bulkIn = false;
+            bool bulkOut = false;
+            const ULONG maxPipes = (connectionBuffer.size() -
+                    offsetof(USB_NODE_CONNECTION_INFORMATION_EX, PipeList)) / sizeof(USB_PIPE_INFO);
+            for (ULONG pipe = 0; pipe < qMin(connection->NumberOfOpenPipes, maxPipes); ++pipe)
+            {
+                const auto &endpoint = connection->PipeList[pipe].EndpointDescriptor;
+                if ((endpoint.bmAttributes & 3) != 2) // USB bulk transfer
+                    continue;
+                if (endpoint.bEndpointAddress & 0x80)
+                    bulkIn = true;
+                else
+                    bulkOut = true;
+            }
+            result.push_back(makeDescriptor(descriptor.idProduct, descriptor.bcdUSB,
+                                            location, bulkIn && bulkOut,
+                                            descriptor.iManufacturer != 0 || descriptor.iProduct != 0));
         }
         CloseHandle(hub);
     }
@@ -395,7 +448,6 @@ bool isNxpBootloaderDevicePresent()
 
 #include <QElapsedTimer>
 #include <QThread>
-#include <QtEndian>
 #include <atomic>
 #include <thread>
 
@@ -739,10 +791,16 @@ bool downloadRockchipBootloader(const QByteArray &bootloaderData, QString *error
             {
                 quint32 sendBytes = qMin<quint32>(dataSize - totalSent, 4096);
                 DWORD returned = 0;
-                if (!DeviceIoControl(hDev, ioctlCode,
+                const BOOL transferResult = DeviceIoControl(hDev, ioctlCode,
                                      chunk.data() + totalSent, sendBytes,
-                                     nullptr, 0, &returned, nullptr))
+                                     nullptr, 0, &returned, nullptr);
+                const DWORD transferError = transferResult ? ERROR_SUCCESS : GetLastError();
+                if (!transferResult || returned != sendBytes)
                 {
+                    if (errorMsg)
+                        *errorMsg = QStringLiteral("Loader request 0x%1, entry %2 at byte %3 failed (Windows error %4, transferred %5 of %6 bytes).")
+                                .arg(ioctlCode, 8, 16, QLatin1Char('0')).arg(i)
+                                .arg(totalSent).arg(transferError).arg(returned).arg(sendBytes);
                     return false;
                 }
                 totalSent += sendBytes;
@@ -755,8 +813,8 @@ bool downloadRockchipBootloader(const QByteArray &bootloaderData, QString *error
                 DeviceIoControl(hDev, ioctlCode, &zero, 1, nullptr, 0, &returned, nullptr);
             }
 
-            DWORD delay = qMax<DWORD>(entry->dataDelay, 20);
-            Sleep(delay);
+            if (entry->dataDelay)
+                Sleep(entry->dataDelay);
         }
         return true;
     };
@@ -764,14 +822,14 @@ bool downloadRockchipBootloader(const QByteArray &bootloaderData, QString *error
     if (!sendEntries(header->count471, header->offset471, header->size471, 0x8000a000))
     {
         CloseHandle(hDev);
-        if (errorMsg) *errorMsg = QStringLiteral("Failed downloading 471 DDR entry to device.");
+        if (errorMsg && errorMsg->isEmpty()) *errorMsg = QStringLiteral("Failed downloading 471 DDR entry to device.");
         return false;
     }
 
     if (!sendEntries(header->count472, header->offset472, header->size472, 0x8000a004))
     {
         CloseHandle(hDev);
-        if (errorMsg) *errorMsg = QStringLiteral("Failed downloading 472 SPL entry to device.");
+        if (errorMsg && errorMsg->isEmpty()) *errorMsg = QStringLiteral("Failed downloading 472 SPL entry to device.");
         return false;
     }
 
@@ -902,18 +960,19 @@ bool waitForRockchipLoaderMode(int timeoutMs, RockchipDeviceDescriptor *outDescr
             }
         }
 
-#if defined(Q_OS_WIN) || defined(Q_OS_MACOS)
-        // The RV1126B MiniLoader used by the X21 has been observed to keep
-        // reporting bcdUSB 2.00 after a successful MaskROM download.  In
+#if defined(Q_OS_MACOS)
+        // RV1106 usbplug and the RV1126B MiniLoader can keep
+        // reporting bcdUSB 2.00 after a successful MaskROM download. In
         // that case the normal Rockchip odd/even discriminator cannot see
         // the transition, but the loader's bulk pipes are ready. This function
         // is only called after downloadRockchipBootloader succeeds, so
-        // transport readiness is a safe fallback for this PID.
+        // transport readiness is a fallback for these families.
         if (timer.elapsed() >= 1000)
         {
             for (auto dev : devices)
             {
-                if (dev.vendorId != RockchipVendorId || dev.productId != 0x110f)
+                if (dev.vendorId != RockchipVendorId ||
+                        (dev.productId != 0x110f && dev.productId != 0x110c))
                     continue;
 
                 RockchipTransport transport;
@@ -994,6 +1053,15 @@ bool RockchipTransport::open(QString *errorMsg)
 {
     close();
 #ifdef Q_OS_WIN
+    // Rockusb.sys accepts PIPE handles even in MaskROM, where bulk I/O
+    // then fails with ERROR_GEN_FAILURE. Require actual loader endpoints.
+    const auto devices = listRockchipUsbDevices();
+    if (devices.size() != 1 || !devices.front().isLoader)
+    {
+        if (errorMsg)
+            *errorMsg = QStringLiteral("Rockchip Loader bulk endpoints are not ready. Reset the device into MaskROM and retry the matching firmware loader.");
+        return false;
+    }
     QString devPath = findRockchipDevicePath();
     if (devPath.isEmpty())
     {
@@ -1176,9 +1244,23 @@ bool RockchipTransport::writeLBA(quint32 lba, quint16 sectorCount, const quint8 
 
     RockchipCSW csw = {};
     DWORD readBytes = 0;
-    if (!ReadFile(_hReadPipe, &csw, sizeof(csw), &readBytes, nullptr) || readBytes != sizeof(csw))
+    DWORD statusError = ERROR_SUCCESS;
+    bool statusRead = false;
+    // ERROR_GEN_FAILURE may be transient. Retry only the outstanding status
+    // read; never submit the write a second time.
+    for (int attempt = 0; attempt < 3; ++attempt)
     {
-        if (errorMsg) *errorMsg = QStringLiteral("Failed reading CSW status (error %1).").arg(GetLastError());
+        readBytes = 0;
+        statusRead = ReadFile(_hReadPipe, &csw, sizeof(csw), &readBytes, nullptr);
+        statusError = statusRead ? ERROR_SUCCESS : GetLastError();
+        if (statusRead || readBytes != 0 || statusError != ERROR_GEN_FAILURE)
+            break;
+        if (attempt < 2)
+            QThread::msleep(100);
+    }
+    if (!statusRead || readBytes != sizeof(csw))
+    {
+        if (errorMsg) *errorMsg = QStringLiteral("Failed reading CSW status (error %1).").arg(statusError);
         return false;
     }
 

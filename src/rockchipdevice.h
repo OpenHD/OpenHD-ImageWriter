@@ -45,7 +45,11 @@ std::vector<RockchipDeviceDescriptor> listRockchipUsbDevices();
 bool isNxpBootloaderDevicePresent();
 QString rockchipSocName(quint16 vendorId, quint16 productId);
 QString rockchipBoardName(quint16 vendorId, quint16 productId);
-QByteArray loadDefaultBootloader();
+bool rockchipIsLoaderMode(quint16 productId, quint16 bcdUsb,
+                         bool hasBulkPipes, bool hasLoaderStrings);
+QByteArray loadDefaultBootloader(quint16 vendorId, quint16 productId);
+// Validate the chip tag in LDR headers for the supported RV11 families.
+bool rockchipLoaderMatchesDevice(const QByteArray &loader, quint16 vendorId, quint16 productId);
 
 QList<RockchipPartition> parseParameterTxt(const QByteArray &paramContent);
 QByteArray makeParameterBuffer(const QByteArray &paramContent);
