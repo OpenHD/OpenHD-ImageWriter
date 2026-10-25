@@ -80,6 +80,12 @@ int main(int argc, char **argv)
     qToLittleEndian<quint32>(0x31313046, reinterpret_cast<uchar *>(rv1126b.data() + 21));
 
     const bool passed = testImageReadback() &&
+            rockchipCommandSucceeded(0x53425355, 1, 1, 0, 0) &&
+            rockchipCommandSucceeded(0x53425355, 1, 1, 0, 0x10000, true) &&
+            !rockchipCommandSucceeded(0x53425355, 1, 1, 0, 1) &&
+            !rockchipCommandSucceeded(0x53425355, 1, 2, 0, 0, true) &&
+            !rockchipCommandSucceeded(0, 1, 1, 0, 0, true) &&
+            !rockchipCommandSucceeded(0x53425355, 1, 1, 1, 0, true) &&
             rockchipSocName(0x2207, 0x110c) == QStringLiteral("RV1106 / RV1103") &&
             rockchipSocName(0x2207, 0x110f) == QStringLiteral("RV1126B") &&
             !rockchipIsLoaderMode(0x110c, 0x0200, false, false) &&

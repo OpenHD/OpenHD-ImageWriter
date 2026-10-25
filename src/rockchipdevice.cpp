@@ -12,6 +12,15 @@ constexpr quint16 RockchipVendorId = 0x2207;
 
 } // namespace
 
+bool rockchipCommandSucceeded(quint32 signature, quint32 tag, quint32 expectedTag,
+                              quint8 status, quint32 residue, bool readiness)
+{
+    // TEST_UNIT_READY uses the residue field for initialization progress,
+    // rather than untransferred data. Data commands must transfer everything.
+    return signature == 0x53425355 && tag == expectedTag && status == 0 &&
+            (readiness || residue == 0);
+}
+
 QString rockchipSocName(quint16 vendorId, quint16 productId)
 {
     if (vendorId != RockchipVendorId)
@@ -614,7 +623,8 @@ static WindowsHandle openRockchipPipe(const QString &devicePath, bool read,
     return WindowsHandle(handle);
 }
 
-static bool readRockchipStatus(const QString &devicePath, quint32 tag, QString *errorMsg)
+static bool readRockchipStatus(const QString &devicePath, quint32 tag, QString *errorMsg,
+                               bool readiness = false)
 {
     auto pipe = openRockchipPipe(devicePath, true, errorMsg);
     if (!pipe)
@@ -640,11 +650,12 @@ static bool readRockchipStatus(const QString &devicePath, quint32 tag, QString *
             *errorMsg = QStringLiteral("Failed reading CSW status (error %1).").arg(statusError);
         return false;
     }
-    if (csw.signature != 0x53425355 || csw.tag != tag || csw.status != 0 || csw.dataResidue != 0)
+    if (!rockchipCommandSucceeded(csw.signature, csw.tag, tag, csw.status, csw.dataResidue, readiness))
     {
         if (errorMsg)
-            *errorMsg = QStringLiteral("Invalid Rockchip command status (CSW status %1).")
-                    .arg(csw.status);
+            *errorMsg = QStringLiteral("Invalid Rockchip command status (signature %1, tag %2/%3, status %4, residue %5).")
+                    .arg(csw.signature, 8, 16, QLatin1Char('0')).arg(csw.tag).arg(tag)
+                    .arg(csw.status).arg(csw.dataResidue);
         return false;
     }
     return true;
@@ -1150,7 +1161,7 @@ bool RockchipTransport::open(QString *errorMsg)
         return false;
     }
     pipe.reset();
-    if (!readRockchipStatus(devPath, _tag, errorMsg))
+    if (!readRockchipStatus(devPath, _tag, errorMsg, true))
         return false;
     _devicePath = devPath;
     return true;

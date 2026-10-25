@@ -47,6 +47,8 @@ QString rockchipSocName(quint16 vendorId, quint16 productId);
 QString rockchipBoardName(quint16 vendorId, quint16 productId);
 bool rockchipIsLoaderMode(quint16 productId, quint16 bcdUsb,
                          bool hasBulkPipes, bool hasLoaderStrings);
+bool rockchipCommandSucceeded(quint32 signature, quint32 tag, quint32 expectedTag,
+                              quint8 status, quint32 residue, bool readiness = false);
 QByteArray loadDefaultBootloader(quint16 vendorId, quint16 productId);
 // Validate the chip tag in LDR headers for the supported RV11 families.
 bool rockchipLoaderMatchesDevice(const QByteArray &loader, quint16 vendorId, quint16 productId);
