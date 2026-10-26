@@ -2,7 +2,8 @@
 
 Current ORQA image packages contain a Windows-readable `openhd` FAT32 config
 partition and a separate `recordings` partition. ImageWriter requires this layout
-for its NXP flow; older packages fail before UUU writes anything.
+when configuration is selected; older packages fail before UUU writes anything.
+When configuration is disabled, the package is flashed without customization.
 
 ImageWriter customizes the disposable extracted `config.img` **before flashing**.
 The existing OpenHD configuration writer stages `openhd/settings.json`, the
