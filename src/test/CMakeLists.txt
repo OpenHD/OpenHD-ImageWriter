@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(OpenHDBackendTests LANGUAGES CXX)
+project(OpenHDBackendTests LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,6 +22,9 @@ endif()
 add_executable(openhd_backend_tests
     ${SETTINGS_TEST_RESOURCES}
     openhdbackend_test.cpp
+    ../fatimagewriter.cpp
+    ../dependencies/fatfs/ff.c
+    ../dependencies/fatfs/ffunicode.c
     ../archivepathvalidator.cpp
     ../blockbatcher.cpp
     ../curlretrypolicy.cpp
