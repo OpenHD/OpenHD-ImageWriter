@@ -5,6 +5,8 @@
 
 #include "nxpflashthread.h"
 #include "archivepathvalidator.h"
+#include "fatimagewriter.h"
+#include "openhdimagecustomizer.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -12,12 +14,16 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QProcess>
 #include <QRegularExpression>
 #include <QSet>
+#include <QSettings>
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <archive.h>
@@ -278,7 +284,51 @@ void NxpFlashThread::run()
         return;
     }
 
-    emit preparationStatusUpdate(tr("Flashing the NXP device with UUU..."));
+    // Customize the disposable extracted FAT image before UUU starts. This uses
+    // the normal flash transport and leaves the package's boot/reset sequence intact.
+    QFile storageManifest(scriptDirectory.filePath("openhd-storage.json"));
+    QFile originalScript(scripts.first());
+    QJsonObject configPartition;
+    if (storageManifest.open(QIODevice::ReadOnly)) {
+        const auto manifest = QJsonDocument::fromJson(storageManifest.readAll()).object();
+        if (manifest.value("schema_version").toInt() == 1) {
+            for (const auto &entry : manifest.value("partitions").toArray()) {
+                if (entry.toObject().value("name") == "config") configPartition = entry.toObject();
+            }
+        }
+    }
+    const QString configImage = scriptDirectory.filePath("config.img");
+    if (configPartition.value("filesystem") != "vfat" ||
+        configPartition.value("first_lba").toDouble() != 4997120 ||
+        configPartition.value("last_lba").toDouble() != 5259263 ||
+        QFileInfo(configImage).size() != 128LL * 1024 * 1024 ||
+        !originalScript.open(QIODevice::ReadOnly) ||
+        !originalScript.readAll().contains("flash -raw2sparse config config.img")) {
+        emit error(tr("This NXP image does not support automatic configuration. Select a current ORQA image with an OpenHD config partition. Nothing has been flashed."));
+        return;
+    }
+    originalScript.close();
+    emit preparationStatusUpdate(tr("Preparing OpenHD configuration in the NXP config image..."));
+    QTemporaryDir staging;
+    QSettings settings;
+    if (!staging.isValid()) {
+        emit error(tr("Could not create the configuration staging directory. Nothing has been flashed."));
+        return;
+    }
+    const auto customization = OpenHDImageCustomizer::apply(staging.path(), settings);
+    if (!customization.succeeded()) {
+        emit error(tr("Could not prepare NXP configuration (error %1). %2 Nothing has been flashed.")
+                   .arg(static_cast<int>(customization.error)).arg(customization.detail));
+        return;
+    }
+    QString configurationError;
+    if (!FatImageWriter::install(configImage, staging.path(), &configurationError,
+                                 [this]() { return _cancelled.load(); })) {
+        if (!_cancelled) emit error(tr("Could not prepare NXP config image: %1 Nothing has been flashed.").arg(configurationError));
+        return;
+    }
+    if (_cancelled) return;
+    emit preparationStatusUpdate(tr("Flashing the NXP device and its configuration with UUU..."));
     QProcess process;
     process.setWorkingDirectory(scriptDirectory.absolutePath());
     process.setProcessChannelMode(QProcess::MergedChannels);

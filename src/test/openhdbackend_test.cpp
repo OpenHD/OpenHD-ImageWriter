@@ -14,6 +14,7 @@
 #include "ringbuffer.h"
 #include "rockchipfirmwarelayout.h"
 #include "writeprogresswatchdog.h"
+#include "fatimagewriter.h"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -618,10 +619,76 @@ bool testInitialConfigurationSnapshot()
       check(file.value("parameter_defaults").toObject().value("components").toObject().value("100").toObject().value("AIR_RECORDING_E").toInt()==2,"Snapshot lost initial defaults");
 }
 
+bool testFatImageCustomization()
+{
+    QTemporaryDir temporary;
+    const QString imagePath = temporary.filePath("config.img");
+    QByteArray image(4 * 1024 * 1024, '\0');
+    auto *boot = reinterpret_cast<uchar *>(image.data());
+    boot[0] = 0xeb; boot[1] = 0x3c; boot[2] = 0x90;
+    qToLittleEndian<quint16>(512, boot + 11);
+    boot[13] = 1;
+    qToLittleEndian<quint16>(1, boot + 14);
+    boot[16] = 2;
+    qToLittleEndian<quint16>(512, boot + 17);
+    qToLittleEndian<quint16>(8192, boot + 19);
+    boot[21] = 0xf8;
+    qToLittleEndian<quint16>(32, boot + 22);
+    boot[38] = 0x29;
+    memcpy(boot + 43, "OPENHD     ", 11);
+    memcpy(boot + 54, "FAT16   ", 8);
+    boot[510] = 0x55; boot[511] = 0xaa;
+    for (int sector : {1, 33}) {
+        qToLittleEndian<quint16>(0xfff8, boot + sector * 512);
+        qToLittleEndian<quint16>(0xffff, boot + sector * 512 + 2);
+    }
+    if (!writeFile(imagePath, image)) return false;
+    QDir staging(temporary.filePath("staged"));
+    if (!staging.mkpath("openhd/maps")) return false;
+    QSettings settings(temporary.filePath("selected.ini"), QSettings::IniFormat);
+    settings.setValue("bootType", "Ground");
+    settings.setValue("sbc", "nxp");
+    const auto customization = OpenHDImageCustomizer::apply(staging.path(), settings);
+    const QByteArray payload(130000, 'x');
+    if (!writeFile(staging.filePath(QStringLiteral("openhd/maps/m\u00fcnchen.glidemap")), payload)) return false;
+    QString error;
+    if (!check(customization.succeeded() && FatImageWriter::install(imagePath, staging.path(), &error),
+               "FAT config install/readback failed: " + error)) return false;
+    // Replacement must truncate a former longer file and preserve unrelated image files.
+    if (!writeFile(staging.filePath(QStringLiteral("openhd/maps/m\u00fcnchen.glidemap")), "short")) return false;
+    if (!check(FatImageWriter::install(imagePath, staging.path(), &error), "FAT replacement failed: " + error)) return false;
+    QFile updated(imagePath);
+    if (!updated.open(QIODevice::ReadOnly)) return false;
+    const auto contents = updated.readAll();
+    const QByteArray beforeCancel = contents;
+    if (!check(contents.contains("\"role\": \"ground\""), "Ground settings missing from FAT image") ||
+        !check(!FatImageWriter::install(imagePath, staging.path(), &error, [] { return true; }), "Cancelled FAT preparation succeeded")) return false;
+    QTemporaryDir invalid;
+    const QString invalidPath = invalid.filePath("invalid.img");
+    if (!writeFile(invalidPath, QByteArray(4096, '\0'))) return false;
+    const bool rejected = !FatImageWriter::install(invalidPath, staging.path(), &error);
+    QFile afterCancel(imagePath);
+    if (!check(afterCancel.open(QIODevice::ReadOnly) && afterCancel.readAll() == beforeCancel,
+               "Cancellation changed the partition image")) return false;
+    afterCancel.close();
+    // Space exhaustion must fail during local preparation, before any USB writes.
+    if (!writeFile(staging.filePath("openhd/oversized.bin"), QByteArray(5 * 1024 * 1024, 'z'))) return false;
+    return check(rejected, "Non-FAT partition was accepted") &&
+           check(!FatImageWriter::install(imagePath, staging.path(), &error), "Full FAT partition was accepted");
+}
+
 int main(int argc, char *argv[])
 {
     QCoreApplication application(argc, argv);
+    // Used for independent fsck/mtools validation against a real image artifact.
+    if (argc == 4 && application.arguments().at(1) == "--install-fat-image") {
+        QString error;
+        const bool ok = FatImageWriter::install(application.arguments().at(2), application.arguments().at(3), &error);
+        if (!ok) qCritical().noquote() << error;
+        return ok ? 0 : 1;
+    }
     int failures = 0;
+    failures += testFatImageCustomization() ? 0 : 1;
     failures += testInitialConfigurationSnapshot() ? 0 : 1;
     failures += testGroundSettingsAndCameraMapping() ? 0 : 1;
     failures += testImageNameRoleOverrides() ? 0 : 1;
