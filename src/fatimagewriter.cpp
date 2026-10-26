@@ -14,14 +14,17 @@ namespace {
 QMutex filesystemMutex;
 // FatFs's registered volumes are global; hold filesystemMutex for the full operation.
 QFile *activeImage = nullptr;
+qint64 regionOffset = 0;
+qint64 regionLength = 0;
 
 bool transferRange(LBA_t sector, UINT count, qint64 *offset, qint64 *length)
 {
     if (!activeImage || !count) return false;
     *offset = static_cast<qint64>(sector) * 512;
     *length = static_cast<qint64>(count) * 512;
-    return *offset >= 0 && *offset <= activeImage->size() &&
-        *length <= activeImage->size() - *offset;
+    if (*offset < 0 || *offset > regionLength || *length > regionLength - *offset) return false;
+    *offset += regionOffset;
+    return true;
 }
 }
 
@@ -47,7 +50,7 @@ DRESULT disk_ioctl(BYTE drive, BYTE command, void *buffer)
     if (drive || !activeImage) return RES_NOTRDY;
     switch (command) {
     case CTRL_SYNC: return activeImage->flush() ? RES_OK : RES_ERROR;
-    case GET_SECTOR_COUNT: *static_cast<LBA_t *>(buffer) = activeImage->size() / 512; return RES_OK;
+    case GET_SECTOR_COUNT: *static_cast<LBA_t *>(buffer) = regionLength / 512; return RES_OK;
     case GET_SECTOR_SIZE: *static_cast<WORD *>(buffer) = 512; return RES_OK;
     case GET_BLOCK_SIZE: *static_cast<DWORD *>(buffer) = 1; return RES_OK;
     default: return RES_PARERR;
@@ -56,13 +59,21 @@ DRESULT disk_ioctl(BYTE drive, BYTE command, void *buffer)
 }
 
 bool FatImageWriter::install(const QString &imagePath, const QString &stagingDirectory,
-                             QString *error, const std::function<bool()> &cancelled)
+                             QString *error, const std::function<bool()> &cancelled,
+                             qint64 partitionOffset, qint64 partitionLength)
 {
     QMutexLocker lock(&filesystemMutex);
     QFile image(imagePath);
     if (!QFileInfo(imagePath).isFile() || !image.open(QIODevice::ReadWrite) ||
         image.size() < 512 || image.size() % 512 || image.size() / 512 > 0xffffffffULL) {
         if (error) *error = QStringLiteral("Cannot open the FAT partition image.");
+        return false;
+    }
+    regionOffset = partitionOffset;
+    regionLength = partitionLength ? partitionLength : image.size() - regionOffset;
+    if (regionOffset < 0 || regionOffset % 512 || regionLength < 512 || regionLength % 512 ||
+        regionOffset > image.size() || regionLength > image.size() - regionOffset) {
+        if (error) *error = QStringLiteral("Invalid config partition extent.");
         return false;
     }
     activeImage = &image;
@@ -77,6 +88,15 @@ bool FatImageWriter::install(const QString &imagePath, const QString &stagingDir
     if (result != FR_OK) return finish(false, QStringLiteral("Invalid FAT image (error %1).").arg(result));
     QDir staging(stagingDirectory);
     if (!staging.exists()) return finish(false, QStringLiteral("Configuration staging directory is missing."));
+    // Factory Air markers must not override the user's selected role.
+    if (QFileInfo::exists(staging.filePath("openhd/air.txt")) || QFileInfo::exists(staging.filePath("openhd/ground.txt"))) {
+        if (cancelled && cancelled()) return finish(false, QStringLiteral("Cancelled."));
+        for (const auto *name : {"0:/openhd/air.txt", "0:/openhd/ground.txt", "0:/openhd/record.txt"}) {
+            const auto removed = f_unlink(name);
+            if (removed != FR_OK && removed != FR_NO_FILE && removed != FR_NO_PATH)
+                return finish(false, QStringLiteral("Cannot replace the factory role marker."));
+        }
+    }
     QDirIterator entries(stagingDirectory, QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden,
                          QDirIterator::Subdirectories);
     while (entries.hasNext()) {

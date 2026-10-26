@@ -8,7 +8,8 @@ namespace FatImageWriter {
 // Modifies an extracted, disposable partition image only; never opens a host disk.
 // All staged files are read back and compared before returning success.
 bool install(const QString &imagePath, const QString &stagingDirectory,
-             QString *error, const std::function<bool()> &cancelled = {});
+             QString *error, const std::function<bool()> &cancelled = {},
+             qint64 partitionOffset = 0, qint64 partitionLength = 0);
 }
 
 #endif

@@ -8,6 +8,9 @@
 #include "rockchipdevice.h"
 #include "rockchipfirmwarelayout.h"
 #include "rockchipimageverify.h"
+#include "rockchipconfiguration.h"
+#include "fatimagewriter.h"
+#include "openhdimagecustomizer.h"
 
 #include <QDebug>
 #include <QBuffer>
@@ -17,10 +20,12 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QSet>
+#include <QSettings>
 #include <QTemporaryDir>
 #include <archive.h>
 #include <archive_entry.h>
@@ -499,6 +504,60 @@ void RockchipFlashThread::run()
     {
         emit error(tr("No flashable partition images found in the selected package."));
         return;
+    }
+
+    QSettings settings;
+    if (settings.value("useSettings").toBool()) {
+        // The transport subsequently verifies the complete customized image,
+        // before resetting. Never edit a running/mounted target filesystem.
+        QTemporaryDir staging;
+        if (!staging.isValid()) { emit error(tr("Could not stage Rockchip configuration. Nothing has been flashed.")); return; }
+        const auto result = OpenHDImageCustomizer::apply(staging.path(), settings);
+        if (!result.succeeded()) {
+            emit error(tr("Could not prepare Rockchip settings (error %1). %2 Nothing has been flashed.")
+                       .arg(static_cast<int>(result.error)).arg(result.detail));
+            return;
+        }
+        const QString role = OpenHDImageCustomizer::buildSettings(settings).value("role").toString();
+        if (role == "air" || role == "ground") {
+            QFile marker(QDir(staging.path()).filePath("openhd/" + role + ".txt"));
+            if (!marker.open(QIODevice::WriteOnly)) {
+                emit error(tr("Could not stage the selected device role. Nothing has been flashed.")); return;
+            }
+        }
+        int targetIndex = -1;
+        enum class ConfigKind { Fat, Disk, Ubi } kind = ConfigKind::Fat;
+        for (int i = 0; i < targets.size(); ++i) {
+            const auto name = targets.at(i).name.toLower();
+            if (name != "ohd_config" && name != "disk" && name != "image" && name != "ohd") continue;
+            if (targetIndex != -1) { emit error(tr("Ambiguous Rockchip configuration targets. Nothing has been flashed.")); return; }
+            targetIndex = i;
+            kind = name == "ohd_config" ? ConfigKind::Fat : name == "ohd" ? ConfigKind::Ubi : ConfigKind::Disk;
+        }
+        if (targetIndex == -1 || isOhd) {
+            emit error(tr("This package cannot accept configuration through USB. Select a current full Luckfox/X21 firmware ZIP. Nothing has been flashed."));
+            return;
+        }
+        auto &target = targets[targetIndex];
+        // Direct raw sources belong to the user; copy before modifying.
+        if (isRawImg) {
+            const QString disposable = tempDir.filePath("configured-disk.img");
+            if (!QFile::copy(target.filePath, disposable)) {
+                emit error(tr("Could not copy the disk image for customization. Nothing has been flashed.")); return;
+            }
+            target.filePath = disposable;
+        }
+        emit preparationStatusUpdate(tr("Preparing Rockchip configuration before flashing..."));
+        QString detail;
+        const auto cancelled = [this]() { return _cancelled.load(); };
+        bool ok = false;
+        if (kind == ConfigKind::Fat) ok = FatImageWriter::install(target.filePath, staging.path(), &detail, cancelled);
+        else if (kind == ConfigKind::Disk) ok = RockchipConfiguration::installDisk(target.filePath, staging.path(), &detail, cancelled);
+        else ok = RockchipConfiguration::installUbi(target.filePath, staging.path(), &detail, cancelled);
+        if (!ok) {
+            if (!_cancelled) emit error(tr("Could not prepare Rockchip config: %1 Nothing has been flashed.").arg(detail));
+            return;
+        }
     }
 
     if (_cancelled)

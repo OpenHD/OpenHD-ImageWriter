@@ -95,7 +95,7 @@ if (NOT atomicbuiltin)
         endif()
 endif()
 
-set(SOURCES "main.cpp" "fatimagewriter.cpp" "dependencies/fatfs/ff.c" "dependencies/fatfs/ffunicode.c" "archivepathvalidator.cpp" "certificatevalidator.cpp" "blockbatcher.cpp" "curlnetworkconfig.cpp" "curlretrypolicy.cpp" "diskformatter.cpp" "drivesafetypolicy.cpp" "file_operations.cpp" "ringbuffer.cpp" "writeprogresswatchdog.cpp" "openhdimagecustomizer.cpp" "openhdstorageselector.cpp" "openhdstorageservice.cpp" "imagewriter.cpp" "networkaccessmanagerfactory.cpp"
+set(SOURCES "main.cpp" "fatimagewriter.cpp" "rockchipconfiguration.cpp" "dependencies/fatfs/ff.c" "dependencies/fatfs/ffunicode.c" "archivepathvalidator.cpp" "certificatevalidator.cpp" "blockbatcher.cpp" "curlnetworkconfig.cpp" "curlretrypolicy.cpp" "diskformatter.cpp" "drivesafetypolicy.cpp" "file_operations.cpp" "ringbuffer.cpp" "writeprogresswatchdog.cpp" "openhdimagecustomizer.cpp" "openhdstorageselector.cpp" "openhdstorageservice.cpp" "imagewriter.cpp" "networkaccessmanagerfactory.cpp"
     "drivelistitem.cpp" "drivelistmodel.cpp" "drivelistmodelpollthread.cpp" "rockchipdevice.cpp" "rockchipfirmwarelayout.cpp" "rockchipflashthread.cpp" "nxpflashthread.cpp" "downloadthread.cpp" "downloadextractthread.cpp"
      "driveformatthread.cpp" "localfileextractthread.cpp" "powersaveblocker.cpp" "downloadstatstelemetry.cpp" "updateuploadthread.cpp" "qml.qrc" "dependencies/sha256crypt/sha256crypt.c" "cli.cpp")
 
@@ -455,7 +455,9 @@ if(BUILD_TESTING)
     add_executable(openhd_backend_tests
         ${SETTINGS_TEST_RESOURCES}
         test/openhdbackend_test.cpp
+        test/rockchipconfiguration_test.cpp
         fatimagewriter.cpp
+        rockchipconfiguration.cpp
         dependencies/fatfs/ff.c
         dependencies/fatfs/ffunicode.c
         archivepathvalidator.cpp

@@ -21,10 +21,9 @@ storage switch or mounted Linux filesystem is involved.
 The standalone package `uuu-mass-storage.auto` helper remains available for
 manual access later. It is unnecessary for normal ImageWriter configuration.
 
-Rockchip MaskROM/Loader transports similarly offer raw sector reads and writes,
-not filesystem operations. The FAT image adapter can be reused for a dedicated
-FAT partition, but ext4/UBIFS layouts need their own filesystem tooling; this
-change does not add Rockchip configuration support.
+Luckfox and production X21B now use their MaskROM/Loader transport for the same
+prepare-before-flash flow. See [Rockchip configuration](rockchip-configuration.md)
+for the FAT partition and static UBI provisioning paths.
 
 Source tests and Windows builds do not prove physical flashing or boot. Test
 with the matching ORQA board/bootloader; do not substitute its bootloader onto a

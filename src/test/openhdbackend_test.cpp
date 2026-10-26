@@ -15,6 +15,8 @@
 #include "rockchipfirmwarelayout.h"
 #include "writeprogresswatchdog.h"
 #include "fatimagewriter.h"
+#include "rockchipconfiguration.h"
+bool testRockchipConfiguration(const QString &fatImage, const QString &staging);
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -671,6 +673,7 @@ bool testFatImageCustomization()
     if (!check(afterCancel.open(QIODevice::ReadOnly) && afterCancel.readAll() == beforeCancel,
                "Cancellation changed the partition image")) return false;
     afterCancel.close();
+    if (!testRockchipConfiguration(imagePath, staging.path())) return false;
     // Space exhaustion must fail during local preparation, before any USB writes.
     if (!writeFile(staging.filePath("openhd/oversized.bin"), QByteArray(5 * 1024 * 1024, 'z'))) return false;
     return check(rejected, "Non-FAT partition was accepted") &&
@@ -681,9 +684,14 @@ int main(int argc, char *argv[])
 {
     QCoreApplication application(argc, argv);
     // Used for independent fsck/mtools validation against a real image artifact.
-    if (argc == 4 && application.arguments().at(1) == "--install-fat-image") {
+    if (argc == 4 && (application.arguments().at(1) == "--install-fat-image" ||
+                     application.arguments().at(1) == "--install-rockchip-disk" ||
+                     application.arguments().at(1) == "--install-rockchip-ubi")) {
         QString error;
-        const bool ok = FatImageWriter::install(application.arguments().at(2), application.arguments().at(3), &error);
+        const auto command = application.arguments().at(1);
+        const bool ok = command == "--install-rockchip-disk" ? RockchipConfiguration::installDisk(application.arguments().at(2), application.arguments().at(3), &error) :
+            command == "--install-rockchip-ubi" ? RockchipConfiguration::installUbi(application.arguments().at(2), application.arguments().at(3), &error) :
+            FatImageWriter::install(application.arguments().at(2), application.arguments().at(3), &error);
         if (!ok) qCritical().noquote() << error;
         return ok ? 0 : 1;
     }

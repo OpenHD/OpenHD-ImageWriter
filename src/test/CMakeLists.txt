@@ -22,7 +22,9 @@ endif()
 add_executable(openhd_backend_tests
     ${SETTINGS_TEST_RESOURCES}
     openhdbackend_test.cpp
+    rockchipconfiguration_test.cpp
     ../fatimagewriter.cpp
+    ../rockchipconfiguration.cpp
     ../dependencies/fatfs/ff.c
     ../dependencies/fatfs/ffunicode.c
     ../archivepathvalidator.cpp
