@@ -19,6 +19,45 @@ for(const board of map.platforms) {
 assert.strictEqual(context.platformForHardware('Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)'),null);
 assert.strictEqual(context.platformForHint('openhd-rpi5-bullseye.img').id,'rpi5');
 assert.strictEqual(context.platformForHint('openhd-rpi-bullseye.img'),null);
+for (const name of ['openhd-image-luckfox-pico-ultra-w(1).zip', 'openhd-pico-rv1106-sd.zip', 'RV1106', 'luckfox-pico'])
+  assert.strictEqual(context.isRv1106Image(name),true,name);
+for (const name of ['firmware.zip', 'openhd-x21.zip', 'luckfox-lyra', 'rpi4'])
+  assert.strictEqual(context.isRv1106Image(name),false,name);
+assert.deepStrictEqual(Array.from(context.platformForHardware('rv1106').roles),['air']);
+assert.strictEqual(context.isRv1106Device({device:'rockusb:board',usbVendorId:0x2207,usbProductId:0x110c}),true);
+assert.strictEqual(context.isRv1106Device({device:'rockusb:board',usbVendorId:0x2207,usbProductId:0x110f}),false);
+assert.strictEqual(context.isRv1106Device({device:'disk',usbVendorId:0x2207,usbProductId:0x110c}),false);
+assert.strictEqual(context.isRv1106Device({device:'rockusb:board'}),false);
+// Exercise the actual write entry point with a saved Ground profile present.
+const flashQml=fs.readFileSync(require.resolve('../flash.qml'),'utf8');
+const writeEntry=flashQml.slice(flashQml.indexOf('    function startWriteNow()'),
+  flashQml.indexOf('\n    ColumnLayout {',flashQml.indexOf('    function startWriteNow()')));
+function tryWrite(fixedDefaults) {
+  const saved={bootType:'Ground',camera:'USB',camera2:'USB'};
+  let started=false;
+  const ui={usesRv1106Defaults:fixedDefaults,fleetControlSignedIn:true,useProfileSettings:true,
+    fleetControlProfileName:fixedDefaults?'old-ground-profile':'',optionsPage:{configurationApplied:false},
+    FleetProfilesHelper:{loadProfiles:()=>{throw Error('RV1106 must not load a saved profile');}},
+    imageWriter:{setSetting:(key,value)=>saved[key]=value,getBoolSetting:()=>false,
+      setVerifyEnabled:()=>{},startWrite:()=>started=true},
+    resetOpenHdSettingsForNewImage:()=>{for(const key of Object.keys(saved)) delete saved[key];},
+    rockchipFinalizationFallback:{stop:()=>{}},resetDownloadTracking:()=>{},
+    qsTr:text=>text,console:{log:()=>{}},reviewingOperation:false};
+  for(const id of ['langbar','writebutton','cancelwritebutton','cancelverifybutton','progressText','osbutton','dstbutton']) ui[id]={};
+  ui.progressBar={Material:{}};
+  vm.runInNewContext(writeEntry+'\nstartWriteNow()',ui);
+  return {started,saved,ui};
+}
+const fixedWrite=tryWrite(true);
+assert.strictEqual(fixedWrite.started,true);
+assert.strictEqual(fixedWrite.saved.bootType,'Air');
+assert.strictEqual(fixedWrite.saved.platform,'luckfox-pico');
+assert.strictEqual(fixedWrite.saved.useSettings,false);
+assert.strictEqual(fixedWrite.saved.camera,undefined);
+assert.strictEqual(fixedWrite.saved.camera2,undefined);
+const configurableWrite=tryWrite(false);
+assert.strictEqual(configurableWrite.started,false);
+assert.strictEqual(configurableWrite.ui.reviewingOperation,true);
 context.applyProfile(writer,{craftRole:'ground',craftPlatform:'rpi4',craftCamera:'USB',craftCamera2:'USB'});
 assert.deepStrictEqual(JSON.parse(settings.initialParameterDefaults),{version:1,components:{}});
 assert.strictEqual(settings.camera,''); assert.strictEqual(settings.camera2,'');

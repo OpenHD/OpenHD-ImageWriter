@@ -13,6 +13,8 @@ Item {
     property string targetName: ""
     property string targetDetail: ""
     property string confirmText: qsTr("Start")
+    property bool offlineMapsAvailable: false
+    property string offlineMapStatus: ""
     property bool updateOperation: false
     property bool configurationRequired: false
     property bool configurationComplete: false
@@ -29,6 +31,7 @@ Item {
     signal changeSourceRequested()
     signal changeTargetRequested()
     signal configureRequested()
+    signal offlineMapsRequested()
     signal profileSettingsToggled(bool enabled)
     signal profileSelected(var profile)
     signal clearProfileRequested()
@@ -400,6 +403,22 @@ Item {
                             wrapMode: Text.WordWrap
                         }
                     }
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                visible: root.offlineMapsAvailable && !root.updateOperation
+                ModernActionButton {
+                    text: qsTr("Create offline map...")
+                    onClicked: root.offlineMapsRequested()
+                }
+                Text {
+                    Layout.fillWidth: true
+                    text: root.offlineMapStatus.length > 0 ? root.offlineMapStatus
+                          : qsTr("Optional: find a region and draw the area to include on this ground station.")
+                    color: "#8eafbf"
+                    wrapMode: Text.WordWrap
                 }
             }
 

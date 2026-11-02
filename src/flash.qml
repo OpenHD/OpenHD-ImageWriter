@@ -71,13 +71,34 @@ Rectangle {
     property bool completionHandled: false
     property double selectedTargetSize: 0
     property bool selectedTargetIsComputeModule: false
+    property bool selectedTargetIsRv1106: false
     property string selectedImagePlatform: ""
     readonly property bool selectedImageRequiresRockchip: selectedImagePlatform === "x21"
     readonly property string selectedImageIdentity: (selectedImagePlatform + " " + osbutton.text).toLowerCase()
+    readonly property bool usesRv1106Defaults: {
+        FleetProfilesHelper.getSettingsMap(imageWriter)
+        return selectedTargetIsRv1106 || FleetProfilesHelper.isRv1106Image(selectedImageIdentity)
+    }
     readonly property bool selectedImageUsesOrqaBootloader: selectedImageIdentity.indexOf("orqa") >= 0 ||
                                                             selectedImageIdentity.indexOf("nxp") >= 0 ||
                                                             selectedImageIdentity.indexOf("imx8") >= 0
     readonly property bool operationInProgress: progressBar.visible
+
+    Loader {
+        id: localOfflineMapDialog
+        active: false
+        source: "offlinemaps/OfflineMapDialog.qml"
+        onLoaded: {
+            item.builder = _offlineMapBuilder
+            item.mapboxApiKey = imageWriter.getValue("mapboxApiKey") || ""
+            item.mapReady.connect(function(filePath) {
+                imageWriter.setSetting("offlineMapPackagePath", filePath)
+                window.offlineMapStatus = qsTr("Offline map ready. It will be copied to openhd/maps when this ground station is flashed.")
+                item.close()
+            })
+            item.open()
+        }
+    }
 
     Connections {
         target: imageWriter
@@ -1438,18 +1459,20 @@ Rectangle {
         enabled: visible
         z: 2
         title: qsTr("Review image write")
-        subtitle: qsTr("Check your selection and configure the write options before continuing.")
+        subtitle: usesRv1106Defaults
+                  ? qsTr("RV1106 Air image with its built-in camera settings. Ready to flash.")
+                  : qsTr("Check your selection and configure the write options before continuing.")
         sourceName: osbutton.text
         sourceDetail: String(imageWriter.src())
         targetName: dstbutton.text
         targetDetail: imageWriter.dst() + (selectedTargetSize > 0
                       ? "  \u2022  " + formatReviewSize(selectedTargetSize) : "")
         confirmText: qsTr("Erase target and write")
-        fleetControlSignedIn: window.fleetControlSignedIn
+        fleetControlSignedIn: window.fleetControlSignedIn && !usesRv1106Defaults
         profileName: fleetControlSignedIn ? fleetControlProfileName : ""
         profileDetail: fleetControlSignedIn ? fleetControlProfileDetail : ""
         profileIcon: fleetControlSignedIn ? fleetControlProfileIcon : ""
-        configurationRequired: true
+        configurationRequired: !usesRv1106Defaults
         configurationComplete: (fleetControlSignedIn && fleetControlProfileName.length > 0 && useProfileSettings) || optionsPage.configurationApplied
         onProfileSelected: function(profile) {
             fleetControlProfileName = profile.craftName
@@ -1481,13 +1504,19 @@ Rectangle {
             selectingTarget = true
             imageWriter.startDriveListPolling()
         }
+        offlineMapsAvailable: !usesRv1106Defaults && configurationComplete && imageWriter.getValue("bootType") === "Ground"
+        offlineMapStatus: window.offlineMapStatus
+        onOfflineMapsRequested: {
+            if (localOfflineMapDialog.item) localOfflineMapDialog.item.open()
+            else localOfflineMapDialog.active = true
+        }
         onConfigureRequested: optionsPage.openPage()
         onConfirmed: {
             if (imageWriter.getBoolSetting("offlineMapsPending")) {
                 offlineMapStatus = qsTr("Wait for the offline map to finish downloading before flashing.")
                 return
             }
-            if ((fleetControlSignedIn && fleetControlProfileName.length > 0 && useProfileSettings) || optionsPage.configurationApplied)
+            if (usesRv1106Defaults || (fleetControlSignedIn && fleetControlProfileName.length > 0 && useProfileSettings) || optionsPage.configurationApplied)
                 writeConfirmPopup.openPopup()
         }
     }
@@ -1545,7 +1574,7 @@ Rectangle {
 
     function startWriteNow() {
         var selectedCraft = null
-        if (fleetControlSignedIn && useProfileSettings && fleetControlProfileName.length > 0) {
+        if (!usesRv1106Defaults && fleetControlSignedIn && useProfileSettings && fleetControlProfileName.length > 0) {
             var activeProfiles = FleetProfilesHelper.loadProfiles(imageWriter)
             for (var aIdx = 0; aIdx < activeProfiles.length; ++aIdx) {
                 if (activeProfiles[aIdx].craftName === fleetControlProfileName) {
@@ -1555,13 +1584,23 @@ Rectangle {
             }
         }
         var hasActiveProfile = selectedCraft !== null
-        if (!optionsPage.configurationApplied && !hasActiveProfile) {
+        if (!usesRv1106Defaults && !optionsPage.configurationApplied && !hasActiveProfile) {
             reviewingOperation = true
             return
         }
 
         if (hasActiveProfile)
             FleetProfilesHelper.applyProfile(imageWriter, selectedCraft)
+
+        if (usesRv1106Defaults) {
+            // These images already contain their Air and camera configuration.
+            // Do not inject saved settings from another board or fleet profile.
+            resetOpenHdSettingsForNewImage()
+            imageWriter.setSetting("platform", "luckfox-pico")
+            imageWriter.setSetting("sbc", "rockchip-rv")
+            imageWriter.setSetting("bootType", "Air")
+            imageWriter.setSetting("useSettings", false)
+        }
 
         completionHandled = false
         rockchipFinalizationFallback.stop()
@@ -1731,7 +1770,7 @@ Rectangle {
                             image_name=imageWriter.srcFileName();
                             bootType=imageWriter.getValue("bootType");
                             camera=imageWriter.getValue("camera");
-                            if(image_name.includes("configurable")){
+                            if(!usesRv1106Defaults && image_name.includes("configurable")){
                                 if(bootType!=="Air" && bootType!=="Ground" ){
                                     console.log("Cannot write yet, air or ground not set yet");
                                     onError("Cannot write yet, air or ground not set yet - please open settings and select air or ground")
@@ -1739,7 +1778,7 @@ Rectangle {
                                 }
                             }
                             use_settings=imageWriter.getValue("useSettings")
-                            if (!optionsPage.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
+                            if (!usesRv1106Defaults && !optionsPage.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
                                 optionsPage.openPage()
                             } else {
                                 reviewingOperation = true
@@ -1767,7 +1806,7 @@ Rectangle {
                             image_name=imageWriter.srcFileName();
                             bootType=imageWriter.getValue("bootType");
                             camera=imageWriter.getValue("camera");
-                            if(image_name.includes("configurable")){
+                            if(!usesRv1106Defaults && image_name.includes("configurable")){
                                 if(bootType!=="Air" && bootType!=="Ground" ){
                                     console.log("Cannot write yet, air or ground not set yet");
                                     onError("Cannot write yet, air or ground not set yet - please open settings and select air or ground")
@@ -1775,7 +1814,7 @@ Rectangle {
                                 }
                             }
                             use_settings=imageWriter.getValue("useSettings")
-                            if (!optionsPage.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
+                            if (!usesRv1106Defaults && !optionsPage.initialized && imageWriter.imageSupportsCustomization() && imageWriter.hasSavedCustomizationSettings()) {
                                 optionsPage.openPage()
                             } else {
                                 reviewingOperation = true
@@ -2302,6 +2341,7 @@ Rectangle {
         imageWriter.setDst("")
         selectedTargetSize = 0
         selectedTargetIsComputeModule = false
+        selectedTargetIsRv1106 = false
         selectedImagePlatform = ""
         osbutton.text = qsTr("CHOOSE OS")
         dstbutton.text = qsTr("CHOOSE STORAGE")
@@ -2664,6 +2704,7 @@ Rectangle {
         imageWriter.stopDriveListPolling()
 
         imageWriter.setDst(d.device, d.size)
+        selectedTargetIsRv1106 = FleetProfilesHelper.isRv1106Device(d)
         selectedTargetSize = Number(d.size) || 0
         dstbutton.text = d.description
         var targetIdentity = (String(d.description || "") + " " + String(d.device || "")).toLowerCase()

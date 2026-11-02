@@ -3,6 +3,7 @@
  * Copyright (C) 2020 Raspberry Pi Ltd
  */
 
+#include "offlinemaps/offlinemapbuilder.h"
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -134,6 +135,7 @@ int main(int argc, char *argv[])
     app.setApplicationName("Image writer");
     app.setWindowIcon(QIcon(":/icons/openhdimagewriter.ico"));
     ImageWriter imageWriter;
+    OfflineMapBuilder offlineMapBuilder;
     NetworkAccessManagerFactory namf;
     QQmlApplicationEngine engine;
     QString customQm;
@@ -291,6 +293,7 @@ int main(int argc, char *argv[])
     imageWriter.setEngine(&engine);
     engine.setNetworkAccessManagerFactory(&namf);
     engine.rootContext()->setContextProperty("imageWriter", &imageWriter);
+    engine.rootContext()->setContextProperty("_offlineMapBuilder", &offlineMapBuilder);
     engine.rootContext()->setContextProperty("driveListModel", imageWriter.getDriveList());
     engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
 

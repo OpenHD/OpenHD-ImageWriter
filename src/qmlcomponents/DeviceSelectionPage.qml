@@ -93,6 +93,9 @@ Item {
                     "isScsi": typeof(model.isScsi) !== "undefined" && model.isScsi,
                     "isMaskrom": typeof(model.isMaskrom) !== "undefined" && model.isMaskrom,
                     "isLoader": typeof(model.isLoader) !== "undefined" && model.isLoader,
+                    "usbVendorId": model.usbVendorId,
+                    "usbProductId": model.usbProductId,
+                    "socName": model.socName,
                     "mountpoints": typeof(model.mountpoints) !== "undefined" ? model.mountpoints : []
                 })
             }

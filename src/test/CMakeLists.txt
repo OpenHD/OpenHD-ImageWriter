@@ -64,3 +64,11 @@ target_link_libraries(initialsettings_qml_test PRIVATE Qt5::Gui Qt5::Qml Qt5::Qu
 target_compile_definitions(initialsettings_qml_test PRIVATE INITIAL_SETTINGS_QML_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../qmlcomponents/InitialSettingsPanel.qml")
 add_test(NAME initialsettings_qml_contract COMMAND initialsettings_qml_test)
 set_tests_properties(initialsettings_qml_contract PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+# Offline map generation runs without Python, external services, or target disks.
+find_package(Qt5 REQUIRED COMPONENTS Network)
+add_executable(offline_map_builder_tests offlinemapbuilder_test.cpp ../offlinemaps/offlinemapbuilder.cpp ../offlinemaps/offlinemapbuilder.h)
+set_target_properties(offline_map_builder_tests PROPERTIES AUTOMOC ON)
+target_include_directories(offline_map_builder_tests PRIVATE ../offlinemaps)
+target_link_libraries(offline_map_builder_tests PRIVATE Qt5::Core Qt5::Gui Qt5::Network)
+add_test(NAME offline_map_builder COMMAND offline_map_builder_tests)

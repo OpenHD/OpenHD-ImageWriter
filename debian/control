@@ -2,9 +2,9 @@ Source: openhdimagewriter
 Section: admin
 Priority: optional
 Maintainer: Raphael Scholle <raphael@openhdfpv.org>
-Build-Depends: debhelper (>= 10), cmake, libarchive-dev, libcurl4-gnutls-dev | libcurl4-openssl-dev,
+Build-Depends: qtlocation5-dev, qtpositioning5-dev, debhelper (>= 10), cmake, libarchive-dev, libcurl4-gnutls-dev | libcurl4-openssl-dev,
  qtbase5-dev, qtbase5-dev-tools, qtdeclarative5-dev, libqt5svg5-dev, qttools5-dev, libgnutls28-dev,
- qml-module-qtquick2, qml-module-qtquick-controls2, qml-module-qtquick-layouts, qml-module-qtquick-templates2, qml-module-qtquick-window2, qml-module-qtgraphicaleffects, qml-module-qt-labs-settings
+ qml-module-qtquick2, qml-module-qtquick-controls2, qml-module-qtquick-layouts, qml-module-qtquick-templates2, qml-module-qtquick-window2, qml-module-qtgraphicaleffects, qml-module-qt-labs-settings, qml-module-qtlocation, qml-module-qtpositioning
 Standards-Version: 4.1.2
 Homepage: https://www.openhdfpv.org/
 
@@ -12,7 +12,7 @@ Package: openhdimagewriter
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, 
  qml-module-qtquick2, qml-module-qtquick-controls2, qml-module-qtquick-layouts, qml-module-qtquick-templates2, qml-module-qtquick-window2, qml-module-qtgraphicaleffects,
- dosfstools, fdisk, qml-module-qt-labs-settings
+ dosfstools, fdisk, qml-module-qt-labs-settings, qml-module-qtlocation, qml-module-qtpositioning
 Recommends: udisks2
 Description: OpenHD Image Writer
  Graphical user-interface to write disk images and format SD cards.

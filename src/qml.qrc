@@ -1,5 +1,9 @@
 <RCC>
     <qresource prefix="/">
+        <file>offlinemaps/OfflineMapDialog.qml</file>
+        <file>offlinemaps/OfflineMapButton.qml</file>
+        <file>offlinemaps/OfflineMapSelection.qml</file>
+        <file>offlinemaps/MapboxLogo.png</file>
         <file>main.qml</file>
         <file>flash.qml</file>
         <file>update.qml</file>
