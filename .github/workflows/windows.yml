@@ -252,7 +252,6 @@ jobs:
       uses: signpath/github-action-submit-signing-request@v3
       with:
         api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-        connector-url: https://pipelineconnector.connectors.signpath.io/GitHub/GitHubCom
         organization-id: ${{ inputs.organization-id }}
         project-slug: ${{ inputs.project-slug }}
         signing-policy-slug: ${{ inputs.signing-policy-slug }}
@@ -303,7 +302,6 @@ jobs:
       uses: signpath/github-action-submit-signing-request@v3
       with:
         api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-        connector-url: https://pipelineconnector.connectors.signpath.io/GitHub/GitHubCom
         organization-id: ${{ inputs.organization-id }}
         project-slug: ${{ inputs.project-slug }}
         signing-policy-slug: ${{ inputs.signing-policy-slug }}
