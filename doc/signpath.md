@@ -37,8 +37,8 @@ commit (`github.sha`), so the source matches the build's origin metadata.
 ## Test signing and production review
 
 Run with `test` first. Only this ephemeral GitHub-hosted runner imports the
-configured public self-signed test certificate into its current-user trust
-stores. Each signed file must have a valid timestamped signature from exactly
+configured public self-signed test certificate into its machine trust stores
+to avoid interactive user-store prompts. Each signed file must have a valid timestamped signature from exactly
 that certificate. Test outputs are labelled `-Test-Signed`; they are for
 onboarding verification and are not publicly trusted distribution packages.
 Do not install this certificate on end-user computers.
