@@ -25,5 +25,11 @@ ctest --test-dir build-src-tests-win32 -C Release --output-on-failure
 ```
 
 Use matching Qt and OpenSSL directories when building another architecture.
+The Pico USB option also has a focused QML interaction test:
+`qmltestrunner -input src/test/pico_usb_qml -platform offscreen`.
+Backend tests cover the 79 MiB Pico NAND UBI configuration reservation, reject
+oversized capsules before writing, and verify that UBIFS and volume-table
+bytes remain unchanged. The RV1106 factory-camera flow retains its defaults
+while allowing USB Ethernet to be selected on the review page.
 The `Backend tests` GitHub Actions workflow runs the same standalone suite on
 Windows, Ubuntu, and macOS.

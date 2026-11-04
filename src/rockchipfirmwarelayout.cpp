@@ -48,7 +48,8 @@ QList<RockchipPartition> parseBlockDeviceParts(const QByteArray &environmentCont
 {
     QList<RockchipPartition> partitions;
     const QString text = QString::fromUtf8(environmentContent);
-    const int marker = text.indexOf(QStringLiteral("blkdevparts="));
+    int marker = text.indexOf(QStringLiteral("blkdevparts="));
+    if (marker == -1) marker = text.indexOf(QStringLiteral("mtdparts="));
     if (marker == -1)
         return partitions;
 

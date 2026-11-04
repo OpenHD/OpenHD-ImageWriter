@@ -18,6 +18,9 @@ Item {
     property bool updateOperation: false
     property bool configurationRequired: false
     property bool configurationComplete: false
+    property bool picoUsbOptions: false
+    property bool picoEthernetEnabled: false
+    signal picoEthernetToggled(bool enabled)
     property bool fleetControlSignedIn: false
     property string profileName: ""
     property string profileDetail: ""
@@ -217,6 +220,25 @@ Item {
                             elide: Text.ElideMiddle
                         }
                     }
+                }
+            }
+
+            ColumnLayout {
+                visible: root.picoUsbOptions && !root.updateOperation
+                Layout.fillWidth: true
+                spacing: 4
+                CheckBox {
+                    objectName: "picoEthernetLinkCheck"
+                    text: qsTr("Enable Ethernet link over USB")
+                    checked: root.picoEthernetEnabled
+                    onToggled: root.picoEthernetToggled(checked)
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("Off: USB host for a Wi-Fi radio. On: connect the Pico to your computer for USB Ethernet video and telemetry.")
+                    color: "#91b7cc"
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: 12
                 }
             }
 

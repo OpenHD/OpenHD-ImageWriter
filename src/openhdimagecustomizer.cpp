@@ -44,6 +44,8 @@ QString OpenHDImageCustomizer::cameraTypeForName(const QString &cameraName, cons
 
 QJsonObject OpenHDImageCustomizer::buildSettings(const QSettings &settings)
 {
+    if (settings.value("picoUsbEthernetOnly", false).toBool())
+        return QJsonObject{{"disable_ethernet_link", false}};
     const QString cameraName = settings.value("camera").toString();
     const QString camera2Name = settings.value("camera2").toString();
     const QString cameraResolution = settings.value("cameraResolution").toString().trimmed();
@@ -251,6 +253,8 @@ OpenHDImageCustomizer::Result OpenHDImageCustomizer::apply(const QString &bootPa
     if (settingsFile.write(settingsJson) != settingsJson.size())
         return Result(Error::WriteSettings);
     settingsFile.close();
+    if (settings.value("picoUsbEthernetOnly", false).toBool())
+        return Result();
 
     QString qopenhdConfigPath = settings.value("qopenhdConfPath").toString();
     if (qopenhdConfigPath.startsWith("file:"))

@@ -32,10 +32,10 @@ assert.strictEqual(context.isRv1106Device({device:'rockusb:board'}),false);
 const flashQml=fs.readFileSync(require.resolve('../flash.qml'),'utf8');
 const writeEntry=flashQml.slice(flashQml.indexOf('    function startWriteNow()'),
   flashQml.indexOf('\n    ColumnLayout {',flashQml.indexOf('    function startWriteNow()')));
-function tryWrite(fixedDefaults) {
+function tryWrite(fixedDefaults, ethernet=false) {
   const saved={bootType:'Ground',camera:'USB',camera2:'USB'};
   let started=false;
-  const ui={usesRv1106Defaults:fixedDefaults,fleetControlSignedIn:true,useProfileSettings:true,
+  const ui={usesRv1106Defaults:fixedDefaults,picoEthernetLink:ethernet,fleetControlSignedIn:true,useProfileSettings:true,
     fleetControlProfileName:fixedDefaults?'old-ground-profile':'',optionsPage:{configurationApplied:false},
     FleetProfilesHelper:{loadProfiles:()=>{throw Error('RV1106 must not load a saved profile');}},
     imageWriter:{setSetting:(key,value)=>saved[key]=value,getBoolSetting:()=>false,
@@ -55,6 +55,13 @@ assert.strictEqual(fixedWrite.saved.platform,'luckfox-pico');
 assert.strictEqual(fixedWrite.saved.useSettings,false);
 assert.strictEqual(fixedWrite.saved.camera,undefined);
 assert.strictEqual(fixedWrite.saved.camera2,undefined);
+assert.strictEqual(fixedWrite.saved.disableEthernetLink,true);
+const ethernetWrite=tryWrite(true,true);
+assert.strictEqual(ethernetWrite.started,true);
+assert.strictEqual(ethernetWrite.saved.useSettings,true);
+assert.strictEqual(ethernetWrite.saved.disableEthernetLink,false);
+assert.strictEqual(ethernetWrite.saved.picoUsbEthernetOnly,true);
+assert.strictEqual(ethernetWrite.saved.camera,undefined);
 const configurableWrite=tryWrite(false);
 assert.strictEqual(configurableWrite.started,false);
 assert.strictEqual(configurableWrite.ui.reviewingOperation,true);

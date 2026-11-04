@@ -64,6 +64,13 @@ target_link_libraries(initialsettings_qml_test PRIVATE Qt5::Gui Qt5::Qml Qt5::Qu
 target_compile_definitions(initialsettings_qml_test PRIVATE INITIAL_SETTINGS_QML_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../qmlcomponents/InitialSettingsPanel.qml")
 add_test(NAME initialsettings_qml_contract COMMAND initialsettings_qml_test)
 set_tests_properties(initialsettings_qml_contract PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+find_program(QMLTESTRUNNER_EXECUTABLE NAMES qmltestrunner qmltestrunner-qt5
+    HINTS "${Qt5Core_DIR}/../../../bin")
+if(QMLTESTRUNNER_EXECUTABLE)
+    add_test(NAME pico_usb_review COMMAND "${QMLTESTRUNNER_EXECUTABLE}"
+        -input "${CMAKE_CURRENT_SOURCE_DIR}/pico_usb_qml" -platform offscreen)
+    set_tests_properties(pico_usb_review PROPERTIES ENVIRONMENT "QT_QUICK_BACKEND=software")
+endif()
 
 # Offline map generation runs without Python, external services, or target disks.
 find_package(Qt5 REQUIRED COMPONENTS Network)

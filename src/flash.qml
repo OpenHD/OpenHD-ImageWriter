@@ -73,6 +73,7 @@ Rectangle {
     property bool selectedTargetIsComputeModule: false
     property bool selectedTargetIsRv1106: false
     property string selectedImagePlatform: ""
+    property bool picoEthernetLink: false
     readonly property bool selectedImageRequiresRockchip: selectedImagePlatform === "x21"
     readonly property string selectedImageIdentity: (selectedImagePlatform + " " + osbutton.text).toLowerCase()
     readonly property bool usesRv1106Defaults: {
@@ -1473,6 +1474,9 @@ Rectangle {
         profileDetail: fleetControlSignedIn ? fleetControlProfileDetail : ""
         profileIcon: fleetControlSignedIn ? fleetControlProfileIcon : ""
         configurationRequired: !usesRv1106Defaults
+        picoUsbOptions: usesRv1106Defaults
+        picoEthernetEnabled: window.picoEthernetLink
+        onPicoEthernetToggled: function(enabled) { window.picoEthernetLink = enabled }
         configurationComplete: (fleetControlSignedIn && fleetControlProfileName.length > 0 && useProfileSettings) || optionsPage.configurationApplied
         onProfileSelected: function(profile) {
             fleetControlProfileName = profile.craftName
@@ -1522,6 +1526,7 @@ Rectangle {
     }
 
     function openImageSelector() {
+        picoEthernetLink = false
         while (osswipeview.currentIndex > 0)
             osswipeview.decrementCurrentIndex()
         imageCatalog.categorySelected = ""
@@ -1599,7 +1604,9 @@ Rectangle {
             imageWriter.setSetting("platform", "luckfox-pico")
             imageWriter.setSetting("sbc", "rockchip-rv")
             imageWriter.setSetting("bootType", "Air")
-            imageWriter.setSetting("useSettings", false)
+            imageWriter.setSetting("disableEthernetLink", !picoEthernetLink)
+            imageWriter.setSetting("picoUsbEthernetOnly", picoEthernetLink)
+            imageWriter.setSetting("useSettings", picoEthernetLink)
         }
 
         completionHandled = false
@@ -2330,6 +2337,7 @@ Rectangle {
         imageWriter.setSetting("qopenhdConfPath", "")
         imageWriter.setSetting("mapboxApiKey", "")
         imageWriter.setSetting("disableEthernetLink", true)
+        imageWriter.setSetting("picoUsbEthernetOnly", false)
         imageWriter.setSetting("premiumCertificatePath", "")
         imageWriter.setSetting("useSettings", true)
     }

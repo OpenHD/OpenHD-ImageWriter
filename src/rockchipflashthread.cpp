@@ -526,13 +526,15 @@ void RockchipFlashThread::run()
             }
         }
         int targetIndex = -1;
-        enum class ConfigKind { Fat, Disk, Ubi } kind = ConfigKind::Fat;
+        enum class ConfigKind { Fat, Disk, Ubi, PicoUbi } kind = ConfigKind::Fat;
+        QFile envFile(QDir(extractedDir).filePath(".env.txt"));
+        const bool picoNand = envFile.open(QIODevice::ReadOnly) && envFile.readAll().contains("mtdparts=spi-nand0:");
         for (int i = 0; i < targets.size(); ++i) {
             const auto name = targets.at(i).name.toLower();
-            if (name != "ohd_config" && name != "disk" && name != "image" && name != "ohd") continue;
+            if (name != "ohd_config" && name != "disk" && name != "image" && name != "ohd" && !(picoNand && name == "rootfs")) continue;
             if (targetIndex != -1) { emit error(tr("Ambiguous Rockchip configuration targets. Nothing has been flashed.")); return; }
             targetIndex = i;
-            kind = name == "ohd_config" ? ConfigKind::Fat : name == "ohd" ? ConfigKind::Ubi : ConfigKind::Disk;
+            kind = name == "ohd_config" ? ConfigKind::Fat : name == "ohd" ? ConfigKind::Ubi : picoNand && name == "rootfs" ? ConfigKind::PicoUbi : ConfigKind::Disk;
         }
         if (targetIndex == -1 || isOhd) {
             emit error(tr("This package cannot accept configuration through USB. Select a current full Luckfox/X21 firmware ZIP. Nothing has been flashed."));
@@ -553,7 +555,8 @@ void RockchipFlashThread::run()
         bool ok = false;
         if (kind == ConfigKind::Fat) ok = FatImageWriter::install(target.filePath, staging.path(), &detail, cancelled);
         else if (kind == ConfigKind::Disk) ok = RockchipConfiguration::installDisk(target.filePath, staging.path(), &detail, cancelled);
-        else ok = RockchipConfiguration::installUbi(target.filePath, staging.path(), &detail, cancelled);
+        else ok = RockchipConfiguration::installUbi(target.filePath, staging.path(), &detail, cancelled,
+            kind == ConfigKind::PicoUbi ? RockchipConfiguration::UbiProfile::PicoRootfs : RockchipConfiguration::UbiProfile::X21Ohd);
         if (!ok) {
             if (!_cancelled) emit error(tr("Could not prepare Rockchip config: %1 Nothing has been flashed.").arg(detail));
             return;

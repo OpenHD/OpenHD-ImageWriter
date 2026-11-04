@@ -76,17 +76,21 @@ bool RockchipConfiguration::installDisk(const QString &imagePath, const QString 
 }
 
 bool RockchipConfiguration::installUbi(const QString &imagePath, const QString &staging,
-                                       QString *error, const std::function<bool()> &cancelled)
+                                       QString *error, const std::function<bool()> &cancelled, UbiProfile profile)
 {
     // X21 provisioning is a reserved static volume. UBIFS/application PEBs and
     // both volume tables remain byte-for-byte unchanged. UBI CRC convention is
     // Linux crc32_le(~0, ...) without the usual final xor.
     constexpr int pebSize = 131072, vidOffset = 2048, dataOffset = 4096, lebSize = 126976;
     constexpr quint32 layoutVolume = 0x7fffefff;
+    const bool pico = profile == UbiProfile::PicoRootfs;
+    const auto expectedBytes = (pico ? 79LL : 100LL) * 1024 * 1024;
+    const int provisionLebs = pico ? 2 : 16;
+    const QByteArray applicationName = pico ? "rootfs" : "ohd";
     QFile image(imagePath);
     if (!QFileInfo(imagePath).isFile() || !image.open(QIODevice::ReadWrite) ||
-        image.size() != 100LL * 1024 * 1024)
-        return fail(error, "Expected a padded 100 MiB X21 OHD UBI image.");
+        image.size() != expectedBytes)
+        return fail(error, "Unexpected UBI image size for the selected board configuration partition.");
     QList<int> reusable, provisionBlocks;
     QByteArray ecTemplate, record, table;
     quint32 sequence = 0;
@@ -102,7 +106,7 @@ bool RockchipConfiguration::installUbi(const QString &imagePath, const QString &
         if (ec.left(4) != "UBI#" || uchar(ec[4]) != 1 || be32(ec, 16) != vidOffset || be32(ec, 20) != dataOffset ||
             (crc(ec.left(60)) ^ 0xffffffffU) != be32(ec, 60) || vid.left(4) != "UBI!" || uchar(vid[4]) != 1 ||
             (crc(vid.left(60)) ^ 0xffffffffU) != be32(vid, 60))
-            return fail(error, "Invalid or unsupported X21 UBI headers.");
+            return fail(error, "Invalid or unsupported UBI headers.");
         if (ecTemplate.isEmpty()) { ecTemplate = ec; sequence = be32(ec, 24); }
         if (be32(ec, 24) != sequence) return fail(error, "Mixed UBI image sequences.");
         const auto volume = be32(vid, 8), lnum = be32(vid, 12);
@@ -120,19 +124,20 @@ bool RockchipConfiguration::installUbi(const QString &imagePath, const QString &
                 if (i > 1 && be32(item, 0)) return fail(error, "Unexpected reserved UBI volume.");
             }
             const auto application = table.left(172);
-            if (!be32(application, 0) || be32(application, 0) > 760 ||
+            if (!be32(application, 0) || be32(application, 0) > quint32(pico ? 606 : 760) ||
                 uchar(application[12]) != 1 || application[13] ||
-                application[14] || uchar(application[15]) != 3 || application.mid(16, 3) != "ohd")
+                application[14] || uchar(application[15]) != applicationName.size() ||
+                application.mid(16, applicationName.size()) != applicationName)
                 return fail(error, "Unexpected application volume or insufficient UBI reserve.");
             record = table.mid(172, 172);
             const auto nameLength = qFromBigEndian<quint16>(reinterpret_cast<const uchar *>(record.constData() + 14));
-            if (be32(record, 0) != 16 || be32(record, 4) != 1 || be32(record, 8) != 0 ||
+            if (be32(record, 0) != quint32(provisionLebs) || be32(record, 4) != 1 || be32(record, 8) != 0 ||
                 uchar(record[12]) != 2 || record[13] || nameLength != 16 || record.mid(16, nameLength) != "openhd-provision" || record[144])
-                return fail(error, "X21 image has no compatible provisioning volume. Use a new full firmware image.");
+                return fail(error, "Image has no compatible provisioning volume. Use a new full firmware image.");
             ++layoutCopies;
         } else if (volume == 1) {
             const auto size = be32(vid, 20), used = be32(vid, 24);
-            if (uchar(vid[5]) != 2 || vid[6] || vid[7] || !used || used > 16 || lnum >= used ||
+            if (uchar(vid[5]) != 2 || vid[6] || vid[7] || !used || used > quint32(provisionLebs) || lnum >= used ||
                 provisionNumbers.contains(lnum) || size > lebSize || !size || be32(vid, 28) ||
                 (lnum + 1 < used && size != lebSize) || (usedEbs && usedEbs != used) ||
                 (crc(block.mid(dataOffset, size)) ^ 0xffffffffU) != be32(vid, 32))
@@ -142,7 +147,7 @@ bool RockchipConfiguration::installUbi(const QString &imagePath, const QString &
             return fail(error, "Unexpected UBI volume; image was not modified.");
     }
     if (layoutCopies != 2 || !usedEbs || provisionBlocks.size() != int(usedEbs))
-        return fail(error, "Incomplete X21 provisioning volume.");
+        return fail(error, "Incomplete provisioning volume.");
     std::vector<openhd_provisioning::File> files;
     QDir root(staging);
     QDirIterator iterator(staging, QDir::Files | QDir::Hidden | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
@@ -156,7 +161,8 @@ bool RockchipConfiguration::installUbi(const QString &imagePath, const QString &
         files.push_back({root.relativeFilePath(input.fileName()).toUtf8().toStdString(), bytes.toStdString()});
     }
     const auto encoded = openhd_provisioning::encode(files);
-    if (encoded.empty()) return fail(error, "X21 provisioning exceeds its 1984 KiB reservation or contains unsupported paths. Remove the offline map or select a smaller one.");
+    if (encoded.empty() || encoded.size() > std::size_t(provisionLebs * lebSize))
+        return fail(error, "Provisioning exceeds this board's reserved configuration space or contains unsupported paths. Remove the offline map or select a smaller one.");
     const QByteArray capsule = QByteArray::fromStdString(encoded);
     const int blocks = (capsule.size() + lebSize - 1) / lebSize;
     const int oldCount = provisionBlocks.size();

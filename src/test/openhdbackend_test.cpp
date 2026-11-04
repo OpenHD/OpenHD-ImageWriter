@@ -589,6 +589,9 @@ bool testRockchipFirmwareLayoutDiscovery()
         return false;
 
     const QList<RockchipPartition> partitions = parseBlockDeviceParts(environment);
+    const auto nand = parseBlockDeviceParts("mtdparts=spi-nand0:256K(env),256K@256K(idblock),512K(uboot),8M(boot),24M(oem),8M(userdata),79M(rootfs)\n");
+    if (!check(nand.size() == 7 && nand[6].offset == 83968 && nand[6].size == 161792,
+               "Pico NAND partition offsets are wrong")) return false;
     return check(partitions.size() == 7, "Luckfox partition metadata was not parsed") &&
            check(partitions.at(0).name == "env" && partitions.at(0).offset == 0 &&
                      partitions.at(0).size == 0x40,
@@ -619,6 +622,23 @@ bool testInitialConfigurationSnapshot()
       check(!file.contains("token") && !file.contains("fleetcontrol_password") && !file.contains("fleetcontrol_username"),"Snapshot leaked login credentials") &&
       check(file.value("platform").toString()=="rpi4" && file.value("camera").toString()=="31","Snapshot lost hardware selections") &&
       check(file.value("parameter_defaults").toObject().value("components").toObject().value("100").toObject().value("AIR_RECORDING_E").toInt()==2,"Snapshot lost initial defaults");
+}
+
+bool testPicoEthernetOnlySettings()
+{
+    QTemporaryDir directory;
+    QSettings settings(directory.filePath("pico.ini"), QSettings::IniFormat);
+    settings.setValue("picoUsbEthernetOnly", true);
+    settings.setValue("camera", "IMX219");
+    settings.setValue("bootType", "Ground");
+    settings.setValue("token", "old-token");
+    settings.setValue("offlineMapPackagePath", "missing-map-from-another-image");
+    settings.setValue("initialParameterDefaults", R"({"version":1,"components":{"100":{"AIR_RECORDING_E":2}}})");
+    const auto selected = OpenHDImageCustomizer::buildSettings(settings);
+    if (!check(selected.size() == 1 && selected.value("disable_ethernet_link").isBool() && !selected.value("disable_ethernet_link").toBool(),
+               "Pico Ethernet selection overwrote factory settings")) return false;
+    return check(OpenHDImageCustomizer::apply(directory.filePath("staged"), settings).succeeded(),
+                 "Stale configuration assets blocked Pico Ethernet-only provisioning");
 }
 
 bool testFatImageCustomization()
@@ -686,9 +706,15 @@ int main(int argc, char *argv[])
     // Used for independent fsck/mtools validation against a real image artifact.
     if (argc == 4 && (application.arguments().at(1) == "--install-fat-image" ||
                      application.arguments().at(1) == "--install-rockchip-disk" ||
-                     application.arguments().at(1) == "--install-rockchip-ubi")) {
+                     application.arguments().at(1) == "--install-rockchip-ubi" ||
+                     application.arguments().at(1) == "--install-pico-ubi")) {
         QString error;
         const auto command = application.arguments().at(1);
+        if (command == "--install-pico-ubi") {
+            const bool ok = RockchipConfiguration::installUbi(application.arguments().at(2), application.arguments().at(3), &error, {}, RockchipConfiguration::UbiProfile::PicoRootfs);
+            if (!ok) qCritical().noquote() << error;
+            return ok ? 0 : 1;
+        }
         const bool ok = command == "--install-rockchip-disk" ? RockchipConfiguration::installDisk(application.arguments().at(2), application.arguments().at(3), &error) :
             command == "--install-rockchip-ubi" ? RockchipConfiguration::installUbi(application.arguments().at(2), application.arguments().at(3), &error) :
             FatImageWriter::install(application.arguments().at(2), application.arguments().at(3), &error);
@@ -698,6 +724,7 @@ int main(int argc, char *argv[])
     int failures = 0;
     failures += testFatImageCustomization() ? 0 : 1;
     failures += testInitialConfigurationSnapshot() ? 0 : 1;
+    failures += testPicoEthernetOnlySettings() ? 0 : 1;
     failures += testGroundSettingsAndCameraMapping() ? 0 : 1;
     failures += testImageNameRoleOverrides() ? 0 : 1;
     failures += testCustomizationInstall() ? 0 : 1;

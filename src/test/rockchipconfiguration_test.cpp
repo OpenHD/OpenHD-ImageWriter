@@ -126,5 +126,30 @@ bool testRockchipConfiguration(const QString &fatImage, const QString &staging)
     const auto corruptedUbi = hash(ubiPath);
     if (!check(!RockchipConfiguration::installUbi(ubiPath, staging, &error) && hash(ubiPath) == corruptedUbi,
                "Corrupt UBI headers were modified")) return false;
+    // Pico NAND uses the same capsule in a smaller rootfs static volume.
+    QTemporaryDir picoSettings;
+    QDir().mkpath(picoSettings.filePath("openhd"));
+    const QByteArray picoJson("{\"disable_ethernet_link\":false}");
+    if (!write(picoSettings.filePath("openhd/settings.json"), picoJson)) return false;
+    be(table, 0, 606); table[15] = 6; table.replace(16, 128, QByteArray(128, '\0')); table.replace(16, 6, "rootfs");
+    be(table, 172, 2);
+    for (int i = 0; i < 128; ++i) be(table, i * 172 + 168, crc(table.mid(i * 172, 168)) ^ 0xffffffffU);
+    const auto picoFirst = block(0x7fffefff, 0, table, false) + block(0x7fffefff, 1, table, false) + block(0, 0, "Pico UBIFS must be preserved", false);
+    const auto picoPath = temporary.filePath("rootfs.img");
+    QFile pico(picoPath);
+    if (!pico.open(QIODevice::WriteOnly)) return false;
+    pico.write(picoFirst); pico.write(block(1, 0, empty, true));
+    for (int i = 4; i < 632; ++i) pico.write(QByteArray(131072, char(0xff)));
+    pico.close();
+    if (!check(RockchipConfiguration::installUbi(picoPath, picoSettings.path(), &error, {}, RockchipConfiguration::UbiProfile::PicoRootfs), "Pico provisioning failed: " + error)) return false;
+    if (!pico.open(QIODevice::ReadOnly)) return false;
+    if (!check(pico.read(picoFirst.size()) == picoFirst, "Pico application data was modified")) return false;
+    const auto provision = pico.read(131072); pico.close();
+    const auto capsuleSize = qFromBigEndian<quint32>(reinterpret_cast<const uchar *>(provision.constData() + 2048 + 20));
+    std::vector<openhd_provisioning::File> picoFiles;
+    if (!check(openhd_provisioning::decode(provision.mid(4096, capsuleSize).toStdString(), picoFiles) && picoFiles.size() == 1 && picoFiles[0].data == picoJson.toStdString(), "Pico capsule roundtrip failed")) return false;
+    const auto picoStable = hash(picoPath);
+    if (!write(picoSettings.filePath("openhd/settings.json"), QByteArray(3 * 126976, 'x'))) return false;
+    if (!check(!RockchipConfiguration::installUbi(picoPath, picoSettings.path(), &error, {}, RockchipConfiguration::UbiProfile::PicoRootfs) && hash(picoPath) == picoStable, "Oversized Pico provisioning changed the image")) return false;
     return check(openhd_provisioning::crc32("123456789", 9) == 0xcbf43926U, "CRC32 standard vector failed");
 }
