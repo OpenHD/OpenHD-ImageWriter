@@ -19,6 +19,14 @@ Item {
         name: "PicoUsbOptions"
         when: windowShown
         function test_optional_pico_settings() {
+            review.picoUsbOptions = true
+            configureOpened = false
+            var headerButton = findChild(review, "reviewSettingsButton")
+            verify(headerButton !== null)
+            verify(headerButton.visible)
+            mouseClick(headerButton)
+            compare(configureOpened, true)
+            configureOpened = false
             var button = findChild(review, "configureImageButton")
             verify(button !== null)
             compare(review.configurationRequired, false)

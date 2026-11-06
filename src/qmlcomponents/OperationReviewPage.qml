@@ -82,6 +82,13 @@ Item {
                     compact: root.narrow
                     onClicked: root.backRequested()
                 }
+
+                ModernActionButton {
+                    objectName: "reviewSettingsButton"
+                    visible: root.configurationAvailable
+                    text: qsTr("Settings")
+                    onClicked: root.configureRequested()
+                }
             }
 
             Rectangle {

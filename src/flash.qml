@@ -164,6 +164,11 @@ Rectangle {
     }
 
     function navigateBack() {
+        if (optionsPage.visible) {
+            optionsPage.close()
+            return
+        }
+
         if (selectingImage) {
             // At root image selection: go back to home overview
             selectingImage = false
@@ -184,11 +189,6 @@ Rectangle {
             reviewingOperation = false
             selectingTarget = true
             imageWriter.startDriveListPolling()
-            return
-        }
-
-        if (optionsPage.visible) {
-            optionsPage.close()
             return
         }
 
@@ -1461,7 +1461,7 @@ Rectangle {
         z: 2
         title: qsTr("Review image write")
         subtitle: usesRv1106Defaults
-                  ? qsTr("RV1106 Air image with its built-in camera settings. Ready to flash.")
+                  ? qsTr("Luckfox Air image. Review cameras, recording and networking before flashing.")
                   : qsTr("Check your selection and configure the write options before continuing.")
         sourceName: osbutton.text
         sourceDetail: String(imageWriter.src())
@@ -2729,6 +2729,10 @@ Rectangle {
         if (imageWriter.readyToWrite()) {
             writebutton.enabled = true
             reviewingOperation = true
+            // Luckfox has the same full configuration screen as other boards.
+            // Present it directly instead of showing only the USB shortcut.
+            if (usesRv1106Defaults && !optionsPage.configurationApplied)
+                optionsPage.openPage()
         } else {
             selectingImage = true
         }

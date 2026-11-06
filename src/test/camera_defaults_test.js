@@ -61,3 +61,31 @@ assert.strictEqual(map.camera.firmwareDefaults['luckfox-pico'].resolution, '1280
 assert.strictEqual(map.cameraResolution.defaultByCameraValue['64'], '1920x1080@30');
 assert(!map.initialFields.some(field => field.id === 'STREAMING_E'));
 console.log('Camera defaults and restored selections passed for both QML screens');
+
+const flashSource = fs.readFileSync(path.join(__dirname, '../flash.qml'), 'utf8');
+for (const luckfox of [true, false]) {
+    let opened = 0;
+    const context = {
+        selectedImageRequiresRockchip: false, usesRv1106Defaults: luckfox,
+        FleetProfilesHelper: {isRv1106Device: () => luckfox},
+        imageWriter: {stopDriveListPolling() {}, setDst() {}, readyToWrite: () => true},
+        writebutton: {}, dstbutton: {},
+        optionsPage: {configurationApplied: false, visible: false,
+            openPage() { ++opened; this.visible = true; }, close() { this.visible = false; }}
+    };
+    vm.createContext(context);
+    vm.runInContext(method(flashSource, 'selectDstItem'), context);
+    vm.runInContext(method(flashSource, 'navigateBack'), context);
+    context.selectDstItem({device: 'rockusb://test', size: 128000000, description: 'Test board'});
+    assert.strictEqual(context.reviewingOperation, true);
+    assert.strictEqual(opened, luckfox ? 1 : 0, 'Luckfox must open full settings after target selection');
+    if (luckfox) {
+        context.navigateBack();
+        assert.strictEqual(context.optionsPage.visible, false);
+        assert.strictEqual(context.reviewingOperation, true, 'Back from settings must return to review');
+        context.optionsPage.configurationApplied = true;
+        context.selectDstItem({device: 'rockusb://test', size: 128000000, description: 'Test board'});
+        assert.strictEqual(opened, 1, 'Saved settings must not be reopened automatically');
+    }
+}
+console.log('Luckfox full settings entry and return to review passed');
