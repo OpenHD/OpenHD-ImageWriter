@@ -2156,6 +2156,7 @@ Rectangle {
     ImageOptionsPage {
         id: optionsPage
         picoDefaultsMode: window.usesRv1106Defaults
+        picoEthernetSelected: window.picoEthernetLink
         platformHint: picoDefaultsMode ? "luckfox-pico" : selectedImagePlatform
         onConfigurationSaved: {
             if (window.usesRv1106Defaults) window.picoEthernetLink = !imageWriter.getBoolSetting("disableEthernetLink")

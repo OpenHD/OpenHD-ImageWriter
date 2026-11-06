@@ -24,6 +24,7 @@ Rectangle {
     property bool configurationApplied: false
     property bool existingDeviceMode: false
     property bool picoDefaultsMode: false
+    property bool picoEthernetSelected: false
     property string existingDeviceName: ""
     property string platformHint: ""
     signal configurationSaved()
@@ -1102,7 +1103,7 @@ Rectangle {
         eject = imageWriter.getBoolSetting("eject")
         qopenhdConfPath = normalizeLocalFilePath(imageWriter.getValue("qopenhdConfPath"))
         mapboxApiKey = imageWriter.getValue("mapboxApiKey")
-        disableEthernetLink = imageWriter.getBoolSetting("disableEthernetLink")
+        disableEthernetLink = picoDefaultsMode ? !picoEthernetSelected : imageWriter.getBoolSetting("disableEthernetLink")
         premiumCertificatePath = normalizeLocalFilePath(imageWriter.getValue("premiumCertificatePath"))
         premiumCertificateError = ""
 
