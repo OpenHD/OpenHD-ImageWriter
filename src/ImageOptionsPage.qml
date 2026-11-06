@@ -23,6 +23,7 @@ Rectangle {
     property bool initialized: false
     property bool configurationApplied: false
     property bool existingDeviceMode: false
+    property bool picoDefaultsMode: false
     property string existingDeviceName: ""
     property string platformHint: ""
     signal configurationSaved()
@@ -173,7 +174,7 @@ Rectangle {
                         Label { text: qsTr("Hardware platform"); Layout.fillWidth: true }
                         ModernComboBox {
                             Layout.fillWidth: true
-                            model: settingsMap.platforms || []
+                            model: picoDefaultsMode ? (settingsMap.platforms || []).filter(function(board) { return board.id === "luckfox-pico" }) : settingsMap.platforms || []
                             textRole: "label"
                             currentIndex: {
                                 for (var n=0; n<model.length; ++n) if (model[n].id === page.platform) return n
@@ -1117,8 +1118,11 @@ Rectangle {
         imageWriter.setSetting("fileName", fileName)
         var normalizedFileName = fileName.toLowerCase()
         var normalizedPlatform = String(platformHint || "").toLowerCase()
+        if (picoDefaultsMode && imageWriter.getValue("platform") !== "luckfox-pico") {
+            camera = ""; camera2 = ""; cameraResolution = ""; camera2Resolution = ""
+        }
         supportsAir = normalizedFileName.indexOf("lite") === -1 && normalizedFileName.indexOf("minimal") === -1
-        supportsGround = normalizedFileName.indexOf("x20") === -1
+        supportsGround = !picoDefaultsMode && normalizedFileName.indexOf("x20") === -1
         if (!supportsGround)
             bootType = "Air"
         else if (!supportsAir)

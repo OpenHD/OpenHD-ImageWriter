@@ -99,7 +99,7 @@ set(SOURCES "offlinemaps/offlinemapbuilder.cpp" "main.cpp" "fatimagewriter.cpp" 
     "drivelistitem.cpp" "drivelistmodel.cpp" "drivelistmodelpollthread.cpp" "rockchipdevice.cpp" "rockchipfirmwarelayout.cpp" "rockchipflashthread.cpp" "nxpflashthread.cpp" "downloadthread.cpp" "downloadextractthread.cpp"
      "driveformatthread.cpp" "localfileextractthread.cpp" "powersaveblocker.cpp" "downloadstatstelemetry.cpp" "updateuploadthread.cpp" "qml.qrc" "dependencies/sha256crypt/sha256crypt.c" "cli.cpp")
 
-find_package(Qt5 REQUIRED COMPONENTS Core Quick LinguistTools Svg Location Positioning OPTIONAL_COMPONENTS Widgets)
+find_package(Qt5 REQUIRED COMPONENTS Core Quick LinguistTools Svg OPTIONAL_COMPONENTS Widgets)
 list(APPEND EXTRALIBS Qt5::Location Qt5::Positioning)
 if (Qt5Widgets_FOUND)
     set(EXTRALIBS ${EXTRALIBS} Qt5::Widgets)

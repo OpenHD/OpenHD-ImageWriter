@@ -25,6 +25,7 @@ pkgbase = openhdimagewriter-git
 	depends = dosfstools
 	depends = util-linux
 	optdepends = udisks2: desktop authorization and device management
+	optdepends = qt5-location: offline map selection
 	provides = openhdimagewriter
 	conflicts = openhdimagewriter
 	source = OpenHD-ImageWriter::git+https://github.com/OpenHD/OpenHD-ImageWriter.git#branch=dev-branch

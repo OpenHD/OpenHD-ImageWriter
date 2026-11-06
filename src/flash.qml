@@ -1473,6 +1473,7 @@ Rectangle {
         profileName: fleetControlSignedIn ? fleetControlProfileName : ""
         profileDetail: fleetControlSignedIn ? fleetControlProfileDetail : ""
         profileIcon: fleetControlSignedIn ? fleetControlProfileIcon : ""
+        configurationAvailable: true
         configurationRequired: !usesRv1106Defaults
         picoUsbOptions: usesRv1106Defaults
         picoEthernetEnabled: window.picoEthernetLink
@@ -1600,13 +1601,13 @@ Rectangle {
         if (usesRv1106Defaults) {
             // These images already contain their Air and camera configuration.
             // Do not inject saved settings from another board or fleet profile.
-            resetOpenHdSettingsForNewImage()
+            if (!optionsPage.configurationApplied) resetOpenHdSettingsForNewImage()
             imageWriter.setSetting("platform", "luckfox-pico")
             imageWriter.setSetting("sbc", "rockchip-rv")
             imageWriter.setSetting("bootType", "Air")
             imageWriter.setSetting("disableEthernetLink", !picoEthernetLink)
-            imageWriter.setSetting("picoUsbEthernetOnly", picoEthernetLink)
-            imageWriter.setSetting("useSettings", picoEthernetLink)
+            imageWriter.setSetting("picoUsbEthernetOnly", picoEthernetLink && !optionsPage.configurationApplied)
+            imageWriter.setSetting("useSettings", picoEthernetLink || optionsPage.configurationApplied)
         }
 
         completionHandled = false
@@ -2154,7 +2155,11 @@ Rectangle {
 
     ImageOptionsPage {
         id: optionsPage
-        platformHint: selectedImagePlatform
+        picoDefaultsMode: window.usesRv1106Defaults
+        platformHint: picoDefaultsMode ? "luckfox-pico" : selectedImagePlatform
+        onConfigurationSaved: {
+            if (window.usesRv1106Defaults) window.picoEthernetLink = !imageWriter.getBoolSetting("disableEthernetLink")
+        }
     }
 
     function resetDownloadTracking() {

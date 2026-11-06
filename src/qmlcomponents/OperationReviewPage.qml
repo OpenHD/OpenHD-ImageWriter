@@ -17,6 +17,7 @@ Item {
     property string offlineMapStatus: ""
     property bool updateOperation: false
     property bool configurationRequired: false
+    property bool configurationAvailable: configurationRequired
     property bool configurationComplete: false
     property bool picoUsbOptions: false
     property bool picoEthernetEnabled: false
@@ -358,7 +359,8 @@ Item {
             Button {
                 Layout.fillWidth: true
                 Layout.preferredHeight: root.narrow ? 78 : 88
-                visible: root.configurationRequired
+                visible: root.configurationAvailable
+                objectName: "configureImageButton"
                 hoverEnabled: true
                 onClicked: root.configureRequested()
 

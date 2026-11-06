@@ -79,3 +79,11 @@ set_target_properties(offline_map_builder_tests PROPERTIES AUTOMOC ON)
 target_include_directories(offline_map_builder_tests PRIVATE ../offlinemaps)
 target_link_libraries(offline_map_builder_tests PRIVATE Qt5::Core Qt5::Gui Qt5::Network)
 add_test(NAME offline_map_builder COMMAND offline_map_builder_tests)
+
+find_program(NODE_EXECUTABLE node)
+if(NODE_EXECUTABLE)
+    add_test(NAME openhd_camera_defaults
+        COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/camera_defaults_test.js")
+    add_test(NAME openhd_initial_settings_profiles
+        COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/fleet_profiles_test.js")
+endif()
