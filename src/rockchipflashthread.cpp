@@ -563,6 +563,25 @@ void RockchipFlashThread::run()
         }
     }
 
+    // Cover the complete NAND UBI partition, including the erased tail. A short
+    // userdata image otherwise leaves old UBI journals/provisioning markers
+    // behind, which can suppress importing settings into the fresh rootfs.
+    QFile nandEnvironment(QDir(extractedDir).filePath(".env.txt"));
+    if (nandEnvironment.open(QIODevice::ReadOnly) &&
+        nandEnvironment.readAll().contains("mtdparts=spi-nand0:")) {
+        for (auto &target : targets) {
+            for (const auto &partition : partitions) {
+                if (partition.name != target.name) continue;
+                QString detail;
+                if (!padRockchipNandUbiImage(target.filePath, quint64(partition.size) * 512, &detail)) {
+                    emit error(tr("Could not prepare NAND partition: %1 Nothing has been flashed.").arg(detail));
+                    return;
+                }
+                target.sizeBytes = QFileInfo(target.filePath).size();
+            }
+        }
+    }
+
     if (_cancelled)
         return;
 

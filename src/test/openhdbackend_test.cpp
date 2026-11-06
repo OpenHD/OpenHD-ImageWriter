@@ -594,6 +594,25 @@ bool testRockchipFirmwareLayoutDiscovery()
     const auto nand = parseBlockDeviceParts(nandMetadata.readAll());
     if (!check(nand.size() == 7 && nand[6].offset == 83968 && nand[6].size == 161792,
                "Pico NAND partition offsets are wrong")) return false;
+    const QString ubiPath = luckfoxPackage.filePath("userdata.img");
+    QByteArray original(131072, char(0xff));
+    original.replace(0, 4, "UBI#");
+    if (!writeFile(ubiPath, original) ||
+        !check(!padRockchipNandUbiImage(ubiPath, 65536, &error),
+               "Oversized NAND UBI image was accepted") ||
+        !padRockchipNandUbiImage(ubiPath, 3 * 131072, &error)) return false;
+    QFile padded(ubiPath);
+    if (!padded.open(QIODevice::ReadOnly)) return false;
+    const QByteArray fullPartition = padded.readAll();
+    padded.close();
+    // A previous flash can leave a consumed-capsule marker past the short
+    // userdata image. The new write must cover that location with erased bytes.
+    QByteArray oldFlash(3 * 131072, char(0));
+    oldFlash.replace(2 * 131072, 7, "OHDCFG1");
+    oldFlash.replace(0, fullPartition.size(), fullPartition);
+    if (!check(fullPartition == original + QByteArray(2 * 131072, char(0xff)) &&
+               !oldFlash.contains("OHDCFG1"), "NAND userdata tail retained stale provisioning") ||
+        !padRockchipNandUbiImage(ubiPath, 3 * 131072, &error)) return false;
     return check(partitions.size() == 7, "Luckfox partition metadata was not parsed") &&
            check(partitions.at(0).name == "env" && partitions.at(0).offset == 0 &&
                      partitions.at(0).size == 0x40,
