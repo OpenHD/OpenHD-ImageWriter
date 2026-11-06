@@ -4,6 +4,7 @@
  */
 
 #include "nxpflashthread.h"
+#include "nxpfirmwarelayout.h"
 #include "archivepathvalidator.h"
 #include "fatimagewriter.h"
 #include "openhdimagecustomizer.h"
@@ -247,18 +248,22 @@ void NxpFlashThread::run()
         return;
     }
 
-    QStringList scripts;
-    QDirIterator iterator(extractionDirectory, QStringList() << QStringLiteral("uuu.auto"),
-                          QDir::Files | QDir::Readable, QDirIterator::Subdirectories);
-    while (iterator.hasNext())
-        scripts << iterator.next();
-    if (scripts.size() != 1)
-    {
-        emit error(scripts.isEmpty()
-                   ? tr("The NXP firmware package does not contain uuu.auto.")
-                   : tr("The NXP firmware package contains more than one uuu.auto script."));
-        return;
+    QString script, nestedArchive, layoutError;
+    QString layoutRoot = extractionDirectory;
+    for (int depth = 0; depth < 3; ++depth) {
+        if (!NxpFirmwareLayout::locate(layoutRoot, script, nestedArchive, layoutError)) {
+            emit error(layoutError); return;
+        }
+        if (!script.isEmpty()) break;
+        if (depth == 2) { emit error(tr("NXP firmware archives are nested too deeply.")); return; }
+        layoutRoot = temporaryDirectory.filePath(QStringLiteral("payload-%1").arg(depth));
+        emit preparationStatusUpdate(tr("Extracting NXP firmware from downloaded artifact..."));
+        if (!QDir().mkpath(layoutRoot) || !extractArchive(nestedArchive, layoutRoot, &extractionError)) {
+            if (!_cancelled) emit error(tr("Failed to extract NXP firmware archive: %1").arg(extractionError));
+            return;
+        }
     }
+    const QStringList scripts = {script};
 
     QString uuu = findUuuExecutable();
     const QDir scriptDirectory(QFileInfo(scripts.first()).absolutePath());

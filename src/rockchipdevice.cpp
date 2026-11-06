@@ -1,5 +1,13 @@
 #include "rockchipdevice.h"
 
+bool isOrqaNxpBootloaderId(quint16 vendorId, quint16 productId)
+{
+    // i.MX8MP ROM download, SPL download, and both ORQA U-Boot gadgets.
+    return (vendorId == 0x1fc9 && productId == 0x0146) ||
+           (vendorId == 0x0525 && productId == 0xb4a4) ||
+           (vendorId == 0x35b6 && (productId == 0x0200 || productId == 0x0210));
+}
+
 #include <QDebug>
 #include <QFile>
 #include <QtEndian>
@@ -266,8 +274,8 @@ bool isNxpBootloaderDevicePresent()
                                     connection, buffer.size(), connection, buffer.size(),
                                     &bytesReturned, nullptr) &&
                     connection->ConnectionStatus == DeviceConnected &&
-                    connection->DeviceDescriptor.idVendor == 0x35b6 &&
-                    connection->DeviceDescriptor.idProduct == 0x0210)
+                    isOrqaNxpBootloaderId(connection->DeviceDescriptor.idVendor,
+                                          connection->DeviceDescriptor.idProduct))
                 {
                     found = true;
                     break;
@@ -379,7 +387,7 @@ bool isNxpBootloaderDevicePresent()
         quint32 product = 0;
         found = readRegistryNumber(service, CFSTR("idVendor"), vendor) &&
                 readRegistryNumber(service, CFSTR("idProduct"), product) &&
-                vendor == 0x35b6 && product == 0x0210;
+                isOrqaNxpBootloaderId(vendor, product);
         IOObjectRelease(service);
     }
     IOObjectRelease(iterator);
@@ -436,7 +444,7 @@ bool isNxpBootloaderDevicePresent()
         quint16 product = 0;
         if (readUsbHexValue(entry.filePath() + QStringLiteral("/idVendor"), vendor) &&
             readUsbHexValue(entry.filePath() + QStringLiteral("/idProduct"), product) &&
-            vendor == 0x35b6 && product == 0x0210)
+            isOrqaNxpBootloaderId(vendor, product))
             return true;
     }
     return false;

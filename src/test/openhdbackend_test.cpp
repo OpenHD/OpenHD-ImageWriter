@@ -13,6 +13,7 @@
 #include "diskformatter.h"
 #include "ringbuffer.h"
 #include "rockchipfirmwarelayout.h"
+#include "nxpfirmwarelayout.h"
 #include "writeprogresswatchdog.h"
 #include "fatimagewriter.h"
 #include "rockchipconfiguration.h"
@@ -542,6 +543,25 @@ bool testDiskFormatter()
 
 bool testRockchipFirmwareLayoutDiscovery()
 {
+    QTemporaryDir nxpArtifact;
+    QString nxpScript, nxpArchive, nxpError;
+    const QString wrapped = nxpArtifact.filePath("OpenHD-ORQA.zip");
+    if (!writeFile(wrapped, "archive fixture") ||
+        !NxpFirmwareLayout::locate(nxpArtifact.path(), nxpScript, nxpArchive, nxpError) ||
+        !check(nxpScript.isEmpty() && nxpArchive == wrapped,
+               "Wrapped NXP artifact did not select its firmware ZIP")) return false;
+    if (!writeFile(nxpArtifact.filePath("second.zip"), "ambiguous archive") ||
+        !check(!NxpFirmwareLayout::locate(nxpArtifact.path(), nxpScript, nxpArchive, nxpError),
+               "Ambiguous NXP firmware archives were accepted")) return false;
+    const QString direct = nxpArtifact.filePath("uuu.auto");
+    if (!writeFile(direct, "uuu_version 1.4.193\n") ||
+        !NxpFirmwareLayout::locate(nxpArtifact.path(), nxpScript, nxpArchive, nxpError) ||
+        !check(nxpScript == direct && nxpArchive.isEmpty(),
+               "Direct NXP firmware script was not selected")) return false;
+    QDir().mkpath(nxpArtifact.filePath("another"));
+    if (!writeFile(nxpArtifact.filePath("another/uuu.auto"), "ambiguous script") ||
+        !check(!NxpFirmwareLayout::locate(nxpArtifact.path(), nxpScript, nxpArchive, nxpError),
+               "Ambiguous NXP scripts were accepted")) return false;
     QTemporaryDir temporaryDirectory;
     const QString nestedFirmware = temporaryDirectory.filePath("bundle/output/firmware");
     if (!QDir().mkpath(nestedFirmware) ||

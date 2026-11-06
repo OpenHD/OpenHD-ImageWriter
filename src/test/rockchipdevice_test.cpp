@@ -63,6 +63,10 @@ static bool testImageReadback()
 int main(int argc, char **argv)
 {
     QCoreApplication application(argc, argv);
+    if (application.arguments().contains(QStringLiteral("--nxp-detect"))) {
+        QTextStream(stdout) << "NXP bootloader present: " << isNxpBootloaderDevicePresent() << Qt::endl;
+        return isNxpBootloaderDevicePresent() ? 0 : 1;
+    }
     if (application.arguments().contains(QStringLiteral("--list-devices")))
     {
         QTextStream output(stdout);
@@ -79,7 +83,13 @@ int main(int argc, char **argv)
     QByteArray rv1126b = rv1106;
     qToLittleEndian<quint32>(0x31313046, reinterpret_cast<uchar *>(rv1126b.data() + 21));
 
-    const bool passed = testImageReadback() &&
+    const bool passed = isOrqaNxpBootloaderId(0x1fc9, 0x0146) &&
+            isOrqaNxpBootloaderId(0x0525, 0xb4a4) &&
+            isOrqaNxpBootloaderId(0x35b6, 0x0200) &&
+            isOrqaNxpBootloaderId(0x35b6, 0x0210) &&
+            !isOrqaNxpBootloaderId(0x2207, 0x110c) &&
+            !isOrqaNxpBootloaderId(0x1fc9, 0x0134) &&
+            testImageReadback() &&
             rockchipCommandSucceeded(0x53425355, 1, 1, 0, 0) &&
             rockchipCommandSucceeded(0x53425355, 1, 1, 0, 0x10000, true) &&
             !rockchipCommandSucceeded(0x53425355, 1, 1, 0, 1) &&
