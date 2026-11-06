@@ -15,7 +15,7 @@ OPTION (ENABLE_TELEMETRY "Enable sending telemetry" ON)
 
 project(OpenHDImageWriter LANGUAGES CXX C)
 set(IMAGER_VERSION_MAJOR 4)
-set(IMAGER_VERSION_MINOR 0)
+set(IMAGER_VERSION_MINOR 1)
 set(IMAGER_VERSION_PATCH 0)
 set(IMAGER_VERSION_STR "${IMAGER_VERSION_MAJOR}.${IMAGER_VERSION_MINOR}.${IMAGER_VERSION_PATCH}")
 set(IMAGER_VERSION_CSV "${IMAGER_VERSION_MAJOR},${IMAGER_VERSION_MINOR},${IMAGER_VERSION_PATCH},0")
@@ -492,6 +492,8 @@ if(BUILD_TESTING)
 
     find_program(NODE_EXECUTABLE node)
     if(NODE_EXECUTABLE)
+        add_test(NAME openhd_camera_defaults
+            COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test/camera_defaults_test.js")
         add_test(NAME openhd_catalog_normalization
             COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test/catalog_test.js")
         add_test(NAME openhd_fleetcontrol_catalog

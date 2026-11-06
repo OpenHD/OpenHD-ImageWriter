@@ -589,7 +589,9 @@ bool testRockchipFirmwareLayoutDiscovery()
         return false;
 
     const QList<RockchipPartition> partitions = parseBlockDeviceParts(environment);
-    const auto nand = parseBlockDeviceParts("mtdparts=spi-nand0:256K(env),256K@256K(idblock),512K(uboot),8M(boot),24M(oem),8M(userdata),79M(rootfs)\n");
+    QFile nandMetadata(":/pico-mini-nand.env.txt");
+    if (!nandMetadata.open(QIODevice::ReadOnly)) return false;
+    const auto nand = parseBlockDeviceParts(nandMetadata.readAll());
     if (!check(nand.size() == 7 && nand[6].offset == 83968 && nand[6].size == 161792,
                "Pico NAND partition offsets are wrong")) return false;
     return check(partitions.size() == 7, "Luckfox partition metadata was not parsed") &&
@@ -615,9 +617,13 @@ bool testInitialConfigurationSnapshot()
     settings.setValue("bootType","Air"); settings.setValue("platform","rpi4"); settings.setValue("sbc","rpi");
     settings.setValue("camera","IMX219"); settings.setValue("fleetcontrol_signed_in",true);
     settings.setValue("fleetcontrol_username","user"); settings.setValue("fleetcontrol_password","secret"); settings.setValue("token","secret");
-    settings.setValue("initialParameterDefaults",R"({"version":1,"components":{"100":{"AIR_RECORDING_E":2}}})");
+    settings.setValue("initialParameterDefaults",R"({"version":1,"components":{"100":{"AIR_RECORDING_E":2,"STREAMING_E":0},"101":{"STREAMING_E":0}}})");
     const auto snapshot=OpenHDImageCustomizer::initialConfiguration(settings);
     const auto file=snapshot.value("settings").toObject();
+    const auto components=file.value("parameter_defaults").toObject().value("components").toObject();
+    if (!check(!components.value("100").toObject().contains("STREAMING_E") &&
+               !components.value("101").toObject().contains("STREAMING_E"),
+               "Legacy streaming override survived flash configuration export")) return false;
     return check(snapshot.value("version").toInt()==1,"Snapshot version missing") &&
       check(!file.contains("token") && !file.contains("fleetcontrol_password") && !file.contains("fleetcontrol_username"),"Snapshot leaked login credentials") &&
       check(file.value("platform").toString()=="rpi4" && file.value("camera").toString()=="31","Snapshot lost hardware selections") &&

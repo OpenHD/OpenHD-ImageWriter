@@ -150,9 +150,17 @@ QJsonObject OpenHDImageCustomizer::buildSettings(const QSettings &settings)
         openhdSettings.insert("fleetcontrol_username", fleetControlUsername);
         openhdSettings.insert("fleetcontrol_password", fleetControlPassword);
     }
-    const auto defaults=QJsonDocument::fromJson(settings.value("initialParameterDefaults").toString().toUtf8()).object();
-    if (defaults.value("version").toInt()==1 && defaults.value("components").isObject())
-        openhdSettings.insert("parameter_defaults",defaults);
+    auto defaults=QJsonDocument::fromJson(settings.value("initialParameterDefaults").toString().toUtf8()).object();
+    if (defaults.value("version").toInt()==1 && defaults.value("components").isObject()) {
+        auto components = defaults.value("components").toObject();
+        for (const auto &component : components.keys()) {
+            auto values = components.value(component).toObject();
+            values.remove("STREAMING_E");
+            components.insert(component, values);
+        }
+        defaults.insert("components", components);
+        openhdSettings.insert("parameter_defaults", defaults);
+    }
     return openhdSettings;
 }
 

@@ -1,3 +1,11 @@
+openhdimagewriter (4.1.0) stable; urgency=medium
+
+  * Remove flash-time streaming overrides and move air recording to Cameras.
+  * Show OpenHD firmware camera and resolution defaults.
+  * Include current Luckfox Pico NAND partition metadata support.
+
+ -- Raphael Scholle <raphael@openhdfpv.org>  Fri, 06 Nov 2026 19:20:00 +0100
+
 openhdimagewriter (2.0.5) stable; urgency=high
 
  * fix ssl issues

@@ -1,1 +1,1 @@
-<RCC><qresource prefix="/"><file alias="doc/openhd_settings_map.json">../../doc/openhd_settings_map.json</file></qresource></RCC>
+<RCC><qresource prefix="/"><file alias="doc/openhd_settings_map.json">../../doc/openhd_settings_map.json</file><file alias="pico-mini-nand.env.txt">pico-mini-nand.env.txt</file></qresource></RCC>
