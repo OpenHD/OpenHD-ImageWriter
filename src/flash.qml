@@ -85,22 +85,6 @@ Rectangle {
                                                             selectedImageIdentity.indexOf("imx8") >= 0
     readonly property bool operationInProgress: progressBar.visible
 
-    Loader {
-        id: localOfflineMapDialog
-        active: false
-        source: "offlinemaps/OfflineMapDialog.qml"
-        onLoaded: {
-            item.builder = _offlineMapBuilder
-            item.mapboxApiKey = imageWriter.getValue("mapboxApiKey") || ""
-            item.mapReady.connect(function(filePath) {
-                imageWriter.setSetting("offlineMapPackagePath", filePath)
-                window.offlineMapStatus = qsTr("Offline map ready. It will be copied to openhd/maps when this ground station is flashed.")
-                item.close()
-            })
-            item.open()
-        }
-    }
-
     Connections {
         target: imageWriter
         function onFleetControlOfflineMapStaged(mapId, filePath, error) {
@@ -1510,10 +1494,11 @@ Rectangle {
             imageWriter.startDriveListPolling()
         }
         offlineMapsAvailable: !usesRv1106Defaults && configurationComplete && imageWriter.getValue("bootType") === "Ground"
-        offlineMapStatus: window.offlineMapStatus
+        offlineMapStatus: mainWindow && mainWindow.localOfflineMapPath
+            ? qsTr("Map included with this Ground image: %1").arg(mainWindow.localOfflineMapPath.split(/[\\/]/).pop())
+            : window.offlineMapStatus
         onOfflineMapsRequested: {
-            if (localOfflineMapDialog.item) localOfflineMapDialog.item.open()
-            else localOfflineMapDialog.active = true
+            if (mainWindow) mainWindow.openFeature("offlinemaps", true)
         }
         onConfigureRequested: optionsPage.openPage()
         onConfirmed: {

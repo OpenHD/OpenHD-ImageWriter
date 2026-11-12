@@ -281,7 +281,9 @@ OpenHDImageCustomizer::Result OpenHDImageCustomizer::apply(const QString &bootPa
             return Result(Error::CopyQOpenHDConfig);
     }
 
-    QString offlineMapPath = settings.value("offlineMapPackagePath").toString();
+    QString offlineMapPath = settings.value("offlineMapCreatorPackagePath").toString();
+    if (offlineMapPath.isEmpty())
+        offlineMapPath = settings.value("offlineMapPackagePath").toString();
     if (offlineMapPath.startsWith("file:"))
         offlineMapPath = QUrl(offlineMapPath).toLocalFile();
     if (!offlineMapPath.isEmpty() && settings.value("bootType").toString() == "Ground")

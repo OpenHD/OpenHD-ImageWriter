@@ -60,6 +60,7 @@ ApplicationWindow {
     }
 
     property string currentView: "home"
+    property string localOfflineMapPath: imageWriter.getValue("offlineMapCreatorPackagePath")
     property string statusMessage: ""
     property string transientMessage: ""
     property bool openHdDeviceAvailable: false
@@ -118,6 +119,9 @@ ApplicationWindow {
             return fleetControlLoader.item
         }
 
+        if (currentView === "offlinemaps")
+            return offlineMapsLoader.item
+
         return null
     }
 
@@ -129,7 +133,7 @@ ApplicationWindow {
         }
     }
 
-    function openFeature(name) {
+    function openFeature(name, preserveFeature) {
         // The standalone update workflow is temporarily disabled. Keep the
         // route guarded as well as hiding its navigation entries.
         if (name === "update")
@@ -154,12 +158,20 @@ ApplicationWindow {
             return
         }
 
-        if (activeFeature && activeFeature.returnToOverview)
+        if (!preserveFeature && activeFeature && activeFeature.returnToOverview)
             activeFeature.returnToOverview()
 
         statusMessage = ""
         transientMessage = ""
         currentView = name
+    }
+
+    Connections {
+        target: imageWriter
+        function onSettingChanged(key, value) {
+            if (key === "offlineMapCreatorPackagePath")
+                window.localOfflineMapPath = value
+        }
     }
 
     function showHome() {
@@ -705,6 +717,15 @@ ApplicationWindow {
 
             onLoaded:
                 item.mainWindow = window
+        }
+
+        Loader {
+            id: offlineMapsLoader
+            anchors.fill: parent
+            source: "offlinemaps/OfflineMapsPage.qml"
+            visible: currentView === "offlinemaps"
+            enabled: visible
+            onLoaded: item.mainWindow = window
         }
 
         // -----------------------------------------------------------------

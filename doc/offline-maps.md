@@ -57,16 +57,44 @@ and the + / - controls; the separate hand handle still moves the HUD widget.
 
 ## Include a map when flashing with ImageWriter
 
-Configure a **Ground** image, then use **Create offline map** on the flash review
-page. The same region search and radius/rectangle picker creates a local `.glidemap`
-package and stages it for that flash. ImageWriter's existing customization path
-copies it to **openhd/maps** on the Config/boot partition. QOpenHD discovers it
-at `/Config/openhd/maps` on the board. Air images do not receive maps. Generation
-does not flash a device; the usual flash review and write action still apply.
+Open **Offline maps** from the ImageWriter sidebar. You can create a map before
+inserting an SD card or choosing a flash target.
 
-The portable builder and picker are mirrored in ImageWriter's `src/offlinemaps`;
-keep those files identical when changing the workflow. The builder uses Qt Core,
-Gui and Network; the picker additionally needs Qt Location and Positioning.
+1. Download a [Shortbread vector MBTiles extract](https://shortbread-tiles.org/download/)
+   that covers your flying area and open it with **Choose map data**. ImageWriter
+   remembers the source file so you can build other maps from it.
+2. Find a place or move the map, then select a circle radius or draw a rectangle.
+   The package covers the circle's enclosing rectangle. Choose the maximum
+   detail and select **Create map**.
+3. The completed package is selected for subsequent Ground flashes. Review
+   shows which local package will be included. Choose **Remove** to clear the
+   selection, or **Open folder** to copy the saved package to another computer.
+   Each new map becomes the selected package. Previously generated packages
+   remain in the folder.
+
+ImageWriter copies the selected package to **openhd/maps** as part of Ground
+image customization. The local selection takes precedence over a FleetControl
+map for that flash. QOpenHD discovers it at `/Config/openhd/maps` under
+**OpenHD Offline**. The preview and place search use online services. The
+actual render uses the local extract and bundled map assets.
+The selected package must fit the flash target's configuration storage.
+Use a smaller area or lower detail when that space is limited.
+
+### Building ImageWriter with the styled renderer
+
+Configure ImageWriter with `-DOPENHD_BUNDLE_MAP_RENDERER=ON` and build it as usual.
+The bundle step uses Node.js 22.13 or newer, npm, and tar. It installs the pinned
+MapLibre Native, VersaTiles style and Sharp dependencies, downloads the pinned
+glyph and sprite archives, and stages the renderer next to the app. Check the
+[MapLibre Native Node platform requirements](https://github.com/maplibre/maplibre-native/tree/main/platform/node)
+for the host OS and architecture. The Windows packaging workflow enables this
+option and copies the Visual Studio C++ redistributable DLLs beside the bundled
+Node executable. For an external developer bundle, set
+`OPENHD_MAP_RENDERER_DIR` to its directory.
+
+The renderer opens the SQLite archive read-only and renders VersaTiles
+Colorful PNGs for ImageWriter's existing GLDMAP1 writer. Retain the bundled
+notices and display OpenStreetMap attribution wherever the map is shown.
 
 For local fixture testing, `OPENHD_MAP_SEARCH_URL` and `OPENHD_MAP_DATA_URL` can
 override Nominatim and Overpass endpoints. Normal builds use their public HTTPS

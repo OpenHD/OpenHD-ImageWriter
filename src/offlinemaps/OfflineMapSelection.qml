@@ -11,12 +11,15 @@ Item {
     property bool usingMapbox: false
     property bool drawing: false
     property bool radiusMode: true
+    property int radiusMeters: 50000
+    property real initialZoom: 10
+    property bool fitInitialRadius: true
     property var radiusCenter: QtPositioning.coordinate(initialLatitude, initialLongitude)
     function selectRadius(coordinate) {
         if (!coordinate || !coordinate.isValid) return
         drawing = false
         radiusCenter = coordinate
-        var angular = 50000 / 6371007.2
+        var angular = radiusMeters / 6371007.2
         var latitude = coordinate.latitude * Math.PI / 180
         var deltaLon = Math.asin(Math.sin(angular) / Math.cos(latitude)) * 180 / Math.PI
         south = coordinate.latitude - angular * 180 / Math.PI
@@ -46,7 +49,14 @@ Item {
             map.visibleRegion = QtPositioning.rectangle(QtPositioning.coordinate(north, west), QtPositioning.coordinate(south, east))
         }
     }
-    Component.onCompleted: selectRadius(radiusCenter)
+    Component.onCompleted: if (fitInitialRadius) selectRadius(radiusCenter)
+    onRadiusMetersChanged: {
+        if (!radiusMode || !selectionValid) return
+        selectRadius(radiusCenter)
+        if (map && map.mapReady && selectionValid)
+            map.visibleRegion = QtPositioning.rectangle(QtPositioning.coordinate(north, west),
+                                                       QtPositioning.coordinate(south, east))
+    }
     onInitialLatitudeChanged: map.center = QtPositioning.coordinate(initialLatitude, initialLongitude)
     onInitialLongitudeChanged: map.center = QtPositioning.coordinate(initialLatitude, initialLongitude)
 
@@ -71,10 +81,10 @@ Item {
         anchors.fill: parent
         plugin: osm
         center: QtPositioning.coordinate(root.initialLatitude, root.initialLongitude)
-        zoomLevel: 10
+        zoomLevel: root.initialZoom
         copyrightsVisible: true
         onMapReadyChanged: {
-            if (mapReady && root.radiusMode && root.selectionValid)
+            if (mapReady && root.fitInitialRadius && root.radiusMode && root.selectionValid)
                 visibleRegion = QtPositioning.rectangle(QtPositioning.coordinate(root.north, root.west),
                                                        QtPositioning.coordinate(root.south, root.east))
         }
@@ -86,7 +96,7 @@ Item {
         MapCircle {
             visible: root.selectionValid && root.radiusMode
             center: root.radiusCenter
-            radius: 50000
+            radius: root.radiusMeters
             color: "#4030a8ff"
             border.color: "#30a8ff"; border.width: 2
         }

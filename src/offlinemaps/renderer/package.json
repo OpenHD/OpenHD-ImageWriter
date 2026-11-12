@@ -1,0 +1,12 @@
+{
+  "name": "openhd-offline-map-renderer",
+  "private": true,
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "@maplibre/maplibre-gl-native": "6.4.1",
+    "@versatiles/style": "9.1.0",
+    "sharp": "0.35.5"
+  }
+}

@@ -441,7 +441,7 @@ Item {
                 Layout.fillWidth: true
                 visible: root.offlineMapsAvailable && !root.updateOperation
                 ModernActionButton {
-                    text: qsTr("Create offline map...")
+                    text: qsTr("Offline maps")
                     onClicked: root.offlineMapsRequested()
                 }
                 Text {

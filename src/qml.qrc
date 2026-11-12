@@ -3,6 +3,7 @@
         <file>offlinemaps/OfflineMapDialog.qml</file>
         <file>offlinemaps/OfflineMapButton.qml</file>
         <file>offlinemaps/OfflineMapSelection.qml</file>
+        <file>offlinemaps/OfflineMapsPage.qml</file>
         <file>offlinemaps/MapboxLogo.png</file>
         <file>main.qml</file>
         <file>flash.qml</file>
@@ -72,6 +73,7 @@
         <file>icons/ui/tab-code.svg</file>
         <file>icons/ui/image.svg</file>
         <file>icons/ui/drive.svg</file>
+        <file>icons/ui/map.svg</file>
         <file>icons/ui/write.svg</file>
         <file>icons/ui/review-write.svg</file>
         <file>icons/ui/image-file.svg</file>

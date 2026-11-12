@@ -201,12 +201,21 @@ bool testGroundOfflineMapInstall()
     QFile installed(QDir(bootPartition).filePath("openhd/maps/field.glidemap"));
     if (!check(installed.open(QIODevice::ReadOnly) && installed.readAll() == package,
                "Ground offline map was not copied to Config")) return false;
+    const QString localSource = temporaryDirectory.filePath("created.glidemap");
+    if (!writeFile(localSource, package)) return false;
+    settings.setValue("offlineMapCreatorPackagePath", localSource);
+    const QString localBoot = temporaryDirectory.filePath("local-boot");
+    QDir().mkpath(localBoot);
+    if (!check(OpenHDImageCustomizer::apply(localBoot, settings).succeeded() &&
+               QFile::exists(QDir(localBoot).filePath("openhd/maps/created.glidemap")) &&
+               !QFile::exists(QDir(localBoot).filePath("openhd/maps/field.glidemap")),
+               "The map selected in the Offline maps tab did not reach the Ground image")) return false;
     settings.setValue("bootType", "Air");
     const QString airPartition = temporaryDirectory.filePath("air-boot");
     QDir().mkpath(airPartition);
     return check(OpenHDImageCustomizer::apply(airPartition, settings).succeeded(),
                  "Air customization failed with a ground map selected") &&
-           check(!QFile::exists(QDir(airPartition).filePath("openhd/maps/field.glidemap")),
+           check(!QDir(QDir(airPartition).filePath("openhd/maps")).exists(),
                  "Offline map was copied to an aircraft image");
 }
 

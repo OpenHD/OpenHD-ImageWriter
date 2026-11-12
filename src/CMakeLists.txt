@@ -12,6 +12,7 @@ endif()
 
 OPTION (ENABLE_CHECK_VERSION "Check for version updates" ON)
 OPTION (ENABLE_TELEMETRY "Enable sending telemetry" ON)
+option(OPENHD_BUNDLE_MAP_RENDERER "Bundle the MapLibre desktop offline-map renderer" OFF)
 
 project(OpenHDImageWriter LANGUAGES CXX C)
 set(IMAGER_VERSION_MAJOR 4)
@@ -398,6 +399,35 @@ else()
     install(FILES icons/openhdimagewriter.png DESTINATION share/icons/hicolor/128x128/apps)
     install(FILES linux/openhdimagewriter.desktop DESTINATION share/applications)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/openhdimagewriter.metainfo.xml" DESTINATION share/metainfo)
+endif()
+
+if(OPENHD_BUNDLE_MAP_RENDERER)
+    find_program(OPENHD_MAP_NODE NAMES node node.exe)
+    find_program(OPENHD_MAP_NPM NAMES npm.cmd npm)
+    find_program(OPENHD_MAP_TAR NAMES tar)
+    if(NOT OPENHD_MAP_NODE OR NOT OPENHD_MAP_NPM OR NOT OPENHD_MAP_TAR)
+        message(FATAL_ERROR "Bundling the offline map renderer requires Node.js 22.13+, npm, and tar.")
+    endif()
+    set(map_renderer_source "${CMAKE_CURRENT_SOURCE_DIR}/offlinemaps/renderer")
+    set(map_renderer_bundle "${CMAKE_CURRENT_BINARY_DIR}/offline-map-renderer")
+    if(WIN32)
+        set(map_renderer_deploy "${CMAKE_BINARY_DIR}/deploy/offline-map-renderer")
+    elseif(APPLE)
+        set(map_renderer_deploy "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.app/Contents/MacOS/offline-map-renderer")
+    endif()
+    add_custom_command(OUTPUT "${map_renderer_bundle}/.prepared"
+        COMMAND "${CMAKE_COMMAND}" "-DSOURCE=${map_renderer_source}" "-DBUNDLE=${map_renderer_bundle}"
+            "-DNODE=${OPENHD_MAP_NODE}" "-DNPM=${OPENHD_MAP_NPM}" "-DTAR=${OPENHD_MAP_TAR}" "-DDEPLOY=${map_renderer_deploy}"
+            -P "${map_renderer_source}/prepare.cmake"
+        DEPENDS "${map_renderer_source}/prepare.cmake" "${map_renderer_source}/render.mjs"
+            "${map_renderer_source}/package.json" "${map_renderer_source}/package-lock.json"
+        VERBATIM)
+    add_custom_target(offline_map_renderer DEPENDS "${map_renderer_bundle}/.prepared")
+    add_dependencies(${PROJECT_NAME} offline_map_renderer)
+    if(NOT WIN32 AND NOT APPLE)
+        install(DIRECTORY "${map_renderer_bundle}/" DESTINATION bin/offline-map-renderer
+            USE_SOURCE_PERMISSIONS PATTERN ".prepared" EXCLUDE)
+    endif()
 endif()
 
 get_target_property(QT_TARGET_TYPE Qt5::Core TYPE)

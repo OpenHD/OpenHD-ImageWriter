@@ -1,4 +1,4 @@
-"""Load the production picker, draw a rectangle, and verify the generate action.
+"""Exercise the production picker and the standalone Offline Maps tab.
 
 Uses Qt 5 Location with a real map canvas; map generation is a small UI fixture.
 """
@@ -144,6 +144,80 @@ Item {
 }
 '''
 
+STYLED_TEST = '''import QtQuick 2.12
+import QtTest 1.2
+import "qmlcomponents"
+
+Item {
+    id: scene
+    width: 950; height: 740
+    property string currentView: "home"
+    QtObject {
+        id: imageWriter
+        function getValue(key) { return "" }
+        function setSetting(key, value) {
+            if (key === "offlineMapCreatorPackagePath")
+                shell.localOfflineMapPath = value
+        }
+    }
+    QtObject { id: shell; property string localOfflineMapPath: "" }
+    QtObject {
+        id: builder
+        property bool busy: false
+        property bool searching: false
+        property real progress: 0
+        property string status: ""
+        property string previewCacheDirectory: "CACHE_DIR"
+        property var searchResults: []
+        property int created: 0
+        signal generated(string path)
+        function tileCount(s, w, n, e, zoom) { return s < n && w < e ? 20 : -1 }
+        function generateStyled(archive, name, s, w, n, e, zoom) {
+            if (String(archive).endsWith("area.mbtiles") && s < n && w < e && zoom === 14) {
+                created++
+                generated("created.glidemap")
+            }
+        }
+    }
+    ModernSidebar {
+        id: sidebar
+        width: 210
+        anchors.top: parent.top; anchors.bottom: parent.bottom
+        currentView: scene.currentView
+        openHdDeviceAvailable: false
+        onNavigate: scene.currentView = view
+    }
+    OfflineMapsPage {
+        id: page
+        anchors.left: sidebar.right; anchors.right: parent.right
+        anchors.top: parent.top; anchors.bottom: parent.bottom
+        visible: scene.currentView === "offlinemaps"
+        mainWindow: shell
+        builder: builder
+    }
+    TestCase {
+        name: "OfflineMapsTab"; when: windowShown
+        function test_createWithoutStorage() {
+            var tab = findChild(sidebar, "navigation-offlinemaps")
+            verify(tab.visible && tab.enabled)
+            mouseClick(tab)
+            tryCompare(page, "visible", true)
+            compare(page.tileCount, 0)
+            var circle = findChild(page, "selectMapCircle")
+            tryCompare(circle, "enabled", true)
+            circle.clicked()
+            tryCompare(page, "tileCount", 20)
+            page.archive = "file:///area.mbtiles"
+            var create = findChild(page, "createStyledMap")
+            verify(create.enabled)
+            create.clicked()
+            compare(builder.created, 1)
+            compare(page.stagedMap, "created.glidemap")
+        }
+    }
+}
+'''
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -153,11 +227,15 @@ def main():
     args.screenshot.parent.mkdir(parents=True, exist_ok=True)
     with tile_fixture() as (tile_url, requests), tempfile.TemporaryDirectory(prefix="openhd-offline-ui-") as temp:
         folder = Path(temp)
-        for name in ["OfflineMapDialog.qml", "OfflineMapSelection.qml", "OfflineMapButton.qml"]:
+        for name in ["OfflineMapDialog.qml", "OfflineMapSelection.qml", "OfflineMapButton.qml", "OfflineMapsPage.qml"]:
             source = (ROOT / "src/offlinemaps" / name).read_text(encoding="utf-8")
             source = source.replace("https://tile.openstreetmap.org/", tile_url)
             (folder / name).write_text(source, encoding="utf-8")
         (folder / "tst_picker.qml").write_text(TEST.replace("SCREENSHOT", args.screenshot.as_posix()).replace("CACHE_DIR", (folder / "tiles").as_posix()), encoding="utf-8")
+        (folder / "tst_styled.qml").write_text(STYLED_TEST.replace("CACHE_DIR", (folder / "styled-tiles").as_posix()), encoding="utf-8")
+        (folder / "qmlcomponents").mkdir()
+        shutil.copyfile(ROOT / "src/qmlcomponents/ModernSidebar.qml", folder / "qmlcomponents/ModernSidebar.qml")
+        shutil.copytree(ROOT / "src/icons/ui", folder / "icons/ui")
         fonts = folder / "fonts"
         fonts.mkdir()
         for name in ["segoeui.ttf", "segoeuib.ttf"]:

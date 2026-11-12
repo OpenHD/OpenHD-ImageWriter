@@ -1,6 +1,7 @@
 #include "offlinemapbuilder.h"
 
 #include <QBuffer>
+#include <QCoreApplication>
 #include <QDataStream>
 #include <QDir>
 #include <QImage>
@@ -45,6 +46,10 @@ QUrl endpoint(const char* variable, const char* fallback) {
 
 OfflineMapBuilder::OfflineMapBuilder(QObject* parent, const QString& outputDirectory)
     : QObject(parent), m_outputDirectory(outputDirectory) {
+    m_rendererTimeout.setSingleShot(true);
+    connect(&m_rendererTimeout, &QTimer::timeout, this, [this] {
+        fail(tr("The map renderer stopped responding."));
+    });
     // Qt's raster Mapbox plugin uses the retired v4 API, while some Pi Qt kits
     // omit Mapbox GL. Adapt the current Styles API to Qt's local XYZ source.
     // The public token remains in C++ requests rather than QML-generated URLs.
@@ -201,6 +206,144 @@ void OfflineMapBuilder::generate(const QString& name, double s, double w, double
     m_status = tr("Downloading road geometry..."); emit changed(); fetchGeometry(0);
 }
 
+QUrl OfflineMapBuilder::packageDirectory() const {
+    const auto directory = m_outputDirectory.isEmpty()
+        ? QDir(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)).filePath("maps")
+        : m_outputDirectory;
+    return QUrl::fromLocalFile(directory);
+}
+
+void OfflineMapBuilder::generateStyled(const QUrl& archive, const QString& name,
+                                       double s, double w, double n, double e, int maxZoom) {
+    if (m_busy || m_searching) return;
+    const int count = tileCount(s, w, n, e, maxZoom);
+    if (count < 1) { fail(tr("Choose a smaller area or lower detail.")); return; }
+    const QFileInfo source(archive.toLocalFile());
+    if (!source.isFile() || !source.isReadable() || source.suffix().compare("mbtiles", Qt::CaseInsensitive) != 0) {
+        fail(tr("Choose a readable Shortbread .mbtiles file."));
+        return;
+    }
+
+    const QString rendererDirectory = qEnvironmentVariable("OPENHD_MAP_RENDERER_DIR",
+        QDir(QCoreApplication::applicationDirPath()).filePath("offline-map-renderer"));
+    const QDir renderer(rendererDirectory);
+    const QString script = renderer.absoluteFilePath("render.mjs");
+#ifdef Q_OS_WIN
+    const QString bundledNode = renderer.absoluteFilePath("node.exe");
+#else
+    const QString bundledNode = renderer.absoluteFilePath("node");
+#endif
+    const QString node = QFileInfo(bundledNode).isExecutable()
+        ? bundledNode : QStandardPaths::findExecutable("node");
+    if (node.isEmpty() || !QFileInfo::exists(script)) {
+        fail(tr("The offline map renderer is unavailable. Install an ImageWriter build with the map renderer."));
+        return;
+    }
+
+    m_name = name.trimmed().left(60);
+    if (m_name.isEmpty()) m_name = source.completeBaseName().left(60);
+    m_south = s; m_west = w; m_north = n; m_east = e; m_maxZoom = maxZoom;
+    m_total = count; m_progress = 0; m_tiles.clear();
+    const auto job = ++m_job;
+    m_busy = true;
+    if (!beginPackage()) return;
+    m_rendererReady = false;
+    m_rendererOutput.clear();
+    m_rendererError.clear();
+    auto* process = new QProcess(this);
+    m_renderer = process;
+    process->setWorkingDirectory(renderer.absolutePath());
+    connect(process, &QProcess::readyReadStandardOutput, this, [this, job] {
+        if (job == m_job && m_renderer) readRendererOutput();
+    });
+    connect(process, &QProcess::readyReadStandardError, this, [this, process, job] {
+        const auto bytes = process->readAllStandardError();
+        if (job == m_job) m_rendererError = (m_rendererError + bytes).right(2000);
+    });
+    connect(process, &QProcess::errorOccurred, this, [this, process, job](QProcess::ProcessError error) {
+        if (error != QProcess::FailedToStart) return;
+        process->deleteLater();
+        if (job == m_job && m_renderer)
+            fail(tr("Could not start the map renderer: %1").arg(process->errorString()));
+    });
+    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this, process, job] {
+        process->deleteLater();
+        if (job != m_job || !m_renderer) return;
+        const auto detail = QString::fromUtf8(m_rendererError).trimmed();
+        fail(detail.isEmpty() ? tr("The map renderer exited before finishing.")
+                              : tr("The map renderer exited: %1").arg(detail));
+    });
+    m_status = tr("Opening offline map data...");
+    emit changed();
+    if (job != m_job || !m_renderer) return;
+    m_rendererTimeout.start(60000);
+    process->start(node, {script, source.absoluteFilePath(), QString::number(w, 'f', 8), QString::number(s, 'f', 8),
+                          QString::number(e, 'f', 8), QString::number(n, 'f', 8)});
+}
+
+void OfflineMapBuilder::readRendererOutput() {
+    const auto job = m_job;
+    m_rendererOutput += m_renderer->readAllStandardOutput();
+    if (m_rendererOutput.size() > 2 * 1024 * 1024) {
+        fail(tr("The map renderer returned an invalid tile."));
+        return;
+    }
+    while (job == m_job && m_renderer) {
+        const int end = m_rendererOutput.indexOf('\n');
+        if (end < 0) return;
+        const auto result = QJsonDocument::fromJson(m_rendererOutput.left(end)).object();
+        m_rendererOutput.remove(0, end + 1);
+        if (result.value("error").isString()) {
+            fail(tr("Could not render the offline map: %1").arg(result.value("error").toString()));
+            return;
+        }
+        if (!m_rendererReady && result.value("ready").toBool()) {
+            m_rendererReady = true;
+            m_status = tr("Rendering offline map...");
+            emit changed();
+        } else {
+            const auto png = QByteArray::fromBase64(result.value("png").toString().toLatin1());
+            if (!m_rendererReady || !png.startsWith(QByteArray::fromHex("89504e470d0a1a0a"))) {
+                fail(tr("The map renderer returned an invalid tile."));
+                return;
+            }
+            if (!storeTile(png)) return;
+        }
+        if (job == m_job && m_renderer) requestRenderedTile();
+    }
+}
+
+void OfflineMapBuilder::requestRenderedTile() {
+    const QByteArray tile = QByteArray::number(m_z) + ' ' + QByteArray::number(m_x) + ' ' + QByteArray::number(m_y) + '\n';
+    if (m_renderer->write(tile) != tile.size()) {
+        fail(tr("Could not send a tile to the map renderer."));
+        return;
+    }
+    m_rendererTimeout.start(30000);
+}
+
+void OfflineMapBuilder::stopRenderer() {
+    m_rendererTimeout.stop();
+    auto process = m_renderer;
+    m_renderer.clear();
+    if (!process) return;
+    if (process->state() == QProcess::NotRunning) process->deleteLater();
+    else process->kill();
+}
+
+bool OfflineMapBuilder::beginPackage() {
+    m_payload.reset(new QTemporaryFile);
+    if (!m_payload->open()) {
+        fail(tr("Cannot create the map download file."));
+        return false;
+    }
+    m_z = 0;
+    const auto bounds = tileBounds(m_south, m_west, m_north, m_east, m_z);
+    m_x = bounds.left();
+    m_y = bounds.top();
+    return true;
+}
+
 void OfflineMapBuilder::fetchGeometry(int layer, int attempt) {
     const auto region = m_geometryRegions[m_geometryRegion];
     const QString query = QStringLiteral("[out:json][timeout:90];way[\"%1\"](%2,%3,%4,%5);out geom;")
@@ -262,10 +405,7 @@ void OfflineMapBuilder::fetchGeometry(int layer, int attempt) {
             m_geometryRegion = 0; m_geometryIds.clear();
             m_status = tr("Downloading waterways..."); emit changed(); fetchGeometry(1); return;
         }
-        m_payload.reset(new QTemporaryFile);
-        if (!m_payload->open()) { fail(tr("Cannot create the map download file.")); return; }
-        m_z = 0; const auto bounds = tileBounds(m_south, m_west, m_north, m_east, m_z);
-        m_x = bounds.left(); m_y = bounds.top();
+        if (!beginPackage()) return;
         m_status = tr("Creating offline map..."); emit changed();
         QTimer::singleShot(0, this, [this, job] { if (job == m_job && m_busy) renderNext(); });
     });
@@ -294,28 +434,48 @@ void OfflineMapBuilder::renderNext() {
         }
         painter.end();
         QByteArray bytes; QBuffer buffer(&bytes); buffer.open(QIODevice::WriteOnly);
-        if (!image.save(&buffer, "PNG") || m_payload->size() + bytes.size() > maxBytes) { fail(tr("Map exceeds the 1 GB limit. Select a smaller area.")); return; }
-        const quint64 offset = quint64(m_payload->pos());
-        if (m_payload->write(bytes) != bytes.size()) { fail(tr("Not enough storage to create the map.")); return; }
-        m_tiles.append({m_z, m_x, m_y, offset, quint32(bytes.size())});
-        m_progress = double(m_tiles.size()) / m_total; emit changed();
-        if (!m_busy) return;
-        const auto bounds = tileBounds(m_south, m_west, m_north, m_east, m_z);
-        if (++m_x > bounds.right()) { m_x = bounds.left(); ++m_y; }
-        if (m_y > bounds.bottom()) {
-            if (++m_z > m_maxZoom) { finishPackage(); return; }
-            const auto next = tileBounds(m_south, m_west, m_north, m_east, m_z);
-            m_x = next.left(); m_y = next.top();
-        }
+        if (!image.save(&buffer, "PNG")) { fail(tr("Could not encode the map tile.")); return; }
+        if (!storeTile(bytes)) return;
     }
     const auto job = m_job;
     QTimer::singleShot(0, this, [this, job] { if (job == m_job && m_busy) renderNext(); });
 }
 
+bool OfflineMapBuilder::storeTile(const QByteArray& bytes) {
+    if (m_payload->size() + bytes.size() > maxBytes) {
+        fail(tr("Map exceeds the 1 GB limit. Select a smaller area."));
+        return false;
+    }
+    const quint64 offset = quint64(m_payload->pos());
+    if (m_payload->write(bytes) != bytes.size()) {
+        fail(tr("Not enough storage to create the map."));
+        return false;
+    }
+    m_tiles.append({m_z, m_x, m_y, offset, quint32(bytes.size())});
+    const auto job = m_job;
+    m_progress = double(m_tiles.size()) / m_total;
+    emit changed();
+    if (job != m_job || !m_busy) return false;
+
+    const auto bounds = tileBounds(m_south, m_west, m_north, m_east, m_z);
+    if (++m_x > bounds.right()) { m_x = bounds.left(); ++m_y; }
+    if (m_y > bounds.bottom()) {
+        if (++m_z > m_maxZoom) {
+            stopRenderer();
+            finishPackage();
+            return false;
+        }
+        const auto next = tileBounds(m_south, m_west, m_north, m_east, m_z);
+        m_x = next.left(); m_y = next.top();
+    }
+    return true;
+}
+
 void OfflineMapBuilder::finishPackage() {
+    const auto job = m_job;
     m_status = tr("Saving offline map..."); emit changed();
-    const QDir directory(m_outputDirectory.isEmpty()
-        ? QDir(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)).filePath("maps") : m_outputDirectory);
+    if (job != m_job || !m_busy) return;
+    const QDir directory(packageDirectory().toLocalFile());
     if (!QDir().mkpath(directory.path())) { fail(tr("Cannot create the offline maps folder.")); return; }
     const QStorageInfo storage(directory.path());
     if (storage.isValid() && storage.bytesAvailable() < m_payload->size() + 1024*1024) { fail(tr("Not enough storage to save the map.")); return; }
@@ -342,6 +502,7 @@ void OfflineMapBuilder::finishPackage() {
 
 void OfflineMapBuilder::cancel() {
     ++m_job; m_busy = false; m_searching = false;
+    stopRenderer();
     auto reply = m_reply; auto search = m_searchReply; m_reply = nullptr; m_searchReply = nullptr;
     if (reply) reply->abort(); if (search) search->abort();
     m_payload.reset(); m_tiles.clear(); m_ways.clear(); m_progress = 0;
@@ -349,6 +510,6 @@ void OfflineMapBuilder::cancel() {
 }
 
 void OfflineMapBuilder::fail(const QString& message) {
-    ++m_job; m_busy = false; m_payload.reset(); m_ways.clear(); m_tiles.clear();
+    ++m_job; m_busy = false; stopRenderer(); m_payload.reset(); m_ways.clear(); m_tiles.clear();
     m_status = message; emit changed();
 }

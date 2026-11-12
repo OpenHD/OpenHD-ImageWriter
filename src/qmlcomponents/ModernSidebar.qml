@@ -60,6 +60,11 @@ Rectangle {
                     "label": qsTr("Choose image")
                 },
                 {
+                    "view": "offlinemaps",
+                    "icon": "../icons/ui/map.svg",
+                    "label": qsTr("Offline maps")
+                },
+                {
                     "view": "configure",
                     "icon": "../icons/ui/settings.svg",
                     "label": qsTr("Settings")
@@ -73,6 +78,7 @@ Rectangle {
 
             delegate: Button {
                 id: navButton
+                objectName: "navigation-" + modelData.view
 
                 visible: true
                 Layout.fillWidth: true

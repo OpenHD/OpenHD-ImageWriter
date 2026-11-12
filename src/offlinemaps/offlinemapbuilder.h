@@ -11,12 +11,13 @@
 #include <QColor>
 #include <QHash>
 #include <QTcpServer>
+#include <QProcess>
+#include <QTimer>
 #include <memory>
 
 class QNetworkReply;
 
-// Kept identical in QOpenHD and ImageWriter: generates GLDMAP1 from OSM geometry,
-// without bulk-downloading public raster tiles or requiring Python on the device.
+// Both the geometry builder and the desktop renderer write the GLDMAP1 format.
 class OfflineMapBuilder : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
@@ -40,6 +41,9 @@ public:
     Q_INVOKABLE void search(const QString& query);
     Q_INVOKABLE int tileCount(double south, double west, double north, double east, int maxZoom) const;
     Q_INVOKABLE void generate(const QString& name, double south, double west, double north, double east, int maxZoom);
+    Q_INVOKABLE void generateStyled(const QUrl& archive, const QString& name, double south, double west,
+                                    double north, double east, int maxZoom);
+    Q_INVOKABLE QUrl packageDirectory() const;
     Q_INVOKABLE void cancel();
 signals:
     void changed();
@@ -49,6 +53,11 @@ private:
     struct Tile { int z, x, y; quint64 offset; quint32 size; };
     void fetchGeometry(int layer, int attempt = 0);
     void renderNext();
+    bool beginPackage();
+    bool storeTile(const QByteArray& bytes);
+    void readRendererOutput();
+    void requestRenderedTile();
+    void stopRenderer();
     void finishPackage();
     void fail(const QString& message);
     QNetworkReply* request(const QUrl& url, const QByteArray& body = {});
@@ -72,4 +81,9 @@ private:
     QVector<Way> m_ways;
     QVector<Tile> m_tiles;
     std::unique_ptr<QTemporaryFile> m_payload;
+    QPointer<QProcess> m_renderer;
+    QTimer m_rendererTimeout;
+    QByteArray m_rendererOutput;
+    QByteArray m_rendererError;
+    bool m_rendererReady = false;
 };

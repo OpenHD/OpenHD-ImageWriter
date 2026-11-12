@@ -27,6 +27,30 @@ static bool waitFor(const std::function<bool()>& condition, int timeout = 10000)
 
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
+    const auto args = app.arguments();
+    if (args.size() == 4 && args[1] == "--styled-luxembourg") {
+        OfflineMapBuilder builder(nullptr, args[3]);
+        QString path;
+        QObject::connect(&builder, &OfflineMapBuilder::generated, &app, [&](const QString& result) { path = result; });
+        const auto generate = [&] {
+            builder.generateStyled(QUrl::fromLocalFile(args[2]), "Luxembourg City",
+                                   49.605, 6.117, 49.617, 6.143, 16);
+        };
+        generate();
+        CHECK(builder.busy());
+        builder.cancel();
+        CHECK(path.isEmpty());
+        generate();
+        CHECK(waitFor([&] { return !builder.busy(); }, 120000));
+        if (path.isEmpty()) std::cerr << builder.status().toStdString() << '\n';
+        CHECK(!path.isEmpty() && builder.progress() == 1.0);
+        QFile package(path);
+        CHECK(package.open(QIODevice::ReadOnly));
+        CHECK(package.read(8) == QByteArray("GLDMAP1\0", 8));
+        CHECK(package.size() > 100000);
+        std::cout << path.toStdString() << '\n';
+        return 0;
+    }
     QTemporaryDir output; CHECK(output.isValid());
     QTcpServer server; CHECK(server.listen(QHostAddress::LocalHost, 0));
     bool invalidData = false;

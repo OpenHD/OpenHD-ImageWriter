@@ -253,6 +253,11 @@ File /r "deploy\fonts\*.*"
 SetOutPath "$INSTDIR\qmlcomponents"
 File /r "deploy\qmlcomponents\*.qml"
 
+!if "@OPENHD_BUNDLE_MAP_RENDERER@" == "ON"
+SetOutPath "$INSTDIR\offline-map-renderer"
+File /r "deploy\offline-map-renderer\*.*"
+!endif
+
 SetOutPath "$INSTDIR\styles"
 File "deploy\styles\qwindowsvistastyle.dll"
 
@@ -421,6 +426,7 @@ RmDir /r "$INSTDIR\icons"
 RmDir /r "$INSTDIR\fonts"
 RmDir /r "$INSTDIR\qmlcomponents"
 RmDir /r "$INSTDIR\doc"
+RmDir /r "$INSTDIR\offline-map-renderer"
 
 ; plugins
 Delete "$INSTDIR\platforms\qwindows.dll"
