@@ -531,7 +531,7 @@ void RockchipFlashThread::run()
             targetIndex = i;
             kind = name == "ohd_config" ? ConfigKind::Fat : name == "ohd" ? ConfigKind::Ubi : picoNand && name == "rootfs" ? ConfigKind::PicoUbi : ConfigKind::Disk;
         }
-        if (targetIndex == -1 || isOhd) {
+        if (targetIndex == -1) {
             emit error(tr("This package cannot accept configuration through USB. Select a current full Luckfox/X21 firmware ZIP. Nothing has been flashed."));
             return;
         }
@@ -609,13 +609,6 @@ void RockchipFlashThread::run()
     if (!deviceFound)
     {
         emit error(tr("The selected Rockchip device is not connected. Reconnect it and select it again."));
-        return;
-    }
-
-    if (isOhd && selectedDevice.productId != 0x110f)
-    {
-        emit error(tr("This .ohd update uses the X21/RV1126B partition layout. Select a full firmware package for %1.")
-                   .arg(selectedDevice.socName));
         return;
     }
 
