@@ -11,7 +11,8 @@ depends=('qt5-base' 'qt5-declarative' 'qt5-svg' 'qt5-quickcontrols'
          'openssl' 'zlib' 'xz' 'dosfstools' 'util-linux')
 makedepends=('cmake' 'ninja' 'git' 'qt5-tools')
 checkdepends=('nodejs')
-optdepends=('udisks2: desktop authorization and device management')
+optdepends=('udisks2: desktop authorization and device management'
+            'qt5-location: offline map selection')
 provides=('openhdimagewriter')
 conflicts=('openhdimagewriter')
 source=('OpenHD-ImageWriter::git+https://github.com/OpenHD/OpenHD-ImageWriter.git#branch=dev-branch')

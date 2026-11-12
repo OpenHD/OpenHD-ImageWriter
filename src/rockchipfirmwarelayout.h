@@ -20,4 +20,9 @@ bool findRockchipFirmwareDirectory(const QString &extractionRoot,
 // format are byte values (for example 512K@32K), and are returned as LBAs.
 QList<RockchipPartition> parseBlockDeviceParts(const QByteArray &environmentContent);
 
+// NAND UBI images must overwrite their entire partition: old journal blocks
+// outside a short image can otherwise resurrect settings from a previous flash.
+bool padRockchipNandUbiImage(const QString &imagePath, quint64 partitionBytes,
+                             QString *errorMessage = nullptr);
+
 #endif // ROCKCHIPFIRMWARELAYOUT_H

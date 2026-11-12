@@ -8,18 +8,25 @@
 #include "archivepathvalidator.h"
 #include "rockchipdevice.h"
 #include "rockchipfirmwarelayout.h"
+#include "rockchipimageverify.h"
+#include "rockchipconfiguration.h"
+#include "fatimagewriter.h"
+#include "openhdimagecustomizer.h"
 
 #include <QDebug>
+#include <QBuffer>
 #include <QDir>
 #include <QDirIterator>
 #include <QElapsedTimer>
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QSet>
+#include <QSettings>
 #include <QTemporaryDir>
 #include <archive.h>
 #include <archive_entry.h>
@@ -494,6 +501,82 @@ void RockchipFlashThread::run()
         return;
     }
 
+    QSettings settings;
+    if (settings.value("useSettings").toBool()) {
+        // The transport subsequently verifies the complete customized image,
+        // before resetting. Never edit a running/mounted target filesystem.
+        QTemporaryDir staging;
+        if (!staging.isValid()) { emit error(tr("Could not stage Rockchip configuration. Nothing has been flashed.")); return; }
+        const auto result = OpenHDImageCustomizer::apply(staging.path(), settings);
+        if (!result.succeeded()) {
+            emit error(tr("Could not prepare Rockchip settings (error %1). %2 Nothing has been flashed.")
+                       .arg(static_cast<int>(result.error)).arg(result.detail));
+            return;
+        }
+        const QString role = OpenHDImageCustomizer::buildSettings(settings).value("role").toString();
+        if (role == "air" || role == "ground") {
+            QFile marker(QDir(staging.path()).filePath("openhd/" + role + ".txt"));
+            if (!marker.open(QIODevice::WriteOnly)) {
+                emit error(tr("Could not stage the selected device role. Nothing has been flashed.")); return;
+            }
+        }
+        int targetIndex = -1;
+        enum class ConfigKind { Fat, Disk, Ubi, PicoUbi } kind = ConfigKind::Fat;
+        QFile envFile(QDir(extractedDir).filePath(".env.txt"));
+        const bool picoNand = envFile.open(QIODevice::ReadOnly) && envFile.readAll().contains("mtdparts=spi-nand0:");
+        for (int i = 0; i < targets.size(); ++i) {
+            const auto name = targets.at(i).name.toLower();
+            if (name != "ohd_config" && name != "disk" && name != "image" && name != "ohd" && !(picoNand && name == "rootfs")) continue;
+            if (targetIndex != -1) { emit error(tr("Ambiguous Rockchip configuration targets. Nothing has been flashed.")); return; }
+            targetIndex = i;
+            kind = name == "ohd_config" ? ConfigKind::Fat : name == "ohd" ? ConfigKind::Ubi : picoNand && name == "rootfs" ? ConfigKind::PicoUbi : ConfigKind::Disk;
+        }
+        if (targetIndex == -1 || isOhd) {
+            emit error(tr("This package cannot accept configuration through USB. Select a current full Luckfox/X21 firmware ZIP. Nothing has been flashed."));
+            return;
+        }
+        auto &target = targets[targetIndex];
+        // Direct raw sources belong to the user; copy before modifying.
+        if (isRawImg) {
+            const QString disposable = tempDir.filePath("configured-disk.img");
+            if (!QFile::copy(target.filePath, disposable)) {
+                emit error(tr("Could not copy the disk image for customization. Nothing has been flashed.")); return;
+            }
+            target.filePath = disposable;
+        }
+        emit preparationStatusUpdate(tr("Preparing Rockchip configuration before flashing..."));
+        QString detail;
+        const auto cancelled = [this]() { return _cancelled.load(); };
+        bool ok = false;
+        if (kind == ConfigKind::Fat) ok = FatImageWriter::install(target.filePath, staging.path(), &detail, cancelled);
+        else if (kind == ConfigKind::Disk) ok = RockchipConfiguration::installDisk(target.filePath, staging.path(), &detail, cancelled);
+        else ok = RockchipConfiguration::installUbi(target.filePath, staging.path(), &detail, cancelled,
+            kind == ConfigKind::PicoUbi ? RockchipConfiguration::UbiProfile::PicoRootfs : RockchipConfiguration::UbiProfile::X21Ohd);
+        if (!ok) {
+            if (!_cancelled) emit error(tr("Could not prepare Rockchip config: %1 Nothing has been flashed.").arg(detail));
+            return;
+        }
+    }
+
+    // Cover the complete NAND UBI partition, including the erased tail. A short
+    // userdata image otherwise leaves old UBI journals/provisioning markers
+    // behind, which can suppress importing settings into the fresh rootfs.
+    QFile nandEnvironment(QDir(extractedDir).filePath(".env.txt"));
+    if (nandEnvironment.open(QIODevice::ReadOnly) &&
+        nandEnvironment.readAll().contains("mtdparts=spi-nand0:")) {
+        for (auto &target : targets) {
+            for (const auto &partition : partitions) {
+                if (partition.name != target.name) continue;
+                QString detail;
+                if (!padRockchipNandUbiImage(target.filePath, quint64(partition.size) * 512, &detail)) {
+                    emit error(tr("Could not prepare NAND partition: %1 Nothing has been flashed.").arg(detail));
+                    return;
+                }
+                target.sizeBytes = QFileInfo(target.filePath).size();
+            }
+        }
+    }
+
     if (_cancelled)
         return;
 
@@ -502,42 +585,65 @@ void RockchipFlashThread::run()
     auto devices = listRockchipUsbDevices();
     bool deviceFound = false;
     bool isMaskrom = false;
+    RockchipDeviceDescriptor selectedDevice;
+
+    // The native transport opens the first Rockusb interface. Refuse an
+    // ambiguous setup rather than flashing a different connected board.
+    if (devices.size() > 1)
+    {
+        emit error(tr("Connect only the Rockchip device selected for flashing, then retry."));
+        return;
+    }
 
     for (const auto &dev : devices)
     {
-        if (dev.vendorId == 0x2207)
+        if (dev.vendorId == 0x2207 && dev.id == _deviceId)
         {
             deviceFound = true;
             isMaskrom = dev.isMaskrom;
+            selectedDevice = dev;
             break;
         }
     }
 
     if (!deviceFound)
     {
-        emit error(tr("Rockchip device not detected. Please ensure your OpenHD X21 is connected via USB."));
+        emit error(tr("The selected Rockchip device is not connected. Reconnect it and select it again."));
+        return;
+    }
+
+    if (isOhd && selectedDevice.productId != 0x110f)
+    {
+        emit error(tr("This .ohd update uses the X21/RV1126B partition layout. Select a full firmware package for %1.")
+                   .arg(selectedDevice.socName));
+        return;
+    }
+
+    QByteArray bootloader;
+    const QString customLoaderPath = packageLoaderPath(extractedDir);
+    if (!customLoaderPath.isEmpty())
+    {
+        QFile loaderFile(customLoaderPath);
+        if (loaderFile.open(QIODevice::ReadOnly))
+            bootloader = loaderFile.readAll();
+    }
+    // Check package compatibility even if a loader is already running.
+    if (!bootloader.isEmpty() && !rockchipLoaderMatchesDevice(
+                bootloader, selectedDevice.vendorId, selectedDevice.productId))
+    {
+        emit error(tr("The firmware loader does not match the connected %1. Select firmware built for this device.")
+                   .arg(selectedDevice.socName));
         return;
     }
 
     if (isMaskrom)
     {
-        emit preparationStatusUpdate(tr("OpenHD X21 detected in MaskROM mode. Loading bootloader..."));
+        emit preparationStatusUpdate(tr("%1 detected in MaskROM mode. Loading bootloader...")
+                                     .arg(selectedDevice.socName));
 
-        QByteArray bootloader;
         // Full ImageBuilder firmware ZIPs are self-contained. Their loader
         // must match the firmware package and must never be substituted with
         // the copy embedded in ImageWriter.
-        const QString customLoaderPath = packageLoaderPath(extractedDir);
-        if (!customLoaderPath.isEmpty())
-        {
-            QFile lf(customLoaderPath);
-            if (lf.open(QIODevice::ReadOnly))
-            {
-                bootloader = lf.readAll();
-                lf.close();
-            }
-        }
-
         if (isFirmwarePackage && bootloader.isEmpty())
         {
             emit error(tr("The selected firmware ZIP does not contain a readable Rockchip loader."));
@@ -545,12 +651,13 @@ void RockchipFlashThread::run()
         }
         if (!isFirmwarePackage && bootloader.isEmpty())
         {
-            bootloader = loadDefaultBootloader();
+            bootloader = loadDefaultBootloader(selectedDevice.vendorId, selectedDevice.productId);
         }
 
         if (bootloader.isEmpty())
         {
-            emit error(tr("Failed to load Rockchip bootloader binary (MiniLoaderAll.bin)."));
+            emit error(tr("A matching loader is required for %1 in MaskROM mode. Select a full firmware ZIP containing its MiniLoaderAll.bin or download.bin.")
+                       .arg(selectedDevice.socName));
             return;
         }
 
@@ -653,8 +760,11 @@ void RockchipFlashThread::run()
         {
             chunkBuffer.fill('\0');
             qint64 readBytes = partFile.read(chunkBuffer.data(), ChunkBytes);
-            if (readBytes <= 0)
-                break;
+            if (readBytes != static_cast<qint64>(qMin<quint64>(fileRemaining, ChunkBytes)))
+            {
+                emit error(tr("Unable to read the complete image: %1").arg(target.filePath));
+                return;
+            }
 
             quint16 sectorsInChunk = static_cast<quint16>((readBytes + 511) / 512);
             QString writeErr;
@@ -686,6 +796,56 @@ void RockchipFlashThread::run()
     {
         transport.close();
         return;
+    }
+
+    // A successful bulk write is not proof that eMMC contains the image.
+    // Verify every padded sector before reporting success or resetting.
+    emit preparationStatusUpdate(tr("Verifying flashed image..."));
+    if (!parameterData.isEmpty())
+    {
+        QByteArray parameter = makeParameterBuffer(parameterData);
+        parameter.append(QByteArray((512 - parameter.size() % 512) % 512, '\0'));
+        QBuffer source(&parameter);
+        source.open(QIODevice::ReadOnly);
+        QString verifyError;
+        if (!verifyRockchipImage(source, parameter.size(), 0x2000,
+                [&transport](quint32 lba, quint16 count, quint8 *data, QString *message) {
+                    return transport.readLBA(lba, count, data, message);
+                }, [this]() { return _cancelled.load(); }, &verifyError))
+        {
+            if (!_cancelled)
+                emit error(tr("Failed verifying partition metadata: %1").arg(verifyError));
+            return;
+        }
+    }
+    quint64 verified = 0;
+    for (const auto &target : targets)
+    {
+        QFile source(target.filePath);
+        if (!source.open(QIODevice::ReadOnly))
+        {
+            emit error(tr("Unable to reopen image for verification: %1").arg(target.filePath));
+            return;
+        }
+        QString verifyError;
+        const bool valid = verifyRockchipImage(source, target.sizeBytes, target.lbaOffset,
+            [&transport](quint32 lba, quint16 count, quint8 *data, QString *message) {
+                return transport.readLBA(lba, count, data, message);
+            }, [this]() { return _cancelled.load(); }, &verifyError,
+            [this, &progressUpdateTimer, verified, totalBytes](quint64 done) {
+                if (progressUpdateTimer.elapsed() >= 100) {
+                    progressUpdateTimer.restart();
+                    emit preparationStatusUpdate(tr("Verifying flashed image: %1%")
+                        .arg((verified + done) * 100 / totalBytes));
+                }
+            });
+        if (!valid)
+        {
+            if (!_cancelled)
+                emit error(tr("Failed verifying %1: %2").arg(target.name, verifyError));
+            return;
+        }
+        verified += target.sizeBytes;
     }
 
     emit preparationStatusUpdate(tr("Flashing complete. Rebooting OpenHD device..."));

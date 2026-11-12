@@ -10,7 +10,7 @@
 class Owner : public QObject {
     Q_OBJECT
 public:
-    QString raw = R"({"version":1,"components":{"100":{"AIR_RECORDING_E":2},"191":{"CUSTOM_NEW":7}}})";
+    QString raw = R"({"version":1,"components":{"100":{"AIR_RECORDING_E":2,"STREAMING_E":0},"101":{"STREAMING_E":0},"191":{"CUSTOM_NEW":7}}})";
     Q_INVOKABLE QString getValue(const QString&) const { return raw; }
     Q_INVOKABLE void setSetting(const QString &key,const QVariant &value) { raw=value.toString();emit settingChanged(key,value); }
 signals:
@@ -33,6 +33,11 @@ int main(int argc,char**argv) {
       return QJsonDocument::fromJson(value.toString().toUtf8()).object();};
     auto values=exported().value("components").toObject().value("100").toObject();
     if(values.value("AIR_RECORDING_E").toInt()!=2 || exported().value("components").toObject().value("191").toObject().value("CUSTOM_NEW").toInt()!=7) return 3;
+    if(values.contains("STREAMING_E") || exported().value("components").toObject().value("101").toObject().contains("STREAMING_E")) return 6;
+    if(engine.evaluate("panel.visibleFields.length").toInt()!=1) return 7;
+    // An older image manifest must not restore the streaming control.
+    engine.evaluate("panel.fields = panel.fields.concat([{id: 'STREAMING_E', provision: {componentId: 100, roles: ['air']}}])");
+    if(engine.evaluate("panel.visibleFields.length").toInt()!=1) return 8;
     owner.setSetting("initialParameterDefaults",QStringLiteral("{\"version\":1,\"components\":{}}"));
     if(!exported().value("components").toObject().isEmpty()) return 4;
     owner.setSetting("initialParameterDefaults",QStringLiteral(R"({"version":1,"components":{"100":{"AIR_RECORDING_E":1},"191":{"CUSTOM_NEW":7}}})"));

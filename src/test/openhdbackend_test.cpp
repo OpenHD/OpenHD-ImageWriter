@@ -13,7 +13,11 @@
 #include "diskformatter.h"
 #include "ringbuffer.h"
 #include "rockchipfirmwarelayout.h"
+#include "nxpfirmwarelayout.h"
 #include "writeprogresswatchdog.h"
+#include "fatimagewriter.h"
+#include "rockchipconfiguration.h"
+bool testRockchipConfiguration(const QString &fatImage, const QString &staging);
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -197,12 +201,21 @@ bool testGroundOfflineMapInstall()
     QFile installed(QDir(bootPartition).filePath("openhd/maps/field.glidemap"));
     if (!check(installed.open(QIODevice::ReadOnly) && installed.readAll() == package,
                "Ground offline map was not copied to Config")) return false;
+    const QString localSource = temporaryDirectory.filePath("created.glidemap");
+    if (!writeFile(localSource, package)) return false;
+    settings.setValue("offlineMapCreatorPackagePath", localSource);
+    const QString localBoot = temporaryDirectory.filePath("local-boot");
+    QDir().mkpath(localBoot);
+    if (!check(OpenHDImageCustomizer::apply(localBoot, settings).succeeded() &&
+               QFile::exists(QDir(localBoot).filePath("openhd/maps/created.glidemap")) &&
+               !QFile::exists(QDir(localBoot).filePath("openhd/maps/field.glidemap")),
+               "The map selected in the Offline maps tab did not reach the Ground image")) return false;
     settings.setValue("bootType", "Air");
     const QString airPartition = temporaryDirectory.filePath("air-boot");
     QDir().mkpath(airPartition);
     return check(OpenHDImageCustomizer::apply(airPartition, settings).succeeded(),
                  "Air customization failed with a ground map selected") &&
-           check(!QFile::exists(QDir(airPartition).filePath("openhd/maps/field.glidemap")),
+           check(!QDir(QDir(airPartition).filePath("openhd/maps")).exists(),
                  "Offline map was copied to an aircraft image");
 }
 
@@ -544,6 +557,25 @@ bool testDiskFormatter()
 
 bool testRockchipFirmwareLayoutDiscovery()
 {
+    QTemporaryDir nxpArtifact;
+    QString nxpScript, nxpArchive, nxpError;
+    const QString wrapped = nxpArtifact.filePath("OpenHD-ORQA.zip");
+    if (!writeFile(wrapped, "archive fixture") ||
+        !NxpFirmwareLayout::locate(nxpArtifact.path(), nxpScript, nxpArchive, nxpError) ||
+        !check(nxpScript.isEmpty() && nxpArchive == wrapped,
+               "Wrapped NXP artifact did not select its firmware ZIP")) return false;
+    if (!writeFile(nxpArtifact.filePath("second.zip"), "ambiguous archive") ||
+        !check(!NxpFirmwareLayout::locate(nxpArtifact.path(), nxpScript, nxpArchive, nxpError),
+               "Ambiguous NXP firmware archives were accepted")) return false;
+    const QString direct = nxpArtifact.filePath("uuu.auto");
+    if (!writeFile(direct, "uuu_version 1.4.193\n") ||
+        !NxpFirmwareLayout::locate(nxpArtifact.path(), nxpScript, nxpArchive, nxpError) ||
+        !check(nxpScript == direct && nxpArchive.isEmpty(),
+               "Direct NXP firmware script was not selected")) return false;
+    QDir().mkpath(nxpArtifact.filePath("another"));
+    if (!writeFile(nxpArtifact.filePath("another/uuu.auto"), "ambiguous script") ||
+        !check(!NxpFirmwareLayout::locate(nxpArtifact.path(), nxpScript, nxpArchive, nxpError),
+               "Ambiguous NXP scripts were accepted")) return false;
     QTemporaryDir temporaryDirectory;
     const QString nestedFirmware = temporaryDirectory.filePath("bundle/output/firmware");
     if (!QDir().mkpath(nestedFirmware) ||
@@ -591,6 +623,30 @@ bool testRockchipFirmwareLayoutDiscovery()
         return false;
 
     const QList<RockchipPartition> partitions = parseBlockDeviceParts(environment);
+    QFile nandMetadata(":/pico-mini-nand.env.txt");
+    if (!nandMetadata.open(QIODevice::ReadOnly)) return false;
+    const auto nand = parseBlockDeviceParts(nandMetadata.readAll());
+    if (!check(nand.size() == 7 && nand[6].offset == 83968 && nand[6].size == 161792,
+               "Pico NAND partition offsets are wrong")) return false;
+    const QString ubiPath = luckfoxPackage.filePath("userdata.img");
+    QByteArray original(131072, char(0xff));
+    original.replace(0, 4, "UBI#");
+    if (!writeFile(ubiPath, original) ||
+        !check(!padRockchipNandUbiImage(ubiPath, 65536, &error),
+               "Oversized NAND UBI image was accepted") ||
+        !padRockchipNandUbiImage(ubiPath, 3 * 131072, &error)) return false;
+    QFile padded(ubiPath);
+    if (!padded.open(QIODevice::ReadOnly)) return false;
+    const QByteArray fullPartition = padded.readAll();
+    padded.close();
+    // A previous flash can leave a consumed-capsule marker past the short
+    // userdata image. The new write must cover that location with erased bytes.
+    QByteArray oldFlash(3 * 131072, char(0));
+    oldFlash.replace(2 * 131072, 7, "OHDCFG1");
+    oldFlash.replace(0, fullPartition.size(), fullPartition);
+    if (!check(fullPartition == original + QByteArray(2 * 131072, char(0xff)) &&
+               !oldFlash.contains("OHDCFG1"), "NAND userdata tail retained stale provisioning") ||
+        !padRockchipNandUbiImage(ubiPath, 3 * 131072, &error)) return false;
     return check(partitions.size() == 7, "Luckfox partition metadata was not parsed") &&
            check(partitions.at(0).name == "env" && partitions.at(0).offset == 0 &&
                      partitions.at(0).size == 0x40,
@@ -614,20 +670,120 @@ bool testInitialConfigurationSnapshot()
     settings.setValue("bootType","Air"); settings.setValue("platform","rpi4"); settings.setValue("sbc","rpi");
     settings.setValue("camera","IMX219"); settings.setValue("fleetcontrol_signed_in",true);
     settings.setValue("fleetcontrol_username","user"); settings.setValue("fleetcontrol_password","secret"); settings.setValue("token","secret");
-    settings.setValue("initialParameterDefaults",R"({"version":1,"components":{"100":{"AIR_RECORDING_E":2}}})");
+    settings.setValue("initialParameterDefaults",R"({"version":1,"components":{"100":{"AIR_RECORDING_E":2,"STREAMING_E":0},"101":{"STREAMING_E":0}}})");
     const auto snapshot=OpenHDImageCustomizer::initialConfiguration(settings);
     const auto file=snapshot.value("settings").toObject();
+    const auto components=file.value("parameter_defaults").toObject().value("components").toObject();
+    if (!check(!components.value("100").toObject().contains("STREAMING_E") &&
+               !components.value("101").toObject().contains("STREAMING_E"),
+               "Legacy streaming override survived flash configuration export")) return false;
     return check(snapshot.value("version").toInt()==1,"Snapshot version missing") &&
       check(!file.contains("token") && !file.contains("fleetcontrol_password") && !file.contains("fleetcontrol_username"),"Snapshot leaked login credentials") &&
       check(file.value("platform").toString()=="rpi4" && file.value("camera").toString()=="31","Snapshot lost hardware selections") &&
       check(file.value("parameter_defaults").toObject().value("components").toObject().value("100").toObject().value("AIR_RECORDING_E").toInt()==2,"Snapshot lost initial defaults");
 }
 
+bool testPicoEthernetOnlySettings()
+{
+    QTemporaryDir directory;
+    QSettings settings(directory.filePath("pico.ini"), QSettings::IniFormat);
+    settings.setValue("picoUsbEthernetOnly", true);
+    settings.setValue("camera", "IMX219");
+    settings.setValue("bootType", "Ground");
+    settings.setValue("token", "old-token");
+    settings.setValue("offlineMapPackagePath", "missing-map-from-another-image");
+    settings.setValue("initialParameterDefaults", R"({"version":1,"components":{"100":{"AIR_RECORDING_E":2}}})");
+    const auto selected = OpenHDImageCustomizer::buildSettings(settings);
+    if (!check(selected.size() == 1 && selected.value("disable_ethernet_link").isBool() && !selected.value("disable_ethernet_link").toBool(),
+               "Pico Ethernet selection overwrote factory settings")) return false;
+    return check(OpenHDImageCustomizer::apply(directory.filePath("staged"), settings).succeeded(),
+                 "Stale configuration assets blocked Pico Ethernet-only provisioning");
+}
+
+bool testFatImageCustomization()
+{
+    QTemporaryDir temporary;
+    const QString imagePath = temporary.filePath("config.img");
+    QByteArray image(4 * 1024 * 1024, '\0');
+    auto *boot = reinterpret_cast<uchar *>(image.data());
+    boot[0] = 0xeb; boot[1] = 0x3c; boot[2] = 0x90;
+    qToLittleEndian<quint16>(512, boot + 11);
+    boot[13] = 1;
+    qToLittleEndian<quint16>(1, boot + 14);
+    boot[16] = 2;
+    qToLittleEndian<quint16>(512, boot + 17);
+    qToLittleEndian<quint16>(8192, boot + 19);
+    boot[21] = 0xf8;
+    qToLittleEndian<quint16>(32, boot + 22);
+    boot[38] = 0x29;
+    memcpy(boot + 43, "OPENHD     ", 11);
+    memcpy(boot + 54, "FAT16   ", 8);
+    boot[510] = 0x55; boot[511] = 0xaa;
+    for (int sector : {1, 33}) {
+        qToLittleEndian<quint16>(0xfff8, boot + sector * 512);
+        qToLittleEndian<quint16>(0xffff, boot + sector * 512 + 2);
+    }
+    if (!writeFile(imagePath, image)) return false;
+    QDir staging(temporary.filePath("staged"));
+    if (!staging.mkpath("openhd/maps")) return false;
+    QSettings settings(temporary.filePath("selected.ini"), QSettings::IniFormat);
+    settings.setValue("bootType", "Ground");
+    settings.setValue("sbc", "nxp");
+    const auto customization = OpenHDImageCustomizer::apply(staging.path(), settings);
+    const QByteArray payload(130000, 'x');
+    if (!writeFile(staging.filePath(QStringLiteral("openhd/maps/m\u00fcnchen.glidemap")), payload)) return false;
+    QString error;
+    if (!check(customization.succeeded() && FatImageWriter::install(imagePath, staging.path(), &error),
+               "FAT config install/readback failed: " + error)) return false;
+    // Replacement must truncate a former longer file and preserve unrelated image files.
+    if (!writeFile(staging.filePath(QStringLiteral("openhd/maps/m\u00fcnchen.glidemap")), "short")) return false;
+    if (!check(FatImageWriter::install(imagePath, staging.path(), &error), "FAT replacement failed: " + error)) return false;
+    QFile updated(imagePath);
+    if (!updated.open(QIODevice::ReadOnly)) return false;
+    const auto contents = updated.readAll();
+    const QByteArray beforeCancel = contents;
+    if (!check(contents.contains("\"role\": \"ground\""), "Ground settings missing from FAT image") ||
+        !check(!FatImageWriter::install(imagePath, staging.path(), &error, [] { return true; }), "Cancelled FAT preparation succeeded")) return false;
+    QTemporaryDir invalid;
+    const QString invalidPath = invalid.filePath("invalid.img");
+    if (!writeFile(invalidPath, QByteArray(4096, '\0'))) return false;
+    const bool rejected = !FatImageWriter::install(invalidPath, staging.path(), &error);
+    QFile afterCancel(imagePath);
+    if (!check(afterCancel.open(QIODevice::ReadOnly) && afterCancel.readAll() == beforeCancel,
+               "Cancellation changed the partition image")) return false;
+    afterCancel.close();
+    if (!testRockchipConfiguration(imagePath, staging.path())) return false;
+    // Space exhaustion must fail during local preparation, before any USB writes.
+    if (!writeFile(staging.filePath("openhd/oversized.bin"), QByteArray(5 * 1024 * 1024, 'z'))) return false;
+    return check(rejected, "Non-FAT partition was accepted") &&
+           check(!FatImageWriter::install(imagePath, staging.path(), &error), "Full FAT partition was accepted");
+}
+
 int main(int argc, char *argv[])
 {
     QCoreApplication application(argc, argv);
+    // Used for independent fsck/mtools validation against a real image artifact.
+    if (argc == 4 && (application.arguments().at(1) == "--install-fat-image" ||
+                     application.arguments().at(1) == "--install-rockchip-disk" ||
+                     application.arguments().at(1) == "--install-rockchip-ubi" ||
+                     application.arguments().at(1) == "--install-pico-ubi")) {
+        QString error;
+        const auto command = application.arguments().at(1);
+        if (command == "--install-pico-ubi") {
+            const bool ok = RockchipConfiguration::installUbi(application.arguments().at(2), application.arguments().at(3), &error, {}, RockchipConfiguration::UbiProfile::PicoRootfs);
+            if (!ok) qCritical().noquote() << error;
+            return ok ? 0 : 1;
+        }
+        const bool ok = command == "--install-rockchip-disk" ? RockchipConfiguration::installDisk(application.arguments().at(2), application.arguments().at(3), &error) :
+            command == "--install-rockchip-ubi" ? RockchipConfiguration::installUbi(application.arguments().at(2), application.arguments().at(3), &error) :
+            FatImageWriter::install(application.arguments().at(2), application.arguments().at(3), &error);
+        if (!ok) qCritical().noquote() << error;
+        return ok ? 0 : 1;
+    }
     int failures = 0;
+    failures += testFatImageCustomization() ? 0 : 1;
     failures += testInitialConfigurationSnapshot() ? 0 : 1;
+    failures += testPicoEthernetOnlySettings() ? 0 : 1;
     failures += testGroundSettingsAndCameraMapping() ? 0 : 1;
     failures += testImageNameRoleOverrides() ? 0 : 1;
     failures += testCustomizationInstall() ? 0 : 1;

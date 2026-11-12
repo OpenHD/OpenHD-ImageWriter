@@ -166,6 +166,11 @@ jobs:
     - name: Install NSIS
       run: choco install nsis --x86 --force -y
 
+    - name: Set up the offline map renderer runtime
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
     - name: Show Qt & CMake Info
       run: |
         where gcc
@@ -198,6 +203,7 @@ jobs:
         cd build
         cmake .. -G "MinGW Makefiles" ^
         -DCMAKE_BUILD_TYPE=Release ^
+        -DOPENHD_BUNDLE_MAP_RENDERER=ON ^
         -DCMAKE_C_COMPILER="%GITHUB_WORKSPACE%\..\Qt\Tools\mingw810_32\bin\gcc.exe" ^
         -DCMAKE_CXX_COMPILER="%GITHUB_WORKSPACE%\..\Qt\Tools\mingw810_32\bin\g++.exe" ^
         -DOPENSSL_INCLUDE_DIR="%GITHUB_WORKSPACE%\openssl111\openssl-1.1\x86\include" ^

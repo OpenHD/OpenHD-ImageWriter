@@ -86,6 +86,16 @@ function platformForHint(hint) {
     }
     return best;
 }
+
+function isRv1106Device(device) {
+    return device && String(device.device || "").indexOf("rockusb:") === 0 &&
+           Number(device.usbVendorId) === 0x2207 && Number(device.usbProductId) === 0x110c;
+}
+
+function isRv1106Image(identity) {
+    var board = platformForHint(identity);
+    return board !== null && board.id === "luckfox-pico";
+}
 function sbcKeyFromHardware(hw) {
     var platform = platformForHardware(hw);
     return platform ? platform.sbc : "";

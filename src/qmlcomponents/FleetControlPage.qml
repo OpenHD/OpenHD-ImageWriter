@@ -47,6 +47,22 @@ Item {
     property string editorSelectedHardware: "Raspberry Pi 4"
     property bool editorAdvancedOpen: false
 
+    Loader {
+        id: offlineAreaDialog
+        active: false
+        source: "../offlinemaps/OfflineMapDialog.qml"
+        onLoaded: {
+            item.builder = _offlineMapBuilder
+            item.mapboxApiKey = imageWriter.getValue("mapboxApiKey") || ""
+            item.mapReady.connect(function(filePath) {
+                imageWriter.setSetting("offlineMapPackagePath", filePath)
+                root.offlineMapMessage = qsTr("Offline map ready for ground-station flashing.")
+                item.close()
+            })
+            item.open()
+        }
+    }
+
     ListModel { id: craftModel }
 
     function iconSource(key) {
@@ -2607,10 +2623,27 @@ Item {
                                     Text {
                                         width: parent.width
                                         wrapMode: Text.WordWrap
-                                        text: qsTr("Enter a rectangle around the area where you will fly. The generated road and waterway map works in QOpenHD without internet.")
+                                        text: qsTr("Find a region, draw a rectangle and create a free road and waterway map for your ground station. It will be included when you flash.")
                                         color: "#8eafbf"
                                         font.pixelSize: 11
                                     }
+                                    ModernActionButton {
+                                        text: qsTr("Find region and draw area...")
+                                        enabled: !root.offlineMapBusy
+                                        onClicked: {
+                                            if (offlineAreaDialog.item) offlineAreaDialog.item.open()
+                                            else offlineAreaDialog.active = true
+                                        }
+                                    }
+                                    ModernActionButton {
+                                        text: qsTr("Advanced: coordinates and cloud save")
+                                        onClicked: advancedMapCoordinates.visible = !advancedMapCoordinates.visible
+                                    }
+                                    Column {
+                                        id: advancedMapCoordinates
+                                        width: parent.width
+                                        spacing: 6
+                                        visible: false
                                     TextField {
                                         id: mapNameField
                                         width: parent.width
@@ -2639,6 +2672,7 @@ Item {
                                         text: qsTr("Save this ground station first to attach offline maps.")
                                         color: "#8eafbf"
                                         font.pixelSize: 11
+                                    }
                                     }
                                     Text {
                                         visible: root.offlineMapMessage.length > 0

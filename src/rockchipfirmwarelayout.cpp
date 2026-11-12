@@ -4,13 +4,41 @@
  */
 
 #include "rockchipfirmwarelayout.h"
-
+#include <QFile>
 #include <QDir>
 #include <QDirIterator>
 #include <QFileInfo>
 #include <QRegularExpression>
 
 #include <limits>
+
+bool padRockchipNandUbiImage(const QString &imagePath, quint64 partitionBytes,
+                             QString *errorMessage)
+{
+    QFile image(imagePath);
+    if (!image.open(QIODevice::ReadWrite)) {
+        if (errorMessage) *errorMessage = QStringLiteral("Cannot open NAND partition image.");
+        return false;
+    }
+    if (image.peek(4) != QByteArrayLiteral("UBI#")) return true;
+    const quint64 size = image.size();
+    if (!partitionBytes || size > partitionBytes || partitionBytes % 131072) {
+        if (errorMessage) *errorMessage = QStringLiteral("Invalid NAND UBI partition extent.");
+        return false;
+    }
+    if (!image.seek(size)) return false;
+    const QByteArray erased(131072, char(0xff));
+    quint64 remaining = partitionBytes - size;
+    while (remaining) {
+        const qint64 count = qMin<quint64>(remaining, erased.size());
+        if (image.write(erased.constData(), count) != count) {
+            if (errorMessage) *errorMessage = QStringLiteral("Cannot prepare complete NAND UBI partition.");
+            return false;
+        }
+        remaining -= count;
+    }
+    return image.flush();
+}
 
 namespace {
 
@@ -48,7 +76,8 @@ QList<RockchipPartition> parseBlockDeviceParts(const QByteArray &environmentCont
 {
     QList<RockchipPartition> partitions;
     const QString text = QString::fromUtf8(environmentContent);
-    const int marker = text.indexOf(QStringLiteral("blkdevparts="));
+    int marker = text.indexOf(QStringLiteral("blkdevparts="));
+    if (marker == -1) marker = text.indexOf(QStringLiteral("mtdparts="));
     if (marker == -1)
         return partitions;
 

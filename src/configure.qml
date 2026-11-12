@@ -384,13 +384,6 @@ ImButton {
                     }
                     ColumnLayout {
                         id: settingsBody
-                        InitialSettingsPanel {
-                            id: initialDefaults
-                            settingsOwner: imageWriter
-                            Layout.fillWidth: true
-                            fields: hasImageSettingsManifest ? (settingsMap.initialFields || []) : []
-                            role: bootType.toLowerCase()
-                        }
                         width: settingsScroll.width - settingsScroll.leftPadding - settingsScroll.rightPadding
                         spacing: 16
 
@@ -450,7 +443,15 @@ ImButton {
 
                             ColumnLayout {
                                 id: cameraLayout
+                                property bool rebuilding: false
                                 spacing: 8
+                                InitialSettingsPanel {
+                                    id: initialDefaults
+                                    settingsOwner: imageWriter
+                                    Layout.fillWidth: true
+                                    fields: hasImageSettingsManifest ? (settingsMap.initialFields || []) : []
+                                    role: bootType.toLowerCase()
+                                }
 
                                 property var vendorList: []
                                 property var selectedVendor: null
@@ -469,7 +470,7 @@ ImButton {
                                     Layout.minimumWidth: 220
                                     Layout.maximumHeight: 40
                                     onCurrentIndexChanged: {
-                                        if (vendorModel.count > 0) {
+                                        if (!cameraLayout.rebuilding && vendorModel.count > 0 && currentIndex >= 0) {
                                             var modelVendor = vendorModel.get(currentIndex)
                                             if (modelVendor && modelVendor.vendorIndex >= 0 && modelVendor.vendorIndex < cameraLayout.vendorList.length) {
                                                 cameraLayout.selectedVendor = cameraLayout.vendorList[modelVendor.vendorIndex]
@@ -491,7 +492,7 @@ ImButton {
 
                                     Label {
                                         text: qsTr("Primary resolution")
-                                        visible: camera.length > 0 && cameraResolutionOptionsModel.count > 0
+                                        visible: cameraResolutionOptionsModel.count > 0
                                     }
 
                                     ModernComboBox {
@@ -501,13 +502,8 @@ ImButton {
                                         Layout.minimumWidth: 220
                                         Layout.maximumHeight: 40
                                         onCurrentIndexChanged: {
-                                            if (cameraOptionsModel.count > 0) {
-                                                var selectedCamera = cameraOptionsModel.get(currentIndex).displayText
-                                                if (selectedCamera !== "NONE") {
-                                                    camera = selectedCamera
-                                                } else {
-                                                    camera = ""
-                                                }
+                                            if (!cameraLayout.rebuilding && cameraOptionsModel.count > 0 && currentIndex >= 0) {
+                                                camera = cameraOptionsModel.get(currentIndex).cameraId || ""
                                                 cameraLayout.rebuildPrimaryResolutionOptions()
                                             }
                                         }
@@ -519,9 +515,9 @@ ImButton {
                                         model: cameraResolutionOptionsModel
                                         Layout.minimumWidth: 220
                                         Layout.maximumHeight: 40
-                                        visible: camera.length > 0 && cameraResolutionOptionsModel.count > 0
+                                        visible: cameraResolutionOptionsModel.count > 0
                                         onCurrentIndexChanged: {
-                                            if (cameraResolutionOptionsModel.count > 0 && currentIndex >= 0) {
+                                            if (!cameraLayout.rebuilding && cameraResolutionOptionsModel.count > 0 && currentIndex >= 0) {
                                                 var selectedResolution = cameraResolutionOptionsModel.get(currentIndex)
                                                 cameraResolution = selectedResolution && selectedResolution.value ? selectedResolution.value : ""
                                             }
@@ -546,7 +542,7 @@ ImButton {
                                         Layout.minimumWidth: 220
                                         Layout.maximumHeight: 40
                                         onCurrentIndexChanged: {
-                                            if (camera2OptionsModel.count > 0) {
+                                            if (!cameraLayout.rebuilding && camera2OptionsModel.count > 0 && currentIndex >= 0) {
                                                 var selectedSecondary = camera2OptionsModel.get(currentIndex)
                                                 camera2 = selectedSecondary && selectedSecondary.cameraId ? selectedSecondary.cameraId : ""
                                                 cameraLayout.rebuildSecondaryResolutionOptions()
@@ -562,7 +558,7 @@ ImButton {
                                         Layout.maximumHeight: 40
                                         visible: camera2.length > 0 && camera2ResolutionOptionsModel.count > 0
                                         onCurrentIndexChanged: {
-                                            if (camera2ResolutionOptionsModel.count > 0 && currentIndex >= 0) {
+                                            if (!cameraLayout.rebuilding && camera2ResolutionOptionsModel.count > 0 && currentIndex >= 0) {
                                                 var selectedSecondaryResolution = camera2ResolutionOptionsModel.get(currentIndex)
                                                 camera2Resolution = selectedSecondaryResolution && selectedSecondaryResolution.value ? selectedSecondaryResolution.value : ""
                                             }
@@ -587,46 +583,47 @@ ImButton {
                                 }
 
                                 function rebuildPrimaryResolutionOptions() {
+                                    var selectedResolution = cameraResolution
+                                    var wasRebuilding = rebuilding
+                                    rebuilding = true
                                     cameraResolutionOptionsModel.clear()
+                                    if (!camera) {
+                                        cameraResolutionOptionsModel.append({label: firmwareResolutionLabel(), value: ""})
+                                        cameraResolutionSelector.currentIndex = 0
+                                        cameraResolution = ""
+                                        rebuilding = wasRebuilding
+                                        return
+                                    }
 
-                                    var selectedCamera = (cameraOptionsModel.count > 0 && cameraSelector.currentIndex >= 0) ? cameraOptionsModel.get(cameraSelector.currentIndex) : null
+                                    var selectedCamera = cameraSelector.currentIndex >= 0 ? cameraOptionsModel.get(cameraSelector.currentIndex) : null
                                     var encodedCameraValue = selectedCamera && selectedCamera.value ? selectedCamera.value : ""
-                                    if (!selectedCamera || selectedCamera.displayText === "NONE")
-                                        encodedCameraValue = ""
-
                                     var resolutions = resolutionListForCameraValue(encodedCameraValue)
                                     var seenResolutions = {}
                                     for (var i = 0; i < resolutions.length; i++) {
                                         var resolutionValue = resolutions[i]
-                                        if (resolutionValue === "0x0@0")
-                                            continue
-                                        if (seenResolutions[resolutionValue])
-                                            continue
+                                        if (resolutionValue === "0x0@0" || seenResolutions[resolutionValue]) continue
                                         seenResolutions[resolutionValue] = true
-                                        cameraResolutionOptionsModel.append({ label: resolutionValue, value: resolutionValue })
-                                    }
-
-                                    if (!camera || camera.length === 0 || !encodedCameraValue || encodedCameraValue.length === 0) {
-                                        cameraResolution = ""
+                                        cameraResolutionOptionsModel.append({label: resolutionValue, value: resolutionValue})
                                     }
 
                                     var targetIndex = 0
-                                            if (cameraResolution && cameraResolution.length > 0) {
+                                    var standardResolution = settingsMap.cameraResolution.defaultByCameraValue
+                                            ? settingsMap.cameraResolution.defaultByCameraValue[encodedCameraValue] : ""
+                                    for (var defIdx = 0; defIdx < cameraResolutionOptionsModel.count; ++defIdx) {
+                                        if (cameraResolutionOptionsModel.get(defIdx).value === standardResolution) targetIndex = defIdx
+                                    }
+                                    if (selectedResolution) {
                                         for (var idx = 0; idx < cameraResolutionOptionsModel.count; idx++) {
-                                            if (cameraResolutionOptionsModel.get(idx).value === cameraResolution) {
+                                            if (cameraResolutionOptionsModel.get(idx).value === selectedResolution) {
                                                 targetIndex = idx
                                                 break
                                             }
                                         }
                                     }
                                     cameraResolutionSelector.currentIndex = cameraResolutionOptionsModel.count > 0 ? targetIndex : -1
-
-                                    if (cameraResolutionOptionsModel.count > 0) {
-                                        var currentResolution = cameraResolutionOptionsModel.get(cameraResolutionSelector.currentIndex)
-                                        cameraResolution = currentResolution && currentResolution.value ? currentResolution.value : ""
-                                    } else {
-                                        cameraResolution = ""
-                                    }
+                                    cameraResolution = cameraResolutionOptionsModel.count > 0
+                                            ? cameraResolutionOptionsModel.get(targetIndex).value : ""
+                                    rebuilding = wasRebuilding
                                 }
 
                                 function rebuildSecondaryResolutionOptions() {
@@ -705,33 +702,41 @@ ImButton {
                                     }
 
                                     camera2Selector.currentIndex = targetIndex2
+                                    camera2 = camera2OptionsModel.get(targetIndex2).cameraId || ""
                                     rebuildSecondaryResolutionOptions()
                                 }
 
                                 function rebuildCameraOptions() {
+                                    var wasRebuilding = rebuilding
+                                    rebuilding = true
+                                    var selectedId = camera
+                                    var selectedResolution = cameraResolution
                                     cameraOptionsModel.clear()
-                                    cameraOptionsModel.append({ displayText: "NONE", value: "" })
+                                    cameraOptionsModel.append({ displayText: firmwareCameraLabel(), cameraId: "", value: "" })
 
                                     if (cameraLayout.selectedVendor && cameraLayout.selectedVendor.options) {
                                         for (var i = 0; i < cameraLayout.selectedVendor.options.length; i++) {
                                             var option = cameraLayout.selectedVendor.options[i]
-                                            cameraOptionsModel.append({ displayText: option.id, value: option.valueWritten })
+                                            cameraOptionsModel.append({ displayText: option.id, cameraId: option.id, value: option.valueWritten })
                                         }
                                     }
 
-
                                     var targetIndex = 0
                                     for (var idx = 0; idx < cameraOptionsModel.count; idx++) {
-                                        if (cameraOptionsModel.get(idx).displayText === camera) {
+                                        if (cameraOptionsModel.get(idx).cameraId === selectedId) {
                                             targetIndex = idx
                                         }
                                     }
                                     cameraSelector.currentIndex = targetIndex
+                                    camera = cameraOptionsModel.get(targetIndex).cameraId || ""
+                                    cameraResolution = selectedResolution
                                     rebuildSecondaryCameraOptions()
                                     rebuildPrimaryResolutionOptions()
+                                    rebuilding = wasRebuilding
                                 }
 
                                 function rebuildVendors() {
+                                    rebuilding = true
                                     vendorModel.clear()
                                     cameraLayout.vendorList = []
 
@@ -771,6 +776,7 @@ ImButton {
                                         cameraLayout.selectedVendor = null
                                     }
                                     rebuildCameraOptions()
+                                    rebuilding = false
                                 }
                             }
                         }
@@ -1351,6 +1357,17 @@ ImButton {
         } catch (e) {
             console.log("[Configure] Failed to load OpenHD settings map: " + e)
         }
+    }
+
+    function firmwareCameraLabel() {
+        var defaults = settingsMap.camera && settingsMap.camera.firmwareDefaults
+        var entry = defaults ? defaults[window.platform] : null
+        return entry && !entry.autoDetect ? qsTr("%1 (firmware default)").arg(entry.label) : qsTr("Firmware default (automatic)")
+    }
+    function firmwareResolutionLabel() {
+        var defaults = settingsMap.camera && settingsMap.camera.firmwareDefaults
+        var entry = defaults ? defaults[window.platform] : null
+        return entry && !entry.autoDetect ? qsTr("%1 (firmware default)").arg(entry.resolution) : qsTr("Firmware default")
     }
 
     function getCameraGroupForSelection() {

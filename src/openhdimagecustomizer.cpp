@@ -44,6 +44,8 @@ QString OpenHDImageCustomizer::cameraTypeForName(const QString &cameraName, cons
 
 QJsonObject OpenHDImageCustomizer::buildSettings(const QSettings &settings)
 {
+    if (settings.value("picoUsbEthernetOnly", false).toBool())
+        return QJsonObject{{"disable_ethernet_link", false}};
     const QString cameraName = settings.value("camera").toString();
     const QString camera2Name = settings.value("camera2").toString();
     const QString cameraResolution = settings.value("cameraResolution").toString().trimmed();
@@ -148,9 +150,17 @@ QJsonObject OpenHDImageCustomizer::buildSettings(const QSettings &settings)
         openhdSettings.insert("fleetcontrol_username", fleetControlUsername);
         openhdSettings.insert("fleetcontrol_password", fleetControlPassword);
     }
-    const auto defaults=QJsonDocument::fromJson(settings.value("initialParameterDefaults").toString().toUtf8()).object();
-    if (defaults.value("version").toInt()==1 && defaults.value("components").isObject())
-        openhdSettings.insert("parameter_defaults",defaults);
+    auto defaults=QJsonDocument::fromJson(settings.value("initialParameterDefaults").toString().toUtf8()).object();
+    if (defaults.value("version").toInt()==1 && defaults.value("components").isObject()) {
+        auto components = defaults.value("components").toObject();
+        for (const auto &component : components.keys()) {
+            auto values = components.value(component).toObject();
+            values.remove("STREAMING_E");
+            components.insert(component, values);
+        }
+        defaults.insert("components", components);
+        openhdSettings.insert("parameter_defaults", defaults);
+    }
     return openhdSettings;
 }
 
@@ -251,6 +261,8 @@ OpenHDImageCustomizer::Result OpenHDImageCustomizer::apply(const QString &bootPa
     if (settingsFile.write(settingsJson) != settingsJson.size())
         return Result(Error::WriteSettings);
     settingsFile.close();
+    if (settings.value("picoUsbEthernetOnly", false).toBool())
+        return Result();
 
     QString qopenhdConfigPath = settings.value("qopenhdConfPath").toString();
     if (qopenhdConfigPath.startsWith("file:"))
@@ -269,7 +281,9 @@ OpenHDImageCustomizer::Result OpenHDImageCustomizer::apply(const QString &bootPa
             return Result(Error::CopyQOpenHDConfig);
     }
 
-    QString offlineMapPath = settings.value("offlineMapPackagePath").toString();
+    QString offlineMapPath = settings.value("offlineMapCreatorPackagePath").toString();
+    if (offlineMapPath.isEmpty())
+        offlineMapPath = settings.value("offlineMapPackagePath").toString();
     if (offlineMapPath.startsWith("file:"))
         offlineMapPath = QUrl(offlineMapPath).toLocalFile();
     if (!offlineMapPath.isEmpty() && settings.value("bootType").toString() == "Ground")

@@ -2,7 +2,7 @@ name: OpenHD ImageWriter builds
 
 on:
   push:
-    branches: [master, debug, dev-release, release, '2.0.4', '2.5-evo', dev-branch, testing]
+    branches: [dev-branch, release]
     tags: ['v*']
   pull_request:
   workflow_dispatch:
@@ -104,9 +104,9 @@ jobs:
           sudo apt upgrade -y
           sudo apt install -y --no-install-recommends \
             libgnutls28-dev build-essential devscripts debhelper cmake git libarchive-dev libcurl4-openssl-dev \
-            qtbase5-dev qtbase5-dev-tools qtdeclarative5-dev libqt5svg5-dev qttools5-dev libssl-dev \
+            qtbase5-dev qtbase5-dev-tools qtdeclarative5-dev libqt5svg5-dev qtlocation5-dev qtpositioning5-dev qttools5-dev libssl-dev \
             qml-module-qtquick2 qml-module-qtquick-controls2 qml-module-qtquick-layouts \
-            qml-module-qtquick-templates2 qml-module-qtquick-window2 qml-module-qtgraphicaleffects qml-module-qt-labs-settings
+            qml-module-qtquick-templates2 qml-module-qtquick-window2 qml-module-qtgraphicaleffects qml-module-qt-labs-settings qml-module-qtlocation qml-module-qtpositioning
           
           source_dir=$(mktemp -d)
           cp -a . "$source_dir/source"
@@ -123,7 +123,7 @@ jobs:
           if-no-files-found: error
 
       - name: Push to Cloudsmith
-        if: github.event_name == 'push' && (github.ref_name == 'release' || github.ref_name == 'dev-release')
+        if: github.event_name == 'push' && github.ref_name == 'release'
         id: push
         uses: cloudsmith-io/action@master
         with:
@@ -233,7 +233,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build qtbase5-dev qtdeclarative5-dev libssl-dev qml-module-qtquick2 qml-module-qtquick-controls2 qml-module-qtquick-layouts qml-module-qtquick-window2 qml-module-qt-labs-settings
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build qtbase5-dev qtdeclarative5-dev libssl-dev qml-module-qttest qml-module-qtquick2 qml-module-qtquick-controls2 qml-module-qtquick-layouts qml-module-qtquick-window2 qml-module-qt-labs-settings qml-module-qtlocation qml-module-qtpositioning
       - name: Configure
         run: cmake -S src/test -B build-src-tests -G Ninja -DCMAKE_BUILD_TYPE=Release
       - name: Build

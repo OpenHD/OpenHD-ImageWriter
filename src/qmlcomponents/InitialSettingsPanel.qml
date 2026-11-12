@@ -5,13 +5,13 @@ import Qt.labs.settings 1.0
 
 GroupBox {
     id: panel
-    title: qsTr("Initial OpenHD parameters")
+    title: qsTr("Air recording")
     property var fields: []
     property var settingsOwner: null
     property string role: ""
     property var defaults: ({version: 1, components: {}})
     readonly property var visibleFields: fields.filter(function(f) {
-        return f.provision && f.provision.roles.indexOf(role) >= 0
+        return f.id === "AIR_RECORDING_E" && f.provision && f.provision.roles.indexOf(role) >= 0
     })
     visible: visibleFields.length > 0
     Settings { id: store; property string initialParameterDefaults: "{}" }
@@ -47,6 +47,10 @@ GroupBox {
     function exportDefaults() {
         // Preserve explicit file parameters that a newer firmware knows about.
         var result = JSON.parse(JSON.stringify(defaults))
+        // Never provision a disabled live stream, including from legacy profiles.
+        Object.keys(result.components).forEach(function(component) {
+            delete result.components[component].STREAMING_E
+        })
         if (role === "ground") { delete result.components["100"]; delete result.components["101"] }
         fields.forEach(function(field) {
             if (!field.provision || field.provision.roles.indexOf(role) >= 0) return
@@ -57,37 +61,30 @@ GroupBox {
     }
     ColumnLayout {
         anchors.fill: parent
-        Label { text: qsTr("Applied only when OpenHD creates new settings. Existing user settings are preserved."); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+        Label {
+            text: qsTr("Save video locally on the air unit. Live video streaming stays on.")
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+        }
         Repeater {
             model: panel.visibleFields
-            delegate: ColumnLayout {
-                Layout.fillWidth: true
+            delegate: ModernComboBox {
                 property var field: modelData
-                CheckBox {
-                    text: field.label
-                    checked: panel.hasValue(field)
-                    onClicked: panel.setValue(field, panel.value(field), checked)
-                }
-                ComboBox {
-                    visible: field.choices && field.choices.length > 0
-                    enabled: panel.hasValue(field)
-                    Layout.fillWidth: true
-                    model: field.choices || []
-                    textRole: "label"
-                    currentIndex: {
-                        for (var n=0; n<model.length; ++n) if (model[n].value === panel.value(field)) return n
-                        return 0
-                    }
-                    onActivated: panel.setValue(field, model[currentIndex].value, true)
-                }
-                TextField {
-                    visible: !field.choices || field.choices.length === 0
-                    enabled: panel.hasValue(field)
-                    Layout.fillWidth: true
-                    text: String(panel.value(field))
-                    onEditingFinished: panel.setValue(field, field.type === "int32" ? Number(text) : text, true)
-                }
+                Layout.fillWidth: true
+                model: [
+                    {label: qsTr("Always off"), value: 0},
+                    {label: qsTr("Always on"), value: 1},
+                    {label: qsTr("When armed"), value: 2}
+                ]
+                textRole: "label"
+                currentIndex: panel.hasValue(field) ? Number(panel.value(field)) : 0
+                onActivated: panel.setValue(field, model[currentIndex].value, true)
             }
+        }
+        Label {
+            text: qsTr("When armed requires flight-controller telemetry. Applied when OpenHD creates new camera settings.")
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
         }
     }
 }

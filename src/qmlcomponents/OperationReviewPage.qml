@@ -13,9 +13,15 @@ Item {
     property string targetName: ""
     property string targetDetail: ""
     property string confirmText: qsTr("Start")
+    property bool offlineMapsAvailable: false
+    property string offlineMapStatus: ""
     property bool updateOperation: false
     property bool configurationRequired: false
+    property bool configurationAvailable: configurationRequired
     property bool configurationComplete: false
+    property bool picoUsbOptions: false
+    property bool picoEthernetEnabled: false
+    signal picoEthernetToggled(bool enabled)
     property bool fleetControlSignedIn: false
     property string profileName: ""
     property string profileDetail: ""
@@ -29,6 +35,7 @@ Item {
     signal changeSourceRequested()
     signal changeTargetRequested()
     signal configureRequested()
+    signal offlineMapsRequested()
     signal profileSettingsToggled(bool enabled)
     signal profileSelected(var profile)
     signal clearProfileRequested()
@@ -74,6 +81,13 @@ Item {
                 PageBackButton {
                     compact: root.narrow
                     onClicked: root.backRequested()
+                }
+
+                ModernActionButton {
+                    objectName: "reviewSettingsButton"
+                    visible: root.configurationAvailable
+                    text: qsTr("Settings")
+                    onClicked: root.configureRequested()
                 }
             }
 
@@ -217,6 +231,25 @@ Item {
                 }
             }
 
+            ColumnLayout {
+                visible: root.picoUsbOptions && !root.updateOperation
+                Layout.fillWidth: true
+                spacing: 4
+                CheckBox {
+                    objectName: "picoEthernetLinkCheck"
+                    text: qsTr("Enable Ethernet link over USB")
+                    checked: root.picoEthernetEnabled
+                    onToggled: root.picoEthernetToggled(checked)
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("Off: USB host for a Wi-Fi radio. On: connect the Pico to your computer for USB Ethernet video and telemetry.")
+                    color: "#91b7cc"
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: 12
+                }
+            }
+
             Rectangle {
                 id: profileCard
                 visible: !root.updateOperation && root.fleetControlSignedIn
@@ -333,7 +366,8 @@ Item {
             Button {
                 Layout.fillWidth: true
                 Layout.preferredHeight: root.narrow ? 78 : 88
-                visible: root.configurationRequired
+                visible: root.configurationAvailable
+                objectName: "configureImageButton"
                 hoverEnabled: true
                 onClicked: root.configureRequested()
 
@@ -400,6 +434,22 @@ Item {
                             wrapMode: Text.WordWrap
                         }
                     }
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                visible: root.offlineMapsAvailable && !root.updateOperation
+                ModernActionButton {
+                    text: qsTr("Offline maps")
+                    onClicked: root.offlineMapsRequested()
+                }
+                Text {
+                    Layout.fillWidth: true
+                    text: root.offlineMapStatus.length > 0 ? root.offlineMapStatus
+                          : qsTr("Optional: find a region and draw the area to include on this ground station.")
+                    color: "#8eafbf"
+                    wrapMode: Text.WordWrap
                 }
             }
 

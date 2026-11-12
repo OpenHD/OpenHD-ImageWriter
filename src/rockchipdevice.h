@@ -43,9 +43,16 @@ struct RockchipPartition
 
 std::vector<RockchipDeviceDescriptor> listRockchipUsbDevices();
 bool isNxpBootloaderDevicePresent();
+bool isOrqaNxpBootloaderId(quint16 vendorId, quint16 productId);
 QString rockchipSocName(quint16 vendorId, quint16 productId);
 QString rockchipBoardName(quint16 vendorId, quint16 productId);
-QByteArray loadDefaultBootloader();
+bool rockchipIsLoaderMode(quint16 productId, quint16 bcdUsb,
+                         bool hasBulkPipes, bool hasLoaderStrings);
+bool rockchipCommandSucceeded(quint32 signature, quint32 tag, quint32 expectedTag,
+                              quint8 status, quint32 residue, bool readiness = false);
+QByteArray loadDefaultBootloader(quint16 vendorId, quint16 productId);
+// Validate the chip tag in LDR headers for the supported RV11 families.
+bool rockchipLoaderMatchesDevice(const QByteArray &loader, quint16 vendorId, quint16 productId);
 
 QList<RockchipPartition> parseParameterTxt(const QByteArray &paramContent);
 QByteArray makeParameterBuffer(const QByteArray &paramContent);
@@ -64,13 +71,12 @@ public:
     bool isOpen() const;
 
     bool writeLBA(quint32 lba, quint16 sectorCount, const quint8 *data, QString *errorMsg = nullptr);
+    bool readLBA(quint32 lba, quint16 sectorCount, quint8 *data, QString *errorMsg = nullptr);
     bool resetDevice(QString *errorMsg = nullptr);
 
 private:
 #ifdef Q_OS_WIN
-    HANDLE _hReadPipe = INVALID_HANDLE_VALUE;
-    HANDLE _hWritePipe = INVALID_HANDLE_VALUE;
-    HANDLE _hDevice = INVALID_HANDLE_VALUE;
+    QString _devicePath;
 #elif defined(Q_OS_MACOS)
     void *_deviceInterface = nullptr;
     void *_usbInterface = nullptr;

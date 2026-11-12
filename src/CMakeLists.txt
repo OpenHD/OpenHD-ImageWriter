@@ -12,10 +12,11 @@ endif()
 
 OPTION (ENABLE_CHECK_VERSION "Check for version updates" ON)
 OPTION (ENABLE_TELEMETRY "Enable sending telemetry" ON)
+option(OPENHD_BUNDLE_MAP_RENDERER "Bundle the MapLibre desktop offline-map renderer" OFF)
 
 project(OpenHDImageWriter LANGUAGES CXX C)
 set(IMAGER_VERSION_MAJOR 4)
-set(IMAGER_VERSION_MINOR 0)
+set(IMAGER_VERSION_MINOR 1)
 set(IMAGER_VERSION_PATCH 0)
 set(IMAGER_VERSION_STR "${IMAGER_VERSION_MAJOR}.${IMAGER_VERSION_MINOR}.${IMAGER_VERSION_PATCH}")
 set(IMAGER_VERSION_CSV "${IMAGER_VERSION_MAJOR},${IMAGER_VERSION_MINOR},${IMAGER_VERSION_PATCH},0")
@@ -27,7 +28,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 # Adding headers explicity so they are displayed in Qt Creator
-set(HEADERS config.h archivepathvalidator.h certificatevalidator.h blockbatcher.h curlnetworkconfig.h curlretrypolicy.h diskformatter.h drivesafetypolicy.h drivelist/drivelist.h file_operations.h ringbuffer.h writeprogresswatchdog.h openhdimagecustomizer.h openhdstorageselector.h openhdstorageservice.h imagewriter.h networkaccessmanagerfactory.h nan.h drivelistitem.h drivelistmodel.h drivelistmodelpollthread.h rockchipdevice.h rockchipfirmwarelayout.h nxpflashthread.h driveformatthread.h powersaveblocker.h cli.h
+set(HEADERS offlinemaps/offlinemapbuilder.h config.h archivepathvalidator.h certificatevalidator.h blockbatcher.h curlnetworkconfig.h curlretrypolicy.h diskformatter.h drivesafetypolicy.h drivelist/drivelist.h file_operations.h ringbuffer.h writeprogresswatchdog.h openhdimagecustomizer.h openhdstorageselector.h openhdstorageservice.h imagewriter.h networkaccessmanagerfactory.h nan.h drivelistitem.h drivelistmodel.h drivelistmodelpollthread.h rockchipdevice.h rockchipfirmwarelayout.h nxpflashthread.h driveformatthread.h powersaveblocker.h cli.h
     downloadthread.h downloadextractthread.h localfileextractthread.h downloadstatstelemetry.h updateuploadthread.h dependencies/mountutils/src/mountutils.hpp dependencies/sha256crypt/sha256crypt.h)
 
 # Add dependencies
@@ -95,11 +96,11 @@ if (NOT atomicbuiltin)
         endif()
 endif()
 
-set(SOURCES "main.cpp" "archivepathvalidator.cpp" "certificatevalidator.cpp" "blockbatcher.cpp" "curlnetworkconfig.cpp" "curlretrypolicy.cpp" "diskformatter.cpp" "drivesafetypolicy.cpp" "file_operations.cpp" "ringbuffer.cpp" "writeprogresswatchdog.cpp" "openhdimagecustomizer.cpp" "openhdstorageselector.cpp" "openhdstorageservice.cpp" "imagewriter.cpp" "networkaccessmanagerfactory.cpp"
+set(SOURCES "offlinemaps/offlinemapbuilder.cpp" "main.cpp" "fatimagewriter.cpp" "rockchipconfiguration.cpp" "dependencies/fatfs/ff.c" "dependencies/fatfs/ffunicode.c" "archivepathvalidator.cpp" "certificatevalidator.cpp" "blockbatcher.cpp" "curlnetworkconfig.cpp" "curlretrypolicy.cpp" "diskformatter.cpp" "drivesafetypolicy.cpp" "file_operations.cpp" "ringbuffer.cpp" "writeprogresswatchdog.cpp" "openhdimagecustomizer.cpp" "openhdstorageselector.cpp" "openhdstorageservice.cpp" "imagewriter.cpp" "networkaccessmanagerfactory.cpp"
     "drivelistitem.cpp" "drivelistmodel.cpp" "drivelistmodelpollthread.cpp" "rockchipdevice.cpp" "rockchipfirmwarelayout.cpp" "rockchipflashthread.cpp" "nxpflashthread.cpp" "downloadthread.cpp" "downloadextractthread.cpp"
      "driveformatthread.cpp" "localfileextractthread.cpp" "powersaveblocker.cpp" "downloadstatstelemetry.cpp" "updateuploadthread.cpp" "qml.qrc" "dependencies/sha256crypt/sha256crypt.c" "cli.cpp")
 
-find_package(Qt5 COMPONENTS Core Quick LinguistTools Svg OPTIONAL_COMPONENTS Widgets)
+find_package(Qt5 REQUIRED COMPONENTS Core Quick LinguistTools Svg OPTIONAL_COMPONENTS Widgets)
 if (Qt5Widgets_FOUND)
     set(EXTRALIBS ${EXTRALIBS} Qt5::Widgets)
 endif()
@@ -400,6 +401,35 @@ else()
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/openhdimagewriter.metainfo.xml" DESTINATION share/metainfo)
 endif()
 
+if(OPENHD_BUNDLE_MAP_RENDERER)
+    find_program(OPENHD_MAP_NODE NAMES node node.exe)
+    find_program(OPENHD_MAP_NPM NAMES npm.cmd npm)
+    find_program(OPENHD_MAP_TAR NAMES tar)
+    if(NOT OPENHD_MAP_NODE OR NOT OPENHD_MAP_NPM OR NOT OPENHD_MAP_TAR)
+        message(FATAL_ERROR "Bundling the offline map renderer requires Node.js 22.13+, npm, and tar.")
+    endif()
+    set(map_renderer_source "${CMAKE_CURRENT_SOURCE_DIR}/offlinemaps/renderer")
+    set(map_renderer_bundle "${CMAKE_CURRENT_BINARY_DIR}/offline-map-renderer")
+    if(WIN32)
+        set(map_renderer_deploy "${CMAKE_BINARY_DIR}/deploy/offline-map-renderer")
+    elseif(APPLE)
+        set(map_renderer_deploy "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.app/Contents/MacOS/offline-map-renderer")
+    endif()
+    add_custom_command(OUTPUT "${map_renderer_bundle}/.prepared"
+        COMMAND "${CMAKE_COMMAND}" "-DSOURCE=${map_renderer_source}" "-DBUNDLE=${map_renderer_bundle}"
+            "-DNODE=${OPENHD_MAP_NODE}" "-DNPM=${OPENHD_MAP_NPM}" "-DTAR=${OPENHD_MAP_TAR}" "-DDEPLOY=${map_renderer_deploy}"
+            -P "${map_renderer_source}/prepare.cmake"
+        DEPENDS "${map_renderer_source}/prepare.cmake" "${map_renderer_source}/render.mjs"
+            "${map_renderer_source}/package.json" "${map_renderer_source}/package-lock.json"
+        VERBATIM)
+    add_custom_target(offline_map_renderer DEPENDS "${map_renderer_bundle}/.prepared")
+    add_dependencies(${PROJECT_NAME} offline_map_renderer)
+    if(NOT WIN32 AND NOT APPLE)
+        install(DIRECTORY "${map_renderer_bundle}/" DESTINATION bin/offline-map-renderer
+            USE_SOURCE_PERMISSIONS PATTERN ".prepared" EXCLUDE)
+    endif()
+endif()
+
 get_target_property(QT_TARGET_TYPE Qt5::Core TYPE)
 if(WIN32)
     # Statically link the QML plugins used by our bundled QML so that
@@ -441,10 +471,25 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(rockchip_device_tests test/rockchipdevice_test.cpp rockchipdevice.cpp)
+    target_include_directories(rockchip_device_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(rockchip_device_tests PRIVATE Qt5::Core)
+    if(WIN32)
+        target_compile_definitions(rockchip_device_tests PRIVATE _WIN32_WINNT=0x0601 WINVER=0x0601)
+        target_link_libraries(rockchip_device_tests PRIVATE setupapi uuid)
+    elseif(APPLE)
+        target_link_libraries(rockchip_device_tests PRIVATE "-framework IOKit" "-framework CoreFoundation")
+    endif()
+    add_test(NAME rockchip_device_policy COMMAND rockchip_device_tests)
     qt5_add_resources(SETTINGS_TEST_RESOURCES test/settings-test.qrc)
     add_executable(openhd_backend_tests
         ${SETTINGS_TEST_RESOURCES}
         test/openhdbackend_test.cpp
+        test/rockchipconfiguration_test.cpp
+        fatimagewriter.cpp
+        rockchipconfiguration.cpp
+        dependencies/fatfs/ff.c
+        dependencies/fatfs/ffunicode.c
         archivepathvalidator.cpp
         blockbatcher.cpp
         curlretrypolicy.cpp
@@ -476,6 +521,8 @@ if(BUILD_TESTING)
 
     find_program(NODE_EXECUTABLE node)
     if(NODE_EXECUTABLE)
+        add_test(NAME openhd_camera_defaults
+            COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test/camera_defaults_test.js")
         add_test(NAME openhd_catalog_normalization
             COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test/catalog_test.js")
         add_test(NAME openhd_fleetcontrol_catalog

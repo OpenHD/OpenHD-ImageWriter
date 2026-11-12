@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(OpenHDBackendTests LANGUAGES CXX)
+project(OpenHDBackendTests LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,6 +22,11 @@ endif()
 add_executable(openhd_backend_tests
     ${SETTINGS_TEST_RESOURCES}
     openhdbackend_test.cpp
+    rockchipconfiguration_test.cpp
+    ../fatimagewriter.cpp
+    ../rockchipconfiguration.cpp
+    ../dependencies/fatfs/ff.c
+    ../dependencies/fatfs/ffunicode.c
     ../archivepathvalidator.cpp
     ../blockbatcher.cpp
     ../curlretrypolicy.cpp
@@ -47,6 +52,17 @@ set_target_properties(openhd_update_upload_tests PROPERTIES AUTOMOC ON)
 target_include_directories(openhd_update_upload_tests PRIVATE ..)
 target_link_libraries(openhd_update_upload_tests PRIVATE Qt5::Core Qt5::Network)
 add_test(NAME openhd_update_card_upload COMMAND openhd_update_upload_tests)
+
+add_executable(rockchip_device_tests rockchipdevice_test.cpp ../rockchipdevice.cpp)
+target_include_directories(rockchip_device_tests PRIVATE ..)
+target_link_libraries(rockchip_device_tests PRIVATE Qt5::Core)
+if(WIN32)
+    target_link_libraries(rockchip_device_tests PRIVATE setupapi uuid)
+    target_compile_definitions(rockchip_device_tests PRIVATE _WIN32_WINNT=0x0601 WINVER=0x0601)
+elseif(APPLE)
+    target_link_libraries(rockchip_device_tests PRIVATE "-framework IOKit" "-framework CoreFoundation")
+endif()
+add_test(NAME rockchip_device_policy COMMAND rockchip_device_tests)
 add_test(NAME openhd_backend_characterization COMMAND openhd_backend_tests)
 add_executable(initialsettings_qml_test initialsettings_qml_test.cpp ${SETTINGS_TEST_RESOURCES})
 set_target_properties(initialsettings_qml_test PROPERTIES AUTOMOC ON)
@@ -54,3 +70,26 @@ target_link_libraries(initialsettings_qml_test PRIVATE Qt5::Gui Qt5::Qml Qt5::Qu
 target_compile_definitions(initialsettings_qml_test PRIVATE INITIAL_SETTINGS_QML_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../qmlcomponents/InitialSettingsPanel.qml")
 add_test(NAME initialsettings_qml_contract COMMAND initialsettings_qml_test)
 set_tests_properties(initialsettings_qml_contract PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+find_program(QMLTESTRUNNER_EXECUTABLE NAMES qmltestrunner qmltestrunner-qt5
+    HINTS "${Qt5Core_DIR}/../../../bin")
+if(QMLTESTRUNNER_EXECUTABLE)
+    add_test(NAME pico_usb_review COMMAND "${QMLTESTRUNNER_EXECUTABLE}"
+        -input "${CMAKE_CURRENT_SOURCE_DIR}/pico_usb_qml" -platform offscreen)
+    set_tests_properties(pico_usb_review PROPERTIES ENVIRONMENT "QT_QUICK_BACKEND=software")
+endif()
+
+# Offline map generation runs without Python, external services, or target disks.
+find_package(Qt5 REQUIRED COMPONENTS Network)
+add_executable(offline_map_builder_tests offlinemapbuilder_test.cpp ../offlinemaps/offlinemapbuilder.cpp ../offlinemaps/offlinemapbuilder.h)
+set_target_properties(offline_map_builder_tests PROPERTIES AUTOMOC ON)
+target_include_directories(offline_map_builder_tests PRIVATE ../offlinemaps)
+target_link_libraries(offline_map_builder_tests PRIVATE Qt5::Core Qt5::Gui Qt5::Network)
+add_test(NAME offline_map_builder COMMAND offline_map_builder_tests)
+
+find_program(NODE_EXECUTABLE node)
+if(NODE_EXECUTABLE)
+    add_test(NAME openhd_camera_defaults
+        COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/camera_defaults_test.js")
+    add_test(NAME openhd_initial_settings_profiles
+        COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/fleet_profiles_test.js")
+endif()
