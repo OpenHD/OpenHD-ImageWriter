@@ -32,9 +32,11 @@ context.populateGithubDevImages({ artifacts: [
     { name: "OpenHD-X21B-full-2026-10-04-12-00-00", filename: "OpenHD-X21B-full-2026-10-04-12-00-00.ohd", platform: "x21b-update", archive_download_url: "https://example/update.ohd" },
     { name: "openhd-image-pi-2026-10-04-12-00-00", platform: "pi", archive_download_url: "https://example/pi.img.xz", extract_sha256: "a".repeat(64) },
     { name: "openhd-image-rock5b-2026-10-04-12-00-00", archive_download_url: "https://example/rock5b.img.xz" },
+    { name: "openhd-image-radxa-zero3w-2026-10-04-12-00-00", platform: "radxa-zero3w",
+      archive_download_url: "https://example/zero3w.img", extract_sha256: "b".repeat(64) },
     { name: "debug-symbols", archive_download_url: "https://example/debug.zip" }
 ] })
-assert.strictEqual(context.githubDevImageCount, 3)
+assert.strictEqual(context.githubDevImageCount, 4)
 assert.strictEqual(context.githubDevLoading, false)
 const hardware = context.osmodel.entries.find(entry => entry.manufacturer === "openhd")
 assert.ok(hardware, "X21 must appear under OpenHD Hardware")
@@ -52,6 +54,10 @@ assert.strictEqual(firmware.extract_sha256, "")
 assert.strictEqual(context.isFlashableGithubArtifact({ platform: "x21b", filename: "update.ohd" }), false)
 assert.strictEqual(context.isFlashableGithubArtifact({ platform: "x21b", filename: "debug.zip" }), false)
 assert.strictEqual(context.isFlashableGithubArtifact({ platform: "x21b-update", name: "openhd-image-x21b-update" }), false)
+const radxa = context.osmodel.entries.find(entry => entry.manufacturer === "radxa")
+const zero3w = JSON.parse(radxa.subitems_json).find(board => board.name === "ZERO 3W")
+assert.strictEqual(zero3w.subitems[0].url, "https://example/zero3w.img")
+assert.strictEqual(zero3w.subitems[0].extract_sha256, "b".repeat(64))
 assert.strictEqual(context.osmodel.entries.at(-1).name, "Custom")
 assert.strictEqual(context.osmodel.entries.at(-2).name, "USB")
 console.log("FleetControl catalog tests passed")

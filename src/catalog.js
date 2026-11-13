@@ -47,6 +47,11 @@ function _hardware(entry) {
     if (_contains(value, ["x21", "x-21"]))
         return { manufacturer: "openhd", manufacturerName: "OpenHD Hardware", manufacturerOrder: 10,
                  board: "x21", boardName: "X21", boardOrder: 20, icon: "icons/manufacturers/openhd-mono.svg" }
+    if (_contains(value, ["zero3w", "zero 3w", "zero-3w"]))
+        return { manufacturer: "radxa", manufacturerName: "Radxa", manufacturerOrder: 30,
+                 board: "zero3w", boardName: "ZERO 3W", boardOrder: 60,
+                 icon: "icons/manufacturers/radxa-mono.svg" }
+
     if (_contains(value, ["raspberry", "rpi", "image-pi-"])) {
         if (_contains(value, ["cm0", "compute-module-0", "compute module 0"]))
             return { manufacturer: "raspberry-pi", manufacturerName: "Raspberry Pi", manufacturerOrder: 20,
@@ -84,7 +89,7 @@ function _hardware(entry) {
                  icon: "icons/manufacturers/luckfox-mono.svg" }
     }
 
-    if (_contains(value, ["orange pi", "orangepi", "zero3w", "zero 3w"])) {
+    if (_contains(value, ["orange pi", "orangepi"])) {
         var orangeBoard = _contains(value, ["cm4", "compute module 4"])
                 ? { key: "orange-pi-cm4", name: "CM4", order: 20 }
                 : { key: "orange-pi-zero-3w", name: "Zero 3W", order: 10 }
@@ -130,9 +135,9 @@ function _channel(entry) {
 function _manufacturerDescription(manufacturer) {
     if (manufacturer === "openhd") return "X20 and X21"
     if (manufacturer === "raspberry-pi") return "Pi 2–5 and Compute Modules"
-    if (manufacturer === "radxa") return "ROCK 3, ROCK 5, CM3 and Cubie A7"
+    if (manufacturer === "radxa") return "ROCK 3, ROCK 5, CM3, Cubie A7 and ZERO 3W"
     if (manufacturer === "luckfox") return "Aura, Pico and Lyra"
-    if (manufacturer === "orange-pi") return "Zero 3W and CM4"
+    if (manufacturer === "orange-pi") return "CM4"
     if (manufacturer === "orqa") return "GCB hardware"
     if (manufacturer === "uxv") return "Module-35 hardware"
     if (manufacturer === "x86") return "Intel and AMD systems"
