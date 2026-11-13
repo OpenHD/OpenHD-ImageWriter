@@ -95,6 +95,27 @@ bool testGroundSettingsAndCameraMapping()
            check(result.value("fleetcontrol_password").toString() == "test-password", "FleetControl password was not generated");
 }
 
+bool testZero3wImx708Provisioning()
+{
+    QTemporaryDir directory;
+    QSettings settings(directory.filePath("settings.ini"), QSettings::IniFormat);
+    settings.setValue("bootType", "Air");
+    settings.setValue("platform", "zero3w");
+    settings.setValue("sbc", "zero3w");
+    settings.setValue("camera", "IMX708");
+    settings.setValue("cameraResolution", "1920x1080@60");
+    const auto boot = directory.filePath("OPENHD");
+    if (!check(OpenHDImageCustomizer::apply(boot, settings).succeeded(),
+               "Zero 3W customization failed")) return false;
+    QFile file(QDir(boot).filePath("openhd/settings.json"));
+    if (!check(file.open(QIODevice::ReadOnly), "Zero 3W settings were not staged")) return false;
+    const auto result = QJsonDocument::fromJson(file.readAll()).object();
+    return check(result.value("camera").toString() == "93", "Zero 3W IMX708 camera ID changed") &&
+           check(result.value("role").toString() == "air", "Zero 3W Air role was lost") &&
+           check(result.value("camera_resolution_fps").toString() == "1920x1080@60",
+                 "Zero 3W IMX708 resolution was lost");
+}
+
 bool testImageNameRoleOverrides()
 {
     QTemporaryDir temporaryDirectory;
@@ -785,6 +806,7 @@ int main(int argc, char *argv[])
     failures += testInitialConfigurationSnapshot() ? 0 : 1;
     failures += testPicoEthernetOnlySettings() ? 0 : 1;
     failures += testGroundSettingsAndCameraMapping() ? 0 : 1;
+    failures += testZero3wImx708Provisioning() ? 0 : 1;
     failures += testImageNameRoleOverrides() ? 0 : 1;
     failures += testCustomizationInstall() ? 0 : 1;
     failures += testBootSplashPreparation() ? 0 : 1;
