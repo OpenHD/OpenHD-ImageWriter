@@ -159,6 +159,10 @@ static bool _isNestedImageArchive(const QString &filename)
            lower.endsWith(QStringLiteral(".zip"));
 }
 
+namespace {
+struct ImageStorageWriteError {};
+}
+
 // libarchive thread
 void DownloadExtractThread::extractImageRun()
 {
@@ -227,22 +231,8 @@ void DownloadExtractThread::extractImageRun()
                 break;
             extractedBytes += static_cast<quint64>(size);
 
-            if (_writeThreadStarted)
-            {
-                //if (_writeFile(_abuf, size) != (size_t) size)
-                if (!_writeFuture.result())
-                {
-                    if (!_cancelled)
-                    {
-                        DownloadThread::cancelDownload();
-                        emit error(tr("Error writing to storage"));
-                    }
-                    if (nestedArchive)
-                        archive_read_free(nestedArchive);
-                    archive_read_free(a);
-                    return;
-                }
-            }
+            if (_writeThreadStarted && !_writeFuture.result())
+                throw ImageStorageWriteError{};
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
             _writeFuture = QtConcurrent::run(&DownloadThread::_writeFile, static_cast<DownloadThread *>(this), _abuf[_activeBuf], size);
@@ -255,9 +245,8 @@ void DownloadExtractThread::extractImageRun()
 
         if (!_writeThreadStarted)
             throw runtime_error("Archive contains an empty disk image");
-        _writeFuture.waitForFinished();
         if (_writeFuture.result() == 0)
-            throw runtime_error("Error writing final image block to storage");
+            throw ImageStorageWriteError{};
 
         if (extractedBytes % 512 != 0)
         {
@@ -266,7 +255,7 @@ void DownloadExtractThread::extractImageRun()
             qWarning() << "Disk image length is not sector aligned; padding final image by"
                        << paddingBytes << "bytes";
             if (_writeFile(padding.constData(), paddingBytes) != paddingBytes)
-                throw runtime_error("Error writing final image padding to storage");
+                throw ImageStorageWriteError{};
         }
 
         if (nestedArchive)
@@ -293,18 +282,30 @@ void DownloadExtractThread::extractImageRun()
             throw runtime_error("Image extraction cancelled");
         _writeComplete();
     }
-    catch (exception &e)
+    catch (const ImageStorageWriteError &)
     {
-        if (nestedArchive)
-            archive_read_free(nestedArchive);
-        if (!_cancelled)
-        {
-            // Fatal error
-            DownloadThread::cancelDownload();
+        const bool reportError = !_cancelled;
+        const QString detail = fileErrorMessage(_lastFileError);
+        if (reportError)
+            cancelDownload();
+        _closeDevice();
+        if (reportError)
+            emit error(tr("Error writing to storage: %1").arg(detail));
+    }
+    catch (const exception &e)
+    {
+        const bool reportError = !_cancelled;
+        if (reportError)
+            cancelDownload();
+        if (_writeThreadStarted)
+            _writeFuture.waitForFinished();
+        _closeDevice();
+        if (reportError)
             emit error(tr("Error extracting archive: %1").arg(e.what()));
-        }
     }
 
+    if (nestedArchive)
+        archive_read_free(nestedArchive);
     archive_read_free(a);
 }
 

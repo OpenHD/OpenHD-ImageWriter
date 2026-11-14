@@ -176,7 +176,8 @@ bool DownloadThread::_openAndPrepareDevice()
         }
 
         QString preparationError;
-        if (!_lockedVolumes->lockAndDismount(targetDevice->mountpoints, &preparationError))
+        if (!_lockedVolumes->lockAndDismount(QString::fromUtf8(_filename),
+                                             targetDevice->mountpoints, &preparationError))
         {
             emit error(tr("Cannot lock the target volumes: %1").arg(preparationError));
             _lockedVolumes.reset();
@@ -240,15 +241,6 @@ bool DownloadThread::_openAndPrepareDevice()
                    .arg(QString(_filename), fileErrorMessage(_lastFileError)));
         return false;
 #endif
-    }
-#endif
-
-#ifdef Q_OS_WIN
-    // The physical drive handle now prevents competing writers. Releasing the
-    // volume handles here also restores their mount-manager bindings later.
-    if (_lockedVolumes)
-    {
-        _lockedVolumes->release();
     }
 #endif
 
@@ -361,6 +353,7 @@ void DownloadThread::run()
 {
     if (isImage() && !_openAndPrepareDevice())
     {
+        _closeFiles();
         return;
     }
 
@@ -826,14 +819,19 @@ void DownloadThread::_onDownloadError(const QString &msg)
     emit error(msg);
 }
 
-void DownloadThread::_closeFiles()
+void DownloadThread::_closeDevice()
 {
     _file->close();
-    if (_cachefile.isOpen())
-        _cachefile.close();
 #ifdef Q_OS_WIN
     _lockedVolumes.reset();
 #endif
+}
+
+void DownloadThread::_closeFiles()
+{
+    _closeDevice();
+    if (_cachefile.isOpen())
+        _cachefile.close();
 }
 
 void DownloadThread::_writeComplete()
@@ -923,6 +921,7 @@ void DownloadThread::_writeComplete()
 
             if (!_cancelled)
                 DownloadThread::_onDownloadError(tr("Error writing first block (partition table)"));
+            _closeFiles();
             return;
         }
         _bytesWritten += _firstBlockSize;

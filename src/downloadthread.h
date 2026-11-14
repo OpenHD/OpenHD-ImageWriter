@@ -147,6 +147,7 @@ protected:
     bool _openAndPrepareDevice();
     void _writeCache(const char *buf, size_t len);
     qint64 _sectorsWritten();
+    void _closeDevice();
     void _closeFiles();
     QByteArray _fileGetContentsTrimmed(const QString &filename);
     bool _customizeImage();

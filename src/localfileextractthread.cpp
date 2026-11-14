@@ -29,7 +29,10 @@ void LocalFileExtractThread::_cancelExtract()
 void LocalFileExtractThread::run()
 {
     if (isImage() && !_openAndPrepareDevice())
+    {
+        _closeFiles();
         return;
+    }
 
     _openCacheFile();
 

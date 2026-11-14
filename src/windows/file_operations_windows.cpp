@@ -12,6 +12,7 @@
 #include <windows.h>
 #include <winioctl.h>
 
+#include <QDebug>
 #include <algorithm>
 #include <atomic>
 #include <limits>
@@ -27,6 +28,7 @@ FileError errorFromWindows(DWORD error)
         return FileError::NotFound;
     case ERROR_ACCESS_DENIED:
     case ERROR_PRIVILEGE_NOT_HELD:
+    case ERROR_WRITE_PROTECT:
         return FileError::AccessDenied;
     case ERROR_SHARING_VIOLATION:
     case ERROR_LOCK_VIOLATION:
@@ -130,7 +132,11 @@ public:
                 size - bytesWritten, std::numeric_limits<DWORD>::max()));
             DWORD written = 0;
             if (!WriteFile(_handle, data + bytesWritten, chunk, &written, nullptr))
-                return errorFromWindows(GetLastError());
+            {
+                const DWORD code = GetLastError();
+                qWarning() << "Windows storage write failed at byte" << position() << "with error" << code;
+                return errorFromWindows(code);
+            }
             if (written == 0) return FileError::IoError;
             bytesWritten += written;
         }

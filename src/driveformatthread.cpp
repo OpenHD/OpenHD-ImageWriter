@@ -69,7 +69,8 @@ void DriveFormatThread::run()
 
         WindowsDiskPreparation::LockedVolumes lockedVolumes;
         QString nativeError;
-        if (!lockedVolumes.lockAndDismount(targetDevice->mountpoints, &nativeError))
+        if (!lockedVolumes.lockAndDismount(QString::fromUtf8(_device),
+                                            targetDevice->mountpoints, &nativeError))
         {
             emit error(tr("Cannot lock the target volumes: %1").arg(nativeError));
             return;

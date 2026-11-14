@@ -13,6 +13,7 @@
 #include <winioctl.h>
 
 #include <QElapsedTimer>
+#include <QStringList>
 #include <QThread>
 
 #include <algorithm>
@@ -131,14 +132,63 @@ LockedVolumes::~LockedVolumes()
     release();
 }
 
-bool LockedVolumes::lockAndDismount(const std::vector<std::string> &mountpoints,
+bool LockedVolumes::lockAndDismount(const QString &physicalDrive,
+                                     const std::vector<std::string> &mountpoints,
                                      QString *error)
 {
     release();
+    const int diskNumber = physicalDiskNumber(physicalDrive);
+    if (diskNumber < 0)
+    {
+        if (error) *error = QStringLiteral("Invalid Windows physical-drive path");
+        return false;
+    }
+
+    QStringList paths;
+    wchar_t volumeName[MAX_PATH] = {};
+    HANDLE search = FindFirstVolumeW(volumeName, MAX_PATH);
+    if (search != INVALID_HANDLE_VALUE)
+    {
+        do {
+            if (volumeUsesDisk(volumeName, diskNumber))
+            {
+                QString path = QString::fromWCharArray(volumeName);
+                path.chop(1); // Open the volume itself, without the trailing slash.
+                paths.append(path);
+            }
+        } while (FindNextVolumeW(search, volumeName, MAX_PATH));
+        const DWORD code = GetLastError();
+        FindVolumeClose(search);
+        if (code != ERROR_NO_MORE_FILES)
+        {
+            if (error) *error = windowsError(QStringLiteral("Could not enumerate disk volumes"), code);
+            return false;
+        }
+    }
+    else if (GetLastError() != ERROR_NO_MORE_FILES)
+    {
+        if (error) *error = windowsError(QStringLiteral("Could not enumerate disk volumes"), GetLastError());
+        return false;
+    }
+
+    // Some removable readers expose a drive letter before their volume GUID.
     for (const std::string &mountpoint : mountpoints)
     {
-        const QString path = volumePath(mountpoint);
+        QString path = volumePath(mountpoint);
         if (path.isEmpty()) continue;
+        const QString root = path.mid(4) + QLatin1Char('\\');
+        if (GetVolumeNameForVolumeMountPointW(reinterpret_cast<LPCWSTR>(root.utf16()),
+                                              volumeName, MAX_PATH))
+        {
+            path = QString::fromWCharArray(volumeName);
+            path.chop(1);
+        }
+        if (!paths.contains(path, Qt::CaseInsensitive))
+            paths.append(path);
+    }
+
+    for (const QString &path : paths)
+    {
         HANDLE handle = CreateFileW(reinterpret_cast<LPCWSTR>(path.utf16()),
                                     GENERIC_READ | GENERIC_WRITE,
                                     FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
@@ -222,10 +272,6 @@ bool clearPartitionTable(const QString &physicalDrive, QString *error)
     bool success = DeviceIoControl(handle, IOCTL_DISK_DELETE_DRIVE_LAYOUT,
                                    nullptr, 0, nullptr, 0, &returned, nullptr);
     DWORD code = success ? ERROR_SUCCESS : GetLastError();
-    if (!success && (code == ERROR_INVALID_FUNCTION || code == ERROR_FILE_NOT_FOUND ||
-                     code == ERROR_NOT_FOUND))
-        success = true;
-
     if (!success)
     {
         DISK_GEOMETRY geometry = {};

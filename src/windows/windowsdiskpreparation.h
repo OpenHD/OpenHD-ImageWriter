@@ -21,7 +21,8 @@ public:
     LockedVolumes(const LockedVolumes &) = delete;
     LockedVolumes &operator=(const LockedVolumes &) = delete;
 
-    bool lockAndDismount(const std::vector<std::string> &mountpoints, QString *error);
+    bool lockAndDismount(const QString &physicalDrive,
+                        const std::vector<std::string> &mountpoints, QString *error);
     void release();
     bool empty() const { return _handles.empty(); }
 
