@@ -487,7 +487,9 @@ void DownloadThread::run()
         else
 #endif
             if (!_cancelled)
-                _onDownloadError(tr("Error writing file to disk"));
+                _onDownloadError(_lastFileError == FileError::Success
+                    ? tr("Error writing file to disk")
+                    : tr("Error writing to storage: %1").arg(fileErrorMessage(_lastFileError)));
         break;
     case CURLE_ABORTED_BY_CALLBACK:
         deleteDownloadedFile();

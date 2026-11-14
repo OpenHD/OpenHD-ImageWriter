@@ -26,6 +26,9 @@ FileError errorFromWindows(DWORD error)
     case ERROR_FILE_NOT_FOUND:
     case ERROR_PATH_NOT_FOUND:
         return FileError::NotFound;
+    case ERROR_NOT_READY:
+    case ERROR_NO_MEDIA_IN_DRIVE:
+        return FileError::NotReady;
     case ERROR_ACCESS_DENIED:
     case ERROR_PRIVILEGE_NOT_HELD:
     case ERROR_WRITE_PROTECT:

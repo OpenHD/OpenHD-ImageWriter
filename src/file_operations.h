@@ -18,6 +18,7 @@ enum class FileError
     Success,
     NotOpen,
     NotFound,
+    NotReady,
     AccessDenied,
     Busy,
     InvalidArgument,

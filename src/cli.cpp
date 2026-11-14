@@ -20,11 +20,20 @@ static void devnullMsgHandler(QtMsgType, const QMessageLogContext &, const QStri
 Cli::Cli(int &argc, char *argv[]) : QObject(nullptr)
 {
 #ifdef Q_OS_WIN
-    /* Allocate console on Windows (only needed if compiled as GUI program) */
-    if (::AttachConsole(ATTACH_PARENT_PROCESS) || ::AllocConsole())
+    const auto isRedirected = [](DWORD standardHandle) {
+        const DWORD type = ::GetFileType(::GetStdHandle(standardHandle));
+        return type == FILE_TYPE_DISK || type == FILE_TYPE_PIPE;
+    };
+    const bool stdoutRedirected = isRedirected(STD_OUTPUT_HANDLE);
+    const bool stderrRedirected = isRedirected(STD_ERROR_HANDLE);
+    /* Allocate a console for streams the caller has not redirected. */
+    if ((!stdoutRedirected || !stderrRedirected) &&
+        (::AttachConsole(ATTACH_PARENT_PROCESS) || ::AllocConsole()))
     {
-        freopen("CONOUT$", "w", stdout);
-        freopen("CONOUT$", "w", stderr);
+        if (!stdoutRedirected)
+            freopen("CONOUT$", "w", stdout);
+        if (!stderrRedirected)
+            freopen("CONOUT$", "w", stderr);
         std::ios::sync_with_stdio();
     }
 #endif
