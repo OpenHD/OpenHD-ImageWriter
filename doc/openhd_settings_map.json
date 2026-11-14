@@ -356,7 +356,57 @@
       },
       {
         "sbc": [
-          "zero3w",
+          "zero3w"
+        ],
+        "bootTypeRequired": "Air",
+        "file": "openhd/camera1.txt",
+        "vendors": [
+          {
+            "id": "rock3-default",
+            "displayName": "Zero3W",
+            "options": [
+              {
+                "id": "HDMI",
+                "valueWritten": "90"
+              },
+              {
+                "id": "OV5647",
+                "valueWritten": "91"
+              },
+              {
+                "id": "IMX219",
+                "valueWritten": "92"
+              },
+              {
+                "id": "IMX708",
+                "valueWritten": "93"
+              },
+              {
+                "id": "IMX462",
+                "valueWritten": "94"
+              },
+              {
+                "id": "IMX462 Pivariety",
+                "valueWritten": "98"
+              },
+              {
+                "id": "IMX519",
+                "valueWritten": "95"
+              },
+              {
+                "id": "OHD-JAGUAR",
+                "valueWritten": "96"
+              },
+              {
+                "id": "VEYE",
+                "valueWritten": "97"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "sbc": [
           "radxa-cm3"
         ],
         "bootTypeRequired": "Air",
@@ -1005,6 +1055,7 @@
         "1920x1080@60",
         "1920x1080@100"
       ],
+      "98": ["1920x1080@60"],
       "101": [
         "1280x720@60",
         "1920x1080@60"
