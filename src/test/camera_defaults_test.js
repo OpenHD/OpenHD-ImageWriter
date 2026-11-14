@@ -61,17 +61,18 @@ for (const page of ['ImageOptionsPage.qml', 'configure.qml']) {
     group.selectedVendor = zero3w.vendors[0];
     const modes = new Map([
         ['OV5647', false], ['IMX519', true], ['IMX708', true], ['IMX462 Pivariety', false],
+        ['IMX219', false], ['IMX462', true],
     ]);
     assert.deepStrictEqual(group.selectedVendor.options.filter(option => !option.hidden).map(option => option.id), [...modes.keys()]);
     for (const [camera, supports120] of modes) {
         context.camera = camera;
         context.cameraResolution = '1280x720@120';
         context.rebuildCameraOptions();
-        assert.strictEqual(context.cameraOptionsModel.count, 4);
+        assert.strictEqual(context.cameraOptionsModel.count, modes.size);
         assert.strictEqual(context.camera, camera);
         assert.strictEqual(context.cameraResolution === '1280x720@120', supports120);
     }
-    context.camera = 'IMX462';
+    context.camera = 'VEYE';
     context.rebuildCameraOptions();
     assert.strictEqual(context.camera, 'OV5647');
     assert.strictEqual(context.cameraOptionsModel.get(0).displayText, 'Raspberry Pi Camera v1 (OV5647)');
@@ -94,7 +95,7 @@ vm.createContext(fleet);
 vm.runInContext(method(fleetSource, 'refreshEditorCameras'), fleet);
 vm.runInContext(method(fleetSource, 'selectedEditorCamera'), fleet);
 fleet.refreshEditorCameras(true);
-assert.strictEqual(fleet.cameraDropdown.model.length, 4);
+assert.strictEqual(fleet.cameraDropdown.model.length, 6);
 assert.strictEqual(fleet.selectedEditorCamera(), 'IMX462 Pivariety');
 fleet.refreshEditorCameras(false);
 assert.strictEqual(fleet.selectedEditorCamera(), 'OV5647');

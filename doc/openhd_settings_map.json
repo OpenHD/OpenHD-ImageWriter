@@ -384,18 +384,16 @@
                 "valueWritten": "98"
               },
               {
-                "id": "HDMI",
-                "valueWritten": "90",
-                "hidden": true
-              },
-              {
                 "id": "IMX219",
-                "valueWritten": "92",
-                "hidden": true
+                "valueWritten": "92"
               },
               {
                 "id": "IMX462",
-                "valueWritten": "94",
+                "valueWritten": "94"
+              },
+              {
+                "id": "HDMI",
+                "valueWritten": "90",
                 "hidden": true
               },
               {
