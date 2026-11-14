@@ -173,7 +173,7 @@ Item {
         signal generated(string path)
         function tileCount(s, w, n, e, zoom) { return s < n && w < e ? 20 : -1 }
         function generateStyled(archive, name, s, w, n, e, zoom) {
-            if (String(archive).endsWith("area.mbtiles") && s < n && w < e && zoom === 14) {
+            if (String(archive) === "" && s < n && w < e && zoom === 14) {
                 created++
                 generated("created.glidemap")
             }
@@ -207,7 +207,6 @@ Item {
             tryCompare(circle, "enabled", true)
             circle.clicked()
             tryCompare(page, "tileCount", 20)
-            page.archive = "file:///area.mbtiles"
             var create = findChild(page, "createStyledMap")
             verify(create.enabled)
             create.clicked()

@@ -3,6 +3,7 @@ import {createInterface} from 'node:readline';
 import {DatabaseSync} from 'node:sqlite';
 import {gunzipSync} from 'node:zlib';
 import maplibre from '@maplibre/maplibre-gl-native';
+import {Container} from '@versatiles/container';
 import {osm} from '@versatiles/style';
 import sharp from 'sharp';
 
@@ -10,6 +11,7 @@ const resourceHost = 'https://offline-map.invalid';
 const size = 256;
 const margin = 32;
 const emptyTile = Buffer.alloc(0);
+const defaultArchive = 'https://download.versatiles.org/osm-vector/osm-vector.versatiles';
 
 function write(message) {
     return new Promise((resolve, reject) => {
@@ -17,17 +19,53 @@ function write(message) {
     });
 }
 
+function openDownload(url) {
+    let etag;
+    return new Container(async (offset, length) => {
+        if (length <= 0 || length > 16 * 1024 * 1024)
+            throw new Error('Invalid map data range.');
+        const range = `bytes=${offset}-${offset + length - 1}`;
+        const response = await fetch(url, {
+            headers: {
+                Range: range,
+                'User-Agent': 'OpenHD-ImageWriter/1.0 (+https://openhd.tech)',
+                ...(etag ? {'If-Match': etag} : {}),
+            },
+            signal: AbortSignal.timeout(15000),
+        });
+        const receivedTag = response.headers.get('etag');
+        if (response.status !== 206 ||
+            response.headers.get('content-range')?.split('/')[0] !== range.replace('=', ' ') ||
+            Number(response.headers.get('content-length')) !== length ||
+            (etag && receivedTag !== etag)) {
+            await response.body?.cancel();
+            throw new Error('The map data download was interrupted. Try creating the map again.');
+        }
+        etag ??= receivedTag;
+        const bytes = Buffer.from(await response.arrayBuffer());
+        if (bytes.length !== length) throw new Error('The map data download was incomplete.');
+        return bytes;
+    });
+}
+
 async function renderArchive(filename, selection) {
-    const database = new DatabaseSync(filename, {readOnly: true});
+    const download = filename === '--download';
+    const container = download ? openDownload(process.env.OPENHD_MAP_VECTOR_URL || defaultArchive) : null;
+    const database = download ? null : new DatabaseSync(filename, {readOnly: true});
     let map;
     try {
-        const metadata = Object.fromEntries(database.prepare('SELECT name, value FROM metadata')
+        const metadata = download ? JSON.parse(await container.getMetadata())
+            : Object.fromEntries(database.prepare('SELECT name, value FROM metadata')
             .all().map(({name, value}) => [name, value]));
-        const layers = new Set(JSON.parse(metadata.json || '{}').vector_layers?.map(layer => layer.id));
-        if (metadata.format !== 'pbf' || !layers.has('streets') || !layers.has('place_labels'))
-            throw new Error('Choose a vector MBTiles archive using the Shortbread schema.');
+        const tileSource = download ? await container.getHeader() : null;
+        const vectorLayers = download ? metadata.vector_layers : JSON.parse(metadata.json || '{}').vector_layers;
+        const layers = new Set(vectorLayers?.map(layer => layer.id));
+        const vectorFormat = download ? tileSource.tileFormat === 'mvt' : metadata.format === 'pbf';
+        if (!vectorFormat || !layers.has('streets') || !layers.has('place_labels'))
+            throw new Error(download ? 'The map server returned unsupported vector data.'
+                : 'Choose a vector MBTiles archive using the Shortbread schema.');
 
-        const bounds = metadata.bounds?.split(',').map(Number);
+        const bounds = download ? tileSource.bbox : metadata.bounds?.split(',').map(Number);
         if (bounds?.length !== 4 || !bounds.every(Number.isFinite) || selection.length !== 4 ||
             !selection.every(Number.isFinite))
             throw new Error('The selected MBTiles archive must include valid geographic bounds.');
@@ -35,13 +73,13 @@ async function renderArchive(filename, selection) {
         if (west < bounds[0] || south < bounds[1] || east > bounds[2] || north > bounds[3])
             throw new Error('The selected area extends outside the map data. Choose a larger extract or a smaller area.');
 
-        const sourceMinZoom = Number(metadata.minzoom);
-        const sourceMaxZoom = Number(metadata.maxzoom);
+        const sourceMinZoom = download ? tileSource.zoomMin : Number(metadata.minzoom);
+        const sourceMaxZoom = download ? tileSource.zoomMax : Number(metadata.maxzoom);
         if (!Number.isInteger(sourceMinZoom) || !Number.isInteger(sourceMaxZoom) ||
             sourceMinZoom < 0 || sourceMaxZoom > 22 || sourceMinZoom > sourceMaxZoom)
             throw new Error('The MBTiles archive has an invalid zoom range.');
 
-        const tile = database.prepare(
+        const tile = database?.prepare(
             'SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?');
         const style = osm({theme: 'colorful'});
         delete style.projection;
@@ -73,6 +111,7 @@ async function renderArchive(filename, selection) {
             const coordinates = /^tile\/(\d+)\/(\d+)\/(\d+)\.pbf$/.exec(path);
             if (coordinates) {
                 const [z, x, y] = coordinates.slice(1).map(Number);
+                if (container) return (await container.getTileUncompressed(z, x, y)) ?? emptyTile;
                 const row = tile.get(z, x, 2 ** z - 1 - y);
                 if (!row) return emptyTile;
                 const data = Buffer.from(row.tile_data);
@@ -128,7 +167,8 @@ async function renderArchive(filename, selection) {
         }
     } finally {
         map?.release();
-        database.close();
+        database?.close();
+        await container?.close();
     }
 }
 

@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.9.4)
 
-execute_process(COMMAND "${NODE}" -p "require('node:sqlite') && process.version"
+execute_process(COMMAND "${NODE}" -p "const [major, minor] = process.versions.node.split('.').map(Number); if (major < 22 || (major === 22 && minor < 15)) process.exit(1); require('node:sqlite'); process.version"
     OUTPUT_VARIABLE node_version OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE status)
 if(NOT status EQUAL 0)
-    message(FATAL_ERROR "The offline map renderer requires Node.js with built-in SQLite (22.13 or later).")
+    message(FATAL_ERROR "The offline map renderer requires Node.js with built-in SQLite (22.15 or later).")
 endif()
 
 file(MAKE_DIRECTORY "${BUNDLE}/assets/fonts" "${BUNDLE}/assets/sprites")

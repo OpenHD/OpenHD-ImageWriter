@@ -9,7 +9,6 @@ Item {
     objectName: "offlineMapsPage"
     property var mainWindow
     property var builder: typeof _styledOfflineMapBuilder === "undefined" ? null : _styledOfflineMapBuilder
-    property url archive: imageWriter.getValue("offlineMapCreatorArchive")
     readonly property var radii: [5, 10, 25, 50]
     readonly property bool operationInProgress: !!builder && (builder.busy || builder.searching)
     readonly property string stagedMap: mainWindow ? mainWindow.localOfflineMapPath : ""
@@ -41,6 +40,13 @@ Item {
         place.text = result.name.split(",")[0]
     }
 
+    function createMap(archive) {
+        if (root.tileCount <= 0 || root.operationInProgress) return
+        var area = picker.item
+        builder.generateStyled(archive, place.text, area.south, area.west,
+                               area.north, area.east, 13 + detail.currentIndex)
+    }
+
     Connections {
         target: root.builder
         function onGenerated(filePath) {
@@ -52,10 +58,7 @@ Item {
         id: archiveDialog
         title: qsTr("Choose a Shortbread vector map")
         nameFilters: [qsTr("Shortbread vector maps (*.mbtiles)")]
-        onAccepted: {
-            root.archive = fileUrl
-            imageWriter.setSetting("offlineMapCreatorArchive", String(fileUrl))
-        }
+        onAccepted: root.createMap(fileUrl)
     }
 
     ScrollView {
@@ -85,27 +88,6 @@ Item {
                     text: qsTr("Create a map for QOpenHD. ImageWriter includes the selected map when you flash a Ground image.")
                     color: "#aebfca"
                     wrapMode: Text.WordWrap
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    OfflineMapButton {
-                        text: qsTr("Choose map data")
-                        enabled: !root.operationInProgress
-                        onClicked: archiveDialog.open()
-                    }
-                    Label {
-                        Layout.fillWidth: true
-                        elide: Text.ElideMiddle
-                        text: String(root.archive).length
-                            ? decodeURIComponent(String(root.archive).split("/").pop())
-                            : qsTr("Choose a Shortbread .mbtiles file")
-                        color: "#aebfca"
-                    }
-                    OfflineMapButton {
-                        text: qsTr("Download data")
-                        onClicked: Qt.openUrlExternally("https://shortbread-tiles.org/download/")
-                    }
                 }
 
                 RowLayout {
@@ -202,15 +184,16 @@ Item {
                         onClicked: root.builder.cancel()
                     }
                     OfflineMapButton {
+                        text: qsTr("Create from file…")
+                        visible: !root.operationInProgress && root.tileCount > 0
+                        onClicked: archiveDialog.open()
+                    }
+                    OfflineMapButton {
                         objectName: "createStyledMap"
                         text: qsTr("Create map")
                         primary: true
-                        enabled: String(root.archive).length > 0 && root.tileCount > 0 && !root.operationInProgress
-                        onClicked: {
-                            var area = picker.item
-                            root.builder.generateStyled(root.archive, place.text, area.south, area.west,
-                                                        area.north, area.east, 13 + detail.currentIndex)
-                        }
+                        enabled: root.tileCount > 0 && !root.operationInProgress
+                        onClicked: root.createMap("")
                     }
                 }
                 Label {

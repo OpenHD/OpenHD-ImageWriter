@@ -60,12 +60,12 @@ and the + / - controls; the separate hand handle still moves the HUD widget.
 Open **Offline maps** from the ImageWriter sidebar. You can create a map before
 inserting an SD card or choosing a flash target.
 
-1. Download a [Shortbread vector MBTiles extract](https://shortbread-tiles.org/download/)
-   that covers your flying area and open it with **Choose map data**. ImageWriter
-   remembers the source file so you can build other maps from it.
-2. Find a place or move the map, then select a circle radius or draw a rectangle.
-   The package covers the circle's enclosing rectangle. Choose the maximum
-   detail and select **Create map**.
+1. Find a place or move the map, then select a circle radius or draw a rectangle.
+   The package covers the circle's enclosing rectangle.
+2. Choose a detail level and select **Create map**. ImageWriter fetches the vector
+   data it needs and renders the map locally. To use a local
+   [Shortbread MBTiles extract](https://shortbread-tiles.org/download/), select
+   **Create from file…**.
 3. The completed package is selected for subsequent Ground flashes. Review
    shows which local package will be included. Choose **Remove** to clear the
    selection, or **Open folder** to copy the saved package to another computer.
@@ -75,16 +75,19 @@ inserting an SD card or choosing a flash target.
 ImageWriter copies the selected package to **openhd/maps** as part of Ground
 image customization. The local selection takes precedence over a FleetControl
 map for that flash. QOpenHD discovers it at `/Config/openhd/maps` under
-**OpenHD Offline**. The preview and place search use online services. The
-actual render uses the local extract and bundled map assets.
+**OpenHD Offline**. The preview and place search use online services. Automatic
+generation reads byte ranges from the [VersaTiles Shortbread download archive](https://download.versatiles.org/).
+The renderer combines that vector data with bundled styles, fonts and sprites.
+`OPENHD_MAP_VECTOR_URL` can override the archive URL for fixture testing or a
+self-hosted VersaTiles archive.
 The selected package must fit the flash target's configuration storage.
 Use a smaller area or lower detail when that space is limited.
 
 ### Building ImageWriter with the styled renderer
 
 Configure ImageWriter with `-DOPENHD_BUNDLE_MAP_RENDERER=ON` and build it as usual.
-The bundle step uses Node.js 22.13 or newer, npm, and tar. It installs the pinned
-MapLibre Native, VersaTiles style and Sharp dependencies, downloads the pinned
+The bundle step uses Node.js 22.15 or newer, npm, and tar. It installs the pinned
+MapLibre Native, VersaTiles container and style, and Sharp dependencies, downloads the pinned
 glyph and sprite archives, and stages the renderer next to the app. Check the
 [MapLibre Native Node platform requirements](https://github.com/maplibre/maplibre-native/tree/main/platform/node)
 for the host OS and architecture. The Windows packaging workflow enables this

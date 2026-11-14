@@ -219,8 +219,10 @@ void OfflineMapBuilder::generateStyled(const QUrl& archive, const QString& name,
     if (m_busy || m_searching) return;
     const int count = tileCount(s, w, n, e, maxZoom);
     if (count < 1) { fail(tr("Choose a smaller area or lower detail.")); return; }
+    const bool download = archive.isEmpty();
     const QFileInfo source(archive.toLocalFile());
-    if (!source.isFile() || !source.isReadable() || source.suffix().compare("mbtiles", Qt::CaseInsensitive) != 0) {
+    if (!download && (!source.isFile() || !source.isReadable()
+                      || source.suffix().compare("mbtiles", Qt::CaseInsensitive) != 0)) {
         fail(tr("Choose a readable Shortbread .mbtiles file."));
         return;
     }
@@ -242,7 +244,7 @@ void OfflineMapBuilder::generateStyled(const QUrl& archive, const QString& name,
     }
 
     m_name = name.trimmed().left(60);
-    if (m_name.isEmpty()) m_name = source.completeBaseName().left(60);
+    if (m_name.isEmpty()) m_name = download ? tr("Offline map") : source.completeBaseName().left(60);
     m_south = s; m_west = w; m_north = n; m_east = e; m_maxZoom = maxZoom;
     m_total = count; m_progress = 0; m_tiles.clear();
     const auto job = ++m_job;
@@ -274,11 +276,12 @@ void OfflineMapBuilder::generateStyled(const QUrl& archive, const QString& name,
         fail(detail.isEmpty() ? tr("The map renderer exited before finishing.")
                               : tr("The map renderer exited: %1").arg(detail));
     });
-    m_status = tr("Opening offline map data...");
+    m_status = download ? tr("Connecting to the map data server...") : tr("Opening offline map data...");
     emit changed();
     if (job != m_job || !m_renderer) return;
     m_rendererTimeout.start(60000);
-    process->start(node, {script, source.absoluteFilePath(), QString::number(w, 'f', 8), QString::number(s, 'f', 8),
+    process->start(node, {script, download ? QStringLiteral("--download") : source.absoluteFilePath(),
+                          QString::number(w, 'f', 8), QString::number(s, 'f', 8),
                           QString::number(e, 'f', 8), QString::number(n, 'f', 8)});
 }
 
@@ -300,7 +303,7 @@ void OfflineMapBuilder::readRendererOutput() {
         }
         if (!m_rendererReady && result.value("ready").toBool()) {
             m_rendererReady = true;
-            m_status = tr("Rendering offline map...");
+            m_status = tr("Creating offline map...");
             emit changed();
         } else {
             const auto png = QByteArray::fromBase64(result.value("png").toString().toLatin1());
