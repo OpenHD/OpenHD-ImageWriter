@@ -107,7 +107,8 @@ QString OfflineMapBuilder::mapCacheDirectory(const QString& source) const {
     // Qt's default custom-map cache is shared across unrelated OSM endpoints.
     // Keep preview, online, and local package tiles apart, retaining valid tiles
     // across application restarts rather than bypassing the network cache.
-    const QString name = source == QStringLiteral("preview") ? QStringLiteral("preview")
+    // OSM returned its access-blocked PNG with HTTP 200, so Qt may have cached it as a tile.
+    const QString name = source == QStringLiteral("preview") ? QStringLiteral("preview-osm-v2")
         : source == QStringLiteral("preview_mapbox") ? QStringLiteral("preview-mapbox")
         : source == QStringLiteral("openhd_offline") ? QStringLiteral("offline")
         : source == QStringLiteral("mapbox_raster") ? QStringLiteral("mapbox") : QStringLiteral("online");

@@ -257,7 +257,7 @@ def main():
         print(output)
         assert requests, "Map preview did not request fixture tiles"
         for headers in requests:
-            assert headers.get("User-Agent") == "OpenHD-OfflineMaps/1.0 (+https://openhd.org)", headers
+            assert headers.get("User-Agent") == "OpenHD-ImageWriter/1.0 (+https://openhd.tech)", headers
             assert "no-cache" not in headers.get("Cache-Control", ""), headers
         print("Preview tile headers verified against local HTTP fixture")
         return result.returncode or (0 if "0 failed" in output else 1)

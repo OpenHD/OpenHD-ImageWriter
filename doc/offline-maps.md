@@ -112,9 +112,9 @@ Validation:
 
 ## Preview tile requests and caches
 
-Online OSM maps and the create-map preview identify the app with a stable
-`OpenHD-OfflineMaps/1.0 (+https://openhd.org)` User-Agent, use the explicit HTTPS
-OSM tile endpoint, and disable adjacent-zoom prefetching. Qt 5's built-in legacy
+ImageWriter's create-map preview identifies the app with the stable
+`OpenHD-ImageWriter/1.0 (+https://openhd.tech)` User-Agent, uses the explicit HTTPS
+OSM tile endpoint, and disables adjacent-zoom prefetching. Qt 5's built-in legacy
 HTTP map styles are not selected. Mapbox retains its provider-specific styles.
 Preview tiles, normal online tiles, and localhost offline-package tiles have
 separate persistent caches below the application's `map-tiles` cache directory,

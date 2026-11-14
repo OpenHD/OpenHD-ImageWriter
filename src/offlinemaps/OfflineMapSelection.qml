@@ -63,7 +63,7 @@ Item {
     Plugin {
         id: osm
         name: "osm"
-        PluginParameter { name: "osm.useragent"; value: "OpenHD-OfflineMaps/1.0 (+https://openhd.org)" }
+        PluginParameter { name: "osm.useragent"; value: "OpenHD-ImageWriter/1.0 (+https://openhd.tech)" }
         PluginParameter { name: "osm.mapping.cache.directory"; value: root.tileCacheDirectory }
         PluginParameter { name: "osm.mapping.prefetching_style"; value: "NoPrefetching" }
         PluginParameter { name: "osm.mapping.providersrepository.disabled"; value: true }
