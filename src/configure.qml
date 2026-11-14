@@ -711,13 +711,16 @@ ImButton {
                                     rebuilding = true
                                     var selectedId = camera
                                     var selectedResolution = cameraResolution
+                                    var vendor = cameraLayout.selectedVendor
                                     cameraOptionsModel.clear()
-                                    cameraOptionsModel.append({ displayText: firmwareCameraLabel(), cameraId: "", value: "" })
+                                    if (!vendor || !vendor.requiresCameraSelection)
+                                        cameraOptionsModel.append({ displayText: firmwareCameraLabel(), cameraId: "", value: "" })
 
-                                    if (cameraLayout.selectedVendor && cameraLayout.selectedVendor.options) {
-                                        for (var i = 0; i < cameraLayout.selectedVendor.options.length; i++) {
-                                            var option = cameraLayout.selectedVendor.options[i]
-                                            cameraOptionsModel.append({ displayText: option.id, cameraId: option.id, value: option.valueWritten })
+                                    if (vendor && vendor.options) {
+                                        for (var i = 0; i < vendor.options.length; i++) {
+                                            var option = vendor.options[i]
+                                            if (option.hidden) continue
+                                            cameraOptionsModel.append({ displayText: option.displayName || option.id, cameraId: option.id, value: option.valueWritten })
                                         }
                                     }
 

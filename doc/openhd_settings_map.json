@@ -364,42 +364,49 @@
           {
             "id": "rock3-default",
             "displayName": "Zero3W",
+            "requiresCameraSelection": true,
             "options": [
               {
-                "id": "HDMI",
-                "valueWritten": "90"
-              },
-              {
                 "id": "OV5647",
+                "displayName": "Raspberry Pi Camera v1 (OV5647)",
                 "valueWritten": "91"
-              },
-              {
-                "id": "IMX219",
-                "valueWritten": "92"
-              },
-              {
-                "id": "IMX708",
-                "valueWritten": "93"
-              },
-              {
-                "id": "IMX462",
-                "valueWritten": "94"
-              },
-              {
-                "id": "IMX462 Pivariety",
-                "valueWritten": "98"
               },
               {
                 "id": "IMX519",
                 "valueWritten": "95"
               },
               {
+                "id": "IMX708",
+                "valueWritten": "93"
+              },
+              {
+                "id": "IMX462 Pivariety",
+                "valueWritten": "98"
+              },
+              {
+                "id": "HDMI",
+                "valueWritten": "90",
+                "hidden": true
+              },
+              {
+                "id": "IMX219",
+                "valueWritten": "92",
+                "hidden": true
+              },
+              {
+                "id": "IMX462",
+                "valueWritten": "94",
+                "hidden": true
+              },
+              {
                 "id": "OHD-JAGUAR",
-                "valueWritten": "96"
+                "valueWritten": "96",
+                "hidden": true
               },
               {
                 "id": "VEYE",
-                "valueWritten": "97"
+                "valueWritten": "97",
+                "hidden": true
               }
             ]
           }
@@ -1033,6 +1040,7 @@
       "93": [
         "1280x720@30",
         "1280x720@60",
+        "1280x720@120",
         "1920x1080@60"
       ],
       "94": [

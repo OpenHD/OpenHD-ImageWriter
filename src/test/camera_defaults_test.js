@@ -56,11 +56,48 @@ for (const page of ['ImageOptionsPage.qml', 'configure.qml']) {
     context.camera = 'IMX708';
     context.rebuildCameraOptions();
     assert.strictEqual(context.cameraResolution, map.cameraResolution.defaultByCameraValue['32']);
+
+    const zero3w = map.camera.sbcGroups.find(group => group.sbc.includes('zero3w'));
+    group.selectedVendor = zero3w.vendors[0];
+    const modes = new Map([
+        ['OV5647', false], ['IMX519', true], ['IMX708', true], ['IMX462 Pivariety', false],
+    ]);
+    assert.deepStrictEqual(group.selectedVendor.options.filter(option => !option.hidden).map(option => option.id), [...modes.keys()]);
+    for (const [camera, supports120] of modes) {
+        context.camera = camera;
+        context.cameraResolution = '1280x720@120';
+        context.rebuildCameraOptions();
+        assert.strictEqual(context.cameraOptionsModel.count, 4);
+        assert.strictEqual(context.camera, camera);
+        assert.strictEqual(context.cameraResolution === '1280x720@120', supports120);
+    }
+    context.camera = 'IMX462';
+    context.rebuildCameraOptions();
+    assert.strictEqual(context.camera, 'OV5647');
+    assert.strictEqual(context.cameraOptionsModel.get(0).displayText, 'Raspberry Pi Camera v1 (OV5647)');
 }
 assert.strictEqual(map.camera.firmwareDefaults['luckfox-pico'].resolution, '1280x720@60');
 assert.strictEqual(map.cameraResolution.defaultByCameraValue['64'], '1920x1080@30');
 assert(!map.initialFields.some(field => field.id === 'STREAMING_E'));
 console.log('Camera defaults and restored selections passed for both QML screens');
+
+const fleetSource = fs.readFileSync(path.join(__dirname, '../qmlcomponents/FleetControlPage.qml'), 'utf8');
+const fleet = {
+    editorVendors: map.camera.sbcGroups.find(group => group.sbc.includes('zero3w')).vendors,
+    vendorDropdown: {currentIndex: 0},
+    cameraDropdown: {currentIndex: -1},
+    savedCamera: 'IMX462 Pivariety',
+    refreshEditorSecondaryCameras() {},
+    refreshEditorResolutions() {},
+};
+vm.createContext(fleet);
+vm.runInContext(method(fleetSource, 'refreshEditorCameras'), fleet);
+vm.runInContext(method(fleetSource, 'selectedEditorCamera'), fleet);
+fleet.refreshEditorCameras(true);
+assert.strictEqual(fleet.cameraDropdown.model.length, 4);
+assert.strictEqual(fleet.selectedEditorCamera(), 'IMX462 Pivariety');
+fleet.refreshEditorCameras(false);
+assert.strictEqual(fleet.selectedEditorCamera(), 'OV5647');
 
 const flashSource = fs.readFileSync(path.join(__dirname, '../flash.qml'), 'utf8');
 for (const luckfox of [true, false]) {

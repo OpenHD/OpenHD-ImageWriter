@@ -594,13 +594,16 @@ Rectangle {
                                         rebuilding = true
                                         var selectedId = camera
                                         var selectedResolution = cameraResolution
+                                        var vendor = cameraGroup.selectedVendor
                                         cameraOptionsModel.clear()
-                                        cameraOptionsModel.append({ displayText: firmwareCameraLabel(), cameraId: "", value: "" })
+                                        if (!vendor || !vendor.requiresCameraSelection)
+                                            cameraOptionsModel.append({ displayText: firmwareCameraLabel(), cameraId: "", value: "" })
 
-                                        if (cameraGroup.selectedVendor && cameraGroup.selectedVendor.options) {
-                                            for (var i = 0; i < cameraGroup.selectedVendor.options.length; i++) {
-                                                var option = cameraGroup.selectedVendor.options[i]
-                                                cameraOptionsModel.append({ displayText: option.id, cameraId: option.id, value: option.valueWritten })
+                                        if (vendor && vendor.options) {
+                                            for (var i = 0; i < vendor.options.length; i++) {
+                                                var option = vendor.options[i]
+                                                if (option.hidden) continue
+                                                cameraOptionsModel.append({ displayText: option.displayName || option.id, cameraId: option.id, value: option.valueWritten })
                                             }
                                         }
 

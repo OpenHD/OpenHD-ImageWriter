@@ -103,7 +103,7 @@ bool testZero3wImx708Provisioning()
     settings.setValue("platform", "zero3w");
     settings.setValue("sbc", "zero3w");
     settings.setValue("camera", "IMX708");
-    settings.setValue("cameraResolution", "1920x1080@60");
+    settings.setValue("cameraResolution", "1280x720@120");
     const auto boot = directory.filePath("OPENHD");
     if (!check(OpenHDImageCustomizer::apply(boot, settings).succeeded(),
                "Zero 3W customization failed")) return false;
@@ -112,7 +112,7 @@ bool testZero3wImx708Provisioning()
     const auto result = QJsonDocument::fromJson(file.readAll()).object();
     return check(result.value("camera").toString() == "93", "Zero 3W IMX708 camera ID changed") &&
            check(result.value("role").toString() == "air", "Zero 3W Air role was lost") &&
-           check(result.value("camera_resolution_fps").toString() == "1920x1080@60",
+           check(result.value("camera_resolution_fps").toString() == "1280x720@120",
                  "Zero 3W IMX708 resolution was lost");
 }
 

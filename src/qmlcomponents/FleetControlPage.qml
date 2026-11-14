@@ -641,28 +641,36 @@ Item {
         var vendor = (editorVendors && vendorDropdown.currentIndex >= 0 && vendorDropdown.currentIndex < editorVendors.length)
                      ? editorVendors[vendorDropdown.currentIndex] : null
 
-        var camNames = ["NONE"]
+        var cameras = vendor && vendor.requiresCameraSelection ? [] : [{id: "NONE", label: "NONE"}]
         if (vendor && vendor.options) {
             for (var i = 0; i < vendor.options.length; i++) {
-                camNames.push(vendor.options[i].id)
+                var option = vendor.options[i]
+                if (option.hidden) continue
+                cameras.push({id: option.id, label: option.displayName || option.id})
             }
         }
-        cameraDropdown.model = camNames
+        cameraDropdown.model = cameras
 
         var targetCamIndex = 0
         var targetCamName = preserveSaved ? savedCamera : ""
         if (targetCamName && targetCamName.length > 0) {
-            for (var c = 0; c < camNames.length; c++) {
-                if (camNames[c] === targetCamName) {
+            for (var c = 0; c < cameras.length; c++) {
+                if (cameras[c].id === targetCamName) {
                     targetCamIndex = c
                     break
                 }
             }
         }
-        cameraDropdown.currentIndex = (camNames.length > 0) ? targetCamIndex : -1
+        cameraDropdown.currentIndex = cameras.length > 0 ? targetCamIndex : -1
 
         refreshEditorSecondaryCameras(preserveSaved)
         refreshEditorResolutions(preserveSaved)
+    }
+
+    function selectedEditorCamera() {
+        var index = cameraDropdown.currentIndex
+        var cameras = cameraDropdown.model
+        return cameras && index >= 0 && index < cameras.length ? cameras[index].id : ""
     }
 
     function refreshEditorResolutions(preserveSaved) {
@@ -670,8 +678,7 @@ Item {
         var vendor = (editorVendors && vendorDropdown.currentIndex >= 0 && vendorDropdown.currentIndex < editorVendors.length)
                      ? editorVendors[vendorDropdown.currentIndex] : null
         var vendorId = vendor ? vendor.id : ""
-        var selectedCam = (cameraDropdown.currentIndex >= 0 && cameraDropdown.currentIndex < cameraDropdown.model.length)
-                          ? cameraDropdown.model[cameraDropdown.currentIndex] : ""
+        var selectedCam = selectedEditorCamera()
 
         var resolutions = FleetProfilesHelper.getResolutionsForCamera(settingsMap, sbcKey, vendorId, selectedCam)
         var filtered = []
@@ -863,8 +870,7 @@ Item {
             name = editorSelectedCategory === "craft" ? qsTr("New Air Craft") : qsTr("New Ground Station")
 
         var isAir = editorSelectedCategory === "craft"
-        var selectedCam = isAir && (cameraDropdown.currentIndex >= 0 && cameraDropdown.currentIndex < cameraDropdown.model.length)
-                          ? cameraDropdown.model[cameraDropdown.currentIndex] : ""
+        var selectedCam = isAir ? selectedEditorCamera() : ""
         if (selectedCam === "NONE") selectedCam = ""
 
         var selectedVendorName = isAir && (vendorDropdown.currentIndex >= 0 && vendorDropdown.currentIndex < vendorDropdown.model.length)
@@ -2266,6 +2272,7 @@ Item {
                                         ComboBox {
                                             id: cameraDropdown
                                             width: parent.width
+                                            textRole: "label"
                                             onCurrentIndexChanged: {
                                                 if (currentIndex >= 0)
                                                     root.refreshEditorResolutions(false)
@@ -2276,7 +2283,7 @@ Item {
                                     Column {
                                         width: (parent.width - 10) * 0.4
                                         spacing: 4
-                                        visible: cameraDropdown.currentIndex > 0
+                                        visible: !!root.selectedEditorCamera() && root.selectedEditorCamera() !== "NONE"
                                         Text {
                                             text: qsTr("RESOLUTION")
                                             color: "#7592a3"
@@ -2295,7 +2302,7 @@ Item {
                                     width: parent.width
                                     spacing: 4
                                     visible: FleetProfilesHelper.sbcKeyFromHardware(root.editorSelectedHardware) === "rpi" &&
-                                             FleetProfilesHelper.isRpiCsiCamera(root.settingsMap, cameraDropdown.currentText)
+                                             FleetProfilesHelper.isRpiCsiCamera(root.settingsMap, root.selectedEditorCamera())
                                     Text {
                                         text: qsTr("PRIMARY CAMERA CONNECTOR")
                                         color: "#7592a3"
@@ -2317,7 +2324,7 @@ Item {
                                 Column {
                                     width: parent.width
                                     spacing: 6
-                                    visible: cameraDropdown.currentText === "IP-CAMERA"
+                                    visible: root.selectedEditorCamera() === "IP-CAMERA"
 
                                     Text {
                                         text: qsTr("PRIMARY IP CAMERA SETUP")
@@ -2487,7 +2494,7 @@ Item {
                                 Row {
                                     width: parent.width
                                     spacing: 10
-                                    visible: cameraDropdown.currentText === "IP-CAMERA" ||
+                                    visible: root.selectedEditorCamera() === "IP-CAMERA" ||
                                              camera2Dropdown.currentText === "IP-CAMERA"
 
                                     Text {
