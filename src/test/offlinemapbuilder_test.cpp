@@ -1,4 +1,5 @@
 #include "offlinemapbuilder.h"
+#include "vectormapcatalog.h"
 #include <QDataStream>
 #include <QCoreApplication>
 #include <QDir>
@@ -28,6 +29,21 @@ static bool waitFor(const std::function<bool()>& condition, int timeout = 10000)
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     const auto args = app.arguments();
+    if (args.size() == 3 && args[1] == "--download-vector") {
+        VectorMapCatalog catalog(nullptr, args[2]);
+        QString selected;
+        QObject::connect(&catalog, &VectorMapCatalog::selected, &app, [&](const QString& path) { selected = path; });
+        int index = -1;
+        const auto regions = catalog.regions();
+        for (int i = 0; i < regions.size(); ++i)
+            if (regions[i].toString().startsWith("Luxembourg")) index = i;
+        CHECK(index >= 0);
+        catalog.download(index);
+        CHECK(waitFor([&] { return !catalog.busy(); }, 120000));
+        std::cout << catalog.status().toStdString() << ' ' << selected.toStdString() << '\n';
+        CHECK(!selected.isEmpty());
+        return 0;
+    }
     if (args.size() == 4 && args[1] == "--styled-luxembourg") {
         OfflineMapBuilder builder(nullptr, args[3]);
         QString path;

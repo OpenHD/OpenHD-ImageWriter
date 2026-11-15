@@ -133,6 +133,18 @@ ApplicationWindow {
         }
     }
 
+    function createFleetProfileFromFlash() {
+        if (!fleetControlSignedIn || !fleetControlLoader.item) return
+        openFeature("fleetcontrol", true)
+        if (currentView === "fleetcontrol") fleetControlLoader.item.openNewUnitEditor(function() {
+            if (currentView !== "fleetcontrol") return
+            openFeature("flash", true)
+            Qt.callLater(function() {
+                if (currentView === "flash") forwardIfAvailable("reopenFleetProfilePicker", [])
+            })
+        })
+    }
+
     function openFeature(name, preserveFeature) {
         // The standalone update workflow is temporarily disabled. Keep the
         // route guarded as well as hiding its navigation entries.

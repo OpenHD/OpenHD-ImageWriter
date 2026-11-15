@@ -4,7 +4,7 @@ project(OpenHDBackendTests LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt5 REQUIRED COMPONENTS Core Network)
+find_package(Qt5 REQUIRED COMPONENTS Core Network Sql)
 find_package(Qt5 REQUIRED COMPONENTS Gui Qml Quick)
 qt5_add_resources(SETTINGS_TEST_RESOURCES settings-test.qrc)
 if(NOT APPLE)
@@ -41,7 +41,7 @@ add_executable(openhd_backend_tests
     ../openhdstorageselector.cpp
     ../certificatevalidator.cpp)
 target_include_directories(openhd_backend_tests PRIVATE .. ../dependencies/cmcurl/include)
-target_link_libraries(openhd_backend_tests PRIVATE Qt5::Core)
+target_link_libraries(openhd_backend_tests PRIVATE Qt5::Core Qt5::Sql)
 if(NOT APPLE)
     target_link_libraries(openhd_backend_tests PRIVATE OpenSSL::Crypto)
 endif()
@@ -80,10 +80,12 @@ endif()
 
 # Offline map generation runs without Python, external services, or target disks.
 find_package(Qt5 REQUIRED COMPONENTS Network)
-add_executable(offline_map_builder_tests offlinemapbuilder_test.cpp ../offlinemaps/offlinemapbuilder.cpp ../offlinemaps/offlinemapbuilder.h)
+add_executable(offline_map_builder_tests offlinemapbuilder_test.cpp
+    ../offlinemaps/offlinemapbuilder.cpp ../offlinemaps/offlinemapbuilder.h
+    ../offlinemaps/vectormapcatalog.cpp ../offlinemaps/vectormapcatalog.h)
 set_target_properties(offline_map_builder_tests PROPERTIES AUTOMOC ON)
 target_include_directories(offline_map_builder_tests PRIVATE ../offlinemaps)
-target_link_libraries(offline_map_builder_tests PRIVATE Qt5::Core Qt5::Gui Qt5::Network)
+target_link_libraries(offline_map_builder_tests PRIVATE Qt5::Core Qt5::Gui Qt5::Network Qt5::Sql)
 add_test(NAME offline_map_builder COMMAND offline_map_builder_tests)
 
 find_program(NODE_EXECUTABLE node)

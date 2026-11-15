@@ -1,4 +1,7 @@
 #include "openhdimagecustomizer.h"
+#include "offlinemaps/vectorpack.h"
+#include <QSaveFile>
+#include <QStorageInfo>
 
 /*
  * SPDX-License-Identifier: Apache-2.0
@@ -292,15 +295,26 @@ OpenHDImageCustomizer::Result OpenHDImageCustomizer::apply(const QString &bootPa
         if (!mapInfo.isFile())
             return Result(Error::OfflineMapNotFound);
         QFile mapFile(offlineMapPath);
-        if (!mapFile.open(QIODevice::ReadOnly) || mapFile.read(8) != QByteArray("GLDMAP1\0", 8))
+        const bool vector = mapInfo.suffix().compare("mbtiles", Qt::CaseInsensitive) == 0;
+        if (!mapFile.open(QIODevice::ReadOnly)
+            || (vector ? !isShortbreadVectorPack(offlineMapPath)
+                       : mapFile.peek(8) != QByteArray("GLDMAP1\0", 8)))
             return Result(Error::InvalidOfflineMap);
         QDir mapDir(openhdDir.filePath("maps"));
         if (!mapDir.exists() && !mapDir.mkpath("."))
             return Result(Error::CopyOfflineMap);
-        const QString target = mapDir.filePath(mapInfo.fileName());
-        if (QFileInfo::exists(target) && !QFile::remove(target))
+        const QStorageInfo storage(mapDir.absolutePath());
+        if (storage.isValid() && storage.isReady() && storage.bytesAvailable() < mapInfo.size())
+            return Result(Error::CopyOfflineMap, QObject::tr("The map does not fit in the Ground configuration partition."));
+        QSaveFile target(mapDir.filePath(mapInfo.fileName()));
+        if (!target.open(QIODevice::WriteOnly))
             return Result(Error::CopyOfflineMap);
-        if (!QFile::copy(offlineMapPath, target))
+        while (!mapFile.atEnd()) {
+            const auto bytes = mapFile.read(1024 * 1024);
+            if (bytes.isEmpty() || target.write(bytes) != bytes.size())
+                return Result(Error::CopyOfflineMap);
+        }
+        if (!target.commit())
             return Result(Error::CopyOfflineMap);
     }
 

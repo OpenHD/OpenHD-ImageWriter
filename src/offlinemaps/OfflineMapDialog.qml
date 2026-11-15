@@ -33,7 +33,7 @@ Popup {
         function onGenerated(filePath) { root.mapReady(filePath) }
     }
     onOpened: {
-        if (root.mapboxApiKey.trim()) root.builder.setMapboxKey(root.mapboxApiKey)
+        if (root.builder && root.builder.setMapboxKey) root.builder.setMapboxKey(root.mapboxApiKey)
         if (!canvas.active || (canvas.item && canvas.item.usingMapbox !== (root.mapboxApiKey.trim().length > 0))) {
             canvas.active = false
             canvas.setSource("OfflineMapSelection.qml", {

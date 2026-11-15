@@ -53,7 +53,7 @@ Item {
         source: "../offlinemaps/OfflineMapDialog.qml"
         onLoaded: {
             item.builder = _offlineMapBuilder
-            item.mapboxApiKey = imageWriter.getValue("mapboxApiKey") || ""
+            item.mapboxApiKey = imageWriter.getValue("localMapboxPreviewToken") || ""
             item.mapReady.connect(function(filePath) {
                 imageWriter.setSetting("offlineMapPackagePath", filePath)
                 root.offlineMapMessage = qsTr("Offline map ready for ground-station flashing.")
@@ -241,7 +241,7 @@ Item {
         }
     }
 
-    function loadCrafts() {
+    function loadCrafts(onLoaded) {
         request("GET", "/api/imagewriter/platforms", undefined, function(xhr, response) {
             if (xhr.status >= 200 && xhr.status < 300 && response && response.version === 1 && FleetProfilesHelper.installPlatforms(response.platforms)) {
                 var copy = JSON.parse(JSON.stringify(root.settingsMap))
@@ -309,6 +309,7 @@ Item {
                 saveCraftsLocally()
                 if (selectedCraftId && !selectedStillExists)
                     clearActiveCraft()
+                if (typeof onLoaded === "function") onLoaded()
             } else {
                 clearActiveCraft()
                 message = response && response.message
@@ -402,8 +403,9 @@ Item {
                    : "/api/imagewriter/profiles"
         request(method, path, payload, function(xhr, resp) {
             if (xhr.status >= 200 && xhr.status < 300 && resp && resp.profile && resp.profile.id) {
+                var callback = profileCreatedCallback
                 closeEditor()
-                loadCrafts()
+                loadCrafts(callback)
                 message = qsTr("Saved '%1' in your Hangar.").arg(name)
             } else {
                 message = resp && resp.message
@@ -765,7 +767,9 @@ Item {
         res2Dropdown.currentIndex = (filtered.length > 0) ? targetResIndex : -1
     }
 
-    function openNewUnitEditor() {
+    property var profileCreatedCallback: null
+    function openNewUnitEditor(onCreated) {
+        profileCreatedCallback = typeof onCreated === "function" ? onCreated : null
         editIndex = -1
         editorSelectedCategory = "craft"
         editorSelectedIcon = "survey"
@@ -856,6 +860,7 @@ Item {
     }
 
     function closeEditor() {
+        profileCreatedCallback = null
         unitEditorVisible = false
         editIndex = -1
     }

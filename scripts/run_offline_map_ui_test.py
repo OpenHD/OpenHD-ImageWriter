@@ -144,7 +144,7 @@ Item {
 }
 '''
 
-STYLED_TEST = '''import QtQuick 2.12
+CATALOG_TEST = '''import QtQuick 2.12
 import QtTest 1.2
 import "qmlcomponents"
 
@@ -162,22 +162,18 @@ Item {
     }
     QtObject { id: shell; property string localOfflineMapPath: "" }
     QtObject {
-        id: builder
+        id: catalog
         property bool busy: false
-        property bool searching: false
         property real progress: 0
         property string status: ""
-        property string previewCacheDirectory: "CACHE_DIR"
-        property var searchResults: []
-        property int created: 0
-        signal generated(string path)
-        function tileCount(s, w, n, e, zoom) { return s < n && w < e ? 20 : -1 }
-        function generateStyled(archive, name, s, w, n, e, zoom) {
-            if (String(archive) === "" && s < n && w < e && zoom === 14) {
-                created++
-                generated("created.glidemap")
-            }
+        property var regions: ["Berlin", "Luxembourg"]
+        property int downloaded: -1
+        signal selected(string path)
+        function download(index) {
+            downloaded = index
+            busy = true
         }
+        function cancel() { busy = false }
     }
     ModernSidebar {
         id: sidebar
@@ -193,25 +189,26 @@ Item {
         anchors.top: parent.top; anchors.bottom: parent.bottom
         visible: scene.currentView === "offlinemaps"
         mainWindow: shell
-        builder: builder
+        catalog: catalog
     }
     TestCase {
         name: "OfflineMapsTab"; when: windowShown
-        function test_createWithoutStorage() {
+        function test_downloadWithoutStorage() {
             var tab = findChild(sidebar, "navigation-offlinemaps")
             verify(tab.visible && tab.enabled)
             mouseClick(tab)
             tryCompare(page, "visible", true)
-            compare(page.tileCount, 0)
-            var circle = findChild(page, "selectMapCircle")
-            tryCompare(circle, "enabled", true)
-            circle.clicked()
-            tryCompare(page, "tileCount", 20)
-            var create = findChild(page, "createStyledMap")
-            verify(create.enabled)
-            create.clicked()
-            compare(builder.created, 1)
-            compare(page.stagedMap, "created.glidemap")
+            var region = findChild(page, "offlineMapRegion")
+            region.currentIndex = 1
+            var download = findChild(page, "downloadVectorMap")
+            verify(download.enabled)
+            download.clicked()
+            compare(catalog.downloaded, 1)
+            verify(!download.enabled)
+            findChild(page, "cancelVectorMap").clicked()
+            verify(download.enabled)
+            catalog.selected("luxembourg.mbtiles")
+            compare(page.stagedMap, "luxembourg.mbtiles")
         }
     }
 }
@@ -231,7 +228,7 @@ def main():
             source = source.replace("https://tile.openstreetmap.org/", tile_url)
             (folder / name).write_text(source, encoding="utf-8")
         (folder / "tst_picker.qml").write_text(TEST.replace("SCREENSHOT", args.screenshot.as_posix()).replace("CACHE_DIR", (folder / "tiles").as_posix()), encoding="utf-8")
-        (folder / "tst_styled.qml").write_text(STYLED_TEST.replace("CACHE_DIR", (folder / "styled-tiles").as_posix()), encoding="utf-8")
+        (folder / "tst_catalog.qml").write_text(CATALOG_TEST, encoding="utf-8")
         (folder / "qmlcomponents").mkdir()
         shutil.copyfile(ROOT / "src/qmlcomponents/ModernSidebar.qml", folder / "qmlcomponents/ModernSidebar.qml")
         shutil.copytree(ROOT / "src/icons/ui", folder / "icons/ui")

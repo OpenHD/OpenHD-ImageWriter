@@ -1438,7 +1438,12 @@ Rectangle {
         }
     }
 
+    function reopenFleetProfilePicker() {
+        if (reviewingOperation) operationReview.openProfilePicker()
+    }
+
     OperationReviewPage {
+        id: operationReview
         anchors.fill: parent
         visible: reviewingOperation
         enabled: visible
@@ -1463,6 +1468,7 @@ Rectangle {
         picoEthernetEnabled: window.picoEthernetLink
         onPicoEthernetToggled: function(enabled) { window.picoEthernetLink = enabled }
         configurationComplete: (fleetControlSignedIn && fleetControlProfileName.length > 0 && useProfileSettings) || optionsPage.configurationApplied
+        onCreateProfileRequested: if (mainWindow) mainWindow.createFleetProfileFromFlash()
         onProfileSelected: function(profile) {
             fleetControlProfileName = profile.craftName
             fleetControlProfileIcon = profile.craftIcon || ""

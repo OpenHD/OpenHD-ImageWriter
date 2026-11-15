@@ -4,6 +4,7 @@
  */
 
 #include "openhdimagecustomizer.h"
+#include "offlinemaps/vectorpack.h"
 #include "archivepathvalidator.h"
 #include "openhdstorageselector.h"
 #include "file_operations.h"
@@ -242,13 +243,29 @@ bool testGroundOfflineMapInstall()
     QFile installed(QDir(bootPartition).filePath("openhd/maps/field.glidemap"));
     if (!check(installed.open(QIODevice::ReadOnly) && installed.readAll() == package,
                "Ground offline map was not copied to Config")) return false;
-    const QString localSource = temporaryDirectory.filePath("created.glidemap");
-    if (!writeFile(localSource, package)) return false;
+    const QString localSource = temporaryDirectory.filePath("created.mbtiles");
+    const QString connection = "ground-vector-fixture";
+    bool fixtureReady = false;
+    {
+        auto database = QSqlDatabase::addDatabase("QSQLITE", connection);
+        database.setDatabaseName(localSource);
+        if (database.open()) {
+            QSqlQuery query(database);
+            fixtureReady = query.exec("CREATE TABLE metadata(name TEXT, value TEXT)")
+                && query.exec(R"SQL(INSERT INTO metadata VALUES
+                    ('format','pbf'),('bounds','7,49,8,50'),('minzoom','0'),('maxzoom','14'),
+                    ('json','{"vector_layers":[{"id":"streets"},{"id":"place_labels"}]}'))SQL")
+                && query.exec("CREATE TABLE tiles(zoom_level INTEGER, tile_column INTEGER, tile_row INTEGER, tile_data BLOB)")
+                && query.exec("INSERT INTO tiles VALUES(0,0,0,X'1a00')");
+        }
+    }
+    QSqlDatabase::removeDatabase(connection);
+    if (!check(fixtureReady, "Could not create vector pack fixture")) return false;
     settings.setValue("offlineMapCreatorPackagePath", localSource);
     const QString localBoot = temporaryDirectory.filePath("local-boot");
     QDir().mkpath(localBoot);
     if (!check(OpenHDImageCustomizer::apply(localBoot, settings).succeeded() &&
-               QFile::exists(QDir(localBoot).filePath("openhd/maps/created.glidemap")) &&
+               isShortbreadVectorPack(QDir(localBoot).filePath("openhd/maps/created.mbtiles")) &&
                !QFile::exists(QDir(localBoot).filePath("openhd/maps/field.glidemap")),
                "The map selected in the Offline maps tab did not reach the Ground image")) return false;
     settings.setValue("bootType", "Air");

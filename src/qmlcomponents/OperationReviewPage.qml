@@ -38,6 +38,8 @@ Item {
     signal offlineMapsRequested()
     signal profileSettingsToggled(bool enabled)
     signal profileSelected(var profile)
+    signal createProfileRequested()
+    function openProfilePicker() { profilePickerPopup.openPicker() }
     signal clearProfileRequested()
 
     focus: visible
@@ -554,6 +556,14 @@ Item {
                 color: "#89aebb"
                 font.pixelSize: 11
                 wrapMode: Text.WordWrap
+            }
+            ModernActionButton {
+                text: qsTr("Create new FleetControl profile")
+                visible: root.fleetControlSignedIn
+                onClicked: {
+                    profilePickerPopup.close()
+                    root.createProfileRequested()
+                }
             }
 
             Rectangle {

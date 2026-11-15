@@ -100,7 +100,8 @@ set(SOURCES "offlinemaps/offlinemapbuilder.cpp" "main.cpp" "fatimagewriter.cpp" 
     "drivelistitem.cpp" "drivelistmodel.cpp" "drivelistmodelpollthread.cpp" "rockchipdevice.cpp" "rockchipfirmwarelayout.cpp" "rockchipflashthread.cpp" "nxpflashthread.cpp" "downloadthread.cpp" "downloadextractthread.cpp"
      "driveformatthread.cpp" "localfileextractthread.cpp" "powersaveblocker.cpp" "downloadstatstelemetry.cpp" "updateuploadthread.cpp" "qml.qrc" "dependencies/sha256crypt/sha256crypt.c" "cli.cpp")
 
-find_package(Qt5 REQUIRED COMPONENTS Core Quick LinguistTools Svg OPTIONAL_COMPONENTS Widgets)
+find_package(Qt5 REQUIRED COMPONENTS Core Quick LinguistTools Svg Sql OPTIONAL_COMPONENTS Widgets)
+list(APPEND SOURCES offlinemaps/vectormapcatalog.cpp offlinemaps/vectormapcatalog.h)
 if (Qt5Widgets_FOUND)
     set(EXTRALIBS ${EXTRALIBS} Qt5::Widgets)
 endif()
@@ -451,7 +452,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/sha256crypt
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    Qt5::Core Qt5::Quick Qt5::Svg Qt5::Widgets Qt5::Network Qt5::Gui
+    Qt5::Core Qt5::Quick Qt5::Svg Qt5::Widgets Qt5::Network Qt5::Gui Qt5::Sql
     ${CURL_LIBRARIES}
     ${LibArchive_LIBRARIES}
     ${OPENSSL_LIBRARIES}
@@ -507,7 +508,7 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CURL_INCLUDE_DIR}
         ${OPENSSL_INCLUDE_DIR})
-    target_link_libraries(openhd_backend_tests PRIVATE Qt5::Core)
+    target_link_libraries(openhd_backend_tests PRIVATE Qt5::Core Qt5::Sql)
     if(NOT APPLE)
         target_link_libraries(openhd_backend_tests PRIVATE ${OPENSSL_LIBRARIES})
     endif()

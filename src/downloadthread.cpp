@@ -1354,10 +1354,11 @@ bool DownloadThread::_customizeImage()
             message = tr("Offline map package not found at the selected path.");
             break;
         case OpenHDImageCustomizer::Error::InvalidOfflineMap:
-            message = tr("Selected offline map is not a valid .glidemap package.");
+            message = tr("The selected offline map package is invalid.");
             break;
         case OpenHDImageCustomizer::Error::CopyOfflineMap:
-            message = tr("Error copying offline map to the FAT partition");
+            message = customizationResult.detail.isEmpty() ? tr("Error copying offline map to the FAT partition")
+                                                           : customizationResult.detail;
             break;
         case OpenHDImageCustomizer::Error::InvalidCertificate:
             message = tr("Premium certificate is invalid: %1").arg(customizationResult.detail);
