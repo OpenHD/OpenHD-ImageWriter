@@ -291,6 +291,10 @@ if (WIN32)
         "${CMAKE_CURRENT_SOURCE_DIR}/windows/openhdimagewriter.nsi.in"
         "${CMAKE_CURRENT_BINARY_DIR}/openhdimagewriter.nsi"
         @ONLY)
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/windows/install-rockusb.ps1"
+        "${CMAKE_CURRENT_BINARY_DIR}/install-rockusb.ps1"
+        COPYONLY)
 
     set(OPENHD_SETTINGS_MAP_JSON "${CMAKE_CURRENT_LIST_DIR}/../doc/openhd_settings_map.json")
     if (NOT EXISTS "${OPENHD_SETTINGS_MAP_JSON}")

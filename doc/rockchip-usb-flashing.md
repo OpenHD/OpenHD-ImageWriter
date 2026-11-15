@@ -1,5 +1,10 @@
 # Rockchip USB flashing
 
+On Windows 10 or 11 (x64 or x86), select **Rockchip USB driver (Luckfox and
+X21)** on the ImageWriter installer's components page. The optional step needs
+internet access and prompts for administrator permission to stage the driver.
+Connect the board in MaskROM or Loader mode for Windows to bind the driver.
+
 Select the complete firmware ZIP and the connected Rockchip target. Pico Ultra,
 Ultra W and Zero packages include the SDK's matching RV1106 `download.bin`, a
 `.env.txt` flash plan, and the full GPT disk as `disk.img`. A GitHub artifact

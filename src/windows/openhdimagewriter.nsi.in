@@ -59,6 +59,10 @@ InstallDir "$PROGRAMFILES\OpenHD ImageWriter"
 !insertmacro MUI_PAGE_LICENSE "${LICENSE_TXT}"
 !endif
 
+!ifndef INNER
+!insertmacro MUI_PAGE_COMPONENTS
+!endif
+
 !ifdef REG_START_MENU
 !define MUI_STARTMENUPAGE_NODISABLE
 !define MUI_STARTMENUPAGE_DEFAULTFOLDER "OpenHD"
@@ -101,6 +105,8 @@ LangString win7Msg ${LANG_ITALIAN} "Per l'esecuzione del programma è richiesto 
 
 !include WinMessages.nsh
 !include Logiclib.nsh
+!include Sections.nsh
+!include x64.nsh
 
 !macro FindWindowOfExe Exe
     Push $1
@@ -187,7 +193,8 @@ LangString win7Msg ${LANG_ITALIAN} "Per l'esecuzione del programma è richiesto 
 ######################################################################
 
 !ifndef INNER
-Section -MainProgram
+Section "OpenHD ImageWriter"
+SectionIn RO
 ${INSTALL_TYPE}
 !insertmacro TerminateApp
 SetOverwrite ifnewer
@@ -305,6 +312,26 @@ SetOutPath "$INSTDIR\bearer"
 File "deploy\bearer\qgenericbearer.dll"
 
 Delete "$SMPROGRAMS\OpenHD\${OLD_APP_NAME}.lnk"
+SectionEnd
+
+Section /o "Rockchip USB driver (Luckfox and X21)" RockusbDriver
+  InitPluginsDir
+  SetOutPath "$PLUGINSDIR"
+  File "install-rockusb.ps1"
+  DetailPrint "Downloading and installing the Rockchip USB driver..."
+  ClearErrors
+  ${DisableX64FSRedirection}
+  ExecWait '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy RemoteSigned -File "$PLUGINSDIR\install-rockusb.ps1"' $0
+  ${EnableX64FSRedirection}
+  ${If} ${Errors}
+    StrCpy $0 1
+  ${EndIf}
+  ${If} $0 == 3010
+    SetRebootFlag true
+  ${ElseIf} $0 != 0
+    DetailPrint "Rockchip USB driver setup did not complete."
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Rockchip USB driver setup did not complete. You can install it later with DriverAssistant from Luckfox's downloads page." /SD IDOK
+  ${EndIf}
 SectionEnd
 
 ######################################################################
@@ -510,6 +537,10 @@ generator_failed:
   ${IfNot} ${AtLeastWin7}
     MessageBox MB_OK "$(win7Msg)"
     Quit
+  ${EndIf}
+  ${IfNot} ${AtLeastWin10}
+    SectionSetFlags ${RockusbDriver} ${SF_RO}
+    SectionSetText ${RockusbDriver} "Rockchip USB driver (requires Windows 10 or 11)"
   ${EndIf}
 !endif
 FunctionEnd
