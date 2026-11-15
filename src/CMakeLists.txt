@@ -462,7 +462,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 else()
 include_directories(${CURL_INCLUDE_DIR} ${LibArchive_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    Qt5::Core Qt5::Quick Qt5::Svg
+    Qt5::Core Qt5::Quick Qt5::Svg Qt5::Sql
     ${CURL_LIBRARIES}
     ${LibArchive_LIBRARIES}
     ${OPENSSL_LIBRARIES}
