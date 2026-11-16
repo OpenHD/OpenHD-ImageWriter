@@ -27,6 +27,7 @@ Rectangle {
     property bool picoEthernetSelected: false
     property string existingDeviceName: ""
     property string platformHint: ""
+    property string imageNameHint: ""
     signal configurationSaved()
     signal closeRequested()
 
@@ -181,7 +182,8 @@ Rectangle {
                                 for (var n=0; n<model.length; ++n) if (model[n].id === page.platform) return n
                                 return -1
                             }
-                            displayText: currentIndex >= 0 ? currentText : qsTr("Choose hardware platform")
+                            displayText: currentIndex >= 0 ? currentText
+                                         : rpi ? qsTr("Raspberry Pi") : qsTr("Choose hardware platform")
                             onActivated: {
                                 var board = model[currentIndex]
                                 page.platform = board.id
@@ -279,7 +281,6 @@ Rectangle {
                         spacing: 8
                         InitialSettingsPanel {
                             id: initialDefaults
-                            Layout.fillWidth: true
                             settingsOwner: imageWriter
                             fields: settingsMap.initialFields || []
                             role: String(bootType).toLowerCase()
@@ -1121,7 +1122,6 @@ Rectangle {
         // naming schemes. Lite/minimal images intentionally have no Air stack.
         imageWriter.setSetting("fileName", fileName)
         var normalizedFileName = fileName.toLowerCase()
-        var normalizedPlatform = String(platformHint || "").toLowerCase()
         if (picoDefaultsMode && imageWriter.getValue("platform") !== "luckfox-pico") {
             camera = ""; camera2 = ""; cameraResolution = ""; camera2Resolution = ""
         }
@@ -1133,8 +1133,7 @@ Rectangle {
             bootType = "Ground"
 
         FleetProfilesHelper.getSettingsMap(imageWriter)
-        var board = FleetProfilesHelper.platformForHint(normalizedPlatform) || FleetProfilesHelper.platformForHint(normalizedFileName) ||
-                    FleetProfilesHelper.platformForHardware(imageWriter.getValue("platform"))
+        var board = FleetProfilesHelper.platformForImage(platformHint, fileName, imageNameHint)
         platform = board ? board.id : ""
         sbc = board ? board.sbc : "unknown"
         rpi = sbc === "rpi"
@@ -1194,6 +1193,8 @@ Rectangle {
         settingsTabs.currentIndex = 0
         bootType = ""
         fileName = ""
+        platform = ""
+        rpi = false
         sbc = ""
         camera = ""
         camera2 = ""

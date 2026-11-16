@@ -19,6 +19,23 @@ for(const board of map.platforms) {
 assert.strictEqual(context.platformForHardware('Raspberry Pi (Pi 4 / Pi 5 / CM4 / Zero 2W)'),null);
 assert.strictEqual(context.platformForHint('openhd-rpi5-bullseye.img').id,'rpi5');
 assert.strictEqual(context.platformForHint('openhd-rpi-bullseye.img'),null);
+for (const [hint, fileName, imageName] of [
+  ['raspberry-pi-2-4', 'download', 'OpenHD for Raspberry Pi'],
+  ['raspberry-pi-2-4', 'openhd-image-radxa-zero3w.img.xz', ''],
+  ['raspberry-cm3-4', 'download', 'OpenHD Compute Module'],
+  ['', 'OpenHD-image-pi-bullseye-configurable-release.img.xz', ''],
+  ['', 'openhd-rpi-bullseye.img', ''],
+  ['', 'download', 'OpenHD for Raspberry Pi']
+]) {
+  const board = context.platformForImage(hint, fileName, imageName);
+  assert.strictEqual(board.sbc, 'rpi', [hint, fileName, imageName].join(' '));
+  assert.strictEqual(board.id, '', 'A Pi family image does not specify an exact model');
+}
+assert.strictEqual(context.platformForImage('raspberry-pi-2-4', 'openhd-rpi5.img').id,'rpi5');
+assert.strictEqual(context.platformForImage('raspberry-pi-5', 'download').id,'rpi5');
+assert.strictEqual(context.platformForImage('', 'openhd-image-radxa-zero3w.img.xz').sbc,'zero3w');
+assert.strictEqual(context.platformForImage('zero3w', 'download').id,'zero3w');
+assert.strictEqual(context.platformForImage('', 'custom.img'),null);
 for (const name of ['openhd-image-luckfox-pico-ultra-w(1).zip', 'openhd-pico-rv1106-sd.zip', 'RV1106', 'luckfox-pico'])
   assert.strictEqual(context.isRv1106Image(name),true,name);
 for (const name of ['firmware.zip', 'openhd-x21.zip', 'luckfox-lyra', 'rpi4'])
@@ -30,6 +47,12 @@ assert.strictEqual(context.isRv1106Device({device:'disk',usbVendorId:0x2207,usbP
 assert.strictEqual(context.isRv1106Device({device:'rockusb:board'}),false);
 // Exercise the actual write entry point with a saved Ground profile present.
 const flashQml=fs.readFileSync(require.resolve('../flash.qml'),'utf8');
+const resetImageSettings=flashQml.match(/    function resetOpenHdSettingsForNewImage\(\) \{[^]*?\n    \}/)[0];
+settings.platform = 'zero3w';
+settings.sbc = 'zero3w';
+vm.runInNewContext(resetImageSettings+'\nresetOpenHdSettingsForNewImage()', {imageWriter: writer});
+assert.strictEqual(settings.platform, '');
+assert.strictEqual(settings.sbc, '');
 const writeEntry=flashQml.slice(flashQml.indexOf('    function startWriteNow()'),
   flashQml.indexOf('\n    ColumnLayout {',flashQml.indexOf('    function startWriteNow()')));
 function tryWrite(fixedDefaults, ethernet=false, configured=false) {

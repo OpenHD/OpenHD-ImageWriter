@@ -34,10 +34,10 @@ int main(int argc,char**argv) {
     auto values=exported().value("components").toObject().value("100").toObject();
     if(values.value("AIR_RECORDING_E").toInt()!=2 || exported().value("components").toObject().value("191").toObject().value("CUSTOM_NEW").toInt()!=7) return 3;
     if(values.contains("STREAMING_E") || exported().value("components").toObject().value("101").toObject().contains("STREAMING_E")) return 6;
-    if(engine.evaluate("panel.visibleFields.length").toInt()!=1) return 7;
-    // An older image manifest must not restore the streaming control.
+    if(panel->property("visible").toBool()) return 7;
+    // An older image manifest must not restore a settings control.
     engine.evaluate("panel.fields = panel.fields.concat([{id: 'STREAMING_E', provision: {componentId: 100, roles: ['air']}}])");
-    if(engine.evaluate("panel.visibleFields.length").toInt()!=1) return 8;
+    if(panel->property("visible").toBool()) return 8;
     owner.setSetting("initialParameterDefaults",QStringLiteral("{\"version\":1,\"components\":{}}"));
     if(!exported().value("components").toObject().isEmpty()) return 4;
     owner.setSetting("initialParameterDefaults",QStringLiteral(R"({"version":1,"components":{"100":{"AIR_RECORDING_E":1},"191":{"CUSTOM_NEW":7}}})"));

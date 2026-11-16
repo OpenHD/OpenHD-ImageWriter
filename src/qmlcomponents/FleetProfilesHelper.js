@@ -87,6 +87,23 @@ function platformForHint(hint) {
     return best;
 }
 
+function platformForImage(platformHint, fileName, imageName) {
+    var piFamilyHint = /^(?:pi|rpi|raspberry(?:[ -]pi)?|raspberry-pi-2-4|raspberry-cm3-4)$/i;
+    var isPiFamily = piFamilyHint.test(String(platformHint || ""));
+    var board = isPiFamily ? null : platformForHint(platformHint);
+    if (board) return board;
+
+    var fileBoard = platformForHint(fileName);
+    if (fileBoard && (!isPiFamily || fileBoard.sbc === "rpi")) return fileBoard;
+    var nameBoard = platformForHint(imageName);
+    if (nameBoard && (!isPiFamily || nameBoard.sbc === "rpi")) return nameBoard;
+
+    var piImageName = /(?:^|[^a-z0-9])(?:rpi|raspberry(?:[ _-]pi)?|openhd[ _-](?:image[ _-])?pi)(?:$|[^a-z0-9])/i;
+    if (isPiFamily || piFamilyHint.test(fileName) || piImageName.test(fileName) || piImageName.test(imageName))
+        return { id: "", sbc: "rpi" };
+    return null;
+}
+
 function isRv1106Device(device) {
     return device && String(device.device || "").indexOf("rockusb:") === 0 &&
            Number(device.usbVendorId) === 0x2207 && Number(device.usbProductId) === 0x110c;

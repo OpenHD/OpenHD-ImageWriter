@@ -2149,6 +2149,7 @@ Rectangle {
         picoDefaultsMode: window.usesRv1106Defaults
         picoEthernetSelected: window.picoEthernetLink
         platformHint: picoDefaultsMode ? "luckfox-pico" : selectedImagePlatform
+        imageNameHint: osbutton.text
         onConfigurationSaved: {
             if (window.usesRv1106Defaults) window.picoEthernetLink = !imageWriter.getBoolSetting("disableEthernetLink")
         }
@@ -2308,6 +2309,7 @@ Rectangle {
     }
 
     function resetOpenHdSettingsForNewImage() {
+        imageWriter.setSetting("platform", "")
         imageWriter.setSetting("sbc", "")
         imageWriter.setSetting("bootType", "")
         imageWriter.setSetting("fileName", "")

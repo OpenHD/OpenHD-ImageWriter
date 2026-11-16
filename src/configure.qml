@@ -448,7 +448,6 @@ ImButton {
                                 InitialSettingsPanel {
                                     id: initialDefaults
                                     settingsOwner: imageWriter
-                                    Layout.fillWidth: true
                                     fields: hasImageSettingsManifest ? (settingsMap.initialFields || []) : []
                                     role: bootType.toLowerCase()
                                 }
