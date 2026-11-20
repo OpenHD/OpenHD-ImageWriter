@@ -20,12 +20,16 @@ enum class DiskFormatError
     FlushFailed
 };
 
+class FileOperations;
+
 class DiskFormatter final
 {
 public:
     DiskFormatError formatFat32(const QString &devicePath,
                                 const QByteArray &volumeLabel = QByteArray("SDCARD"));
     static QString errorMessage(DiskFormatError error);
+    static bool relocateGptBackup(char *firstBlock, std::size_t firstBlockSize,
+                                  FileOperations &file, quint64 targetSize);
 };
 
 #endif // DISKFORMATTER_H

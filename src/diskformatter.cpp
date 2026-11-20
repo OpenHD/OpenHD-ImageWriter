@@ -6,6 +6,7 @@
 
 #include "diskformatter.h"
 #include "file_operations.h"
+#include "openhdprovisioning.h"
 
 #include <QtEndian>
 
@@ -227,6 +228,8 @@ std::array<quint8, SectorSize> makeMbr(const FatLayout &layout)
     partition.lastCylinder = 0xFF;
     partition.firstLba = qToLittleEndian<quint32>(PartitionStart);
     partition.sectorCount = qToLittleEndian<quint32>(layout.totalSectors);
+    const quint32 diskSignature = qToLittleEndian<quint32>(0x4F484400U ^ layout.totalSectors);
+    std::memcpy(mbr.data() + 440, &diskSignature, sizeof(diskSignature));
     std::memcpy(mbr.data() + 446, &partition, sizeof(partition));
     mbr[510] = 0x55;
     mbr[511] = 0xAA;
@@ -313,4 +316,124 @@ QString DiskFormatter::errorMessage(DiskFormatError error)
     case DiskFormatError::FlushFailed: return QStringLiteral("Could not flush the formatted device");
     }
     return QStringLiteral("Unknown formatting error");
+}
+
+bool DiskFormatter::relocateGptBackup(char *firstBlock, std::size_t firstBlockSize,
+                                      FileOperations &file, quint64 targetSize)
+{
+    if (!firstBlock || firstBlockSize < 1024)
+        return false;
+
+    // GPT Primary Header is at LBA 1 (offset 512)
+    const char *primaryHeader = firstBlock + 512;
+    if (std::memcmp(primaryHeader, "EFI PART", 8) != 0)
+        return false;
+
+    const quint32 headerSize = qFromLittleEndian<quint32>(
+        reinterpret_cast<const uchar *>(primaryHeader + 12));
+    if (headerSize < 92 || headerSize > 512)
+        return false;
+
+    const quint64 myLba = qFromLittleEndian<quint64>(
+        reinterpret_cast<const uchar *>(primaryHeader + 24));
+    const quint64 currentAltLba = qFromLittleEndian<quint64>(
+        reinterpret_cast<const uchar *>(primaryHeader + 32));
+    const quint64 firstUsableLba = qFromLittleEndian<quint64>(
+        reinterpret_cast<const uchar *>(primaryHeader + 40));
+    const quint64 peLba = qFromLittleEndian<quint64>(
+        reinterpret_cast<const uchar *>(primaryHeader + 72));
+    const quint32 numEntries = qFromLittleEndian<quint32>(
+        reinterpret_cast<const uchar *>(primaryHeader + 80));
+    const quint32 entrySize = qFromLittleEndian<quint32>(
+        reinterpret_cast<const uchar *>(primaryHeader + 84));
+
+    if (myLba != 1 || numEntries == 0 || numEntries > 1024 || entrySize < 128 || entrySize > 512)
+        return false;
+
+    const quint64 entriesBytes = static_cast<quint64>(numEntries) * entrySize;
+    if (peLba < 2 || (peLba * 512 + entriesBytes) > firstBlockSize)
+        return false;
+
+    const quint64 diskSectors = targetSize / 512;
+    if (diskSectors <= currentAltLba + 1)
+        return false; // Media matches image size or is smaller; no relocation needed.
+
+    const quint64 entriesSectors = (entriesBytes + 511) / 512;
+    if (diskSectors <= entriesSectors + 2)
+        return false;
+
+    const quint64 newBackupHeaderLba = diskSectors - 1;
+    const quint64 newBackupEntriesLba = newBackupHeaderLba - entriesSectors;
+    const quint64 newLastUsableLba = newBackupEntriesLba - 1;
+
+    if (newLastUsableLba <= firstUsableLba)
+        return false;
+
+    const char *entriesData = firstBlock + (peLba * 512);
+
+    // 1. Prepare and write Backup Partition Entry Array
+    if (file.seek(newBackupEntriesLba * 512) != FileError::Success)
+        return false;
+
+    std::size_t written = 0;
+    if (file.writeSequential(reinterpret_cast<const quint8 *>(entriesData),
+                             static_cast<std::size_t>(entriesBytes), written) != FileError::Success ||
+        written != entriesBytes)
+    {
+        return false;
+    }
+
+    // Zero-pad to sector boundary if entriesBytes is not sector-aligned
+    if (entriesBytes % 512 != 0)
+    {
+        const std::size_t padBytes = static_cast<std::size_t>(512 - (entriesBytes % 512));
+        std::vector<quint8> pad(padBytes, 0);
+        std::size_t padWritten = 0;
+        if (file.writeSequential(pad.data(), padBytes, padWritten) != FileError::Success)
+            return false;
+    }
+
+    // 2. Prepare Backup GPT Header
+    std::vector<char> backupHeaderBytes(512, 0);
+    std::memcpy(backupHeaderBytes.data(), primaryHeader, headerSize);
+    char *backupHeader = backupHeaderBytes.data();
+
+    qToLittleEndian<quint64>(newBackupHeaderLba, reinterpret_cast<uchar *>(backupHeader + 24)); // MyLBA
+    qToLittleEndian<quint64>(1, reinterpret_cast<uchar *>(backupHeader + 32)); // AlternateLBA
+    qToLittleEndian<quint64>(newLastUsableLba, reinterpret_cast<uchar *>(backupHeader + 48)); // LastUsableLBA
+    qToLittleEndian<quint64>(newBackupEntriesLba, reinterpret_cast<uchar *>(backupHeader + 72)); // PartitionEntryLBA
+    std::memset(backupHeader + 16, 0, 4); // Clear CRC before calculating
+
+    const quint32 backupCrc = openhd_provisioning::crc32(backupHeader, headerSize);
+    qToLittleEndian<quint32>(backupCrc, reinterpret_cast<uchar *>(backupHeader + 16));
+
+    if (file.seek(newBackupHeaderLba * 512) != FileError::Success)
+        return false;
+
+    written = 0;
+    if (file.writeSequential(reinterpret_cast<const quint8 *>(backupHeader), 512, written) != FileError::Success ||
+        written != 512)
+    {
+        return false;
+    }
+
+    // 3. Update Primary GPT Header in firstBlock
+    char *mutPrimaryHeader = firstBlock + 512;
+    qToLittleEndian<quint64>(newBackupHeaderLba, reinterpret_cast<uchar *>(mutPrimaryHeader + 32)); // AlternateLBA
+    qToLittleEndian<quint64>(newLastUsableLba, reinterpret_cast<uchar *>(mutPrimaryHeader + 48)); // LastUsableLBA
+    std::memset(mutPrimaryHeader + 16, 0, 4); // Clear CRC before calculating
+
+    const quint32 primaryCrc = openhd_provisioning::crc32(mutPrimaryHeader, headerSize);
+    qToLittleEndian<quint32>(primaryCrc, reinterpret_cast<uchar *>(mutPrimaryHeader + 16));
+
+    // 4. Update Protective MBR at LBA 0 if present
+    if (static_cast<uchar>(firstBlock[450]) == 0xEE)
+    {
+        const quint32 mbrSectors = static_cast<quint32>(
+            std::min<quint64>(diskSectors - 1, 0xFFFFFFFFULL));
+        qToLittleEndian<quint32>(mbrSectors, reinterpret_cast<uchar *>(firstBlock + 458));
+    }
+
+    file.flush();
+    return true;
 }

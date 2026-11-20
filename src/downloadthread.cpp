@@ -11,6 +11,9 @@
 #include "windows/windowsdiskpreparation.h"
 #endif
 #include "openhdimagecustomizer.h"
+#include "openhdprovisioning.h"
+#include "diskformatter.h"
+#include <QtEndian>
 #include "dependencies/mountutils/src/mountutils.hpp"
 #include "drivelist/drivelist.h"
 #include <fstream>
@@ -190,6 +193,11 @@ bool DownloadThread::_openAndPrepareDevice()
             _lockedVolumes.reset();
             return false;
         }
+        // Release volume handles now that the partition table has been cleared.
+        // Keeping old volume handles open and locked across the entire physical
+        // drive write prevents the kernel from tearing down old volume extents
+        // and causes filesystem drivers to flag corruption upon unlock.
+        _lockedVolumes.reset();
     }
 
 #endif
@@ -294,7 +302,6 @@ bool DownloadThread::_openAndPrepareDevice()
     }
 #endif
 
-#ifndef Q_OS_WIN
     // Zero out MBR
     quint64 knownsize = 0;
     if (_file->size(knownsize) != FileError::Success)
@@ -340,7 +347,6 @@ bool DownloadThread::_openAndPrepareDevice()
         return false;
     }
     qDebug() << "Done zeroing out start and end of drive. Took" << _timer.elapsed() / 1000 << "seconds";
-#endif
 
 #ifdef Q_OS_LINUX
     _sectorsStart = _sectorsWritten();
@@ -836,6 +842,12 @@ void DownloadThread::_closeFiles()
         _cachefile.close();
 }
 
+bool DownloadThread::relocateGptBackup(char *firstBlock, std::size_t firstBlockSize,
+                                      FileOperations &file, quint64 targetSize)
+{
+    return DiskFormatter::relocateGptBackup(firstBlock, firstBlockSize, file, targetSize);
+}
+
 void DownloadThread::_writeComplete()
 {
     if (_firstBlock && _firstBlockSize < IMAGEWRITER_BLOCKSIZE)
@@ -911,6 +923,12 @@ void DownloadThread::_writeComplete()
 
     if (_firstBlock)
     {
+        quint64 targetSize = 0;
+        if (_file->size(targetSize) == FileError::Success && targetSize > 0)
+        {
+            relocateGptBackup(_firstBlock, _firstBlockSize, *_file, targetSize);
+        }
+
         qDebug() << "Writing first block (which we skipped at first)";
         std::size_t written = 0;
         if ((_lastFileError = _file->seek(0)) != FileError::Success ||
@@ -937,23 +955,23 @@ void DownloadThread::_writeComplete()
     QThread::sleep(1);
     _filename.replace("/dev/rdisk", "/dev/disk");
 #endif
+
+#ifdef Q_OS_WIN
+    QString nativeError;
+    (void)WindowsDiskPreparation::rescanDisk(QString::fromUtf8(_filename), &nativeError);
+#endif
+
     QSettings settings_;
-
     const bool useSettings = settings_.value("useSettings").toBool();
-    // qDebug() << "This is the Debug Filename" << _filename;
-    // qDebug() << "This is the Debug Settings" << useSettings;
-
-    if (!useSettings)
-        eject_disk(_filename.constData());
 
     if (useSettings)
     {
         if (!_customizeImage())
             return;
-
-        if (_ejectEnabled)
-            eject_disk(_filename.constData());
     }
+
+    if (_ejectEnabled)
+        eject_disk(_filename.constData());
 
     emit success();
 }

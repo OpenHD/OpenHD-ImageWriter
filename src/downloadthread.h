@@ -123,6 +123,9 @@ public:
     virtual bool isImage();
     size_t _writeFile(const char *buf, size_t len);
 
+    static bool relocateGptBackup(char *firstBlock, std::size_t firstBlockSize,
+                                  FileOperations &file, quint64 targetSize);
+
 signals:
     void success();
     void error(QString msg);

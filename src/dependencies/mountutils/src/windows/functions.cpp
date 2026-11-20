@@ -292,17 +292,15 @@ MOUNTUTILS_RESULT EjectFixedDriveByDeviceNumber(ULONG deviceNumber) {
     if (status == CR_REMOVE_VETOED &&
         vetoType == PNP_VetoIllegalDeviceRequest) {
       MountUtilsLog("Removing subtree");
+      // We do NOT use CM_REMOVE_NO_RESTART because it permanently disables
+      // the card reader / USB device node in Windows PnP until a system reboot
+      // or physical detach/reattach. Passing 0 safely removes the subtree while
+      // allowing Windows to restart/re-enumerate the device when accessed.
       status = CM_Query_And_Remove_SubTree(deviceInstance,
                                            &vetoType,
                                            vetoName,
                                            MAX_PATH,
-
-      // We have to add the `CM_REMOVE_NO_RESTART` flag because
-      // otherwise the just-removed device may be immediately
-      // redetected, which might happen on XP and Vista.
-      // See https://www.codeproject.com/articles/13839/how-to-prepare-a-usb-drive-for-safe-removal
-
-                                           CM_REMOVE_NO_RESTART);
+                                           0);
 
       if (status == CR_ACCESS_DENIED) {
         return MOUNTUTILS_ERROR_ACCESS_DENIED;

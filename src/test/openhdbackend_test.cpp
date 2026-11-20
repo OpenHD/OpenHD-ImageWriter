@@ -12,6 +12,7 @@
 #include "curlretrypolicy.h"
 #include "drivesafetypolicy.h"
 #include "diskformatter.h"
+#include "openhdprovisioning.h"
 #include "ringbuffer.h"
 #include "rockchipfirmwarelayout.h"
 #include "nxpfirmwarelayout.h"
@@ -598,7 +599,10 @@ bool testDiskFormatter()
         reinterpret_cast<const uchar *>(fsInfo.constData()));
     const quint32 firstFatEntry = qFromLittleEndian<quint32>(
         reinterpret_cast<const uchar *>(fatStart.constData()));
-    return check(static_cast<uchar>(mbr.at(450)) == 0x0C,
+    const quint32 diskSignature = qFromLittleEndian<quint32>(
+        reinterpret_cast<const uchar *>(mbr.constData() + 440));
+    return check(diskSignature != 0, "Formatter omitted the 32-bit NT disk signature") &&
+           check(static_cast<uchar>(mbr.at(450)) == 0x0C,
                  "Formatter produced the wrong MBR partition type") &&
            check(firstLba == 8192, "Formatter produced the wrong partition offset") &&
            check(static_cast<uchar>(mbr.at(510)) == 0x55 &&
@@ -611,6 +615,128 @@ bool testDiskFormatter()
            check(firstFatEntry == 0x0FFFFFF8, "FAT32 reserved entries are incorrect") &&
            check(boot == backupBoot, "FAT32 backup boot sector differs from primary") &&
            check(image.size() == imageSize, "Formatting changed the target size");
+}
+
+bool testGptRelocation()
+{
+    QTemporaryDir temporaryDirectory;
+    const QString path = temporaryDirectory.filePath(QStringLiteral("gpt_target.img"));
+    QFile file(path);
+    const quint64 targetSize = 8ULL * 1024 * 1024; // 8 MB target disk = 16384 sectors
+    if (!check(file.open(QIODevice::ReadWrite) && file.resize(targetSize),
+               "Could not create GPT test scratch image"))
+        return false;
+    file.close();
+
+    std::unique_ptr<FileOperations> fileOps = FileOperations::create();
+    if (!check(fileOps->openDevice(path, true) == FileError::Success,
+               "Could not open GPT test scratch image via FileOperations"))
+        return false;
+
+    // Build a mock 4 MB GPT image (8192 sectors) in firstBlock buffer
+    QByteArray firstBlock(1024 * 1024, 0);
+
+    // 1. Protective MBR at LBA 0 (offset 446)
+    firstBlock[450] = static_cast<char>(0xEE); // partition type
+    qToLittleEndian<quint32>(1, reinterpret_cast<uchar *>(firstBlock.data() + 454)); // firstLba = 1
+    qToLittleEndian<quint32>(8191, reinterpret_cast<uchar *>(firstBlock.data() + 458)); // sectorCount = 8191
+    firstBlock[510] = static_cast<char>(0x55);
+    firstBlock[511] = static_cast<char>(0xAA);
+
+    // 2. Dummy partition entries at LBA 2 (offset 1024)
+    QByteArray partitionEntries(128 * 128, 0);
+    const QByteArray typeGuid = QByteArray::fromHex("a2a0d0ebe5b9334487c068b6b72699c7");
+    std::memcpy(partitionEntries.data(), typeGuid.constData(), 16);
+    std::memcpy(partitionEntries.data() + 16, typeGuid.constData(), 16);
+    qToLittleEndian<quint64>(2048, reinterpret_cast<uchar *>(partitionEntries.data() + 32));
+    qToLittleEndian<quint64>(4096, reinterpret_cast<uchar *>(partitionEntries.data() + 40));
+    std::memcpy(firstBlock.data() + 1024, partitionEntries.constData(), partitionEntries.size());
+
+    const quint32 entriesCrc = openhd_provisioning::crc32(partitionEntries.constData(), partitionEntries.size());
+
+    // 3. Primary GPT Header at LBA 1 (offset 512)
+    char *hdr = firstBlock.data() + 512;
+    std::memcpy(hdr, "EFI PART", 8);
+    qToLittleEndian<quint32>(0x00010000, reinterpret_cast<uchar *>(hdr + 8)); // Revision 1.0
+    qToLittleEndian<quint32>(92, reinterpret_cast<uchar *>(hdr + 12)); // HeaderSize = 92
+    qToLittleEndian<quint64>(1, reinterpret_cast<uchar *>(hdr + 24)); // MyLBA = 1
+    qToLittleEndian<quint64>(8191, reinterpret_cast<uchar *>(hdr + 32)); // AlternateLBA = 8191
+    qToLittleEndian<quint64>(34, reinterpret_cast<uchar *>(hdr + 40)); // FirstUsableLBA = 34
+    qToLittleEndian<quint64>(8158, reinterpret_cast<uchar *>(hdr + 48)); // LastUsableLBA = 8158
+    std::memcpy(hdr + 56, typeGuid.constData(), 16); // DiskGUID
+    qToLittleEndian<quint64>(2, reinterpret_cast<uchar *>(hdr + 72)); // PartitionEntryLBA = 2
+    qToLittleEndian<quint32>(128, reinterpret_cast<uchar *>(hdr + 80)); // NumberOfPartitionEntries = 128
+    qToLittleEndian<quint32>(128, reinterpret_cast<uchar *>(hdr + 84)); // SizeOfPartitionEntry = 128
+    qToLittleEndian<quint32>(entriesCrc, reinterpret_cast<uchar *>(hdr + 88)); // PartitionEntryArrayCRC32
+
+    const quint32 primaryCrc = openhd_provisioning::crc32(hdr, 92);
+    qToLittleEndian<quint32>(primaryCrc, reinterpret_cast<uchar *>(hdr + 16));
+
+    // Call relocateGptBackup to scale it to 8 MB targetSize (16384 sectors)
+    const bool relocated = DiskFormatter::relocateGptBackup(firstBlock.data(), firstBlock.size(),
+                                                           *fileOps, targetSize);
+    if (!check(relocated, "DiskFormatter::relocateGptBackup failed"))
+        return false;
+
+    // Verify firstBlock updates
+    const quint64 newAltLba = qFromLittleEndian<quint64>(reinterpret_cast<const uchar *>(hdr + 32));
+    const quint64 newLastUsableLba = qFromLittleEndian<quint64>(reinterpret_cast<const uchar *>(hdr + 48));
+    const quint32 newMbrSectors = qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(firstBlock.data() + 458));
+    if (!check(newAltLba == 16383, "relocateGptBackup set wrong AlternateLBA in primary header") ||
+        !check(newLastUsableLba == 16350, "relocateGptBackup set wrong LastUsableLBA in primary header") ||
+        !check(newMbrSectors == 16383, "relocateGptBackup set wrong sector count in protective MBR"))
+        return false;
+
+    // Verify primary header CRC
+    QByteArray checkedHdr(hdr, 92);
+    std::memset(checkedHdr.data() + 16, 0, 4);
+    const quint32 expectedPrimaryCrc = openhd_provisioning::crc32(checkedHdr.constData(), 92);
+    const quint32 actualPrimaryCrc = qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(hdr + 16));
+    if (!check(actualPrimaryCrc == expectedPrimaryCrc, "relocateGptBackup produced invalid primary header CRC"))
+        return false;
+
+    // Verify backup header and partition entries on the file
+    if (!check(fileOps->seek(16383 * 512) == FileError::Success, "Could not seek to backup header"))
+        return false;
+    QByteArray diskBackupHdr(512, 0);
+    std::size_t bytesRead = 0;
+    if (!check(fileOps->readSequential(reinterpret_cast<quint8 *>(diskBackupHdr.data()), 512, bytesRead) == FileError::Success && bytesRead == 512,
+               "Could not read backup GPT header from file"))
+        return false;
+
+    if (!check(diskBackupHdr.left(8) == "EFI PART", "Backup GPT header missing EFI PART signature"))
+        return false;
+
+    const quint64 backupMyLba = qFromLittleEndian<quint64>(reinterpret_cast<const uchar *>(diskBackupHdr.constData() + 24));
+    const quint64 backupAltLba = qFromLittleEndian<quint64>(reinterpret_cast<const uchar *>(diskBackupHdr.constData() + 32));
+    const quint64 backupPeLba = qFromLittleEndian<quint64>(reinterpret_cast<const uchar *>(diskBackupHdr.constData() + 72));
+    if (!check(backupMyLba == 16383, "Backup GPT header has wrong MyLBA") ||
+        !check(backupAltLba == 1, "Backup GPT header has wrong AlternateLBA") ||
+        !check(backupPeLba == 16351, "Backup GPT header has wrong PartitionEntryLBA"))
+        return false;
+
+    // Verify backup header CRC
+    QByteArray checkedBackupHdr(diskBackupHdr.constData(), 92);
+    std::memset(checkedBackupHdr.data() + 16, 0, 4);
+    const quint32 expectedBackupCrc = openhd_provisioning::crc32(checkedBackupHdr.constData(), 92);
+    const quint32 actualBackupCrc = qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(diskBackupHdr.constData() + 16));
+    if (!check(actualBackupCrc == expectedBackupCrc, "Backup GPT header CRC is invalid"))
+        return false;
+
+    // Verify backup partition entries at LBA 16351
+    if (!check(fileOps->seek(16351 * 512) == FileError::Success, "Could not seek to backup partition entries"))
+        return false;
+    QByteArray diskBackupEntries(128 * 128, 0);
+    bytesRead = 0;
+    if (!check(fileOps->readSequential(reinterpret_cast<quint8 *>(diskBackupEntries.data()), diskBackupEntries.size(), bytesRead) == FileError::Success && bytesRead == diskBackupEntries.size(),
+               "Could not read backup partition entries from file"))
+        return false;
+
+    if (!check(diskBackupEntries == partitionEntries, "Backup partition entries do not match primary partition entries"))
+        return false;
+
+    fileOps->close();
+    return true;
 }
 
 bool testRockchipFirmwareLayoutDiscovery()
@@ -859,6 +985,7 @@ int main(int argc, char *argv[])
     failures += testArchivePathValidation() ? 0 : 1;
     failures += testDriveSafetyPolicy() ? 0 : 1;
     failures += testDiskFormatter() ? 0 : 1;
+    failures += testGptRelocation() ? 0 : 1;
     failures += testRockchipFirmwareLayoutDiscovery() ? 0 : 1;
 
     if (failures == 0)

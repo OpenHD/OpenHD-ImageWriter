@@ -269,6 +269,21 @@ bool clearPartitionTable(const QString &physicalDrive, QString *error)
     DWORD returned = 0;
     DeviceIoControl(handle, FSCTL_ALLOW_EXTENDED_DASD_IO, nullptr, 0, nullptr, 0,
                     &returned, nullptr);
+
+    // Clear any persistent or runtime offline/read-only attributes so the disk
+    // can be modified even if Windows previously flagged it as read-only or offline.
+    OPENHD_SET_DISK_ATTRIBUTES attributes = {};
+    attributes.Version = sizeof(attributes);
+    attributes.Persist = TRUE;
+    attributes.Attributes = 0;
+    attributes.AttributesMask = DISK_ATTRIBUTE_OFFLINE | DISK_ATTRIBUTE_READ_ONLY;
+    DeviceIoControl(handle, IOCTL_DISK_SET_DISK_ATTRIBUTES,
+                    &attributes, sizeof(attributes), nullptr, 0, &returned, nullptr);
+
+    attributes.Persist = FALSE;
+    DeviceIoControl(handle, IOCTL_DISK_SET_DISK_ATTRIBUTES,
+                    &attributes, sizeof(attributes), nullptr, 0, &returned, nullptr);
+
     bool success = DeviceIoControl(handle, IOCTL_DISK_DELETE_DRIVE_LAYOUT,
                                    nullptr, 0, nullptr, 0, &returned, nullptr);
     DWORD code = success ? ERROR_SUCCESS : GetLastError();
@@ -289,6 +304,11 @@ bool clearPartitionTable(const QString &physicalDrive, QString *error)
                   FlushFileBuffers(handle);
         if (!success) code = GetLastError();
     }
+    if (success)
+    {
+        DeviceIoControl(handle, IOCTL_DISK_UPDATE_PROPERTIES,
+                        nullptr, 0, nullptr, 0, &returned, nullptr);
+    }
     CloseHandle(handle);
     if (!success && error)
         *error = windowsError(QStringLiteral("Could not clear the target partition table"), code);
@@ -308,16 +328,25 @@ bool rescanDisk(const QString &physicalDrive, QString *error)
         return false;
     }
     DWORD returned = 0;
-    // USB-booted Compute Modules are presented as fixed disks. Windows can
-    // leave such a disk offline or read-only after its partition table is
-    // replaced, which prevents the newly written FAT partition from mounting.
+    DeviceIoControl(handle, FSCTL_ALLOW_EXTENDED_DASD_IO, nullptr, 0, nullptr, 0,
+                    &returned, nullptr);
+
+    // USB-booted Compute Modules and removable drives can be left offline or
+    // read-only by Windows after partition table changes. Both persistent
+    // (registry) and volatile flags must be cleared so partmgr will not
+    // re-impose offline/read-only on reload.
     OPENHD_SET_DISK_ATTRIBUTES attributes = {};
     attributes.Version = sizeof(attributes);
-    attributes.Persist = FALSE;
+    attributes.Persist = TRUE;
     attributes.Attributes = 0;
     attributes.AttributesMask = DISK_ATTRIBUTE_OFFLINE | DISK_ATTRIBUTE_READ_ONLY;
     DeviceIoControl(handle, IOCTL_DISK_SET_DISK_ATTRIBUTES,
                     &attributes, sizeof(attributes), nullptr, 0, &returned, nullptr);
+
+    attributes.Persist = FALSE;
+    DeviceIoControl(handle, IOCTL_DISK_SET_DISK_ATTRIBUTES,
+                    &attributes, sizeof(attributes), nullptr, 0, &returned, nullptr);
+
     const bool success = DeviceIoControl(handle, IOCTL_DISK_UPDATE_PROPERTIES,
                                          nullptr, 0, nullptr, 0, &returned, nullptr);
     const DWORD code = success ? ERROR_SUCCESS : GetLastError();
