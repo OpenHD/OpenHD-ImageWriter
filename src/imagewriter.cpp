@@ -498,7 +498,6 @@ void ImageWriter::startWrite()
    QByteArray urlstr = _src.toString(_src.FullyEncoded).toLatin1();
    QString lowercaseurl = urlstr.toLower();
    QString lowercasepath = _src.path().toLower();
-   bool containsUpdate = lowercaseurl.contains("update");
    const auto isCompressedName = [](const QString &s) {
        return s.endsWith(".zip") || s.endsWith(".xz") || s.endsWith(".bz2") ||
               s.endsWith(".gz") || s.endsWith(".7z") || s.endsWith(".zst") ||
@@ -511,8 +510,6 @@ void ImageWriter::startWrite()
    if (lowercaseurl.contains("archive=.img") || lowercaseurl.endsWith(".img") || lowercasepath.endsWith(".img"))
        compressed = false;
 
-    _settings.setValue("justUpdate", containsUpdate);
-    _settings.sync();
 
     if (!_extrLen && _src.isLocalFile())
     {

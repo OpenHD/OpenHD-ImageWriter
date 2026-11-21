@@ -617,6 +617,160 @@ bool testDiskFormatter()
            check(image.size() == imageSize, "Formatting changed the target size");
 }
 
+
+
+class RejectStorageWrites final : public FileOperations
+{
+public:
+    explicit RejectStorageWrites(FileOperations &file) : inner(file) {}
+    FileError openDevice(const QString &p, bool e) override { return inner.openDevice(p, e); }
+    FileError adoptNativeHandle(qintptr h, bool o, bool e) override { return inner.adoptNativeHandle(h, o, e); }
+    FileError close() override { return FileError::Success; }
+    bool isOpen() const override { return inner.isOpen(); }
+    qintptr nativeHandle() const override { return inner.nativeHandle(); }
+    FileError writeSequential(const quint8 *, std::size_t, std::size_t &n) override { n = 0; return FileError::IoError; }
+    FileError readSequential(quint8 *p, std::size_t s, std::size_t &n) override { return inner.readSequential(p, s, n); }
+    FileError seek(quint64 n) override { return inner.seek(n); }
+    quint64 position() const override { return inner.position(); }
+    FileError size(quint64 &n) const override { return inner.size(n); }
+    FileError flush() override { return inner.flush(); }
+    void cancel() override { inner.cancel(); }
+    void resetCancellation() override { inner.resetCancellation(); }
+private:
+    FileOperations &inner;
+};
+
+bool testOfflineStorageProvisioning(bool gpt)
+{
+    QTemporaryDir temporary;
+    const QString path = temporary.filePath("storage.img");
+    const quint64 imageSize = 64ULL * 1024 * 1024;
+    const quint64 targetSize = 160ULL * 1024 * 1024;
+    QFile disk(path);
+    if (!check(disk.open(QIODevice::ReadWrite) && disk.resize(gpt ? imageSize - 33 * 512 : imageSize), "Cannot create storage fixture")) return false;
+    disk.close();
+    if (!check(DiskFormatter().formatFat32(path, "OPENHD") == DiskFormatError::Success, "Cannot format config fixture")) return false;
+    disk.open(QIODevice::ReadWrite);
+    QByteArray block = disk.read(1024 * 1024);
+    disk.seek(8192 * 512);
+    const QByteArray configBefore = disk.read(65536);
+    disk.resize(targetSize);
+    disk.close();
+    const auto put32 = [](char *p, quint32 n) { qToLittleEndian<quint32>(n, reinterpret_cast<uchar *>(p)); };
+    const auto put64 = [](char *p, quint64 n) { qToLittleEndian<quint64>(n, reinterpret_cast<uchar *>(p)); };
+    if (gpt) {
+        std::memset(block.data() + 446, 0, 64);
+        block[450] = char(0xee);
+        put32(block.data() + 454, 1);
+        put32(block.data() + 458, quint32(imageSize / 512 - 1));
+        char *hdr = block.data() + 512;
+        std::memset(hdr, 0, 512 + 128 * 128);
+        std::memcpy(hdr, "EFI PART", 8);
+        put32(hdr + 8, 0x10000); put32(hdr + 12, 92);
+        put64(hdr + 24, 1); put64(hdr + 32, imageSize / 512 - 1);
+        put64(hdr + 40, 34); put64(hdr + 48, imageSize / 512 - 34);
+        put64(hdr + 72, 2); put32(hdr + 80, 128); put32(hdr + 84, 128);
+        char *entry = block.data() + 1024;
+        const auto guid = QByteArray::fromHex("a2a0d0ebe5b9334487c068b6b72699c7");
+        std::memcpy(entry, guid.constData(), 16);
+        std::memcpy(entry + 16, guid.constData(), 16);
+        put64(entry + 32, 8192); put64(entry + 40, imageSize / 512 - 34);
+        put32(hdr + 88, openhd_provisioning::crc32(entry, 128 * 128));
+        put32(hdr + 16, openhd_provisioning::crc32(hdr, 92));
+    }
+    auto file = FileOperations::create();
+    if (!check(file->openDevice(path, true) == FileError::Success, "Cannot open storage fixture")) return false;
+    QString error;
+    const QByteArray originalBlock = block;
+    // Invalid layouts must fail before touching the buffered partition table.
+    if (gpt) {
+        block[1024] = char(block[1024] ^ 1);
+        const QByteArray corrupt = block;
+        if (!check(!DiskFormatter::prepareOpenHDStorage(block.data(), block.size(), *file, imageSize, targetSize, &error) && block == corrupt,
+                   "Invalid GPT was accepted or modified")) return false;
+        block = originalBlock;
+    } else {
+        std::memcpy(block.data() + 462, block.data() + 446, 16);
+        const QByteArray overlap = block;
+        if (!check(!DiskFormatter::prepareOpenHDStorage(block.data(), block.size(), *file, imageSize, targetSize, &error) && block == overlap,
+                   "Overlapping MBR was accepted or modified")) return false;
+        block = originalBlock;
+    }
+    RejectStorageWrites broken(*file);
+    if (!check(!DiskFormatter::prepareOpenHDStorage(block.data(), block.size(), broken, imageSize, targetSize, &error) && block == originalBlock,
+               "Failed formatting published a partition table")) return false;
+    if (!check(DiskFormatter::prepareOpenHDStorage(block.data(), block.size(), *file, imageSize, targetSize, &error),
+               "Offline storage provisioning failed: " + error)) return false;
+    const char *entry = block.constData() + (gpt ? 1024 + 128 : 462);
+    const quint64 start = gpt ? qFromLittleEndian<quint64>(reinterpret_cast<const uchar *>(entry + 32)) :
+                               qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(entry + 8));
+    const quint64 end = gpt ? qFromLittleEndian<quint64>(reinterpret_cast<const uchar *>(entry + 40)) :
+                             start + qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(entry + 12)) - 1;
+    if (!check(start == imageSize / 512 && end == targetSize / 512 - (gpt ? 34 : 1), "Wrong recording partition bounds") ||
+        !check(block.mid(gpt ? 1024 : 446, gpt ? 128 : 16) == originalBlock.mid(gpt ? 1024 : 446, gpt ? 128 : 16),
+               "Provisioning changed config partition geometry")) return false;
+    file->seek(start * 512);
+    QByteArray boot(512, 0); std::size_t read = 0;
+    file->readSequential(reinterpret_cast<quint8 *>(boot.data()), 512, read);
+    if (!check(boot.mid(71, 11) == "RECORDINGS " &&
+               qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(boot.constData() + 28)) == start,
+               "Recording filesystem label or hidden sectors incorrect")) return false;
+    if (gpt) {
+        file->seek(targetSize - 512);
+        QByteArray backup(512, 0);
+        file->readSequential(reinterpret_cast<quint8 *>(backup.data()), 512, read);
+        if (!check(backup.left(8) == "EFI PART" && backup.mid(88, 4) == block.mid(512 + 88, 4),
+                   "GPT backup omitted modified entry CRC")) return false;
+        QByteArray primary = block.mid(512, 92);
+        const quint32 crc = qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(primary.constData() + 16));
+        std::memset(primary.data() + 16, 0, 4);
+        if (!check(openhd_provisioning::crc32(primary.data(), primary.size()) == crc, "Bad primary GPT CRC")) return false;
+    }
+    // Existing fully sized recordings must be preserved on a repeated call.
+    const QByteArray finished = block;
+    if (!check(DiskFormatter::prepareOpenHDStorage(block.data(), block.size(), *file, targetSize, targetSize, &error) && block == finished,
+               "Already provisioned storage was changed")) return false;
+    std::size_t written = 0;
+    file->seek(0); file->writeSequential(reinterpret_cast<const quint8 *>(block.constData()), block.size(), written);
+    file->flush(); file->close();
+    disk.open(QIODevice::ReadOnly); disk.seek(8192 * 512);
+    if (!check(disk.read(65536) == configBefore, "Provisioning overwrote config filesystem")) return false;
+    disk.close();
+    const QString exportDirectory = qEnvironmentVariable("OPENHD_STORAGE_TEST_OUTPUT");
+    if (!exportDirectory.isEmpty()) {
+        QDir().mkpath(exportDirectory);
+        const QString exported = QDir(exportDirectory).filePath(gpt ? "gpt.img" : "mbr.img");
+        QFile exporter(path);
+        if (!check(exporter.copy(exported), "Could not export storage verification fixture: " + exporter.errorString() + " to " + exported)) return false;
+    }
+    // Growing an existing recording volume must keep its start and config data.
+    const quint64 largerSize = targetSize + 64ULL * 1024 * 1024;
+    disk.open(QIODevice::ReadWrite); disk.resize(largerSize); disk.close();
+    file->openDevice(path, true);
+    QByteArray grown = finished;
+    if (!check(DiskFormatter::prepareOpenHDStorage(grown.data(), grown.size(), *file, targetSize, largerSize, &error),
+               "Could not grow existing recording storage: " + error)) return false;
+    const char *grownEntry = grown.constData() + (gpt ? 1024 + 128 : 462);
+    const quint64 grownStart = gpt ? qFromLittleEndian<quint64>(reinterpret_cast<const uchar *>(grownEntry + 32)) :
+                                    qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(grownEntry + 8));
+    const quint64 grownEnd = gpt ? qFromLittleEndian<quint64>(reinterpret_cast<const uchar *>(grownEntry + 40)) :
+                                  grownStart + qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(grownEntry + 12)) - 1;
+    if (!check(grownStart == start && grownEnd == largerSize / 512 - (gpt ? 34 : 1),
+               "Existing recording growth moved the partition start or used the wrong end")) return false;
+    file->close();
+    disk.open(QIODevice::ReadOnly); disk.seek(8192 * 512);
+    if (!check(disk.read(65536) == configBefore, "Recording growth changed configuration data")) return false;
+    disk.close();
+    // An arbitrary FAT image must never acquire OpenHD recordings storage.
+    disk.open(QIODevice::ReadWrite); disk.seek(8192LL * 512 + 71); disk.write("OTHER      ", 11); disk.close();
+    file->openDevice(path, true);
+    block = originalBlock;
+    if (!check(DiskFormatter::prepareOpenHDStorage(block.data(), block.size(), *file, imageSize, targetSize, &error) && block == originalBlock,
+               "An unrelated image was provisioned")) return false;
+    file->close();
+    return true;
+}
+
 bool testGptRelocation()
 {
     QTemporaryDir temporaryDirectory;
@@ -986,6 +1140,8 @@ int main(int argc, char *argv[])
     failures += testDriveSafetyPolicy() ? 0 : 1;
     failures += testDiskFormatter() ? 0 : 1;
     failures += testGptRelocation() ? 0 : 1;
+    failures += testOfflineStorageProvisioning(false) ? 0 : 1;
+    failures += testOfflineStorageProvisioning(true) ? 0 : 1;
     failures += testRockchipFirmwareLayoutDiscovery() ? 0 : 1;
 
     if (failures == 0)

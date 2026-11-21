@@ -54,6 +54,7 @@ public:
     {
         close();
         resetCancellation();
+        _lastErrorDetail.clear();
         const bool physicalDrive = path.startsWith(QStringLiteral("\\\\.\\PHYSICALDRIVE"),
                                                    Qt::CaseInsensitive);
         // Windows storage services and security scanners commonly retain handles
@@ -80,7 +81,7 @@ public:
                 }
                 return FileError::Success;
             }
-            result = errorFromWindows(GetLastError());
+            result = recordError(GetLastError());
             if (result != FileError::Busy || attempt + 1 == attempts) break;
             Sleep(100);
         }
@@ -101,7 +102,7 @@ public:
         {
             if (!DuplicateHandle(GetCurrentProcess(), source, GetCurrentProcess(), &_handle,
                                    0, FALSE, DUPLICATE_SAME_ACCESS))
-                return errorFromWindows(GetLastError());
+                return recordError(GetLastError());
         }
         DWORD returned = 0;
         DeviceIoControl(_handle, FSCTL_ALLOW_EXTENDED_DASD_IO, nullptr, 0,
@@ -115,7 +116,7 @@ public:
             return FileError::Success;
         const HANDLE handle = _handle;
         _handle = INVALID_HANDLE_VALUE;
-        return CloseHandle(handle) ? FileError::Success : errorFromWindows(GetLastError());
+        return CloseHandle(handle) ? FileError::Success : recordError(GetLastError());
     }
 
     bool isOpen() const override { return _handle != INVALID_HANDLE_VALUE; }
@@ -138,7 +139,7 @@ public:
             {
                 const DWORD code = GetLastError();
                 qWarning() << "Windows storage write failed at byte" << position() << "with error" << code;
-                return errorFromWindows(code);
+                return recordError(code);
             }
             if (written == 0) return FileError::IoError;
             bytesWritten += written;
@@ -158,7 +159,7 @@ public:
             size, std::numeric_limits<DWORD>::max()));
         DWORD read = 0;
         if (!ReadFile(_handle, data, chunk, &read, nullptr))
-            return errorFromWindows(GetLastError());
+            return recordError(GetLastError());
         bytesRead = read;
         return FileError::Success;
     }
@@ -169,7 +170,7 @@ public:
         LARGE_INTEGER target;
         target.QuadPart = static_cast<LONGLONG>(position);
         return SetFilePointerEx(_handle, target, nullptr, FILE_BEGIN)
-                   ? FileError::Success : errorFromWindows(GetLastError());
+                   ? FileError::Success : recordError(GetLastError());
     }
 
     quint64 position() const override
@@ -194,7 +195,7 @@ public:
             return FileError::Success;
         }
         LARGE_INTEGER length;
-        if (!GetFileSizeEx(_handle, &length)) return errorFromWindows(GetLastError());
+        if (!GetFileSizeEx(_handle, &length)) return recordError(GetLastError());
         bytes = static_cast<quint64>(length.QuadPart);
         return FileError::Success;
     }
@@ -204,8 +205,10 @@ public:
         if (!isOpen()) return FileError::NotOpen;
         if (_cancelled.load()) return FileError::Cancelled;
         return FlushFileBuffers(_handle) ? FileError::Success
-                                         : errorFromWindows(GetLastError());
+                                         : recordError(GetLastError());
     }
+
+    QString lastErrorDetail() const override { return _lastErrorDetail; }
 
     void cancel() override
     {
@@ -216,6 +219,19 @@ public:
     void resetCancellation() override { _cancelled.store(false); }
 
 private:
+    FileError recordError(DWORD code) const
+    {
+        wchar_t *buffer = nullptr;
+        const DWORD length = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+            FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr,
+            code, 0, reinterpret_cast<wchar_t *>(&buffer), 0, nullptr);
+        _lastErrorDetail = QStringLiteral("Windows error %1: %2").arg(code).arg(
+            length && buffer ? QString::fromWCharArray(buffer, int(length)).trimmed() : QString());
+        if (buffer) LocalFree(buffer);
+        qWarning().noquote() << _lastErrorDetail;
+        return errorFromWindows(code);
+    }
+    mutable QString _lastErrorDetail;
     HANDLE _handle = INVALID_HANDLE_VALUE;
     std::atomic<bool> _cancelled{false};
 };

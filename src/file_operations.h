@@ -50,6 +50,7 @@ public:
     virtual quint64 position() const = 0;
     virtual FileError size(quint64 &bytes) const = 0;
     virtual FileError flush() = 0;
+    virtual QString lastErrorDetail() const { return {}; }
 
     virtual void cancel() = 0;
     virtual void resetCancellation() = 0;

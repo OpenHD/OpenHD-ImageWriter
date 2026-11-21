@@ -125,21 +125,7 @@ QByteArray DownloadThread::_fileGetContentsTrimmed(const QString &filename)
 
 bool DownloadThread::_openAndPrepareDevice()
 {
-    QSettings settings_;
-    std::cout << "_____________________________-DEBUG-_______________________________________" << std::endl;
-
-    if (settings_.value("justUpdate").toBool())
-    {
-    std::cout << "running update procedure without modifying the image" << std::endl;
-    return true;
-    }
-
     emit preparationStatusUpdate(tr("opening drive"));
-
-    if (_filename.startsWith("/dev/update-"))
-    {
-    std::cout << "running update procedure without modifying the image" << std::endl;
-    }
 
     if (_filename.startsWith("/dev/"))
     {
@@ -178,6 +164,13 @@ bool DownloadThread::_openAndPrepareDevice()
             return false;
         }
 
+        // Recheck at the write boundary; the UI list may be stale.
+        if (targetDevice->isSystem || targetDevice->size < 2ULL * 1024 * 1024 ||
+            targetDevice->logicalBlockSize != 512)
+        {
+            emit error(tr("The target is a system disk, has no usable media, or does not use 512-byte logical sectors. Nothing has been written."));
+            return false;
+        }
         QString preparationError;
         if (!_lockedVolumes->lockAndDismount(QString::fromUtf8(_filename),
                                              targetDevice->mountpoints, &preparationError))
@@ -309,6 +302,11 @@ bool DownloadThread::_openAndPrepareDevice()
         emit error(tr("Cannot determine storage device size."));
         return false;
     }
+    if (knownsize < 2ULL * 1024 * 1024)
+    {
+        emit error(tr("The target reports no usable media or is too small (%1 bytes).").arg(knownsize));
+        return false;
+    }
     QByteArray emptyMB(1024*1024, 0);
 
     emit preparationStatusUpdate(tr("zeroing out first and last MB of drive"));
@@ -321,7 +319,10 @@ bool DownloadThread::_openAndPrepareDevice()
         !_flushDevice())
     {
         if (!_cancelled)
-            emit error(tr("Write error while zero'ing out MBR"));
+            emit error(tr("Cannot clear the start of %1: %2 (wrote %3 of %4 bytes).")
+                       .arg(QString::fromUtf8(_filename),
+                            _file->lastErrorDetail().isEmpty() ? fileErrorMessage(_lastFileError) : _file->lastErrorDetail())
+                       .arg(qulonglong(zeroed)).arg(emptyMB.size()));
         return false;
     }
 
@@ -924,9 +925,25 @@ void DownloadThread::_writeComplete()
     if (_firstBlock)
     {
         quint64 targetSize = 0;
-        if (_file->size(targetSize) == FileError::Success && targetSize > 0)
+        const quint64 imageSize = std::max(_file->position(), quint64(_firstBlockSize));
+        QString storageError;
+        emit preparationStatusUpdate(tr("Preparing and verifying recording storage..."));
+        if (_cancelled || _file->size(targetSize) != FileError::Success ||
+            !DiskFormatter::prepareOpenHDStorage(_firstBlock, _firstBlockSize,
+                                                 *_file, imageSize, targetSize, &storageError))
         {
-            relocateGptBackup(_firstBlock, _firstBlockSize, *_file, targetSize);
+            if (!_cancelled)
+                DownloadThread::_onDownloadError(tr("Could not prepare recording storage: %1").arg(storageError));
+            _closeFiles();
+            return;
+        }
+        if (_firstBlockSize >= 1024 && std::memcmp(_firstBlock + 512, "EFI PART", 8) == 0 &&
+            qFromLittleEndian<quint64>(reinterpret_cast<const uchar *>(_firstBlock + 544)) != targetSize / 512 - 1 &&
+            !relocateGptBackup(_firstBlock, _firstBlockSize, *_file, targetSize))
+        {
+            DownloadThread::_onDownloadError(tr("Could not relocate the GPT backup to the target device."));
+            _closeFiles();
+            return;
         }
 
         qDebug() << "Writing first block (which we skipped at first)";
@@ -941,6 +958,20 @@ void DownloadThread::_writeComplete()
 
             if (!_cancelled)
                 DownloadThread::_onDownloadError(tr("Error writing first block (partition table)"));
+            _closeFiles();
+            return;
+        }
+        // Verification of the downloaded bytes precedes provisioning. Verify the
+        // final partition table separately after committing the buffered block.
+        QByteArray committed(int(_firstBlockSize), 0);
+        std::size_t readBack = 0;
+        if (_file->seek(0) != FileError::Success ||
+            _file->readSequential(reinterpret_cast<quint8 *>(committed.data()),
+                                  _firstBlockSize, readBack) != FileError::Success ||
+            readBack != _firstBlockSize ||
+            std::memcmp(committed.constData(), _firstBlock, _firstBlockSize) != 0)
+        {
+            DownloadThread::_onDownloadError(tr("Final partition table verification failed."));
             _closeFiles();
             return;
         }

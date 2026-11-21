@@ -28,6 +28,12 @@ public:
     DiskFormatError formatFat32(const QString &devicePath,
                                 const QByteArray &volumeLabel = QByteArray("SDCARD"));
     static QString errorMessage(DiskFormatError error);
+    // Full-flash only. Recognizes OPENHD/RECORDINGS FAT volumes; never scans
+    // host disks or formats a boot/config partition. Publishes changes in the
+    // buffered first block only after recording filesystem verification.
+    static bool prepareOpenHDStorage(char *firstBlock, std::size_t firstBlockSize,
+                                     FileOperations &file, quint64 imageSize,
+                                     quint64 targetSize, QString *error);
     static bool relocateGptBackup(char *firstBlock, std::size_t firstBlockSize,
                                   FileOperations &file, quint64 targetSize);
 };

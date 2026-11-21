@@ -9,6 +9,7 @@
 #include "openhdprovisioning.h"
 
 #include <QtEndian>
+#include <QUuid>
 
 #include <algorithm>
 #include <array>
@@ -133,19 +134,19 @@ quint32 sectorsPerFat(quint32 totalSectors, quint8 sectorsPerCluster)
         const quint32 calculated = static_cast<quint32>(
             (static_cast<quint64>(clusters + 2) * sizeof(quint32) +
              SectorSize - 1) / SectorSize);
-        if (calculated == current) return current;
+        if (calculated <= current) return current;
         current = calculated;
     }
     return current;
 }
 
-bool calculateLayout(quint64 deviceBytes, FatLayout &layout)
+bool calculateLayout(quint64 deviceBytes, FatLayout &layout, quint32 firstSector = PartitionStart)
 {
     const quint64 deviceSectors = deviceBytes / SectorSize;
-    if (deviceSectors <= PartitionStart + ReservedSectors)
+    if (deviceSectors <= quint64(firstSector) + ReservedSectors)
         return false;
     const quint64 usable = std::min<quint64>(
-        deviceSectors, std::numeric_limits<quint32>::max()) - PartitionStart;
+        deviceSectors, std::numeric_limits<quint32>::max()) - firstSector;
     layout.totalSectors = static_cast<quint32>(usable);
 
     quint8 preferred = 1;
@@ -236,6 +237,57 @@ std::array<quint8, SectorSize> makeMbr(const FatLayout &layout)
     return mbr;
 }
 
+DiskFormatError formatPartition(FileOperations &file, quint64 partitionOffset,
+                                const FatLayout &layout, const QByteArray &volumeLabel)
+{
+    Fat32BootSector bootSector = makeBootSector(layout, volumeLabel);
+    const Fat32FsInfo fsInfo = makeFsInfo(layout);
+    bootSector.hiddenSectors = qToLittleEndian<quint32>(quint32(partitionOffset / SectorSize));
+
+    DiskFormatError result = writeZeroes(file, partitionOffset, quint64(ReservedSectors) * SectorSize);
+    if (result == DiskFormatError::Success)
+        result = writeAt(file, partitionOffset,
+            reinterpret_cast<const quint8 *>(&bootSector), sizeof(bootSector));
+    if (result == DiskFormatError::Success)
+        result = writeAt(file, partitionOffset + SectorSize,
+            reinterpret_cast<const quint8 *>(&fsInfo), sizeof(fsInfo));
+    if (result == DiskFormatError::Success)
+        result = writeAt(file, partitionOffset + 6ULL * SectorSize,
+            reinterpret_cast<const quint8 *>(&bootSector), sizeof(bootSector));
+    if (result == DiskFormatError::Success)
+        result = writeAt(file, partitionOffset + 7ULL * SectorSize,
+            reinterpret_cast<const quint8 *>(&fsInfo), sizeof(fsInfo));
+
+    const quint64 fatOffset = partitionOffset +
+                              static_cast<quint64>(ReservedSectors) * SectorSize;
+    const quint64 oneFatBytes = static_cast<quint64>(layout.sectorsPerFat) * SectorSize;
+    for (quint8 fat = 0; result == DiskFormatError::Success && fat < FatCount; ++fat)
+    {
+        const quint64 offset = fatOffset + static_cast<quint64>(fat) * oneFatBytes;
+        result = writeZeroes(file, offset, oneFatBytes);
+        if (result == DiskFormatError::Success)
+        {
+            std::array<quint32, SectorSize / sizeof(quint32)> firstSector = {};
+            firstSector[0] = qToLittleEndian<quint32>(0x0FFFFFF8);
+            firstSector[1] = qToLittleEndian<quint32>(0x0FFFFFFF);
+            firstSector[2] = qToLittleEndian<quint32>(0x0FFFFFFF);
+            result = writeAt(file, offset,
+                reinterpret_cast<const quint8 *>(firstSector.data()), SectorSize);
+        }
+    }
+
+    if (result == DiskFormatError::Success)
+    {
+        const quint64 rootOffset = fatOffset +
+            static_cast<quint64>(FatCount) * oneFatBytes;
+        QByteArray root(int(layout.sectorsPerCluster) * SectorSize, 0);
+        std::memcpy(root.data(), bootSector.volumeLabel, 11);
+        root[11] = 0x08; // FAT volume label directory entry.
+        result = writeAt(file, rootOffset, reinterpret_cast<const quint8 *>(root.constData()), root.size());
+    }
+    return result;
+}
+
 } // namespace
 
 DiskFormatError DiskFormatter::formatFat32(const QString &devicePath,
@@ -251,47 +303,8 @@ DiskFormatError DiskFormatter::formatFat32(const QString &devicePath,
         !calculateLayout(deviceBytes, layout))
         return DiskFormatError::InvalidSize;
 
-    const Fat32BootSector bootSector = makeBootSector(layout, volumeLabel);
-    const Fat32FsInfo fsInfo = makeFsInfo(layout);
-    const quint64 partitionOffset = static_cast<quint64>(PartitionStart) * SectorSize;
-
-    DiskFormatError result = writeAt(*file, partitionOffset,
-        reinterpret_cast<const quint8 *>(&bootSector), sizeof(bootSector));
-    if (result == DiskFormatError::Success)
-        result = writeAt(*file, partitionOffset + SectorSize,
-            reinterpret_cast<const quint8 *>(&fsInfo), sizeof(fsInfo));
-    if (result == DiskFormatError::Success)
-        result = writeAt(*file, partitionOffset + 6ULL * SectorSize,
-            reinterpret_cast<const quint8 *>(&bootSector), sizeof(bootSector));
-    if (result == DiskFormatError::Success)
-        result = writeAt(*file, partitionOffset + 7ULL * SectorSize,
-            reinterpret_cast<const quint8 *>(&fsInfo), sizeof(fsInfo));
-
-    const quint64 fatOffset = partitionOffset +
-                              static_cast<quint64>(ReservedSectors) * SectorSize;
-    const quint64 oneFatBytes = static_cast<quint64>(layout.sectorsPerFat) * SectorSize;
-    for (quint8 fat = 0; result == DiskFormatError::Success && fat < FatCount; ++fat)
-    {
-        const quint64 offset = fatOffset + static_cast<quint64>(fat) * oneFatBytes;
-        result = writeZeroes(*file, offset, oneFatBytes);
-        if (result == DiskFormatError::Success)
-        {
-            std::array<quint32, SectorSize / sizeof(quint32)> firstSector = {};
-            firstSector[0] = qToLittleEndian<quint32>(0x0FFFFFF8);
-            firstSector[1] = qToLittleEndian<quint32>(0x0FFFFFFF);
-            firstSector[2] = qToLittleEndian<quint32>(0x0FFFFFFF);
-            result = writeAt(*file, offset,
-                reinterpret_cast<const quint8 *>(firstSector.data()), SectorSize);
-        }
-    }
-
-    if (result == DiskFormatError::Success)
-    {
-        const quint64 rootOffset = fatOffset +
-            static_cast<quint64>(FatCount) * oneFatBytes;
-        result = writeZeroes(*file, rootOffset,
-                             static_cast<quint64>(layout.sectorsPerCluster) * SectorSize);
-    }
+    DiskFormatError result = formatPartition(*file, quint64(PartitionStart) * SectorSize,
+                                             layout, volumeLabel);
     if (result == DiskFormatError::Success)
     {
         const std::array<quint8, SectorSize> mbr = makeMbr(layout);
@@ -434,6 +447,217 @@ bool DiskFormatter::relocateGptBackup(char *firstBlock, std::size_t firstBlockSi
         qToLittleEndian<quint32>(mbrSectors, reinterpret_cast<uchar *>(firstBlock + 458));
     }
 
-    file.flush();
+    if (file.flush() != FileError::Success) return false;
+    // Verify the relocated table and header before publishing the primary GPT.
+    QByteArray readEntries(int(entriesBytes), 0), readHeader(512, 0);
+    std::size_t read = 0;
+    if (file.seek(newBackupEntriesLba * 512) != FileError::Success ||
+        file.readSequential(reinterpret_cast<quint8 *>(readEntries.data()), entriesBytes, read) != FileError::Success ||
+        read != entriesBytes || std::memcmp(readEntries.constData(), entriesData, entriesBytes) != 0 ||
+        file.seek(newBackupHeaderLba * 512) != FileError::Success ||
+        file.readSequential(reinterpret_cast<quint8 *>(readHeader.data()), 512, read) != FileError::Success ||
+        read != 512 || std::memcmp(readHeader.constData(), backupHeader, 512) != 0)
+        return false;
     return true;
+}
+
+
+bool DiskFormatter::prepareOpenHDStorage(char *firstBlock, std::size_t firstBlockSize,
+                                         FileOperations &file, quint64 imageSize,
+                                         quint64 targetSize, QString *error)
+{
+    const auto fail = [error](const QString &message) {
+        if (error) *error = message;
+        return false;
+    };
+    if (!firstBlock || firstBlockSize < 512 || imageSize > targetSize)
+        return fail(QStringLiteral("Invalid image or target size"));
+    if (quint8(firstBlock[510]) != 0x55 || quint8(firstBlock[511]) != 0xaa)
+        return true; // Not a partitioned image.
+    const auto read32 = [](const char *p) {
+        return qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(p));
+    };
+    const auto read64 = [](const char *p) {
+        return qFromLittleEndian<quint64>(reinterpret_cast<const uchar *>(p));
+    };
+    const auto readAt = [&file, firstBlock, firstBlockSize](quint64 offset, char *data, std::size_t size) {
+        if (offset < firstBlockSize && size <= firstBlockSize - offset) {
+            std::memcpy(data, firstBlock + offset, size);
+            return true;
+        }
+        if (file.seek(offset) != FileError::Success) return false;
+        std::size_t count = 0;
+        return file.readSequential(reinterpret_cast<quint8 *>(data), size, count) ==
+                   FileError::Success && count == size;
+    };
+    const bool gpt = firstBlockSize >= 1024 &&
+                     std::memcmp(firstBlock + 512, "EFI PART", 8) == 0;
+    char *header = gpt ? firstBlock + 512 : nullptr;
+    quint32 count = 4, entrySize = 16, headerSize = 0;
+    quint64 entriesOffset = 446, firstUsable = 1, lastUsable = targetSize / 512 - 1;
+    if (gpt) {
+        headerSize = read32(header + 12);
+        count = read32(header + 80);
+        entrySize = read32(header + 84);
+        const quint64 entryLba = read64(header + 72);
+        if (headerSize < 92 || headerSize > 512 || !count || count > 1024 ||
+            entrySize != 128 || entryLba < 2 || entryLba > firstBlockSize / 512 ||
+            entryLba * 512 + quint64(count) * entrySize > firstBlockSize)
+            return fail(QStringLiteral("Unsupported GPT layout"));
+        entriesOffset = entryLba * 512;
+        QByteArray copy(header, int(headerSize));
+        std::memset(copy.data() + 16, 0, 4);
+        if (openhd_provisioning::crc32(copy.data(), copy.size()) != read32(header + 16) ||
+            openhd_provisioning::crc32(firstBlock + entriesOffset, count * entrySize) != read32(header + 88))
+            return fail(QStringLiteral("GPT checksum mismatch"));
+        firstUsable = read64(header + 40);
+        if (read64(header + 24) != 1 ||
+            firstUsable < entryLba + (quint64(count) * entrySize + 511) / 512 ||
+            read64(header + 48) < firstUsable || read64(header + 48) >= imageSize / 512 ||
+            read64(header + 32) >= imageSize / 512)
+            return fail(QStringLiteral("Invalid GPT usable sector range"));
+        const quint64 tableSectors = (quint64(count) * entrySize + 511) / 512;
+        if (targetSize / 512 <= tableSectors + 2)
+            return fail(QStringLiteral("Target too small for GPT"));
+        lastUsable -= tableSectors + 1;
+    } else {
+        // Extended partitions and hybrid/protective MBR need their own manifest.
+        for (int i = 0; i < 4; ++i) {
+            const quint8 type = quint8(firstBlock[446 + 16 * i + 4]);
+            if (type == 0x05 || type == 0x0f || type == 0x85 || type == 0xee)
+                return true;
+        }
+        lastUsable = std::min<quint64>(lastUsable, 0xffffffffULL);
+    }
+    struct Partition { quint32 index; quint64 start, end; };
+    std::vector<Partition> partitions;
+    int freeEntry = -1, recordings = -1;
+    bool openhd = false;
+    quint64 lastEnd = 0;
+    const QByteArray basicData = QByteArray::fromHex("a2a0d0ebe5b9334487c068b6b72699c7");
+    for (quint32 i = 0; i < count; ++i) {
+        const char *entry = firstBlock + entriesOffset + quint64(i) * entrySize;
+        const bool unused = gpt ? QByteArray(entry, 16) == QByteArray(16, 0) : entry[4] == 0;
+        if (unused) { if (freeEntry < 0) freeEntry = int(i); continue; }
+        const quint64 start = gpt ? read64(entry + 32) : read32(entry + 8);
+        const quint64 length = gpt ? 0 : read32(entry + 12);
+        const quint64 end = gpt ? read64(entry + 40) : start + length - 1;
+        if (start < firstUsable || end < start || end > lastUsable ||
+            end >= imageSize / 512 || (!gpt && !length))
+            return fail(QStringLiteral("Partition extends outside the image or target"));
+        for (const auto &other : partitions)
+            if (start <= other.end && end >= other.start)
+                return fail(QStringLiteral("Overlapping image partitions"));
+        partitions.push_back({i, start, end});
+        lastEnd = std::max(lastEnd, end);
+        const quint8 type = quint8(entry[4]);
+        const bool fatCandidate = gpt ? QByteArray(entry, 16) == basicData :
+                                       type == 0x0b || type == 0x0c || type == 0x0e || type == 0x06;
+        if (!fatCandidate) continue;
+        QByteArray boot(512, 0);
+        if (!readAt(start * 512, boot.data(), 512))
+            return fail(QStringLiteral("Could not read image filesystem metadata"));
+        if (quint8(boot[510]) != 0x55 || quint8(boot[511]) != 0xaa ||
+            qFromLittleEndian<quint16>(reinterpret_cast<const uchar *>(boot.constData() + 11)) != 512)
+            continue;
+        const bool fat32 = boot.mid(82, 8) == "FAT32   ";
+        const QByteArray label = boot.mid(fat32 ? 71 : 43, 11).trimmed().toUpper();
+        if (label == "OPENHD") openhd = true;
+        if (fat32 && label == "RECORDINGS") {
+            if (recordings >= 0) return fail(QStringLiteral("Multiple recordings partitions"));
+            recordings = int(partitions.size()) - 1;
+        }
+    }
+    if (!openhd) return true; // Never provision arbitrary OS images.
+    quint64 start = 0;
+    int selectedEntry = -1;
+    if (recordings >= 0) {
+        const auto &part = partitions[std::size_t(recordings)];
+        if (part.end != lastEnd || part.end == lastUsable) return true;
+        start = part.start;
+        selectedEntry = int(part.index);
+    } else {
+        // The image contains boot/config data, but no recordings partition.
+        // Append after the complete image, including any old backup GPT.
+        start = ((std::max(lastEnd + 1, (imageSize + 511) / 512) + 2047) / 2048) * 2048;
+        if (start > lastUsable || lastUsable - start + 1 < 131072)
+            return fail(QStringLiteral("Not enough unallocated space for recording storage (at least 64 MiB required)"));
+        if (freeEntry < 0) return fail(QStringLiteral("No free partition entry for recording storage"));
+        selectedEntry = freeEntry;
+    }
+    const quint64 sectors = lastUsable - start + 1;
+    if (start > 0xffffffffULL || sectors > 0xffffffffULL)
+        return fail(QStringLiteral("Recording storage exceeds supported FAT32 geometry"));
+    FatLayout layout;
+    if (!calculateLayout((lastUsable + 1) * 512, layout, quint32(start)) || layout.totalSectors != sectors)
+        return fail(QStringLiteral("Recording partition cannot be represented as FAT32"));
+    const auto formatted = formatPartition(file, start * 512, layout, QByteArray("RECORDINGS"));
+    if (formatted != DiskFormatError::Success) return fail(errorMessage(formatted));
+    if (file.flush() != FileError::Success)
+        return fail(QStringLiteral("Could not flush recording filesystem"));
+    // Read back all structures produced by the formatter, including both FATs.
+    auto expectedBoot = makeBootSector(layout, QByteArray("RECORDINGS"));
+    expectedBoot.hiddenSectors = qToLittleEndian<quint32>(quint32(start));
+    const auto expectedInfo = makeFsInfo(layout);
+    QByteArray actual(512, 0);
+    for (const quint64 sector : {0ULL, 6ULL})
+        if (!readAt((start + sector) * 512, actual.data(), 512) ||
+            std::memcmp(actual.data(), &expectedBoot, 512))
+            return fail(QStringLiteral("Recording boot-sector verification failed"));
+    for (const quint64 sector : {1ULL, 7ULL})
+        if (!readAt((start + sector) * 512, actual.data(), 512) ||
+            std::memcmp(actual.data(), &expectedInfo, 512))
+            return fail(QStringLiteral("Recording FSInfo verification failed"));
+    const quint64 fatSectors = quint64(FatCount) * layout.sectorsPerFat;
+    QByteArray expected(512, 0);
+    qToLittleEndian<quint32>(0x0ffffff8, reinterpret_cast<uchar *>(expected.data()));
+    qToLittleEndian<quint32>(0x0fffffff, reinterpret_cast<uchar *>(expected.data() + 4));
+    qToLittleEndian<quint32>(0x0fffffff, reinterpret_cast<uchar *>(expected.data() + 8));
+    // Batch readback to avoid thousands of tiny SD-reader transfers.
+    for (quint64 sector = 0; sector < fatSectors;) {
+        const quint64 sectors = std::min<quint64>(2048, fatSectors - sector);
+        QByteArray buffer(int(sectors * 512), 0), wanted(buffer.size(), 0);
+        for (quint64 i = 0; i < sectors; ++i)
+            if ((sector + i) % layout.sectorsPerFat == 0)
+                std::memcpy(wanted.data() + i * 512, expected.constData(), 512);
+        if (!readAt((start + ReservedSectors + sector) * 512, buffer.data(), buffer.size()) || buffer != wanted)
+            return fail(QStringLiteral("Recording FAT verification failed"));
+        sector += sectors;
+    }
+    QByteArray root(int(layout.sectorsPerCluster) * 512, 0), expectedRoot(root.size(), 0);
+    std::memcpy(expectedRoot.data(), expectedBoot.volumeLabel, 11);
+    expectedRoot[11] = 0x08;
+    if (!readAt((start + ReservedSectors + fatSectors) * 512, root.data(), root.size()) || root != expectedRoot)
+        return fail(QStringLiteral("Recording root-directory verification failed"));
+    char *entry = firstBlock + entriesOffset + quint64(selectedEntry) * entrySize;
+    if (gpt) {
+        if (recordings < 0) {
+            std::memset(entry, 0, entrySize);
+            std::memcpy(entry, basicData.constData(), 16);
+            // QUuid RFC bytes are a unique opaque identifier for this partition.
+            const QByteArray uuid = QUuid::createUuid().toRfc4122();
+            std::memcpy(entry + 16, uuid.constData(), 16);
+            const QString name = QStringLiteral("recordings");
+            for (int i = 0; i < name.size(); ++i)
+                qToLittleEndian<quint16>(name[i].unicode(), reinterpret_cast<uchar *>(entry + 56 + 2 * i));
+        }
+        qToLittleEndian<quint64>(start, reinterpret_cast<uchar *>(entry + 32));
+        qToLittleEndian<quint64>(lastUsable, reinterpret_cast<uchar *>(entry + 40));
+        qToLittleEndian<quint32>(openhd_provisioning::crc32(firstBlock + entriesOffset, count * entrySize),
+                                reinterpret_cast<uchar *>(header + 88));
+        // Force relocation to publish the modified array and both header CRCs,
+        // even when the original image already described the entire target.
+        qToLittleEndian<quint64>(targetSize / 512 - 2, reinterpret_cast<uchar *>(header + 32));
+        if (!relocateGptBackup(firstBlock, firstBlockSize, file, targetSize))
+            return fail(QStringLiteral("Could not publish recording GPT backup"));
+    } else {
+        MbrPartitionEntry part = {};
+        part.partitionType = 0x0c;
+        part.firstHead = part.lastHead = 0xfe;
+        part.firstSector = part.lastSector = part.firstCylinder = part.lastCylinder = 0xff;
+        part.firstLba = qToLittleEndian<quint32>(quint32(start));
+        part.sectorCount = qToLittleEndian<quint32>(quint32(sectors));
+        std::memcpy(entry, &part, sizeof(part));
+    }
+    return file.flush() == FileError::Success || fail(QStringLiteral("Could not flush storage metadata"));
 }
