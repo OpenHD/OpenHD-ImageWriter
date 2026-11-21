@@ -10,6 +10,12 @@ Popup {
     property real initialLatitude: 0
     property real initialLongitude: 0
     property string mapboxApiKey: ""
+    property bool fitInitialRadius: true
+    property string generationOrigin: "https://openhd.tech"
+    property var generationRequest: null
+    property string downloadId: ""
+    property string generationStatus: ""
+    readonly property bool working: !!generationRequest || !!downloadId || (!!builder && builder.searching)
     property color panelColor: typeof settings_form !== "undefined" ? settings_form.panelBackgroundRaised : "#15283b"
     property color textColor: typeof settings_form !== "undefined" ? settings_form.primaryText : "#f2f6fb"
     Material.theme: typeof settings_form !== "undefined" && !settings_form.darkMode ? Material.Light : Material.Dark
@@ -25,41 +31,87 @@ Popup {
     modal: true
     focus: true
     padding: 16
-    closePolicy: builder && (builder.busy || builder.searching) ? Popup.NoAutoClose : Popup.CloseOnEscape
+    closePolicy: working ? Popup.NoAutoClose : Popup.CloseOnEscape
     background: Rectangle { color: root.panelColor; radius: 12; border.color: "#526775" }
 
-    Connections {
-        target: root.builder || null
-        function onGenerated(filePath) { root.mapReady(filePath) }
+    function stopGeneration(message) {
+        var request = generationRequest
+        generationRequest = null
+        generationDeadline.stop()
+        generationStatus = message
+        if (request) request.abort()
     }
-    onOpened: {
-        if (root.builder && root.builder.setMapboxKey) root.builder.setMapboxKey(root.mapboxApiKey)
-        if (!canvas.active || (canvas.item && canvas.item.usingMapbox !== (root.mapboxApiKey.trim().length > 0))) {
-            canvas.active = false
-            canvas.setSource("OfflineMapSelection.qml", {
-                "initialLatitude": root.initialLatitude,
-                "initialLongitude": root.initialLongitude,
-                "tileCacheDirectory": root.mapboxApiKey.trim()
-                    ? root.builder.mapCacheDirectory("preview_mapbox") : root.builder.previewCacheDirectory,
-                "tileHost": root.mapboxApiKey.trim() ? root.builder.mapboxBaseUrl : "https://tile.openstreetmap.org/",
-                "usingMapbox": root.mapboxApiKey.trim().length > 0
-            })
-            canvas.active = true
+
+    function generateRegion() {
+        if (working || !canvas.item || !canvas.item.selectionValid || canvas.item.drawing) return
+        var area = canvas.item
+        var name = region.text.trim().slice(0, 60) || qsTr("Offline map")
+        var request = new XMLHttpRequest()
+        generationStatus = qsTr("Creating vector map on FleetControl…")
+        generationRequest = request
+        request.open("POST", generationOrigin + "/api/imagewriter/maps/generate-region")
+        request.setRequestHeader("Content-Type", "application/json")
+        request.onreadystatechange = function() {
+            if (request !== generationRequest || request.readyState !== XMLHttpRequest.DONE) return
+            generationRequest = null
+            generationDeadline.stop()
+            var result = {}
+            try { result = JSON.parse(request.responseText) } catch (error) {}
+            if (request.status !== 201 || typeof result.id !== "string"
+                    || typeof result.sha256 !== "string" || typeof result.downloadUrl !== "string"
+                    || result.downloadUrl.indexOf("/api/region-download/") !== 0) {
+                generationStatus = result.message || qsTr("Could not create this map. Try a smaller area or retry shortly.")
+                return
+            }
+            downloadId = result.id
+            generationStatus = qsTr("Downloading vector map…")
+            imageWriter.stageFleetControlOfflineMap("custom-region", result.id,
+                                                    generationOrigin + result.downloadUrl, result.sha256)
+        }
+        generationDeadline.restart()
+        request.send(JSON.stringify({name: name, west: area.west, east: area.east,
+                                    north: area.north, south: area.south}))
+    }
+
+    Timer {
+        id: generationDeadline
+        interval: 255000
+        onTriggered: root.stopGeneration(qsTr("Map generation timed out. Try a smaller area."))
+    }
+    Connections {
+        target: imageWriter
+        function onFleetControlOfflineMapStaged(mapId, filePath, error) {
+            if (!root.downloadId || mapId !== root.downloadId) return
+            root.downloadId = ""
+            root.generationStatus = error
+            if (!error) root.mapReady(filePath)
         }
     }
+    onOpened: {
+        if (!root.builder || canvas.active) return
+        if (root.builder.setMapboxKey) root.builder.setMapboxKey(root.mapboxApiKey)
+        var mapbox = root.mapboxApiKey.trim().length > 0
+        canvas.setSource("OfflineMapSelection.qml", {
+            "initialLatitude": root.initialLatitude,
+            "initialLongitude": root.initialLongitude,
+            "initialZoom": root.fitInitialRadius ? 10 : 4,
+            "fitInitialRadius": root.fitInitialRadius,
+            "radiusMode": root.fitInitialRadius,
+            "tileCacheDirectory": mapbox ? root.builder.mapCacheDirectory("preview_mapbox") : root.builder.previewCacheDirectory,
+            "tileHost": mapbox ? root.builder.mapboxBaseUrl : "https://tile.openstreetmap.org/",
+            "usingMapbox": mapbox
+        })
+        canvas.active = true
+    }
+    onMapboxApiKeyChanged: if (!opened) canvas.active = false
 
     contentItem: Rectangle {
         objectName: "offlineMapDialogContent"
         color: root.panelColor
         ColumnLayout {
         anchors.fill: parent
-        spacing: 6
+        spacing: 5
         Label { text: qsTr("Create an offline map"); color: root.textColor; font.bold: true; font.pixelSize: 20 }
-        Label {
-            Layout.fillWidth: true
-            text: qsTr("1. Find a place   2. Tap a centre for a 50 km radius, or draw an area   3. Create map")
-            color: root.textColor; wrapMode: Text.WordWrap
-        }
         RowLayout {
             Layout.fillWidth: true
             TextField {
@@ -67,13 +119,13 @@ Popup {
                 objectName: "offlineRegionSearch"
                 Layout.fillWidth: true
                 placeholderText: qsTr("Town or region")
-                enabled: !root.builder.busy && !root.builder.searching
+                enabled: !!root.builder && !root.working
                 selectByMouse: true
                 onAccepted: root.builder.search(text)
             }
             OfflineMapButton {
-                text: root.builder.searching ? qsTr("Searching...") : qsTr("Find region")
-                enabled: region.text.trim().length > 0 && !root.builder.busy && !root.builder.searching
+                text: root.builder && root.builder.searching ? qsTr("Searching...") : qsTr("Find region")
+                enabled: !!root.builder && region.text.trim().length > 0 && !root.working
                 onClicked: root.builder.search(region.text)
             }
         }
@@ -81,9 +133,9 @@ Popup {
             id: results
             Layout.fillWidth: true
             visible: count > 0
-            model: root.builder.searchResults
+            model: root.builder ? root.builder.searchResults : []
             textRole: "name"
-            enabled: !root.builder.busy
+            enabled: !root.working
             displayText: currentIndex >= 0 ? currentText : qsTr("Choose a region")
             onActivated: {
                 if (canvas.item) canvas.item.fitRegion(model[index])
@@ -100,68 +152,81 @@ Popup {
         Loader {
             id: canvas
             objectName: "offlineMapCanvas"
-            enabled: !root.builder.busy && !root.builder.searching
+            enabled: !root.working
             Layout.fillWidth: true; Layout.fillHeight: true
             Layout.minimumHeight: 120
             active: false
         }
         Label {
-            visible: canvas.status === Loader.Error
-            text: qsTr("Map preview is unavailable. Install the Qt Location and Positioning modules.")
+            visible: canvas.status === Loader.Error || !!(canvas.item && canvas.item.mapError)
+            text: canvas.status === Loader.Error ? qsTr("Map preview is unavailable. Install the Qt Location and Positioning modules.")
+                  : canvas.item ? canvas.item.mapError : ""
             Layout.fillWidth: true; wrapMode: Text.WordWrap; color: root.textColor
         }
-        RowLayout {
+        Flow {
             Layout.fillWidth: true
+            Layout.preferredHeight: implicitHeight
+            spacing: 8
+            OfflineMapButton {
+                objectName: "drawOfflineRectangle"
+                text: canvas.item && canvas.item.drawing ? qsTr("Cancel drawing") : qsTr("Draw rectangle")
+                enabled: !!canvas.item && canvas.item.ready && !root.working
+                onClicked: {
+                    if (canvas.item.drawing) canvas.item.drawing = false
+                    else canvas.item.startRectangle()
+                }
+            }
             OfflineMapButton {
                 objectName: "selectRadius"
                 text: qsTr("50 km radius")
-                enabled: canvas.item !== null && !root.builder.busy
+                enabled: !!canvas.item && canvas.item.ready && !root.working
                 onClicked: canvas.item.selectCenterRadius()
             }
             OfflineMapButton {
-                text: canvas.item && canvas.item.drawing ? qsTr("Move map") : qsTr("Draw rectangle")
-                enabled: canvas.item !== null && !root.builder.busy
-                onClicked: { canvas.item.radiusMode = false; canvas.item.drawing = !canvas.item.drawing }
-            }
-            ComboBox {
-                id: detail
-                Layout.preferredWidth: 180
-                model: [qsTr("Overview"), qsTr("Standard detail"), qsTr("High detail"), qsTr("Maximum detail")]
-                currentIndex: 1
-                enabled: !root.builder.busy
-            }
-            Label {
-                Layout.fillWidth: true; wrapMode: Text.WordWrap; color: root.textColor
-                readonly property int count: canvas.item && canvas.item.selectionValid
-                    ? root.builder.tileCount(canvas.item.south, canvas.item.west, canvas.item.north, canvas.item.east, 13 + detail.currentIndex) : 0
-                text: count < 0 ? qsTr("Area exceeds limits or crosses a polar / date-line boundary. Lower detail or choose another area.")
-                      : count > 0 ? qsTr("%1 tiles · size depends on map detail").arg(count)
-                                  : qsTr("Move and zoom, then tap a centre or draw your area.")
-                id: estimate
+                text: qsTr("Clear area")
+                enabled: !!canvas.item && canvas.item.selectionValid && !root.working
+                onClicked: canvas.item.clearSelection()
             }
         }
         Label {
+            id: estimate
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            color: root.textColor
+            visible: canvas.status !== Loader.Error && !(canvas.item && canvas.item.mapError)
+            text: !canvas.item || !canvas.item.ready ? qsTr("Loading map preview…")
+                  : canvas.item.drawing ? (canvas.item.drawingError || qsTr("Drag across the map to outline the area."))
+                  : canvas.item.selectionValid ? qsTr("Selected area: %1 × %2 km")
+                        .arg(canvas.item.areaWidthKm.toFixed(1)).arg(canvas.item.areaHeightKm.toFixed(1))
+                  : qsTr("Find a place or pan and zoom, then select Draw rectangle.")
+        }
+        Label {
             Layout.fillWidth: true; wrapMode: Text.WordWrap; color: root.textColor
-            text: root.builder.status
+            visible: text.length > 0
+            text: root.generationStatus && !(root.builder && root.builder.searching) ? root.generationStatus
+                  : root.builder ? root.builder.status : ""
         }
         ProgressBar {
             objectName: "offlineMapProgress"
             Layout.fillWidth: true
-            visible: root.builder.busy || root.builder.searching
-            indeterminate: root.builder.searching || root.builder.progress === 0
-            value: root.builder.progress
+            visible: root.working
+            indeterminate: true
         }
         RowLayout {
             Layout.fillWidth: true
             Label {
-                Layout.fillWidth: true; color: root.textColor; font.pixelSize: 11; wrapMode: Text.WordWrap
-                text: qsTr("Free road and waterway map · © OpenStreetMap contributors")
+                Layout.fillWidth: true
+                color: root.textColor
+                wrapMode: Text.WordWrap
+                text: qsTr("Smaller areas include more street detail.")
             }
             OfflineMapButton {
                 objectName: "cancelOfflineMap"
-                text: root.builder.busy || root.builder.searching ? qsTr("Cancel") : qsTr("Close")
+                visible: !root.downloadId
+                text: root.working ? qsTr("Cancel") : qsTr("Close")
                 onClicked: {
-                    if (root.builder.busy || root.builder.searching) root.builder.cancel()
+                    if (root.generationRequest) root.stopGeneration(qsTr("Canceled."))
+                    else if (root.working) root.builder.cancel()
                     else root.close()
                 }
             }
@@ -169,10 +234,8 @@ Popup {
                 objectName: "createOfflineMap"
                 primary: true
                 text: qsTr("Create map")
-                enabled: canvas.item !== null && canvas.item.selectionValid && estimate.count > 0
-                         && !root.builder.busy && !root.builder.searching
-                onClicked: root.builder.generate(region.text, canvas.item.south, canvas.item.west,
-                                                canvas.item.north, canvas.item.east, 13 + detail.currentIndex)
+                enabled: !!canvas.item && canvas.item.ready && canvas.item.selectionValid && !canvas.item.drawing && !root.working
+                onClicked: root.generateRegion()
             }
         }
     }

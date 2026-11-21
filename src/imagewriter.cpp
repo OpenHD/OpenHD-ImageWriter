@@ -2234,6 +2234,7 @@ void ImageWriter::stageFleetControlOfflineMap(const QString &profileId, const QS
     auto *manager = new QNetworkAccessManager(this);
     QNetworkRequest request(downloadUrl);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+    request.setTransferTimeout(30000);
     QNetworkReply *reply = manager->get(request);
     auto *hash = new QCryptographicHash(QCryptographicHash::Sha256);
     auto *size = new qint64(0);
@@ -2245,7 +2246,8 @@ void ImageWriter::stageFleetControlOfflineMap(const QString &profileId, const QS
         if (*size <= 100 * 1024 * 1024) {
             output->write(chunk);
             hash->addData(chunk);
-        }
+        } else
+            reply->abort();
     });
     connect(reply, &QNetworkReply::finished, this,
             [this, reply, manager, output, hash, size, prefix, filePath, mapId, sha256, vectorRegion]() {
@@ -2257,11 +2259,12 @@ void ImageWriter::stageFleetControlOfflineMap(const QString &profileId, const QS
             hash->addData(tail);
         }
         QString error;
-        if (reply->error() != QNetworkReply::NoError ||
+        if (*size > 100 * 1024 * 1024)
+            error = tr("Offline map exceeds the 100 MB download limit. Choose a smaller area.");
+        else if (reply->error() != QNetworkReply::NoError ||
             reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() != 200)
             error = tr("Offline map download failed.");
-        else if (*size > 100 * 1024 * 1024 ||
-                 QString::fromLatin1(hash->result().toHex()).compare(sha256, Qt::CaseInsensitive) != 0)
+        else if (QString::fromLatin1(hash->result().toHex()).compare(sha256, Qt::CaseInsensitive) != 0)
             error = tr("Offline map size or checksum is invalid.");
         if (error.isEmpty() && *prefix != (vectorRegion ? QByteArray("SQLite f") : QByteArray("GLDMAP1\0", 8)))
             error = tr("Downloaded file is not an OpenHD offline map.");

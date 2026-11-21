@@ -2635,7 +2635,7 @@ Item {
                                     Text {
                                         width: parent.width
                                         wrapMode: Text.WordWrap
-                                        text: qsTr("Find a region, draw a rectangle and create a free road and waterway map for your ground station. It will be included when you flash.")
+                                        text: qsTr("Draw an area to create a vector map for your next Ground flash.")
                                         color: "#8eafbf"
                                         font.pixelSize: 11
                                     }

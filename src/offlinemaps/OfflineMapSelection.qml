@@ -14,6 +14,8 @@ Item {
     property int radiusMeters: 50000
     property real initialZoom: 10
     property bool fitInitialRadius: true
+    readonly property bool ready: map.mapReady
+    readonly property string mapError: map.errorString
     property var radiusCenter: QtPositioning.coordinate(initialLatitude, initialLongitude)
     function selectRadius(coordinate) {
         if (!coordinate || !coordinate.isValid) return
@@ -31,16 +33,30 @@ Item {
     function selectCenterRadius() {
         radiusMode = true
         selectRadius(map.center)
+        if (selectionValid)
+            map.visibleRegion = QtPositioning.rectangle(QtPositioning.coordinate(north, west),
+                                                       QtPositioning.coordinate(south, east))
     }
     property bool selectionValid: false
     property real south: 0
     property real west: 0
     property real north: 0
     property real east: 0
+    readonly property real areaWidthKm: (east - west) * 111.2 * Math.cos((north + south) * Math.PI / 360)
+    readonly property real areaHeightKm: (north - south) * 111.2
 
-    function fitRegion(region) {
+    function startRectangle() {
+        if (!ready) return
+        drawing = true
+    }
+
+    function clearSelection() {
         drawing = false
         selectionValid = false
+    }
+
+    function fitRegion(region) {
+        clearSelection()
         map.visibleRegion = QtPositioning.rectangle(QtPositioning.coordinate(region.north, region.west),
                                                    QtPositioning.coordinate(region.south, region.east))
         if (radiusMode) {
@@ -51,7 +67,7 @@ Item {
     }
     Component.onCompleted: if (fitInitialRadius) selectRadius(radiusCenter)
     onRadiusMetersChanged: {
-        if (!radiusMode || !selectionValid) return
+        if (!radiusMode) return
         selectRadius(radiusCenter)
         if (map && map.mapReady && selectionValid)
             map.visibleRegion = QtPositioning.rectangle(QtPositioning.coordinate(north, west),
@@ -83,6 +99,15 @@ Item {
         center: QtPositioning.coordinate(root.initialLatitude, root.initialLongitude)
         zoomLevel: root.initialZoom
         copyrightsVisible: true
+        function useCustomMapType() {
+            for (var i = 0; i < supportedMapTypes.length; ++i) {
+                if (supportedMapTypes[i].style === MapType.CustomMap) {
+                    activeMapType = supportedMapTypes[i]
+                    return
+                }
+            }
+        }
+        Component.onCompleted: useCustomMapType()
         onMapReadyChanged: {
             if (mapReady && root.fitInitialRadius && root.radiusMode && root.selectionValid)
                 visibleRegion = QtPositioning.rectangle(QtPositioning.coordinate(root.north, root.west),
@@ -90,11 +115,9 @@ Item {
         }
         gesture.enabled: !root.drawing
         gesture.acceptedGestures: MapGestureArea.PanGesture | MapGestureArea.FlickGesture | MapGestureArea.PinchGesture
-        onSupportedMapTypesChanged: {
-            if (supportedMapTypes.length) activeMapType = supportedMapTypes[supportedMapTypes.length - 1]
-        }
+        onSupportedMapTypesChanged: useCustomMapType()
         MapCircle {
-            visible: root.selectionValid && root.radiusMode
+            visible: root.selectionValid && root.radiusMode && !rectangleInput.pressed
             center: root.radiusCenter
             radius: root.radiusMeters
             color: "#4030a8ff"
@@ -102,11 +125,11 @@ Item {
         }
         MouseArea {
             anchors.fill: parent
-            enabled: root.radiusMode && !root.drawing
+            enabled: root.ready && root.radiusMode && !root.drawing
             onClicked: root.selectRadius(map.toCoordinate(Qt.point(mouse.x, mouse.y), false))
         }
         MapRectangle {
-            visible: root.selectionValid && !root.radiusMode
+            visible: root.selectionValid && !root.radiusMode && !rectangleInput.pressed
             topLeft: QtPositioning.coordinate(root.north, root.west)
             bottomRight: QtPositioning.coordinate(root.south, root.east)
             color: "#4030a8ff"
@@ -120,28 +143,60 @@ Item {
         source: root.usingMapbox ? "MapboxLogo.png" : ""
     }
     MouseArea {
+        id: rectangleInput
         anchors.fill: parent
         objectName: "offlineRectangleInput"
-        enabled: root.drawing
-        property var origin
+        enabled: root.ready && root.drawing
+        hoverEnabled: enabled
+        cursorShape: enabled ? Qt.CrossCursor : Qt.ArrowCursor
+        preventStealing: true
+        property point origin
+        readonly property real endX: Math.max(0, Math.min(width - 1, mouseX))
+        readonly property real endY: Math.max(0, Math.min(height - 1, mouseY))
+        property string error: ""
+
+        onEnabledChanged: if (enabled) error = ""
         onPressed: {
-            origin = map.toCoordinate(Qt.point(mouse.x, mouse.y), false)
-            root.selectionValid = false
+            error = ""
+            origin = Qt.point(mouse.x, mouse.y)
         }
-        function selectAt(x, y) {
-            var end = map.toCoordinate(Qt.point(Math.max(0, Math.min(width, x)), Math.max(0, Math.min(height, y))), false)
-            if (!origin || !origin.isValid || !end.isValid) return
-            root.south = Math.min(origin.latitude, end.latitude)
-            root.north = Math.max(origin.latitude, end.latitude)
-            root.west = Math.min(origin.longitude, end.longitude)
-            root.east = Math.max(origin.longitude, end.longitude)
-            root.selectionValid = root.north > root.south && root.east > root.west && root.east - root.west < 180
+        onReleased: {
+            if (outline.width < 4 || outline.height < 4) {
+                error = qsTr("Drag across the map to draw a rectangle.")
+                return
+            }
+            var topLeft = map.toCoordinate(Qt.point(outline.x, outline.y), false)
+            var bottomRight = map.toCoordinate(Qt.point(outline.x + outline.width, outline.y + outline.height), false)
+            if (!topLeft.isValid || !bottomRight.isValid || topLeft.longitude >= bottomRight.longitude
+                    || bottomRight.longitude - topLeft.longitude >= 180
+                    || bottomRight.latitude >= topLeft.latitude
+                    || topLeft.latitude > 85 || bottomRight.latitude < -85) {
+                error = qsTr("Draw a smaller area away from the poles and the date line.")
+                return
+            }
+            root.south = bottomRight.latitude
+            root.north = topLeft.latitude
+            root.west = topLeft.longitude
+            root.east = bottomRight.longitude
+            root.radiusMode = false
+            root.selectionValid = true
+            root.drawing = false
         }
-        onPositionChanged: if (pressed) selectAt(mouse.x, mouse.y)
-        onReleased: { selectAt(mouse.x, mouse.y); root.drawing = false }
-        onCanceled: root.selectionValid = false
+        Rectangle {
+            id: outline
+            visible: rectangleInput.pressed
+            x: Math.min(rectangleInput.origin.x, rectangleInput.endX)
+            y: Math.min(rectangleInput.origin.y, rectangleInput.endY)
+            width: Math.abs(rectangleInput.origin.x - rectangleInput.endX)
+            height: Math.abs(rectangleInput.origin.y - rectangleInput.endY)
+            color: "#4030a8ff"
+            border.color: "#30a8ff"
+            border.width: 2
+        }
     }
+    readonly property string drawingError: drawing ? rectangleInput.error : ""
     Column {
+        enabled: root.ready
         anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 8
         spacing: 4
         Rectangle {

@@ -1,8 +1,9 @@
 """Exercise the production picker and the standalone Offline Maps tab.
 
-Uses Qt 5 Location with a real map canvas; map generation is a small UI fixture.
+Uses Qt 5 Location with a real map canvas and a mock FleetControl endpoint.
 """
 import argparse
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -10,7 +11,7 @@ import shutil
 import tempfile
 import contextlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from threading import Thread
+from threading import Event, Thread
 import struct
 import zlib
 
@@ -18,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @contextlib.contextmanager
 def tile_fixture():
     requests = []
+    generated = []
     def chunk(kind, data):
         return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xffffffff)
     png = (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 256, 256, 8, 2, 0, 0, 0))
@@ -31,10 +33,31 @@ def tile_fixture():
             self.send_header("Cache-Control", "public,max-age=604800")
             self.end_headers()
             self.wfile.write(png)
+        def do_POST(self):
+            assert self.path == "/api/imagewriter/maps/generate-region"
+            assert not self.headers.get("Cookie")
+            bounds = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            assert bounds["west"] < bounds["east"]
+            assert bounds["south"] < bounds["north"]
+            generated.append(bounds)
+            Event().wait(0.15)
+            body = json.dumps({
+                "id": "vector-test",
+                "sha256": "a" * 64,
+                "downloadUrl": "/api/region-download/vector-test?ticket=test",
+            }).encode()
+            try:
+                self.send_response(201)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            except ConnectionError:
+                pass
         def log_message(self, *_args): pass
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     Thread(target=server.serve_forever, daemon=True).start()
-    try: yield f"http://127.0.0.1:{server.server_port}/", requests
+    try: yield f"http://127.0.0.1:{server.server_port}/", requests, generated
     finally:
         server.shutdown()
         server.server_close()
@@ -49,33 +72,52 @@ Item {
     width: 850; height: 480
     property bool packageReady: false
     QtObject {
+        id: imageWriter
+        signal fleetControlOfflineMapStaged(string mapId, string path, string error)
+        property int stagedCount: 0
+        function getValue(key) { return "" }
+        function setSetting(key, value) {
+            if (key === "offlineMapCreatorPackagePath") shell.localOfflineMapPath = value
+        }
+        function stageFleetControlOfflineMap(profileId, mapId, url, sha) {
+            if (profileId !== "custom-region" || mapId !== "vector-test" ||
+                    url !== "API_ORIGIN/api/region-download/vector-test?ticket=test" || sha.length !== 64) {
+                fleetControlOfflineMapStaged(mapId, "", "Invalid download response")
+                return
+            }
+            ++stagedCount
+            fleetControlOfflineMapStaged(mapId, "test.mbtiles", "")
+        }
+    }
+    QtObject {
+        id: shell
+        property string localOfflineMapPath: ""
+        property bool fleetControlSignedIn: false
+    }
+    QtObject {
         id: builder
         property string previewCacheDirectory: "CACHE_DIR"
-        property bool busy: false
         property bool searching: false
         property string status: "Choose a search result, then draw your area."
-        property double progress: 0
         property var searchResults: []
-        property int generatedCount: 0
-        property var lastBounds: []
-        signal generated(string path)
-        function tileCount(s, w, n, e, zoom) { return s < n && w < e ? 20 : -1 }
         function search(query) {
             searchResults = [{name: "Test region", north: 50.01, south: 49.99, west: 7.99, east: 8.01}]
         }
-        function generate(name, s, w, n, e, zoom) {
-            generatedCount++
-            lastBounds = [s, w, n, e]
-            generated("test.glidemap")
-        }
-        function cancel() { busy = false }
+        function cancel() { searching = false }
     }
     OfflineMapDialog {
         id: dialog
         builder: builder
+        generationOrigin: "API_ORIGIN"
         initialLatitude: 50
         initialLongitude: 8
         onMapReady: scene.packageReady = true
+    }
+    OfflineMapsPage {
+        id: page
+        anchors.fill: parent
+        mainWindow: shell
+        previewBuilder: builder
     }
     TestCase {
         name: "OfflineMapPicker"; when: windowShown
@@ -101,14 +143,14 @@ Item {
             search.accepted()
             wait(100)
             var selection = findChild(canvas.item, "offlineRectangleInput")
-            canvas.item.radiusMode = false
-            canvas.item.drawing = true
+            mouseClick(findChild(dialog, "drawOfflineRectangle"))
             mousePress(selection, 120, 25)
             mouseMove(selection, 400, 95)
             mouseRelease(selection, 400, 95)
             verify(canvas.item.selectionValid)
             verify(canvas.item.north > canvas.item.south)
             verify(canvas.item.east > canvas.item.west)
+            verify(!canvas.item.drawing)
             var create = findChild(dialog, "createOfflineMap")
             verify(create.enabled)
             verify(canvas.height >= 120)
@@ -120,25 +162,52 @@ Item {
                 saved = result.saveToFile("SCREENSHOT")
             }))
             tryVerify(function() { return saved })
-            builder.busy = true
-            builder.progress = 0.45
-            builder.status = "Creating offline map..."
-            wait(50)
             var progress = findChild(dialog, "offlineMapProgress")
+            mouseClick(create)
             verify(progress.visible)
-            verify(!progress.indeterminate)
-            compare(progress.value, 0.45)
+            verify(progress.indeterminate)
             verify(!create.enabled)
             verify(create.mapToItem(dialog.contentItem, 0, create.height).y <= dialog.contentItem.height + 1)
             mouseClick(findChild(dialog, "cancelOfflineMap"))
-            verify(!builder.busy)
+            verify(!dialog.working)
             verify(create.enabled)
+            var previous = imageWriter.stagedCount
             mouseClick(create)
-            compare(builder.generatedCount, 1)
-            compare(builder.lastBounds[0], canvas.item.south)
-            compare(builder.lastBounds[3], canvas.item.east)
-            verify(scene.packageReady)
+            tryCompare(scene, "packageReady", true)
+            compare(imageWriter.stagedCount, previous + 1)
             dialog.close()
+        }
+        function test_standaloneDrawingWithoutAccount() {
+            var open = findChild(page, "openOfflineAreaDialog")
+            verify(open.enabled)
+            mouseClick(open)
+            var picker = findChild(page, "offlineAreaDialog")
+            picker.generationOrigin = "API_ORIGIN"
+            tryCompare(picker, "opened", true)
+            var canvas = findChild(picker, "offlineMapCanvas")
+            tryCompare(canvas, "status", Loader.Ready)
+            tryCompare(canvas.item, "ready", true)
+            verify(!canvas.item.selectionValid)
+            var create = findChild(picker, "createOfflineMap")
+            verify(!create.enabled)
+
+            var draw = findChild(picker, "drawOfflineRectangle")
+            mouseClick(draw)
+            var selection = findChild(canvas.item, "offlineRectangleInput")
+            mouseClick(selection, 200, 50)
+            verify(canvas.item.drawing)
+            verify(canvas.item.drawingError.length > 0)
+            mousePress(selection, 240, 80)
+            mouseMove(selection, 170, 30)
+            mouseRelease(selection, 170, 30)
+            verify(canvas.item.selectionValid)
+            verify(create.enabled)
+
+            var previous = imageWriter.stagedCount
+            mouseClick(create)
+            tryCompare(picker, "opened", false)
+            compare(imageWriter.stagedCount, previous + 1)
+            compare(page.stagedMap, "test.mbtiles")
         }
     }
 }
@@ -154,6 +223,7 @@ Item {
     property string currentView: "home"
     QtObject {
         id: imageWriter
+        signal fleetControlOfflineMapStaged(string mapId, string path, string error)
         function getValue(key) { return "" }
         function setSetting(key, value) {
             if (key === "offlineMapCreatorPackagePath")
@@ -221,13 +291,14 @@ def main():
     parser.add_argument("--screenshot", type=Path, default=ROOT / "build-offline-builder-qt5/picker.png")
     args = parser.parse_args()
     args.screenshot.parent.mkdir(parents=True, exist_ok=True)
-    with tile_fixture() as (tile_url, requests), tempfile.TemporaryDirectory(prefix="openhd-offline-ui-") as temp:
+    with tile_fixture() as (tile_url, requests, generated), tempfile.TemporaryDirectory(prefix="openhd-offline-ui-") as temp:
         folder = Path(temp)
         for name in ["OfflineMapDialog.qml", "OfflineMapSelection.qml", "OfflineMapButton.qml", "OfflineMapsPage.qml"]:
             source = (ROOT / "src/offlinemaps" / name).read_text(encoding="utf-8")
             source = source.replace("https://tile.openstreetmap.org/", tile_url)
             (folder / name).write_text(source, encoding="utf-8")
-        (folder / "tst_picker.qml").write_text(TEST.replace("SCREENSHOT", args.screenshot.as_posix()).replace("CACHE_DIR", (folder / "tiles").as_posix()), encoding="utf-8")
+        (folder / "tst_picker.qml").write_text(TEST.replace("SCREENSHOT", args.screenshot.as_posix())
+            .replace("CACHE_DIR", (folder / "tiles").as_posix()).replace("API_ORIGIN", tile_url.rstrip("/")), encoding="utf-8")
         (folder / "tst_catalog.qml").write_text(CATALOG_TEST, encoding="utf-8")
         (folder / "qmlcomponents").mkdir()
         shutil.copyfile(ROOT / "src/qmlcomponents/ModernSidebar.qml", folder / "qmlcomponents/ModernSidebar.qml")
@@ -256,6 +327,7 @@ def main():
             assert headers.get("User-Agent") == "OpenHD-ImageWriter/1.0 (+https://openhd.tech)", headers
             assert "no-cache" not in headers.get("Cache-Control", ""), headers
         print("Preview tile headers verified against local HTTP fixture")
+        assert len(generated) >= 2, "Picker did not submit drawn regions without cookies"
         return result.returncode or (0 if "0 failed" in output else 1)
 
 

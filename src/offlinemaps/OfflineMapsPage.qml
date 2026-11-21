@@ -20,42 +20,14 @@ Item {
     onVisibleChanged: if (visible && catalog && !catalog.regions.length) catalog.refresh()
     Component.onCompleted: if (visible && catalog && !catalog.regions.length) catalog.refresh()
 
-    property bool generating: false
-    property string downloadId: ""
-    property string generationStatus: ""
-    function generateRegion() {
-        var area = customPicker.item
-        if (!area || !area.selectionValid || generating) return
-        generating = true
-        generationStatus = qsTr("Generating region on FleetControl...")
-        var request = new XMLHttpRequest()
-        request.open("POST", "https://openhd.tech/api/imagewriter/profiles/generate-region")
-        request.setRequestHeader("Content-Type", "application/json")
-        request.onreadystatechange = function() {
-            if (request.readyState !== XMLHttpRequest.DONE) return
-            var result = {}
-            try { result = JSON.parse(request.responseText) } catch (e) {}
-            if (request.status !== 201 || !result.id) {
-                generating = false
-                generationStatus = result.message || qsTr("FleetControl could not generate this region.")
-                return
-            }
-            downloadId = result.id
-            generationStatus = qsTr("Downloading region...")
-            imageWriter.stageFleetControlOfflineMap("custom-region", result.id,
-                "https://openhd.tech" + result.downloadUrl, result.sha256)
-        }
-        request.send(JSON.stringify({name: regionName.text.trim(), west: area.west,
-            east: area.east, north: area.north, south: area.south}))
-    }
-    Connections {
-        target: imageWriter
-        function onFleetControlOfflineMapStaged(mapId, filePath, error) {
-            if (!root.downloadId || mapId !== root.downloadId) return
-            root.downloadId = ""
-            root.generating = false
-            root.generationStatus = error || qsTr("Region ready for the next Ground flash.")
-            if (!error) imageWriter.setSetting("offlineMapCreatorPackagePath", filePath)
+    OfflineMapDialog {
+        id: areaDialog
+        objectName: "offlineAreaDialog"
+        builder: root.previewBuilder
+        fitInitialRadius: false
+        onMapReady: {
+            imageWriter.setSetting("offlineMapCreatorPackagePath", filePath)
+            close()
         }
     }
 
@@ -144,7 +116,7 @@ Item {
                 }
                 Label {
                     Layout.fillWidth: true
-                    text: qsTr("Download a regional map or choose a vector MBTiles file. ImageWriter includes the selected map when you flash a Ground image.")
+                    text: qsTr("Download, draw or import a map. ImageWriter includes the selected map when you flash a Ground image.")
                     wrapMode: Text.WordWrap
                 }
                 RowLayout {
@@ -174,6 +146,12 @@ Item {
                     Layout.preferredHeight: implicitHeight
                     spacing: 8
                     OfflineMapButton {
+                        objectName: "openOfflineAreaDialog"
+                        text: qsTr("Draw a custom area…")
+                        enabled: !!root.previewBuilder && !root.busy
+                        onClicked: areaDialog.open()
+                    }
+                    OfflineMapButton {
                         objectName: "importVectorMap"
                         text: qsTr("Choose MBTiles file…")
                         enabled: !!root.catalog && !root.busy
@@ -185,51 +163,6 @@ Item {
                         visible: root.busy
                         onClicked: root.catalog.cancel()
                     }
-                }
-                OfflineMapButton {
-                    text: qsTr("Generate a new region...")
-                    enabled: !root.generating
-                    onClicked: customRegion.visible = !customRegion.visible
-                }
-                ColumnLayout {
-                    id: customRegion
-                    visible: false
-                    Layout.fillWidth: true
-                    Label {
-                        Layout.fillWidth: true
-                        wrapMode: Text.Wrap
-                        text: root.accountConnected ? qsTr("Draw the region to download. Smaller regions include more street detail.")
-                            : qsTr("Sign in to FleetControl to generate a region.")
-                    }
-                    TextField {
-                        id: regionName
-                        Layout.fillWidth: true
-                        placeholderText: qsTr("Region name")
-                        maximumLength: 60
-                    }
-                    Loader {
-                        id: customPicker
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 300
-                        active: customRegion.visible && root.accountConnected
-                        sourceComponent: Component { OfflineMapSelection {
-                            initialZoom: 3
-                            fitInitialRadius: false
-                            radiusMode: false
-                            tileCacheDirectory: root.previewBuilder ? root.previewBuilder.previewCacheDirectory : ""
-                        } }
-                    }
-                    OfflineMapButton {
-                        enabled: !!customPicker.item && !root.generating
-                        text: customPicker.item && customPicker.item.drawing ? qsTr("Move map") : qsTr("Draw region")
-                        onClicked: customPicker.item.drawing = !customPicker.item.drawing
-                    }
-                    OfflineMapButton {
-                        enabled: !!customPicker.item && customPicker.item.selectionValid && regionName.text.trim().length > 0 && !root.generating
-                        text: qsTr("Generate on FleetControl")
-                        onClicked: root.generateRegion()
-                    }
-                    Label { Layout.fillWidth: true; wrapMode: Text.Wrap; text: root.generationStatus; visible: !!text }
                 }
                 ProgressBar {
                     Layout.fillWidth: true

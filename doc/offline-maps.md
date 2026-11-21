@@ -7,6 +7,12 @@ selects it for the next Ground flash. A successful download is cached locally.
 For another area or a smaller extract, select **Choose MBTiles file…** and
 open a Shortbread vector pack.
 
+To make a custom map, select **Draw a custom area…**. Search for a place
+or pan and zoom the preview, then select **Draw rectangle** and drag
+across the area. Select **Create map** to generate a vector MBTiles pack on
+FleetControl without signing in. Smaller areas retain more street detail.
+ImageWriter verifies the download and selects it for the next Ground flash.
+
 ImageWriter copies the selected file to `openhd/maps` on the Config partition
 when flashing Ground. The selection takes precedence over a FleetControl
 map. Use **Remove** to clear it. Large regions may exceed the free space on
