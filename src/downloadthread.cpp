@@ -16,6 +16,7 @@
 #include <QtEndian>
 #include "dependencies/mountutils/src/mountutils.hpp"
 #include "drivelist/drivelist.h"
+#include <cstring>
 #include <fstream>
 #include <sstream>
 #include <iostream>

@@ -215,12 +215,22 @@ jobs:
       - name: Create DMG
         run: |
           dmg="OpenHDImageWriter-macOS-${{ matrix.arch }}.dmg"
-          hdiutil create \
-            -volname "OpenHD ImageWriter" \
-            -srcfolder build/OpenHDImageWriter.app \
-            -ov \
-            -format UDZO \
-            "build/$dmg"
+          staging="$(mktemp -d)"
+          trap 'rm -rf "$staging"' EXIT
+          mkdir "$staging/payload"
+          ditto build/OpenHDImageWriter.app "$staging/payload/OpenHDImageWriter.app"
+          for attempt in 1 2 3; do
+            if hdiutil create -volname "OpenHD ImageWriter" -srcfolder "$staging/payload" \
+                -ov -format UDZO "$staging/$dmg"; then
+              hdiutil verify "$staging/$dmg"
+              mv "$staging/$dmg" "build/$dmg"
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              sleep "$((attempt * 10))"
+            fi
+          done
+          exit 1
 
       - name: Upload DMG
         uses: actions/upload-artifact@v7
