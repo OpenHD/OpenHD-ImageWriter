@@ -2,6 +2,8 @@
 #include "vectorpack.h"
 
 #include <QDebug>
+#include <QCryptographicHash>
+#include <QRegularExpression>
 #include <QDir>
 #include <QFileInfo>
 #include <QNetworkRequest>
@@ -11,20 +13,14 @@
 
 namespace {
 constexpr qint64 maxPackBytes = 1024LL * 1024 * 1024;
-struct Region {
-    const char *name;
-    const char *path;
-    int approximateMegabytes;
-};
-constexpr Region catalog[] {
-    {QT_TRANSLATE_NOOP("VectorMapCatalog", "Belgium"), "belgium", 803},
-    {QT_TRANSLATE_NOOP("VectorMapCatalog", "Berlin"), "germany/berlin", 49},
-    {QT_TRANSLATE_NOOP("VectorMapCatalog", "Bremen"), "germany/bremen", 28},
-    {QT_TRANSLATE_NOOP("VectorMapCatalog", "Hamburg"), "germany/hamburg", 87},
-    {QT_TRANSLATE_NOOP("VectorMapCatalog", "Luxembourg"), "luxembourg", 59},
-    {QT_TRANSLATE_NOOP("VectorMapCatalog", "North Rhine-Westphalia"), "germany/nordrhein-westfalen", 829},
-    {QT_TRANSLATE_NOOP("VectorMapCatalog", "Saarland"), "germany/saarland", 49}
-};
+bool matchesDigest(const QString &path, qint64 size, const QByteArray &digest)
+{
+    QFile file(path);
+    QCryptographicHash hash(QCryptographicHash::Sha256);
+    return file.size() == size && file.open(QIODevice::ReadOnly)
+        && hash.addData(&file) && hash.result().toHex() == digest;
+}
+
 }
 
 VectorMapCatalog::VectorMapCatalog(QObject *parent, const QString &outputDirectory)
@@ -48,9 +44,49 @@ QUrl VectorMapCatalog::packageDirectory() const
 QVariantList VectorMapCatalog::regions() const
 {
     QVariantList result;
-    for (const auto &region : catalog)
-        result.append(tr("%1 (~%2 MB)").arg(tr(region.name)).arg(region.approximateMegabytes));
+    for (const auto &key : m_regions.keys()) {
+        const auto region = m_regions.value(key).toObject();
+        const auto size = region.value("map").toObject().value("size").toDouble();
+        result.append(tr("%1 � %2 (%3 MB)").arg(region.value("country").toString(),
+                      region.value("name").toString()).arg(qint64((size + 999999) / 1000000)));
+    }
     return result;
+}
+
+void VectorMapCatalog::refresh()
+{
+    if (busy()) return;
+    QNetworkRequest request(QUrl(QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json")));
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+    auto *reply = m_network.get(request);
+    m_reply = reply;
+    m_status = tr("Loading map regions�");
+    m_timeout.start();
+    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+        if (reply != m_reply) return;
+        QJsonObject available;
+        if (reply->error() == QNetworkReply::NoError && reply->bytesAvailable() <= 2 * 1024 * 1024) {
+            const auto regions = QJsonDocument::fromJson(reply->readAll()).object().value("regions").toObject();
+            for (auto it = regions.begin(); it != regions.end(); ++it) {
+                const auto region = it.value().toObject();
+                const auto map = region.value("map").toObject();
+                const QUrl url(map.value("url").toString());
+                const auto size = map.value("size").toDouble();
+                if (url.scheme() == "https" && size > 0 && size <= maxPackBytes
+                    && QRegularExpression("^[a-z0-9_-]+$").match(it.key()).hasMatch()
+                    && QRegularExpression("^[0-9a-f]{64}$").match(map.value("sha256").toString()).hasMatch())
+                    available.insert(it.key(), region);
+            }
+        }
+        if (available.isEmpty()) {
+            finish(tr("Could not load available map regions."));
+            return;
+        }
+        m_regions = available;
+        emit regionsChanged();
+        finish(QString());
+    });
+    emit changed();
 }
 
 void VectorMapCatalog::selectFile(const QUrl &url)
@@ -68,18 +104,21 @@ void VectorMapCatalog::selectFile(const QUrl &url)
 
 void VectorMapCatalog::download(int index)
 {
-    if (busy() || index < 0 || index >= int(sizeof(catalog) / sizeof(catalog[0]))) return;
-    const QString slug = QString::fromLatin1(catalog[index].path);
-    const QString filename = slug.section('/', -1) + "-shortbread-1.0.mbtiles";
-    const auto defaultBase = QStringLiteral("https://download.geofabrik.de/europe/");
-    const QUrl base(qEnvironmentVariable("OPENHD_MAP_CATALOG_BASE_URL", defaultBase));
+    if (busy() || index < 0 || index >= m_regions.size()) return;
+    const auto slug = m_regions.keys().at(index);
+    const auto region = m_regions.value(slug).toObject();
+    const auto map = region.value("map").toObject();
+    const QUrl url(map.value("url").toString());
+    const auto digest = map.value("sha256").toString().toLatin1();
+    const qint64 expectedSize = qint64(map.value("size").toDouble());
+    const auto filename = QStringLiteral("tiles_%1_%2.mbtiles").arg(slug, QString::fromLatin1(digest.left(12)));
     const QDir directory(packageDirectory().toLocalFile());
     if (!QDir().mkpath(directory.absolutePath())) {
         finish(tr("Cannot create the offline maps folder."));
         return;
     }
     const auto target = directory.filePath(filename);
-    if (QFileInfo(target).size() <= maxPackBytes && isShortbreadVectorPack(target)) {
+    if (matchesDigest(target, expectedSize, digest) && isShortbreadVectorPack(target)) {
         finish(tr("Map selected."));
         emit selected(target);
         return;
@@ -90,14 +129,13 @@ void VectorMapCatalog::download(int index)
         finish(tr("Cannot write to the offline maps folder."));
         return;
     }
-    const auto url = base.resolved(QUrl(slug + "-shortbread-1.0.mbtiles"));
     QNetworkRequest request(url);
     request.setRawHeader("User-Agent", "OpenHD-ImageWriter/1.0 (+https://openhd.org)");
-    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::SameOriginRedirectPolicy);
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
     auto *reply = m_network.get(request);
     m_reply = reply;
     m_progress = 0;
-    m_status = tr("Downloading %1…").arg(tr(catalog[index].name));
+    m_status = tr("Downloading %1…").arg(region.value("name").toString());
     m_timeout.start();
     const auto drain = [this, reply] {
         if (m_reply != reply) return false;
@@ -124,7 +162,7 @@ void VectorMapCatalog::download(int index)
         m_progress = qBound(0.0, double(received) / double(total), 1.0);
         emit changed();
     });
-    connect(reply, &QNetworkReply::finished, this, [this, reply, drain, target] {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, drain, target, digest, expectedSize] {
         if (m_reply != reply) return;
         if (reply->error() != QNetworkReply::NoError
             || reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() != 200) {
@@ -141,8 +179,8 @@ void VectorMapCatalog::download(int index)
             return;
         }
         m_partial->close();
-        if (!isShortbreadVectorPack(m_partial->fileName())) {
-            finish(tr("The download is not a valid Shortbread vector map."));
+        if (!matchesDigest(m_partial->fileName(), expectedSize, digest) || !isShortbreadVectorPack(m_partial->fileName())) {
+            finish(tr("The map failed its checksum or format check."));
             return;
         }
         // Keep an existing file intact if it could not be opened above.

@@ -6,13 +6,14 @@
 #include <QTemporaryFile>
 #include <QTimer>
 #include <QUrl>
+#include <QJsonObject>
 #include <QVariantList>
 #include <memory>
 
 class VectorMapCatalog final : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QVariantList regions READ regions CONSTANT)
+    Q_PROPERTY(QVariantList regions READ regions NOTIFY regionsChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(QString status READ status NOTIFY changed)
     Q_PROPERTY(double progress READ progress NOTIFY changed)
@@ -22,15 +23,18 @@ public:
     bool busy() const { return m_reply != nullptr; }
     QString status() const { return m_status; }
     double progress() const { return m_progress; }
+    Q_INVOKABLE void refresh();
     Q_INVOKABLE void download(int index);
     Q_INVOKABLE void selectFile(const QUrl &url);
     Q_INVOKABLE void cancel();
     Q_INVOKABLE QUrl packageDirectory() const;
 signals:
+    void regionsChanged();
     void changed();
     void selected(const QString &path);
 private:
     void finish(const QString &message);
+    QJsonObject m_regions;
     QNetworkAccessManager m_network;
     QPointer<QNetworkReply> m_reply;
     std::unique_ptr<QTemporaryFile> m_partial;

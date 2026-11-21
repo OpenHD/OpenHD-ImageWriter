@@ -34,9 +34,11 @@ int main(int argc, char** argv) {
         QString selected;
         QObject::connect(&catalog, &VectorMapCatalog::selected, &app, [&](const QString& path) { selected = path; });
         int index = -1;
+        catalog.refresh();
+        CHECK(waitFor([&] { return !catalog.busy(); }, 35000));
         const auto regions = catalog.regions();
         for (int i = 0; i < regions.size(); ++i)
-            if (regions[i].toString().startsWith("Luxembourg")) index = i;
+            if (regions[i].toString().contains("Luxembourg")) index = i;
         CHECK(index >= 0);
         catalog.download(index);
         CHECK(waitFor([&] { return !catalog.busy(); }, 120000));
