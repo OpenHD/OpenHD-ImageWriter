@@ -15,7 +15,7 @@ optdepends=('udisks2: desktop authorization and device management'
             'qt5-location: offline map selection')
 provides=('openhdimagewriter')
 conflicts=('openhdimagewriter')
-source=('OpenHD-ImageWriter::git+https://github.com/OpenHD/OpenHD-ImageWriter.git#branch=dev-branch')
+source=('OpenHD-ImageWriter::git+https://github.com/OpenHD/OpenHD-ImageWriter.git#branch=dev-release')
 sha256sums=('SKIP')
 
 pkgver() {

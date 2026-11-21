@@ -20,6 +20,6 @@ SWUpdate containers are not raw NAND images. Use the complete firmware ZIP for
 USB recovery. The device's updater must interpret `.ohd_base` to choose the
 correct A/B slot.
 
-The current ImageWriter development source is on `dev-branch`; legacy release
+The current ImageWriter development source is on `dev-release`; legacy release
 history remains available separately. Public product camera naming is
 `arducam_openhd`.

@@ -1,7 +1,7 @@
 # Publishing OpenHD ImageWriter on the AUR
 
 The package base is `openhdimagewriter-git`. The recipe builds current
-`dev-branch` sources and runs the backend and catalog tests. A Git package
+`dev-release` sources and runs the backend and catalog tests. A Git package
 uses the `-git` suffix as required by the
 [VCS package guidelines](https://wiki.archlinux.org/title/VCS_package_guidelines).
 The AUR stores build recipes; publication does not place the program in Arch's
@@ -9,7 +9,7 @@ official binary repositories.
 
 ## Validate before submission
 
-Merge the packaging changes into upstream `dev-branch` so that the public
+Merge the packaging changes into upstream `dev-release` so that the public
 source URL includes them. On an up-to-date Arch Linux system, copy `PKGBUILD`
 and `.SRCINFO` into a separate working directory and run as a regular user:
 

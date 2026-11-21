@@ -594,6 +594,10 @@ bool DiskFormatter::prepareOpenHDStorage(char *firstBlock, std::size_t firstBloc
     int selectedEntry = -1;
     if (recordings >= 0) {
         const auto &part = partitions[std::size_t(recordings)];
+        if (part.end != lastEnd && recordingsSizeBytes != 0 &&
+            recordingsSizeBytes != (part.end - part.start + 1) * 512) {
+            return fail(QStringLiteral("Cannot resize a RECORDINGS partition followed by another partition"));
+        }
         if (part.end != lastEnd || (recordingsSizeBytes == 0 && part.end == lastUsable)) {
             if (plan) plan->append(QStringLiteral("Existing RECORDINGS partition kept at its image size."));
             return true;

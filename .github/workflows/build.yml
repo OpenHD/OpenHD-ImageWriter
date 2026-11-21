@@ -2,7 +2,7 @@ name: OpenHD ImageWriter builds
 
 on:
   push:
-    branches: [dev-branch, release]
+    branches: [dev-release, release]
     tags: ['v*']
   pull_request:
   workflow_dispatch:
@@ -45,7 +45,7 @@ jobs:
           chown -R builder:builder aur-build
           sudo -u builder env SOURCE_REPO="$GITHUB_WORKSPACE" bash -c '
             cd aur-build
-            sed -i "s|git+https://github.com/OpenHD/OpenHD-ImageWriter.git#branch=dev-branch|git+file://${SOURCE_REPO}#commit=$(git -C "$SOURCE_REPO" rev-parse HEAD)|" PKGBUILD
+            sed -i "s|git+https://github.com/OpenHD/OpenHD-ImageWriter.git#branch=dev-release|git+file://${SOURCE_REPO}#commit=$(git -C "$SOURCE_REPO" rev-parse HEAD)|" PKGBUILD
             makepkg --syncdeps --cleanbuild --force --noconfirm
           '
       - name: Inspect package

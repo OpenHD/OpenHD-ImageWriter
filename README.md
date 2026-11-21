@@ -19,7 +19,7 @@ For the embedded (netboot) build see also "embedded/legal-info" for more informa
 ### Arch Linux / AUR
 
 The repository includes an AUR recipe for `openhdimagewriter-git`, following
-the latest `dev-branch` source. It replaces `openhdimagewriter` if installed.
+the latest `dev-release` source. It replaces `openhdimagewriter` if installed.
 This recipe is prepared for submission; availability on the AUR must be
 confirmed before using an AUR helper.
 
