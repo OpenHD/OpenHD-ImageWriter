@@ -137,6 +137,7 @@ int main(int argc, char *argv[])
     app.setWindowIcon(QIcon(":/icons/openhdimagewriter.ico"));
     ImageWriter imageWriter;
     OfflineMapBuilder offlineMapBuilder;
+    OfflineMapBuilder styledOfflineMapBuilder;
     VectorMapCatalog vectorMapCatalog;
     NetworkAccessManagerFactory namf;
     QQmlApplicationEngine engine;
@@ -296,6 +297,7 @@ int main(int argc, char *argv[])
     engine.setNetworkAccessManagerFactory(&namf);
     engine.rootContext()->setContextProperty("imageWriter", &imageWriter);
     engine.rootContext()->setContextProperty("_offlineMapBuilder", &offlineMapBuilder);
+    engine.rootContext()->setContextProperty("_styledOfflineMapBuilder", &styledOfflineMapBuilder);
     engine.rootContext()->setContextProperty("_vectorMapCatalog", &vectorMapCatalog);
     engine.rootContext()->setContextProperty("driveListModel", imageWriter.getDriveList());
     engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
