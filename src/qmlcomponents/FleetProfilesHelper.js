@@ -179,6 +179,13 @@ function getResolutionsForCamera(settingsMap, sbcKey, vendorId, cameraId) {
     return settingsMap.cameraResolution.byCameraValue[valueWritten] || [];
 }
 
+function isSecondaryCsiType(sbcKey, value) {
+    var type = Number(value);
+    if (sbcKey === "ochin-cm3")
+        return (type >= 102 && type <= 109) || type === 112 || type === 113;
+    return type >= 20 && type <= 69;
+}
+
 function getSecondaryCameraOptions(settingsMap, sbcKey) {
     var list = [{ id: "", displayName: "NONE" }];
     if (!settingsMap || !settingsMap.camera) return list;
@@ -196,8 +203,7 @@ function getSecondaryCameraOptions(settingsMap, sbcKey) {
                 var vOpts = group.vendors[vi].options || [];
                 for (var oi = 0; oi < vOpts.length; oi++) {
                     var csiOpt = vOpts[oi];
-                    var cType = parseInt(csiOpt.valueWritten);
-                    if (cType >= 20 && cType <= 69) {
+                    if (isSecondaryCsiType(sbcKey, csiOpt.valueWritten)) {
                         list.push({ id: csiOpt.id, displayName: "CSI - " + csiOpt.id, valueWritten: csiOpt.valueWritten });
                     }
                 }

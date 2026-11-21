@@ -191,7 +191,7 @@ Rectangle {
                                 imageWriter.setSetting("platform", board.id)
                                 imageWriter.setSetting("sbc", board.sbc)
                                 if (board.roles.indexOf(bootType.toLowerCase()) < 0) bootType = board.roles[0] === "air" ? "Air" : "Ground"
-                                rpi = sbc === "rpi"; rock5 = sbc === "rock-5a" || sbc === "rock-5b" || sbc === "radxa-cm5"; rock3 = sbc === "zero3w" || sbc === "radxa-cm3"; page.refreshCameraOptions()
+                                rpi = sbc === "rpi"; rock5 = sbc === "rock-5a" || sbc === "rock-5b" || sbc === "radxa-cm5"; rock3 = sbc === "zero3w" || sbc === "radxa-cm3" || sbc === "rock-3a" || sbc === "rock-3c"; page.refreshCameraOptions()
                             }
                         }
                         ModernComboBox {
@@ -566,8 +566,7 @@ Rectangle {
                                                 var vendorOptions = groupData.vendors[vendorIdx].options || []
                                                 for (var optIdx = 0; optIdx < vendorOptions.length; optIdx++) {
                                                     var csiOption = vendorOptions[optIdx]
-                                                    var cameraType = parseInt(csiOption.valueWritten)
-                                                    if (cameraType >= 20 && cameraType <= 69)
+                                                    if (FleetProfilesHelper.isSecondaryCsiType(sbc, csiOption.valueWritten))
                                                         camera2OptionsModel.append({ label: "CSI - " + csiOption.id, cameraId: csiOption.id })
                                                 }
                                             }
@@ -1138,7 +1137,7 @@ Rectangle {
         sbc = board ? board.sbc : "unknown"
         rpi = sbc === "rpi"
         rock5 = sbc === "rock-5a" || sbc === "rock-5b" || sbc === "radxa-cm5"
-        rock3 = sbc === "zero3w" || sbc === "radxa-cm3"
+        rock3 = sbc === "zero3w" || sbc === "radxa-cm3" || sbc === "rock-3a" || sbc === "rock-3c"
         imageWriter.setSetting("platform", platform)
         imageWriter.setSetting("sbc", sbc)
         imageWriter.setSetting("bootType", bootType)

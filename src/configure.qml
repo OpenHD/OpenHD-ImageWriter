@@ -12,6 +12,7 @@ import Qt.labs.settings 1.0
 import QtQuick.Dialogs 1.3
 import "qmlcomponents"
 import "qmlcomponents/SettingsLabels.js" as SettingsLabels
+import "qmlcomponents/FleetProfilesHelper.js" as FleetProfilesHelper
 
 Rectangle {
     id: window
@@ -680,8 +681,7 @@ ImButton {
                                             var vendorOptions = group.vendors[vendorIdx].options || []
                                             for (var optIdx = 0; optIdx < vendorOptions.length; optIdx++) {
                                                 var csiOption = vendorOptions[optIdx]
-                                                var cameraType = parseInt(csiOption.valueWritten)
-                                                if (cameraType >= 20 && cameraType <= 69)
+                                                if (FleetProfilesHelper.isSecondaryCsiType(sbc, csiOption.valueWritten))
                                                     camera2OptionsModel.append({ label: "CSI - " + csiOption.id, cameraId: csiOption.id })
                                             }
                                         }

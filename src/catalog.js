@@ -51,6 +51,13 @@ function _hardware(entry) {
         return { manufacturer: "radxa", manufacturerName: "Radxa", manufacturerOrder: 30,
                  board: "zero3w", boardName: "ZERO 3W", boardOrder: 60,
                  icon: "icons/manufacturers/radxa-mono.svg" }
+    if (_contains(value, ["ochin-v1", "ochin-v2", "ochin-cm3"])) {
+        var ochinV2 = _contains(value, ["ochin-v2"])
+        return { manufacturer: "radxa", manufacturerName: "Radxa", manufacturerOrder: 30,
+                 board: ochinV2 ? "ochin-v2" : "ochin-v1",
+                 boardName: ochinV2 ? "CM3 on OCHIN V2" : "CM3 on OCHIN V1", boardOrder: 41,
+                 icon: "icons/manufacturers/radxa-mono.svg" }
+    }
 
     if (_contains(value, ["raspberry", "rpi", "image-pi-"])) {
         if (_contains(value, ["cm0", "compute-module-0", "compute module 0"]))
@@ -71,6 +78,8 @@ function _hardware(entry) {
         if (_contains(value, ["rock5a", "rock 5a", "rock-5a"])) radxaBoard = { key: "rock5a", name: "ROCK 5A", order: 10 }
         else if (_contains(value, ["rock5b", "rock 5b", "rock-5b"])) radxaBoard = { key: "rock5b", name: "ROCK 5B", order: 20 }
         else if (_contains(value, ["rock3a", "rock 3a", "rock-3a"])) radxaBoard = { key: "rock3a", name: "ROCK 3A", order: 30 }
+        else if (_contains(value, ["rock3b", "rock 3b", "rock-3b"])) radxaBoard = { key: "rock3b", name: "ROCK 3B", order: 31 }
+        else if (_contains(value, ["rock3c", "rock 3c", "rock-3c"])) radxaBoard = { key: "rock3c", name: "ROCK 3C", order: 32 }
         else if (_contains(value, ["rockcm3", "rock cm3", "rock-cm3"])) radxaBoard = { key: "rock-cm3", name: "ROCK CM3", order: 40 }
         else if (_contains(value, ["cubiea7", "cubie a7", "cubie-a7"])) radxaBoard = { key: "cubie-a7", name: "Cubie A7", order: 50 }
         return { manufacturer: "radxa", manufacturerName: "Radxa", manufacturerOrder: 30,

@@ -7,6 +7,13 @@ const map=JSON.parse(fs.readFileSync(require.resolve('../../doc/openhd_settings_
 const settings={};
 const writer={readResourceText:()=>JSON.stringify(map),getValue:key=>settings[key] || '',setSetting:(key,value)=>settings[key]=value};
 context.getSettingsMap(writer);
+for (const carrier of ['ochin-v1', 'ochin-v2']) {
+    assert.strictEqual(context.platformForImage(carrier, '').sbc, 'ochin-cm3');
+    const secondary = context.getSecondaryCameraOptions(map, 'ochin-cm3');
+    const sensorChoices = Array.from(secondary.filter(option => / on CAM[01]$/.test(option.id)),
+                                     option => Number(option.valueWritten));
+    assert.deepStrictEqual(sensorChoices, [102, 103, 104, 105, 106, 107, 108, 109, 112, 113]);
+}
 for(const board of map.platforms) {
   assert.strictEqual(context.platformForHardware(board.id).sbc,board.sbc);
   context.applyProfile(writer,{craftId:'craft-1',craftRole:board.roles[0],craftPlatform:board.id,craftHardware:board.label,
