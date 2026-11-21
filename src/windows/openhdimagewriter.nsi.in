@@ -16,6 +16,7 @@
 !define REG_ROOT "HKCU"
 !define REG_APP_PATH "Software\Microsoft\Windows\CurrentVersion\App Paths\${MAIN_APP_EXE}"
 !define UNINSTALL_PATH "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
+!define OLD_UNINSTALL_PATH "Software\Microsoft\Windows\CurrentVersion\Uninstall\${OLD_APP_NAME}"
 
 # Window to close if running
 !define EXE_TO_TERMINATE "openhdimagewriter.exe"
@@ -192,41 +193,142 @@ LangString win7Msg ${LANG_ITALIAN} "Per l'esecuzione del programma è richiesto 
 
 ######################################################################
 
-!macro RemoveOldQtDirectory Directory
-  ${If} ${FileExists} "$INSTDIR\${Directory}\*.*"
-    ClearErrors
-    RMDir /r "$INSTDIR\${Directory}"
-    ${If} ${Errors}
-      MessageBox MB_OK|MB_ICONSTOP "Could not replace ImageWriter's Qt files in $INSTDIR\${Directory}. Close ImageWriter and run setup again." /SD IDOK
-      Abort
+Var BundleCleanupFailed
+
+!macro DefineRemoveBundledTree Prefix
+Function ${Prefix}RemoveBundledTree
+  Exch $0
+  Push $1
+  Push $2
+  Push $3
+  System::Call 'kernel32::GetFileAttributes(t r0) i.r1 ?e'
+  Pop $2
+  ${If} $1 != -1
+    ; Enumerate ordinary directories only. Remove junctions and symlinks
+    ; themselves without traversing their targets.
+    IntOp $3 $1 & 0x410
+    ${If} $3 = 16
+      FindFirst $1 $2 "$0\*"
+      ${If} $1 != ""
+        ${DoWhile} $2 != ""
+          ${If} $2 != "."
+          ${AndIf} $2 != ".."
+            Push "$0\$2"
+            Call ${Prefix}RemoveBundledTree
+          ${EndIf}
+          FindNext $1 $2
+        ${Loop}
+        FindClose $1
+      ${EndIf}
     ${EndIf}
+    ClearErrors
+    IntOp $3 $3 & 0x10
+    ${If} $3 = 16
+      RMDir "$0"
+    ${Else}
+      Delete "$0"
+    ${EndIf}
+    ${If} ${Errors}
+      StrCpy $BundleCleanupFailed 1
+    ${EndIf}
+  ${ElseIf} $2 != 2
+  ${AndIf} $2 != 3
+    StrCpy $BundleCleanupFailed 1
   ${EndIf}
+  Pop $3
+  Pop $2
+  Pop $1
+  Pop $0
+FunctionEnd
+!macroend
+
+!macro RemoveBundledDirectory Prefix Directory
+  Push "$INSTDIR\${Directory}"
+  Call ${Prefix}RemoveBundledTree
+!macroend
+
+!macro RemoveBundledDirectories Prefix
+  !insertmacro RemoveBundledDirectory "${Prefix}" "QtQuick.2"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "QtQuick"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "QtGraphicalEffects"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "QtLocation"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "QtPositioning"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "Qt"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "geoservices"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "position"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "sqldrivers"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "styles"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "platforms"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "imageformats"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "iconengines"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "bearer"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "doc"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "fonts"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "icons"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "qmlcomponents"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "offline-map-renderer"
+  ; Older installers copied the complete windeployqt output.
+  !insertmacro RemoveBundledDirectory "${Prefix}" "platforminputcontexts"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "qmltooling"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "QtQml"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "QtTest"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "scenegraph"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "virtualkeyboard"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "networkinformation"
+  !insertmacro RemoveBundledDirectory "${Prefix}" "tls"
+!macroend
+
+!macro RemovePreviousRuntimeFiles
+  Delete "$INSTDIR\Qt5*.dll"
+  Delete "$INSTDIR\Qt6*.dll"
+  Delete "$INSTDIR\qt.conf"
+  Delete "$INSTDIR\imagingutility.exe"
+  Delete "$INSTDIR\openhdimagewriter.cmd"
+  Delete "$INSTDIR\openhdimagewriter-cli.cmd"
+  Delete "$INSTDIR\OptionsPopup.qml"
+  Delete "$INSTDIR\UseSavedSettingsPopup.qml"
+  Delete "$INSTDIR\opengl32sw.dll"
+  Delete "$INSTDIR\libcrypto.dll"
+  Delete "$INSTDIR\libcrypto-3.dll"
+  Delete "$INSTDIR\libssl-3.dll"
+  Delete "$INSTDIR\libgcc_s_seh-1.dll"
+  Delete "$INSTDIR\libbrotlidec.dll"
+  Delete "$INSTDIR\libbrotlicommon.dll"
+  Delete "$INSTDIR\libbrotlienc.dll"
+  Delete "$INSTDIR\libidn2-0.dll"
+  Delete "$INSTDIR\libnghttp2-14.dll"
+  Delete "$INSTDIR\libunistring-5.dll"
+  Delete "$INSTDIR\libcares-2.dll"
+  Delete "$INSTDIR\libpsl-5.dll"
+  Delete "$INSTDIR\libssh2-1.dll"
+  Delete "$INSTDIR\libiconv-2.dll"
+  Delete "$INSTDIR\libintl-8.dll"
+  Delete "$INSTDIR\zlib1.dll"
+  Delete "$INSTDIR\${OLD_APP_NAME} website.url"
+  Delete "$INSTDIR\${APP_NAME} website.url"
 !macroend
 
 !ifndef INNER
+!insertmacro DefineRemoveBundledTree ""
 Section "OpenHD ImageWriter"
 SectionIn RO
 ${INSTALL_TYPE}
 !insertmacro TerminateApp
 
-; Qt patch releases can rename plugins or QML modules. Replace the plugin
-; trees as well as the DLLs so older modules cannot survive an upgrade.
-${If} ${FileExists} "$INSTDIR\OpenHDImageWriter.exe"
+; Clean only files owned by setup in the selected ImageWriter installation.
+; Running a legacy uninstaller here would also remove per-user caches.
+${If} ${FileExists} "$INSTDIR\${MAIN_APP_EXE}"
+${OrIf} ${FileExists} "$INSTDIR\imagingutility.exe"
   SetOutPath "$INSTDIR"
-  !insertmacro RemoveOldQtDirectory "QtQuick.2"
-  !insertmacro RemoveOldQtDirectory "QtQuick"
-  !insertmacro RemoveOldQtDirectory "QtGraphicalEffects"
-  !insertmacro RemoveOldQtDirectory "QtLocation"
-  !insertmacro RemoveOldQtDirectory "QtPositioning"
-  !insertmacro RemoveOldQtDirectory "Qt"
-  !insertmacro RemoveOldQtDirectory "geoservices"
-  !insertmacro RemoveOldQtDirectory "position"
-  !insertmacro RemoveOldQtDirectory "sqldrivers"
-  !insertmacro RemoveOldQtDirectory "styles"
-  !insertmacro RemoveOldQtDirectory "platforms"
-  !insertmacro RemoveOldQtDirectory "imageformats"
-  !insertmacro RemoveOldQtDirectory "iconengines"
-  !insertmacro RemoveOldQtDirectory "bearer"
+  StrCpy $BundleCleanupFailed 0
+  !insertmacro RemoveBundledDirectories ""
+  ClearErrors
+  !insertmacro RemovePreviousRuntimeFiles
+  ${If} ${Errors}
+  ${OrIf} $BundleCleanupFailed = 1
+    MessageBox MB_OK|MB_ICONSTOP "Could not remove old ImageWriter files from $INSTDIR. Close ImageWriter and run setup again." /SD IDOK
+    Abort
+  ${EndIf}
 ${EndIf}
 SetOverwrite on
 
@@ -342,7 +444,6 @@ File "deploy\iconengines\qsvgicon.dll"
 SetOutPath "$INSTDIR\bearer"
 File "deploy\bearer\qgenericbearer.dll"
 
-Delete "$SMPROGRAMS\OpenHD\${OLD_APP_NAME}.lnk"
 SectionEnd
 
 Section /o "Rockchip USB driver (Luckfox and X21)" RockusbDriver
@@ -397,6 +498,18 @@ CreateShortCut "$SMPROGRAMS\OpenHD\${APP_NAME} Website.lnk" "$INSTDIR\${APP_NAME
 !endif
 !endif
 
+; Remove a legacy entry only when it refers to the directory being upgraded.
+ReadRegStr $0 ${REG_ROOT} "${OLD_UNINSTALL_PATH}" "UninstallString"
+${If} $0 == "$INSTDIR\uninstall.exe"
+${OrIf} $0 == '$\"$INSTDIR\uninstall.exe$\"'
+  DeleteRegKey ${REG_ROOT} "${OLD_UNINSTALL_PATH}"
+  Delete "$DESKTOP\${OLD_APP_NAME}.lnk"
+  Delete "$SMPROGRAMS\OpenHD\${OLD_APP_NAME}.lnk"
+  Delete "$SMPROGRAMS\OpenHD\${OLD_APP_NAME} Website.lnk"
+  Delete "$SMPROGRAMS\OpenHD\Uninstall ${OLD_APP_NAME}.lnk"
+${EndIf}
+Delete "$SMPROGRAMS\OpenHD\Uninstall ${APP_NAME}.lnk"
+
 WriteRegStr ${REG_ROOT} "${REG_APP_PATH}" "" "$INSTDIR\${MAIN_APP_EXE}"
 WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "DisplayName" "${APP_NAME}"
 WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "UninstallString" '"$INSTDIR\uninstall.exe"'
@@ -427,85 +540,37 @@ Section -GenerateUninstaller
 SectionEnd
 !endif
 
+!insertmacro DefineRemoveBundledTree "un."
 Section Uninstall
 ${INSTALL_TYPE}
+SetOutPath "$TEMP"
 Delete "$INSTDIR\D3Dcompiler_47.dll"
-Delete "$INSTDIR\opengl32sw.dll"
 Delete "$INSTDIR\libssl-1_1.dll"
 Delete "$INSTDIR\libcrypto-1_1.dll"
 Delete "$INSTDIR\fat32format.exe"
+Delete "$INSTDIR\uuu.exe"
+Delete "$INSTDIR\uuu-LICENSE.txt"
 Delete "$INSTDIR\libEGL.dll"
 Delete "$INSTDIR\libgcc_s_dw2-1.dll"
 Delete "$INSTDIR\libGLESV2.dll"
 Delete "$INSTDIR\libstdc++-6.dll"
 Delete "$INSTDIR\libwinpthread-1.dll"
 Delete "$INSTDIR\license.txt"
-Delete "$INSTDIR\Qt5Core.dll"
-Delete "$INSTDIR\Qt5Gui.dll"
-Delete "$INSTDIR\Qt5Network.dll"
-Delete "$INSTDIR\Qt5Location.dll"
-Delete "$INSTDIR\Qt5Positioning.dll"
-Delete "$INSTDIR\Qt5PositioningQuick.dll"
-Delete "$INSTDIR\Qt5RemoteObjects.dll"
-Delete "$INSTDIR\Qt5SerialPort.dll"
-Delete "$INSTDIR\Qt5Sql.dll"
-Delete "$INSTDIR\Qt5Qml.dll"
-Delete "$INSTDIR\Qt5QmlModels.dll"
-Delete "$INSTDIR\Qt5QmlWorkerScript.dll"
-Delete "$INSTDIR\Qt5Quick.dll"
-Delete "$INSTDIR\Qt5QuickControls.dll"
-Delete "$INSTDIR\Qt5QuickControls2.dll"
-Delete "$INSTDIR\Qt5QuickTemplates2.dll"
-Delete "$INSTDIR\Qt5Svg.dll"
-Delete "$INSTDIR\Qt5Widgets.dll"
-Delete "$INSTDIR\Qt5WinExtras.dll"
-# Old name
-Delete "$INSTDIR\imagingutility.exe"
-Delete "$INSTDIR\openhdimagewriter.exe"
-Delete "$INSTDIR\openhdimagewriter.cmd"
-
-; styles
-Delete "$INSTDIR\styles\qwindowsvistastyle.dll"
-RmDir "$INSTDIR\styles"
-
-; QML trees
-RmDir /r "$INSTDIR\QtQuick.2"
-RmDir /r "$INSTDIR\QtQuick"
-RmDir /r "$INSTDIR\QtGraphicalEffects"
-RmDir /r "$INSTDIR\QtLocation"
-RmDir /r "$INSTDIR\QtPositioning"
-RmDir /r "$INSTDIR\geoservices"
-RmDir /r "$INSTDIR\position"
-RmDir /r "$INSTDIR\sqldrivers"
-RmDir /r "$INSTDIR\Qt"
-
-; icons / fonts / qmlcomponents / doc
-RmDir /r "$INSTDIR\icons"
-RmDir /r "$INSTDIR\fonts"
-RmDir /r "$INSTDIR\qmlcomponents"
-RmDir /r "$INSTDIR\doc"
-RmDir /r "$INSTDIR\offline-map-renderer"
-
-; plugins
-Delete "$INSTDIR\platforms\qwindows.dll"
-Delete "$INSTDIR\imageformats\qicns.dll"
-Delete "$INSTDIR\imageformats\qico.dll"
-Delete "$INSTDIR\imageformats\qjpeg.dll"
-Delete "$INSTDIR\imageformats\qsvg.dll"
-Delete "$INSTDIR\imageformats\qtga.dll"
-Delete "$INSTDIR\imageformats\qwbmp.dll"
-Delete "$INSTDIR\iconengines\qsvgicon.dll"
-Delete "$INSTDIR\bearer\qgenericbearer.dll"
-
-RmDir "$INSTDIR\bearer"
-RmDir "$INSTDIR\iconengines"
-RmDir "$INSTDIR\imageformats"
-RmDir "$INSTDIR\platforms"
+Delete "$INSTDIR\${MAIN_APP_EXE}"
+Delete "$INSTDIR\main.qml"
+Delete "$INSTDIR\flash.qml"
+Delete "$INSTDIR\configure.qml"
+Delete "$INSTDIR\update.qml"
+Delete "$INSTDIR\MsgPopup.qml"
+Delete "$INSTDIR\ImageOptionsPage.qml"
+Delete "$INSTDIR\qtquickcontrols2.conf"
+Delete "$INSTDIR\countries.txt"
+Delete "$INSTDIR\timezones.txt"
+Delete "$INSTDIR\keymap-layouts.txt"
+!insertmacro RemovePreviousRuntimeFiles
+!insertmacro RemoveBundledDirectories "un."
 
 Delete "$INSTDIR\uninstall.exe"
-!ifdef WEB_SITE
-Delete "$INSTDIR\${APP_NAME} website.url"
-!endif
 
 RmDir "$INSTDIR"
 

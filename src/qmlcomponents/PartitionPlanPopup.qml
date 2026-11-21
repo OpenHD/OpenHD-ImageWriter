@@ -55,26 +55,30 @@ Dialog {
     Material.background: "#102633"
     Material.foreground: "#e5edf2"
     onOpened: {
+        partitionReviewScroll.contentY = 0
         automaticPartitioning = true
         selectedRecordingsMiB = maximumRecordingsMiB
         if (standardButton(Dialog.Ok)) standardButton(Dialog.Ok).text = qsTr("Erase and write")
     }
     onAccepted: if (plan.ok) yes()
 
-    contentItem: ScrollView {
+    contentItem: Flickable {
         id: partitionReviewScroll
         objectName: "partitionReviewScroll"
-        width: dialog.width
-        height: dialog.availableHeight
         clip: true
-        contentWidth: availableWidth
-        contentHeight: reviewContents.implicitHeight
-        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-        ScrollBar.vertical.policy: ScrollBar.AsNeeded
+        contentWidth: width
+        contentHeight: reviewContents.height
+        flickableDirection: Flickable.VerticalFlick
+        boundsBehavior: Flickable.StopAtBounds
+        ScrollBar.vertical: ScrollBar {
+            id: reviewScrollBar
+            policy: ScrollBar.AsNeeded
+        }
 
         ColumnLayout {
         id: reviewContents
-        width: partitionReviewScroll.availableWidth
+        width: Math.max(0, partitionReviewScroll.width - reviewScrollBar.width)
+        height: implicitHeight
         spacing: 14
 
         Rectangle {
@@ -174,7 +178,8 @@ Dialog {
         Rectangle {
             objectName: "partitionTable"
             Layout.fillWidth: true
-            Layout.preferredHeight: 38 + (dialog.plan.partitions || []).length * 52
+            Layout.preferredHeight: 38 + (planText.visible ? planText.implicitHeight + 24
+                                                          : (dialog.plan.partitions || []).length * 52)
             Layout.minimumHeight: Layout.preferredHeight
             radius: 8
             color: "#132d3a"
@@ -184,7 +189,7 @@ Dialog {
                 spacing: 0
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 38
+                    Layout.preferredHeight: 38
                     color: "#1b3a49"
             RowLayout {
                         anchors.fill: parent
@@ -204,7 +209,7 @@ Dialog {
                         model: dialog.plan.partitions || []
                         Rectangle {
                             Layout.fillWidth: true
-                            height: 52
+                            Layout.preferredHeight: 52
                             color: modelData.recordings ? "#173e43" : "transparent"
                             border.color: "#28424e"
                             RowLayout {
@@ -237,6 +242,7 @@ Dialog {
                         }
                     }
                     Label {
+                        id: planText
                         objectName: "partitionPlanText"
                         Layout.fillWidth: true
                         Layout.margins: 12
@@ -250,11 +256,10 @@ Dialog {
             }
         }
 
-        RowLayout {
+        ColumnLayout {
             Layout.fillWidth: true
-            spacing: 12
+            spacing: 4
             Label { text: qsTr("Recordings storage"); font.bold: true; color: "#eef6f9" }
-            Item { Layout.fillWidth: true }
             RadioButton {
                 objectName: "automaticPartitioning"
                 text: qsTr("Automatic (recommended)")
