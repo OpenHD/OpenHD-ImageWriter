@@ -317,8 +317,17 @@ ${INSTALL_TYPE}
 
 ; Clean only files owned by setup in the selected ImageWriter installation.
 ; Running a legacy uninstaller here would also remove per-user caches.
+StrCpy $0 0
 ${If} ${FileExists} "$INSTDIR\${MAIN_APP_EXE}"
 ${OrIf} ${FileExists} "$INSTDIR\imagingutility.exe"
+  StrCpy $0 1
+${ElseIf} ${FileExists} "$INSTDIR\flash.qml"
+${AndIf} ${FileExists} "$INSTDIR\qtquickcontrols2.conf"
+${AndIf} ${FileExists} "$INSTDIR\countries.txt"
+  ; Older uninstallers left these files after removing the executable.
+  StrCpy $0 1
+${EndIf}
+${If} $0 = 1
   SetOutPath "$INSTDIR"
   StrCpy $BundleCleanupFailed 0
   !insertmacro RemoveBundledDirectories ""
