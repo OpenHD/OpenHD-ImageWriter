@@ -192,12 +192,43 @@ LangString win7Msg ${LANG_ITALIAN} "Per l'esecuzione del programma è richiesto 
 
 ######################################################################
 
+!macro RemoveOldQtDirectory Directory
+  ${If} ${FileExists} "$INSTDIR\${Directory}\*.*"
+    ClearErrors
+    RMDir /r "$INSTDIR\${Directory}"
+    ${If} ${Errors}
+      MessageBox MB_OK|MB_ICONSTOP "Could not replace ImageWriter's Qt files in $INSTDIR\${Directory}. Close ImageWriter and run setup again." /SD IDOK
+      Abort
+    ${EndIf}
+  ${EndIf}
+!macroend
+
 !ifndef INNER
 Section "OpenHD ImageWriter"
 SectionIn RO
 ${INSTALL_TYPE}
 !insertmacro TerminateApp
-SetOverwrite ifnewer
+
+; Qt patch releases can rename plugins or QML modules. Replace the plugin
+; trees as well as the DLLs so older modules cannot survive an upgrade.
+${If} ${FileExists} "$INSTDIR\OpenHDImageWriter.exe"
+  SetOutPath "$INSTDIR"
+  !insertmacro RemoveOldQtDirectory "QtQuick.2"
+  !insertmacro RemoveOldQtDirectory "QtQuick"
+  !insertmacro RemoveOldQtDirectory "QtGraphicalEffects"
+  !insertmacro RemoveOldQtDirectory "QtLocation"
+  !insertmacro RemoveOldQtDirectory "QtPositioning"
+  !insertmacro RemoveOldQtDirectory "Qt"
+  !insertmacro RemoveOldQtDirectory "geoservices"
+  !insertmacro RemoveOldQtDirectory "position"
+  !insertmacro RemoveOldQtDirectory "sqldrivers"
+  !insertmacro RemoveOldQtDirectory "styles"
+  !insertmacro RemoveOldQtDirectory "platforms"
+  !insertmacro RemoveOldQtDirectory "imageformats"
+  !insertmacro RemoveOldQtDirectory "iconengines"
+  !insertmacro RemoveOldQtDirectory "bearer"
+${EndIf}
+SetOverwrite on
 
 SetOutPath "$INSTDIR"
 File "deploy\D3Dcompiler_47.dll"
