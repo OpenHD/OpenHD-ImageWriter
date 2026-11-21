@@ -1512,8 +1512,10 @@ Rectangle {
                 offlineMapStatus = qsTr("Wait for the offline map to finish downloading before flashing.")
                 return
             }
-            if (usesRv1106Defaults || (fleetControlSignedIn && fleetControlProfileName.length > 0 && useProfileSettings) || optionsPage.configurationApplied)
+            if (usesRv1106Defaults || (fleetControlSignedIn && fleetControlProfileName.length > 0 && useProfileSettings) || optionsPage.configurationApplied) {
+                writeConfirmPopup.plan = imageWriter.partitionPlan()
                 writeConfirmPopup.openPopup()
+            }
         }
     }
 
@@ -2107,16 +2109,13 @@ Rectangle {
         }
     }
 
-    MsgPopup {
+    PartitionPlanPopup {
         id: writeConfirmPopup
-        continueButton: false
-        yesButton: true
-        noButton: true
-        title: qsTr("Erase and write image?")
-        text: qsTr("All existing data on <b>%1</b> will be permanently erased.<br><br>Write <b>%2</b> to this device?")
-              .arg(dstbutton.text).arg(osbutton.text)
+        sourceName: osbutton.text
+        targetName: dstbutton.text
         onYes: {
             reviewingOperation = false
+            imageWriter.setRecordingsSizeBytes(writeConfirmPopup.selectedRecordingsBytes)
             // Let the modal popup release its input grab before starting
             // decompression and device I/O. Starting synchronously from the
             // popup button can leave a frameless window looking inactive and

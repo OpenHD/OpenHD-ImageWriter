@@ -116,6 +116,30 @@ bool isFatVolume(const wchar_t *volumeName)
     return _wcsicmp(filesystem, L"FAT") == 0 || _wcsicmp(filesystem, L"FAT32") == 0;
 }
 
+bool clearDiskAccessRestrictions(HANDLE handle, QString *error)
+{
+    OPENHD_SET_DISK_ATTRIBUTES attributes = {};
+    attributes.Version = sizeof(attributes);
+    attributes.Attributes = 0;
+    attributes.AttributesMask = DISK_ATTRIBUTE_OFFLINE | DISK_ATTRIBUTE_READ_ONLY;
+    for (const BOOLEAN persist : {TRUE, FALSE})
+    {
+        attributes.Persist = persist;
+        DWORD returned = 0;
+        if (DeviceIoControl(handle, IOCTL_DISK_SET_DISK_ATTRIBUTES,
+                            &attributes, sizeof(attributes), nullptr, 0, &returned, nullptr))
+            continue;
+        const DWORD code = GetLastError();
+        if (code == ERROR_INVALID_FUNCTION || code == ERROR_NOT_SUPPORTED ||
+            code == ERROR_INVALID_PARAMETER)
+            continue; // Some USB bridges do not implement disk attributes.
+        if (error)
+            *error = windowsError(QStringLiteral("Could not clear disk offline/read-only attributes"), code);
+        return false;
+    }
+    return true;
+}
+
 QString firstAvailableDriveRoot()
 {
     const DWORD used = GetLogicalDrives();
@@ -265,25 +289,14 @@ bool clearPartitionTable(const QString &physicalDrive, QString *error)
                                          GetLastError());
         return false;
     }
-
     DWORD returned = 0;
     DeviceIoControl(handle, FSCTL_ALLOW_EXTENDED_DASD_IO, nullptr, 0, nullptr, 0,
                     &returned, nullptr);
-
-    // Clear any persistent or runtime offline/read-only attributes so the disk
-    // can be modified even if Windows previously flagged it as read-only or offline.
-    OPENHD_SET_DISK_ATTRIBUTES attributes = {};
-    attributes.Version = sizeof(attributes);
-    attributes.Persist = TRUE;
-    attributes.Attributes = 0;
-    attributes.AttributesMask = DISK_ATTRIBUTE_OFFLINE | DISK_ATTRIBUTE_READ_ONLY;
-    DeviceIoControl(handle, IOCTL_DISK_SET_DISK_ATTRIBUTES,
-                    &attributes, sizeof(attributes), nullptr, 0, &returned, nullptr);
-
-    attributes.Persist = FALSE;
-    DeviceIoControl(handle, IOCTL_DISK_SET_DISK_ATTRIBUTES,
-                    &attributes, sizeof(attributes), nullptr, 0, &returned, nullptr);
-
+    if (!clearDiskAccessRestrictions(handle, error))
+    {
+        CloseHandle(handle);
+        return false;
+    }
     bool success = DeviceIoControl(handle, IOCTL_DISK_DELETE_DRIVE_LAYOUT,
                                    nullptr, 0, nullptr, 0, &returned, nullptr);
     DWORD code = success ? ERROR_SUCCESS : GetLastError();
@@ -305,14 +318,167 @@ bool clearPartitionTable(const QString &physicalDrive, QString *error)
         if (!success) code = GetLastError();
     }
     if (success)
-    {
         DeviceIoControl(handle, IOCTL_DISK_UPDATE_PROPERTIES,
                         nullptr, 0, nullptr, 0, &returned, nullptr);
-    }
     CloseHandle(handle);
     if (!success && error)
         *error = windowsError(QStringLiteral("Could not clear the target partition table"), code);
     return success;
+}
+
+bool probeWritableTail(const QString &physicalDrive, QString *error)
+{
+    HANDLE handle = CreateFileW(reinterpret_cast<LPCWSTR>(physicalDrive.utf16()),
+                                GENERIC_READ | GENERIC_WRITE,
+                                FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
+                                OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (handle == INVALID_HANDLE_VALUE)
+    {
+        if (error) *error = windowsError(QStringLiteral("Could not open target for write preflight"),
+                                         GetLastError());
+        return false;
+    }
+    DWORD returned = 0;
+    DeviceIoControl(handle, FSCTL_ALLOW_EXTENDED_DASD_IO, nullptr, 0,
+                    nullptr, 0, &returned, nullptr);
+    if (!clearDiskAccessRestrictions(handle, error))
+    {
+        CloseHandle(handle);
+        return false;
+    }
+    GET_LENGTH_INFORMATION length = {};
+    if (!DeviceIoControl(handle, IOCTL_DISK_GET_LENGTH_INFO, nullptr, 0,
+                         &length, sizeof(length), &returned, nullptr))
+    {
+        const DWORD code = GetLastError();
+        CloseHandle(handle);
+        if (error) *error = windowsError(QStringLiteral("Could not determine target size for write preflight"), code);
+        return false;
+    }
+    if (length.Length.QuadPart < 2 * 1024 * 1024)
+    {
+        CloseHandle(handle);
+        if (error) *error = QStringLiteral("Target is too small for a safe write preflight");
+        return false;
+    }
+
+    constexpr DWORD probeSize = 1024 * 1024;
+    const LONGLONG offset = length.Length.QuadPart - probeSize;
+    std::vector<BYTE> original(probeSize), probe(probeSize), readback(probeSize);
+    for (DWORD i = 0; i < probeSize; ++i)
+        probe[i] = static_cast<BYTE>((i * 37U + 0x5aU) & 0xffU);
+
+    LARGE_INTEGER position = {};
+    position.QuadPart = offset;
+    DWORD count = 0;
+    QString failedStep;
+    DWORD code = ERROR_SUCCESS;
+    bool success = SetFilePointerEx(handle, position, nullptr, FILE_BEGIN) != FALSE;
+    if (!success)
+    {
+        failedStep = QStringLiteral("seek to target tail");
+        code = GetLastError();
+    }
+    if (success)
+    {
+        success = ReadFile(handle, original.data(), probeSize, &count, nullptr) != FALSE;
+        if (!success || count != probeSize)
+        {
+            failedStep = QStringLiteral("read original target tail");
+            code = success ? ERROR_READ_FAULT : GetLastError();
+            success = false;
+        }
+    }
+    bool restoreNeeded = false;
+    if (success)
+    {
+        position.QuadPart = offset;
+        const bool positioned = SetFilePointerEx(handle, position, nullptr, FILE_BEGIN) != FALSE;
+        if (!positioned)
+        {
+            success = false;
+            failedStep = QStringLiteral("seek before tail write test");
+            code = GetLastError();
+        }
+        const bool wrote = success && WriteFile(handle, probe.data(), probeSize, &count, nullptr);
+        restoreNeeded = count > 0;
+        if (success && (!wrote || count != probeSize))
+        {
+            success = false;
+            failedStep = QStringLiteral("write test data to target tail");
+            code = wrote ? ERROR_WRITE_FAULT : GetLastError();
+        }
+        if (success)
+        {
+            restoreNeeded = true;
+            success = FlushFileBuffers(handle) != FALSE;
+            if (!success)
+            {
+                failedStep = QStringLiteral("flush target tail write test");
+                code = GetLastError();
+            }
+        }
+    }
+    if (success)
+    {
+        position.QuadPart = offset;
+        const bool positioned = SetFilePointerEx(handle, position, nullptr, FILE_BEGIN) != FALSE;
+        const bool read = positioned && ReadFile(handle, readback.data(), probeSize, &count, nullptr);
+        success = read && count == probeSize && readback == probe;
+        if (!success)
+        {
+            failedStep = QStringLiteral("read back target tail write test");
+            code = !positioned || !read ? GetLastError()
+                                        : (count != probeSize ? ERROR_READ_FAULT : ERROR_CRC);
+        }
+    }
+
+    // Restore the original bytes before reporting either success or failure.
+    bool restored = true;
+    DWORD restoreCode = ERROR_SUCCESS;
+    if (restoreNeeded)
+    {
+        position.QuadPart = offset;
+        DWORD restoreCount = 0;
+        const bool positioned = SetFilePointerEx(handle, position, nullptr, FILE_BEGIN) != FALSE;
+        const bool wrote = positioned && WriteFile(handle, original.data(), probeSize,
+                                                    &restoreCount, nullptr);
+        restored = wrote && restoreCount == probeSize && FlushFileBuffers(handle);
+        if (!restored)
+            restoreCode = GetLastError() ? GetLastError() : ERROR_WRITE_FAULT;
+    }
+    if (restored)
+    {
+        std::fill(readback.begin(), readback.end(), 0);
+        position.QuadPart = offset;
+        const bool restoreVerified = SetFilePointerEx(handle, position, nullptr, FILE_BEGIN) &&
+                                     ReadFile(handle, readback.data(), probeSize, &count, nullptr) &&
+                                     count == probeSize && readback == original;
+        if (!restoreVerified)
+        {
+            success = false;
+            restoreCode = readback == original ? (GetLastError() ? GetLastError() : ERROR_READ_FAULT)
+                                               : ERROR_CRC;
+            restored = false;
+        }
+    }
+    CloseHandle(handle);
+
+    if (!restored)
+    {
+        if (error)
+            *error = QStringLiteral("Tail preflight failed during %1 (%2); restoring original bytes also failed (%3)")
+                         .arg(failedStep, windowsError(QStringLiteral("write/readback"), code),
+                              windowsError(QStringLiteral("restore"), restoreCode));
+        return false;
+    }
+    if (!success)
+    {
+        if (error) *error = windowsError(QStringLiteral("Target tail preflight failed during %1; original bytes were restored")
+                                              .arg(failedStep), code);
+        return false;
+    }
+    return true;
 }
 
 bool rescanDisk(const QString &physicalDrive, QString *error)

@@ -76,6 +76,8 @@ public:
 
     /* Start writing */
     Q_INVOKABLE void startWrite();
+    Q_INVOKABLE QVariantMap partitionPlan(quint64 recordingsSizeBytes = 0) const;
+    Q_INVOKABLE void setRecordingsSizeBytes(quint64 sizeBytes);
 
     /* Cancel write */
     Q_INVOKABLE void cancelWrite();
@@ -250,6 +252,7 @@ protected:
     QString _dst, _cacheFileName, _parentCategory, _osName, _currentLang, _currentLangcode, _currentKeyboard;
     QByteArray _expectedHash, _cachedFileHash, _cmdline, _config, _initFormat;
     quint64 _downloadLen, _extrLen, _devLen, _dlnow, _writenow, _verifynow;
+    quint64 _recordingsSizeBytes = 0;
     DriveListModel _drivelist;
     QQmlApplicationEngine *_engine;
     QTimer _polltimer, _networkchecktimer;

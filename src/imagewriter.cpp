@@ -4,6 +4,7 @@
  */
 
 #include "imagewriter.h"
+#include "diskformatter.h"
 #include "certificatevalidator.h"
 #include "openhdimagecustomizer.h"
 #include "openhdstorageservice.h"
@@ -316,6 +317,7 @@ void ImageWriter::makeUser()
 /* Set URL to download from */
 void ImageWriter::setSrc(const QUrl &url, quint64 downloadLen, quint64 extrLen, QByteArray expectedHash, bool multifilesinzip, QString parentcategory, QString osname, QByteArray initFormat)
 {
+    _recordingsSizeBytes = 0;
     _src = url;
     _downloadLen = downloadLen;
     _extrLen = extrLen;
@@ -339,6 +341,7 @@ void ImageWriter::setSrc(const QUrl &url, quint64 downloadLen, quint64 extrLen, 
 /* Set device to write to */
 void ImageWriter::setDst(const QString &device, quint64 deviceSize)
 {
+    _recordingsSizeBytes = 0;
     _dst = device;
     _devLen = deviceSize;
 }
@@ -423,6 +426,125 @@ bool ImageWriter::readyToWrite()
     return !_src.isEmpty() && !_dst.isEmpty() && !_settings.value("offlineMapsPending", false).toBool();
 }
 
+
+QVariantMap ImageWriter::partitionPlan(quint64 recordingsSizeBytes) const
+{
+    QVariantMap result;
+    result["ok"] = true;
+    if (_src.toString() == QStringLiteral("internal://format")) {
+        result["text"] = tr("Create a new partition table and one FAT32 partition using the whole device. All existing partitions and files will be erased.");
+        return result;
+    }
+    if (isOhdFile(_src)) {
+        result["text"] = tr("Update upload: existing partitions and recordings are preserved.");
+        return result;
+    }
+    if (!_src.isLocalFile() || QFileInfo(_src.toLocalFile()).suffix().compare("img", Qt::CaseInsensitive) != 0) {
+        result["text"] = tr("The package supplies the image partitions. Boot, root and configuration partitions are kept from the image. For supported raw images, a separate RECORDINGS volume is prepared in unused space. Detailed partition sizes can be previewed for local .img files.");
+        return result;
+    }
+    QFile source(_src.toLocalFile());
+    if (!source.open(QIODevice::ReadOnly)) {
+        result["ok"] = false;
+        result["text"] = tr("Cannot read the selected image: %1").arg(source.errorString());
+        return result;
+    }
+    // This adapter deliberately cannot write: a partition preview reads the
+    // source file and never opens the target device.
+    class ImageReader final : public FileOperations {
+    public:
+        explicit ImageReader(QFile &source) : file(source) {}
+        FileError openDevice(const QString &, bool) override { return FileError::AccessDenied; }
+        FileError adoptNativeHandle(qintptr, bool, bool) override { return FileError::AccessDenied; }
+        FileError close() override { return FileError::Success; }
+        bool isOpen() const override { return file.isOpen(); }
+        qintptr nativeHandle() const override { return -1; }
+        FileError writeSequential(const quint8 *, std::size_t, std::size_t &n) override { n = 0; return FileError::AccessDenied; }
+        FileError readSequential(quint8 *data, std::size_t size, std::size_t &n) override {
+            const qint64 count = file.read(reinterpret_cast<char *>(data), qint64(size));
+            n = count < 0 ? 0 : std::size_t(count);
+            return count < 0 ? FileError::IoError : FileError::Success;
+        }
+        FileError seek(quint64 pos) override { return file.seek(qint64(pos)) ? FileError::Success : FileError::IoError; }
+        quint64 position() const override { return quint64(file.pos()); }
+        FileError size(quint64 &n) const override { n = quint64(file.size()); return FileError::Success; }
+        FileError flush() override { return FileError::AccessDenied; }
+        void cancel() override {}
+        void resetCancellation() override {}
+        QFile &file;
+    } reader(source);
+    QByteArray first = source.read(1024 * 1024);
+    quint64 capacity = _devLen;
+    if (!capacity) {
+        for (const auto &disk : Drivelist::ListStorageDevices())
+            if (QString::fromStdString(disk.device).compare(_dst, Qt::CaseInsensitive) == 0) capacity = disk.size;
+    }
+    if (!capacity && QFileInfo(_dst).isFile()) capacity = quint64(QFileInfo(_dst).size());
+    QStringList plan;
+    QString error;
+    const bool ok = DiskFormatter::prepareOpenHDStorage(first.data(), first.size(), reader,
+        quint64(source.size()), capacity, &error, &plan, true, recordingsSizeBytes);
+    result["ok"] = ok;
+    result["text"] = ok ? plan.join("\n\n") : tr("Cannot prepare this partition plan: %1\nNothing has been written.").arg(error);
+    result["diskBytes"] = QVariant::fromValue<qulonglong>(capacity);
+    QVariantList partitions;
+    quint64 recordingMaxBytes = 0;
+    for (const QString &line : plan) {
+        static const QRegularExpression imagePartition(
+            QStringLiteral("^Partition (\\d+)(?: - (.*))?: ([0-9.]+) MiB, sectors (\\d+)-(\\d+); kept from image$"));
+        static const QRegularExpression recordingPartition(
+            QStringLiteral("^(Create|Expand) partition (\\d+) - RECORDINGS \\(FAT32\\): ([0-9.]+) GiB, sectors (\\d+)-(\\d+)$"));
+        auto imageMatch = imagePartition.match(line);
+        auto recordingMatch = recordingPartition.match(line);
+        if (imageMatch.hasMatch()) {
+            const quint64 start = imageMatch.captured(4).toULongLong();
+            const quint64 end = imageMatch.captured(5).toULongLong();
+            const QString label = imageMatch.captured(2).isEmpty()
+                ? tr("Image partition") : imageMatch.captured(2);
+            QVariantMap row;
+            row["number"] = imageMatch.captured(1).toInt();
+            row["name"] = label;
+            row["filesystem"] = label.contains(QStringLiteral("EFI"), Qt::CaseInsensitive)
+                ? QStringLiteral("FAT") : QStringLiteral("Image data");
+            row["mountPoint"] = label.contains(QStringLiteral("EFI"), Qt::CaseInsensitive)
+                ? QStringLiteral("/boot/efi") : (label.contains(QStringLiteral("Linux filesystem"), Qt::CaseInsensitive)
+                    ? QStringLiteral("/") : QString());
+            row["startSector"] = QVariant::fromValue<qulonglong>(start);
+            row["endSector"] = QVariant::fromValue<qulonglong>(end);
+            row["sizeBytes"] = QVariant::fromValue<qulonglong>((end - start + 1) * 512ULL);
+            row["action"] = tr("Kept from image");
+            row["recordings"] = false;
+            partitions.append(row);
+        } else if (recordingMatch.hasMatch()) {
+            const quint64 start = recordingMatch.captured(4).toULongLong();
+            const quint64 end = recordingMatch.captured(5).toULongLong();
+            const quint64 size = (end - start + 1) * 512ULL;
+            recordingMaxBytes = qMax(recordingMaxBytes, size);
+            QVariantMap row;
+            row["number"] = recordingMatch.captured(2).toInt();
+            row["name"] = QStringLiteral("RECORDINGS");
+            row["filesystem"] = QStringLiteral("FAT32");
+            row["mountPoint"] = QStringLiteral("/recordings");
+            row["startSector"] = QVariant::fromValue<qulonglong>(start);
+            row["endSector"] = QVariant::fromValue<qulonglong>(end);
+            row["sizeBytes"] = QVariant::fromValue<qulonglong>(size);
+            row["action"] = recordingMatch.captured(1) == QStringLiteral("Create")
+                ? tr("Created by ImageWriter") : tr("Expanded by ImageWriter");
+            row["recordings"] = true;
+            partitions.append(row);
+        }
+    }
+    result["partitions"] = partitions;
+    result["recordingsMaxBytes"] = QVariant::fromValue<qulonglong>(recordingMaxBytes);
+    result["recordingsEditable"] = recordingMaxBytes >= 64ULL * 1024 * 1024;
+    return result;
+}
+
+void ImageWriter::setRecordingsSizeBytes(quint64 sizeBytes)
+{
+    _recordingsSizeBytes = sizeBytes;
+}
+
 /* Start writing */
 void ImageWriter::startWrite()
 {
@@ -431,6 +553,16 @@ void ImageWriter::startWrite()
 
     if (!readyToWrite())
         return;
+
+    // Reject invalid local image layouts before any target preparation/erase.
+    if (_src.isLocalFile() && QFileInfo(_src.toLocalFile()).suffix().compare("img", Qt::CaseInsensitive) == 0 &&
+        !_dst.startsWith(QStringLiteral("rockusb:")) && !_dst.startsWith(QStringLiteral("nxpusb:"))) {
+        const auto plan = partitionPlan(_recordingsSizeBytes);
+        if (!plan.value("ok").toBool()) {
+            onError(plan.value("text").toString());
+            return;
+        }
+    }
 
     if (_dst.startsWith(QStringLiteral("nxpusb:")))
     {
@@ -567,6 +699,7 @@ void ImageWriter::startWrite()
         emit fatMountUnavailable(msg);
     });
     _thread->setVerifyEnabled(_verifyEnabled);
+    _thread->setRecordingsSizeBytes(_recordingsSizeBytes);
     _thread->setUserAgent(QString("Mozilla/5.0 rpi-imager/%1").arg(constantVersion()).toUtf8());
 
     if (!_expectedHash.isEmpty() && !QFileInfo::exists(cachedFile) && _cachingEnabled)

@@ -75,6 +75,13 @@ void DriveFormatThread::run()
             emit error(tr("Cannot lock the target volumes: %1").arg(nativeError));
             return;
         }
+        if (!WindowsDiskPreparation::probeWritableTail(QString::fromUtf8(_device),
+                                                        &nativeError))
+        {
+            emit error(tr("Storage write preflight failed before formatting: %1")
+                       .arg(nativeError));
+            return;
+        }
         if (!WindowsDiskPreparation::clearPartitionTable(
                 QString::fromUtf8(_device), &nativeError))
         {

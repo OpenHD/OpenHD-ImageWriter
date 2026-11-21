@@ -464,7 +464,8 @@ bool DiskFormatter::relocateGptBackup(char *firstBlock, std::size_t firstBlockSi
 
 bool DiskFormatter::prepareOpenHDStorage(char *firstBlock, std::size_t firstBlockSize,
                                          FileOperations &file, quint64 imageSize,
-                                         quint64 targetSize, QString *error)
+                                         quint64 targetSize, QString *error, QStringList *plan,
+                                         bool preview, quint64 recordingsSizeBytes)
 {
     const auto fail = [error](const QString &message) {
         if (error) *error = message;
@@ -553,6 +554,23 @@ bool DiskFormatter::prepareOpenHDStorage(char *firstBlock, std::size_t firstBloc
         const quint8 type = quint8(entry[4]);
         const bool fatCandidate = gpt ? QByteArray(entry, 16) == basicData :
                                        type == 0x0b || type == 0x0c || type == 0x0e || type == 0x06;
+        QString name;
+        if (gpt) {
+            for (int c = 0; c < 36; ++c) {
+                const quint16 value = qFromLittleEndian<quint16>(reinterpret_cast<const uchar *>(entry + 56 + c * 2));
+                if (!value) break;
+                name.append(QChar(value));
+            }
+            if (name.isEmpty()) {
+                const QByteArray type(entry, 16);
+                if (type == QByteArray::fromHex("28732ac11ff8d211ba4b00a0c93ec93b")) name = QStringLiteral("EFI boot");
+                else if (type == QByteArray::fromHex("4861682149646f6e744e656564454649")) name = QStringLiteral("BIOS boot");
+                else if (type == QByteArray::fromHex("af3dc60f838472478e793d69d8477de4")) name = QStringLiteral("Linux filesystem");
+            }
+        }
+        if (plan) plan->append(QStringLiteral("Partition %1%2: %3 MiB, sectors %4-%5; kept from image")
+            .arg(i + 1).arg(name.isEmpty() ? QString() : QStringLiteral(" - ") + name)
+            .arg(double(end - start + 1) / 2048.0, 0, 'f', 1).arg(start).arg(end));
         if (!fatCandidate) continue;
         QByteArray boot(512, 0);
         if (!readAt(start * 512, boot.data(), 512))
@@ -568,12 +586,18 @@ bool DiskFormatter::prepareOpenHDStorage(char *firstBlock, std::size_t firstBloc
             recordings = int(partitions.size()) - 1;
         }
     }
-    if (!openhd) return true; // Never provision arbitrary OS images.
+    if (!openhd) {
+        if (plan) plan->append(QStringLiteral("No OPENHD config volume detected; no automatic recordings partition will be created."));
+        return true; // Never provision arbitrary OS images.
+    }
     quint64 start = 0;
     int selectedEntry = -1;
     if (recordings >= 0) {
         const auto &part = partitions[std::size_t(recordings)];
-        if (part.end != lastEnd || part.end == lastUsable) return true;
+        if (part.end != lastEnd || (recordingsSizeBytes == 0 && part.end == lastUsable)) {
+            if (plan) plan->append(QStringLiteral("Existing RECORDINGS partition kept at its image size."));
+            return true;
+        }
         start = part.start;
         selectedEntry = int(part.index);
     } else {
@@ -585,12 +609,28 @@ bool DiskFormatter::prepareOpenHDStorage(char *firstBlock, std::size_t firstBloc
         if (freeEntry < 0) return fail(QStringLiteral("No free partition entry for recording storage"));
         selectedEntry = freeEntry;
     }
-    const quint64 sectors = lastUsable - start + 1;
+    const quint64 availableSectors = lastUsable - start + 1;
+    quint64 sectors = availableSectors;
+    if (recordingsSizeBytes > 0) {
+        const quint64 requestedSectors = recordingsSizeBytes / 512;
+        if (requestedSectors < 131072 || requestedSectors > availableSectors)
+            return fail(QStringLiteral("Manual recordings size must be at least 64 MiB and fit in the available space"));
+        // Keep the same 1 MiB alignment used for partition starts.
+        sectors = (requestedSectors / 2048) * 2048;
+        if (sectors < 131072)
+            return fail(QStringLiteral("Manual recordings size is too small after alignment"));
+    }
+    const quint64 recordingsEnd = start + sectors - 1;
     if (start > 0xffffffffULL || sectors > 0xffffffffULL)
         return fail(QStringLiteral("Recording storage exceeds supported FAT32 geometry"));
     FatLayout layout;
-    if (!calculateLayout((lastUsable + 1) * 512, layout, quint32(start)) || layout.totalSectors != sectors)
+    if (!calculateLayout((start + sectors) * 512, layout, quint32(start)) || layout.totalSectors != sectors)
         return fail(QStringLiteral("Recording partition cannot be represented as FAT32"));
+    if (plan) plan->append(QStringLiteral("%1 partition %2 - RECORDINGS (FAT32): %3 GiB, sectors %4-%5")
+        .arg(recordings < 0 ? QStringLiteral("Create") : QStringLiteral("Expand"))
+        .arg(selectedEntry + 1).arg(double(sectors) * 512.0 / (1024.0 * 1024.0 * 1024.0), 0, 'f', 2)
+        .arg(start).arg(recordingsEnd));
+    if (preview) return true;
     const auto formatted = formatPartition(file, start * 512, layout, QByteArray("RECORDINGS"));
     if (formatted != DiskFormatError::Success) return fail(errorMessage(formatted));
     if (file.flush() != FileError::Success)
@@ -642,7 +682,7 @@ bool DiskFormatter::prepareOpenHDStorage(char *firstBlock, std::size_t firstBloc
                 qToLittleEndian<quint16>(name[i].unicode(), reinterpret_cast<uchar *>(entry + 56 + 2 * i));
         }
         qToLittleEndian<quint64>(start, reinterpret_cast<uchar *>(entry + 32));
-        qToLittleEndian<quint64>(lastUsable, reinterpret_cast<uchar *>(entry + 40));
+        qToLittleEndian<quint64>(recordingsEnd, reinterpret_cast<uchar *>(entry + 40));
         qToLittleEndian<quint32>(openhd_provisioning::crc32(firstBlock + entriesOffset, count * entrySize),
                                 reinterpret_cast<uchar *>(header + 88));
         // Force relocation to publish the modified array and both header CRCs,

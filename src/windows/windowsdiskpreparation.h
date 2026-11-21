@@ -30,6 +30,7 @@ private:
     std::vector<void *> _handles;
 };
 
+bool probeWritableTail(const QString &physicalDrive, QString *error);
 bool clearPartitionTable(const QString &physicalDrive, QString *error);
 bool rescanDisk(const QString &physicalDrive, QString *error = nullptr);
 QString ensureDriveLetter(const QString &physicalDrive, int timeoutMs,

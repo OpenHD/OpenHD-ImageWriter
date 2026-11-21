@@ -46,7 +46,7 @@ using namespace std;
 QSettings settings;
 
 DownloadThread::DownloadThread(const QByteArray &url, const QByteArray &localfilename, const QByteArray &expectedHash, QObject *parent) :
-    QThread(parent), _startOffset(0), _rangeResponseTotal(-1), _lastDlTotal(0), _lastDlNow(0), _verifyTotal(0), _lastVerifyNow(0), _bytesWritten(0), _lastFailureOffset(0), _sectorsStart(-1), _url(url), _filename(localfilename), _expectedHash(expectedHash),
+    QThread(parent), _startOffset(0), _rangeResponseTotal(-1), _lastDlTotal(0), _lastDlNow(0), _verifyTotal(0), _lastVerifyNow(0), _bytesWritten(0), _imageBytesReceived(0), _lastFailureOffset(0), _sectorsStart(-1), _url(url), _filename(localfilename), _expectedHash(expectedHash),
     _firstBlock(nullptr), _firstBlockSize(0), _cancelled(false), _deviceOperationActive(false),
     _watchdogRecoveryRequested(false), _successful(false), _verifyEnabled(false), _cacheEnabled(false), _lastModified(0), _serverTime(0),  _lastFailureTime(0),
     _inputBufferSize(0), _lastFileError(FileError::Success), _file(FileOperations::create()),
@@ -179,18 +179,19 @@ bool DownloadThread::_openAndPrepareDevice()
             _lockedVolumes.reset();
             return false;
         }
-        if (!WindowsDiskPreparation::clearPartitionTable(
-                QString::fromUtf8(_filename), &preparationError))
+        if (!WindowsDiskPreparation::probeWritableTail(QString::fromUtf8(_filename),
+                                                        &preparationError))
         {
-            emit error(preparationError);
+            emit error(tr("Storage write preflight failed before writing the image: %1")
+                       .arg(preparationError));
             _lockedVolumes.reset();
             return false;
         }
-        // Release volume handles now that the partition table has been cleared.
-        // Keeping old volume handles open and locked across the entire physical
-        // drive write prevents the kernel from tearing down old volume extents
-        // and causes filesystem drivers to flag corruption upon unlock.
-        _lockedVolumes.reset();
+        // Keep old volume handles locked through the raw write. Do not
+        // clear the current partition table here: the image's first block is
+        // buffered and only committed after its data has been written and
+        // verified. Clearing it early leaves the device with no usable map if
+        // any later write, verification, or user operation fails.
     }
 
 #endif
@@ -260,42 +261,13 @@ bool DownloadThread::_openAndPrepareDevice()
         if (!csd.isEmpty())
             qDebug() << "SD card CSD:" << csd;
 
-        QByteArray discardmax = _fileGetContentsTrimmed("/sys/block/"+devname+"/queue/discard_max_bytes");
-
-        if (discardmax.isEmpty() || discardmax == "0")
-        {
-            qDebug() << "BLKDISCARD not supported";
-        }
-        else
-        {
-            /* DISCARD/TRIM the SD card */
-            uint64_t devsize, range[2];
-            int fd = static_cast<int>(_file->nativeHandle());
-
-            if (::ioctl(fd, BLKGETSIZE64, &devsize) == -1) {
-                qDebug() << "Error getting device/sector size with BLKGETSIZE64 ioctl():" << strerror(errno);
-            }
-            else
-            {
-                qDebug() << "Try to perform TRIM/DISCARD on device";
-                range[0] = 0;
-                range[1] = devsize;
-                emit preparationStatusUpdate(tr("discarding existing data on drive"));
-                _timer.start();
-                if (::ioctl(fd, BLKDISCARD, &range) == -1)
-                {
-                    qDebug() << "BLKDISCARD failed.";
-                }
-                else
-                {
-                    qDebug() << "BLKDISCARD successful. Discarding took" << _timer.elapsed() / 1000 << "seconds";
-                }
-            }
-        }
+        // Do not TRIM the complete target before writing the image. It destroys
+        // old partition metadata up front and provides no benefit to raw image
+        // correctness; it also makes recoverable write failures look like a
+        // dead device to host operating systems.
     }
 #endif
 
-    // Zero out MBR
     quint64 knownsize = 0;
     if (_file->size(knownsize) != FileError::Success)
     {
@@ -307,47 +279,11 @@ bool DownloadThread::_openAndPrepareDevice()
         emit error(tr("The target reports no usable media or is too small (%1 bytes).").arg(knownsize));
         return false;
     }
-    QByteArray emptyMB(1024*1024, 0);
-
-    emit preparationStatusUpdate(tr("zeroing out first and last MB of drive"));
-    qDebug() << "Zeroing out first and last MB of drive";
-    _timer.start();
-
-    std::size_t zeroed = 0;
-    if (!_performDeviceWrite(reinterpret_cast<const quint8 *>(emptyMB.constData()),
-                             static_cast<std::size_t>(emptyMB.size()), zeroed) ||
-        !_flushDevice())
-    {
-        if (!_cancelled)
-            emit error(tr("Cannot clear the start of %1: %2 (wrote %3 of %4 bytes).")
-                       .arg(QString::fromUtf8(_filename),
-                            _file->lastErrorDetail().isEmpty() ? fileErrorMessage(_lastFileError) : _file->lastErrorDetail())
-                       .arg(qulonglong(zeroed)).arg(emptyMB.size()));
-        return false;
-    }
-
-    // Zero out last part of card (may have GPT backup table)
-    if (knownsize > static_cast<quint64>(emptyMB.size()))
-    {
-        zeroed = 0;
-        if ((_lastFileError = _file->seek(knownsize-static_cast<quint64>(emptyMB.size()))) != FileError::Success ||
-            !_performDeviceWrite(reinterpret_cast<const quint8 *>(emptyMB.constData()),
-                                 static_cast<std::size_t>(emptyMB.size()), zeroed) ||
-            !_flushDevice())
-        {
-            if (!_cancelled)
-                emit error(tr("Write error while trying to zero out last part of card.<br>"
-                              "Card could be advertising wrong capacity (possible counterfeit)."));
-            return false;
-        }
-    }
-    emptyMB.clear();
     if ((_lastFileError = _file->seek(0)) != FileError::Success)
     {
         emit error(tr("Cannot seek to the start of the storage device."));
         return false;
     }
-    qDebug() << "Done zeroing out start and end of drive. Took" << _timer.elapsed() / 1000 << "seconds";
 
 #ifdef Q_OS_LINUX
     _sectorsStart = _sectorsWritten();
@@ -678,14 +614,19 @@ size_t DownloadThread::_writeFile(const char *buf, size_t len)
             _hashData(buf + toCopy, len - toCopy);
             const bool accepted = _writeBatcher->append(
                 reinterpret_cast<const quint8 *>(buf + toCopy), len - toCopy);
+            if (accepted)
+                _imageBytesReceived += len;
             return accepted ? len : 0;
         }
+        _imageBytesReceived += len;
         return len;
     }
 
     _hashData(buf, len);
     const bool accepted = _writeBatcher->append(
         reinterpret_cast<const quint8 *>(buf), len);
+    if (accepted)
+        _imageBytesReceived += len;
     return accepted ? len : 0;
 }
 
@@ -913,6 +854,10 @@ void DownloadThread::_writeComplete()
 
     qDebug() << "Write done in" << _timer.elapsed() / 1000 << "seconds";
 
+    // The physical write count may include sector padding. Use the exact
+    // uncompressed bytes accepted from the source to validate image GPT bounds.
+    const quint64 imageSize = _imageBytesReceived;
+
     /* Verify */
     if (_verifyEnabled && !_verify())
     {
@@ -925,16 +870,60 @@ void DownloadThread::_writeComplete()
     if (_firstBlock)
     {
         quint64 targetSize = 0;
-        const quint64 imageSize = std::max(_file->position(), quint64(_firstBlockSize));
         QString storageError;
         emit preparationStatusUpdate(tr("Preparing and verifying recording storage..."));
         if (_cancelled || _file->size(targetSize) != FileError::Success ||
             !DiskFormatter::prepareOpenHDStorage(_firstBlock, _firstBlockSize,
-                                                 *_file, imageSize, targetSize, &storageError))
+                                                 *_file, imageSize, targetSize, &storageError,
+                                                 nullptr, false, _recordingsSizeBytes))
         {
             if (!_cancelled)
-                DownloadThread::_onDownloadError(tr("Could not prepare recording storage: %1").arg(storageError));
-            _closeFiles();
+            {
+                // The target partition map was cleared before streaming the
+                // image, and the primary block is intentionally buffered. If
+                // optional recordings preparation fails, restore the image's
+                // original boot/partition metadata so Windows does not see a
+                // blank disk. Verify this recovery before returning an error.
+                bool restored = _firstBlock &&
+                    _file->seek(0) == FileError::Success;
+                if (restored && _firstBlockSize >= 1024 &&
+                    std::memcmp(_firstBlock + 512, "EFI PART", 8) == 0 &&
+                    qFromLittleEndian<quint64>(reinterpret_cast<const uchar *>(_firstBlock + 544)) !=
+                        targetSize / 512 - 1)
+                {
+                    const QByteArray originalBlock(_firstBlock, int(_firstBlockSize));
+                    if (!relocateGptBackup(_firstBlock, _firstBlockSize, *_file, targetSize))
+                        std::memcpy(_firstBlock, originalBlock.constData(), _firstBlockSize);
+                }
+                std::size_t restoredBytes = 0;
+                if (restored)
+                    restored = _performDeviceWrite(
+                        reinterpret_cast<const quint8 *>(_firstBlock),
+                        _firstBlockSize, restoredBytes) &&
+                        restoredBytes == _firstBlockSize && _flushDevice();
+                QByteArray readback(int(_firstBlockSize), 0);
+                std::size_t readbackBytes = 0;
+                if (restored)
+                    restored = _file->seek(0) == FileError::Success &&
+                        _file->readSequential(reinterpret_cast<quint8 *>(readback.data()),
+                                              _firstBlockSize, readbackBytes) == FileError::Success &&
+                        readbackBytes == _firstBlockSize &&
+                        std::memcmp(readback.constData(), _firstBlock, _firstBlockSize) == 0;
+                const QString recovery = restored
+                    ? tr("The image partition map was restored and verified.")
+                    : tr("Restoring the image partition map also failed; the target may need recovery.");
+                _closeFiles();
+#ifdef Q_OS_WIN
+                QString refreshError;
+                if (!WindowsDiskPreparation::rescanDisk(QString::fromUtf8(_filename), &refreshError))
+                    qWarning() << "Could not refresh Windows after partition-map recovery:" << refreshError;
+#endif
+                DownloadThread::_onDownloadError(
+                    tr("Could not prepare recording storage: %1<br>%2")
+                        .arg(storageError, recovery));
+            } else {
+                _closeFiles();
+            }
             return;
         }
         if (_firstBlockSize >= 1024 && std::memcmp(_firstBlock + 512, "EFI PART", 8) == 0 &&

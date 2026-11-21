@@ -9,6 +9,7 @@
 
 #include <QByteArray>
 #include <QString>
+#include <QStringList>
 
 enum class DiskFormatError
 {
@@ -33,7 +34,9 @@ public:
     // buffered first block only after recording filesystem verification.
     static bool prepareOpenHDStorage(char *firstBlock, std::size_t firstBlockSize,
                                      FileOperations &file, quint64 imageSize,
-                                     quint64 targetSize, QString *error);
+                                     quint64 targetSize, QString *error,
+                                     QStringList *plan = nullptr, bool preview = false,
+                                     quint64 recordingsSizeBytes = 0);
     static bool relocateGptBackup(char *firstBlock, std::size_t firstBlockSize,
                                   FileOperations &file, quint64 targetSize);
 };

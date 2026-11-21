@@ -73,6 +73,9 @@ set_tests_properties(initialsettings_qml_contract PROPERTIES ENVIRONMENT "QT_QPA
 find_program(QMLTESTRUNNER_EXECUTABLE NAMES qmltestrunner qmltestrunner-qt5
     HINTS "${Qt5Core_DIR}/../../../bin")
 if(QMLTESTRUNNER_EXECUTABLE)
+    add_test(NAME partition_plan_review COMMAND "${QMLTESTRUNNER_EXECUTABLE}"
+        -input "${CMAKE_CURRENT_SOURCE_DIR}/partition_plan_qml" -platform offscreen)
+    set_tests_properties(partition_plan_review PROPERTIES ENVIRONMENT "QT_QUICK_BACKEND=software")
     add_test(NAME pico_usb_review COMMAND "${QMLTESTRUNNER_EXECUTABLE}"
         -input "${CMAKE_CURRENT_SOURCE_DIR}/pico_usb_qml" -platform offscreen)
     set_tests_properties(pico_usb_review PROPERTIES ENVIRONMENT "QT_QUICK_BACKEND=software")

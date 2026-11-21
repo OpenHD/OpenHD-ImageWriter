@@ -65,6 +65,7 @@
         <file>qmlcomponents/SettingsSection.qml</file>
         <file>qmlcomponents/InitialSettingsPanel.qml</file>
         <file>qmlcomponents/OperationReviewPage.qml</file>
+        <file>qmlcomponents/PartitionPlanPopup.qml</file>
         <file>qmlcomponents/LanguageSettingsPage.qml</file>
         <file>qmlcomponents/CacheSettingsSection.qml</file>
         <file>qmlcomponents/FleetControlPage.qml</file>

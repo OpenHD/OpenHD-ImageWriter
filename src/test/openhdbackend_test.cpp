@@ -31,6 +31,7 @@ bool testRockchipConfiguration(const QString &fatImage, const QString &staging);
 #include <QTemporaryDir>
 
 #include <cstring>
+#include <cstdio>
 
 #include <QtEndian>
 
@@ -39,7 +40,10 @@ namespace {
 bool check(bool condition, const QString &message)
 {
     if (!condition)
+    {
         qCritical().noquote() << message;
+        std::fprintf(stderr, "%s\n", message.toLocal8Bit().constData());
+    }
     return condition;
 }
 
@@ -682,6 +686,20 @@ bool testOfflineStorageProvisioning(bool gpt)
     if (!check(file->openDevice(path, true) == FileError::Success, "Cannot open storage fixture")) return false;
     QString error;
     const QByteArray originalBlock = block;
+    RejectStorageWrites previewFile(*file);
+    QStringList previewPlan;
+    file->seek(1024 * 1024); // A verification cursor may be anywhere in the image.
+    if (!check(DiskFormatter::prepareOpenHDStorage(block.data(), block.size(), previewFile,
+                imageSize, targetSize, &error, &previewPlan, true) && block == originalBlock &&
+                previewPlan.join(" ").contains("RECORDINGS"),
+               "Read-only partition preview wrote data, changed metadata, or omitted recordings")) return false;
+    const quint64 manualRecordingsBytes = 64ULL * 1024 * 1024;
+    QByteArray manualBlock = originalBlock;
+    QStringList manualPlan;
+    if (!check(DiskFormatter::prepareOpenHDStorage(manualBlock.data(), manualBlock.size(), previewFile,
+                imageSize, targetSize, &error, &manualPlan, true, manualRecordingsBytes) &&
+                manualBlock == originalBlock && manualPlan.join(" ").contains("0.06 GiB"),
+               "Manual partition preview did not preserve the image block or requested size")) return false;
     // Invalid layouts must fail before touching the buffered partition table.
     if (gpt) {
         block[1024] = char(block[1024] ^ 1);
@@ -696,6 +714,17 @@ bool testOfflineStorageProvisioning(bool gpt)
                    "Overlapping MBR was accepted or modified")) return false;
         block = originalBlock;
     }
+    if (!check(DiskFormatter::prepareOpenHDStorage(manualBlock.data(), manualBlock.size(), *file,
+                imageSize, targetSize, &error, nullptr, false, manualRecordingsBytes),
+               "Manual recordings partitioning failed: " + error)) return false;
+    const char *manualEntry = manualBlock.constData() + (gpt ? 1024 + 128 : 462);
+    const quint64 manualStart = gpt ? qFromLittleEndian<quint64>(reinterpret_cast<const uchar *>(manualEntry + 32)) :
+                                     qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(manualEntry + 8));
+    const quint64 manualEnd = gpt ? qFromLittleEndian<quint64>(reinterpret_cast<const uchar *>(manualEntry + 40)) :
+                                   manualStart + qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(manualEntry + 12)) - 1;
+    if (!check(manualEnd - manualStart + 1 == manualRecordingsBytes / 512,
+               "Manual recordings partition did not use the requested size")) return false;
+    block = originalBlock;
     RejectStorageWrites broken(*file);
     if (!check(!DiskFormatter::prepareOpenHDStorage(block.data(), block.size(), broken, imageSize, targetSize, &error) && block == originalBlock,
                "Failed formatting published a partition table")) return false;
@@ -768,6 +797,109 @@ bool testOfflineStorageProvisioning(bool gpt)
     if (!check(DiskFormatter::prepareOpenHDStorage(block.data(), block.size(), *file, imageSize, targetSize, &error) && block == originalBlock,
                "An unrelated image was provisioned")) return false;
     file->close();
+    return true;
+}
+
+bool testExternalImagePartitionPreview()
+{
+    const QString imagePath = qEnvironmentVariable("OPENHD_STORAGE_TEST_IMAGE");
+    if (imagePath.isEmpty())
+        return true;
+
+    class ReadOnlyImage final : public FileOperations
+    {
+    public:
+        explicit ReadOnlyImage(const QString &path) : image(path) { image.open(QIODevice::ReadOnly); }
+        FileError openDevice(const QString &, bool) override { return FileError::AccessDenied; }
+        FileError adoptNativeHandle(qintptr, bool, bool) override { return FileError::AccessDenied; }
+        FileError close() override { image.close(); return FileError::Success; }
+        bool isOpen() const override { return image.isOpen(); }
+        qintptr nativeHandle() const override { return -1; }
+        FileError writeSequential(const quint8 *, std::size_t, std::size_t &count) override { count = 0; return FileError::AccessDenied; }
+        FileError readSequential(quint8 *data, std::size_t size, std::size_t &count) override {
+            const qint64 n = image.read(reinterpret_cast<char *>(data), qint64(size));
+            count = n < 0 ? 0 : std::size_t(n);
+            return n < 0 ? FileError::IoError : FileError::Success;
+        }
+        FileError seek(quint64 position) override { return image.seek(qint64(position)) ? FileError::Success : FileError::IoError; }
+        quint64 position() const override { return quint64(image.pos()); }
+        FileError size(quint64 &count) const override { count = quint64(image.size()); return FileError::Success; }
+        FileError flush() override { return FileError::AccessDenied; }
+        void cancel() override {}
+        void resetCancellation() override {}
+        // Exposed only to this fixture for reading the source's first block.
+        QFile image;
+    } image(imagePath);
+
+    if (!check(image.isOpen(), "Cannot open OPENHD_STORAGE_TEST_IMAGE read-only")) return false;
+    QByteArray first = image.image.read(1024 * 1024);
+    const QByteArray original = first;
+    const quint64 imageSize = quint64(image.image.size());
+    const QString targetPath = qEnvironmentVariable("OPENHD_STORAGE_TEST_TARGET");
+    quint64 targetSize = 61504880640ULL; // The SanDisk's known capacity; this path is read-only preview only.
+    if (!targetPath.isEmpty()) {
+        QFile targetInfo(targetPath);
+        if (!check(targetInfo.open(QIODevice::ReadOnly), "Cannot open OPENHD_STORAGE_TEST_TARGET read-only")) return false;
+        targetSize = quint64(targetInfo.size());
+        targetInfo.close();
+    }
+    QStringList plan;
+    QString error;
+    const bool ok = DiskFormatter::prepareOpenHDStorage(first.data(), first.size(), image,
+        imageSize, targetSize, &error, &plan, true);
+    if (!check(ok, "Selected image partition preview failed: " + error) ||
+        !check(first == original, "Selected image preview modified the source image") ||
+        !check(plan.join(" ").contains("RECORDINGS"), "Selected image preview omitted recordings storage"))
+        return false;
+
+    // Optional full image-stream and finalization test against a sparse file.
+    // No physical disk is opened; callers must explicitly provide the target.
+    if (targetPath.isEmpty()) return true;
+    std::unique_ptr<FileOperations> target = FileOperations::create();
+    if (!check(target->openDevice(targetPath, false) == FileError::Success,
+               "Cannot open sparse test target through FileOperations")) return false;
+    if (!check(image.image.seek(1024 * 1024) && target->seek(1024 * 1024) == FileError::Success,
+               "Cannot seek for image stream simulation")) return false;
+    QByteArray chunk(1024 * 1024, 0);
+    while (true) {
+        const qint64 n = image.image.read(chunk.data(), chunk.size());
+        if (n == 0) break;
+        if (!check(n > 0, "Could not read selected image during stream simulation")) return false;
+        std::size_t written = 0;
+        const FileError writeError = target->writeSequential(
+            reinterpret_cast<const quint8 *>(chunk.constData()), std::size_t(n), written);
+        if (!check(writeError == FileError::Success && written == std::size_t(n),
+                   "Could not stream image into sparse test target: " +
+                       fileErrorMessage(writeError) + " " + target->lastErrorDetail() +
+                       QStringLiteral(" bytes=%1/%2").arg(written).arg(n)))
+            return false;
+    }
+    if (!check(target->flush() == FileError::Success, "Could not flush simulated image body")) return false;
+    QByteArray committed = original;
+    if (!check(DiskFormatter::prepareOpenHDStorage(committed.data(), committed.size(), *target,
+                 imageSize, targetSize, &error), "Full image provisioning failed: " + error))
+        return false;
+    // prepareOpenHDStorage publishes both GPT copies as part of the same
+    // operation once the recordings filesystem has been verified.
+    std::size_t written = 0;
+    if (!check(target->seek(0) == FileError::Success &&
+               target->writeSequential(reinterpret_cast<const quint8 *>(committed.constData()),
+                                       std::size_t(committed.size()), written) == FileError::Success &&
+               written == std::size_t(committed.size()) && target->flush() == FileError::Success,
+               "Could not commit simulated image partition map")) return false;
+    QByteArray readback(committed.size(), 0);
+    std::size_t read = 0;
+    if (!check(target->seek(0) == FileError::Success &&
+               target->readSequential(reinterpret_cast<quint8 *>(readback.data()),
+                                      std::size_t(readback.size()), read) == FileError::Success &&
+               read == std::size_t(readback.size()) && readback == committed,
+               "Simulated image partition map readback failed")) return false;
+    QByteArray recordingsBoot(512, 0);
+    if (!check(target->seek(imageSize) == FileError::Success &&
+               target->readSequential(reinterpret_cast<quint8 *>(recordingsBoot.data()), 512, read) == FileError::Success &&
+               read == 512 && recordingsBoot.mid(71, 11) == QByteArray("RECORDINGS "),
+               "Simulated recordings FAT32 volume is missing")) return false;
+
     return true;
 }
 
@@ -1142,6 +1274,7 @@ int main(int argc, char *argv[])
     failures += testGptRelocation() ? 0 : 1;
     failures += testOfflineStorageProvisioning(false) ? 0 : 1;
     failures += testOfflineStorageProvisioning(true) ? 0 : 1;
+    failures += testExternalImagePartitionPreview() ? 0 : 1;
     failures += testRockchipFirmwareLayoutDiscovery() ? 0 : 1;
 
     if (failures == 0)

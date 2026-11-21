@@ -107,6 +107,7 @@ public:
      * Set input buffer size
      */
     void setInputBufferSize(int len);
+    void setRecordingsSizeBytes(quint64 sizeBytes) { _recordingsSizeBytes = sizeBytes; }
 
      /*
      * Thread safe download progress query functions
@@ -170,6 +171,10 @@ protected:
     curl_off_t _startOffset;
     curl_off_t _rangeResponseTotal;
     std::atomic<std::uint64_t> _lastDlTotal, _lastDlNow, _verifyTotal, _lastVerifyNow, _bytesWritten;
+    // Count the exact uncompressed image bytes accepted from the source. Physical
+    // writes may include sector padding and are not a reliable image boundary.
+    std::uint64_t _imageBytesReceived;
+    quint64 _recordingsSizeBytes = 0;
     std::uint64_t _lastFailureOffset;
     qint64 _sectorsStart;
     QByteArray _url, _useragent, _buf, _filename, _lastError, _expectedHash, _config, _cmdline, _initFormat;
