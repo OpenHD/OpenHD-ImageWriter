@@ -1513,8 +1513,8 @@ Rectangle {
                 return
             }
             if (usesRv1106Defaults || (fleetControlSignedIn && fleetControlProfileName.length > 0 && useProfileSettings) || optionsPage.configurationApplied) {
-                writeConfirmPopup.plan = imageWriter.partitionPlan()
-                writeConfirmPopup.openPopup()
+                if (mainWindow && mainWindow.openPartitionReview)
+                    mainWindow.openPartitionReview(imageWriter.partitionPlan(), osbutton.text, dstbutton.text)
             }
         }
     }
@@ -1569,6 +1569,20 @@ Rectangle {
         optionsPage.resetPage()
 
         imageWriter.stopDriveListPolling()
+    }
+
+    function acceptPartitionReview(recordingsSizeBytes) {
+        reviewingOperation = false
+        imageWriter.setRecordingsSizeBytes(recordingsSizeBytes)
+        // Let the main-window modal release its input grab before beginning
+        // decompression and physical-device I/O.
+        Qt.callLater(function() {
+            if (mainWindow) {
+                mainWindow.raise()
+                mainWindow.requestActivate()
+            }
+            startWriteNow()
+        })
     }
 
     function startWriteNow() {
@@ -2106,27 +2120,6 @@ Rectangle {
         text: qsTr("OpenHD ImageWriter is still busy.<br>Are you sure you want to quit?")
         onYes: {
             Qt.quit()
-        }
-    }
-
-    PartitionPlanPopup {
-        id: writeConfirmPopup
-        sourceName: osbutton.text
-        targetName: dstbutton.text
-        onYes: {
-            reviewingOperation = false
-            imageWriter.setRecordingsSizeBytes(writeConfirmPopup.selectedRecordingsBytes)
-            // Let the modal popup release its input grab before starting
-            // decompression and device I/O. Starting synchronously from the
-            // popup button can leave a frameless window looking inactive and
-            // unable to begin a native window drag until the event loop runs.
-            Qt.callLater(function() {
-                if (mainWindow) {
-                    mainWindow.raise()
-                    mainWindow.requestActivate()
-                }
-                startWriteNow()
-            })
         }
     }
 

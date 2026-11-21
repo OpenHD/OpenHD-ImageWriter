@@ -9,11 +9,12 @@ Dialog {
     property var plan: ({ "ok": true, "text": "", "partitions": [] })
     property string sourceName: ""
     property string targetName: ""
+    property var mainWindow: null
     property bool automaticPartitioning: true
     property double maximumRecordingsMiB: plan.recordingsMaxBytes
         ? Math.floor(Number(plan.recordingsMaxBytes) / (1024 * 1024)) : 0
     property double selectedRecordingsMiB: maximumRecordingsMiB
-    readonly property bool canAdjust: plan.ok && plan.recordingsEditable && maximumRecordingsMiB >= 64
+    readonly property bool canAdjust: plan.ok === true && plan.recordingsEditable === true && maximumRecordingsMiB >= 64
     readonly property double selectedRecordingsBytes: automaticPartitioning
         ? 0 : Math.floor(selectedRecordingsMiB) * 1024 * 1024
     signal yes()
@@ -39,11 +40,14 @@ Dialog {
         return Math.max(0, Number(plan.diskBytes || 0) - allocatedBytes())
     }
 
-    parent: Overlay.overlay
+    parent: dialog.mainWindow ? dialog.mainWindow.Overlay.overlay : Overlay.overlay
     x: 0
     y: 0
-    width: parent.width
-    height: parent.height
+    // Bind to the top-level window explicitly. Popup's implicit sizing can
+    // otherwise follow the flash page (which starts to the right of the app
+    // sidebar) and leave that part of the application uncovered.
+    width: mainWindow ? mainWindow.width : parent.width
+    height: mainWindow ? mainWindow.height : parent.height
     modal: true
     title: qsTr("Review partition layout")
     standardButtons: plan.ok ? Dialog.Ok | Dialog.Cancel : Dialog.Close
@@ -57,8 +61,20 @@ Dialog {
     }
     onAccepted: if (plan.ok) yes()
 
-    contentItem: ColumnLayout {
+    contentItem: ScrollView {
+        id: partitionReviewScroll
+        objectName: "partitionReviewScroll"
         width: dialog.width
+        height: dialog.availableHeight
+        clip: true
+        contentWidth: availableWidth
+        contentHeight: reviewContents.implicitHeight
+        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+        ScrollBar.vertical.policy: ScrollBar.AsNeeded
+
+        ColumnLayout {
+        id: reviewContents
+        width: partitionReviewScroll.availableWidth
         spacing: 14
 
         Rectangle {
@@ -156,9 +172,10 @@ Dialog {
         }
 
         Rectangle {
+            objectName: "partitionTable"
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.minimumHeight: 200
+            Layout.preferredHeight: 38 + (dialog.plan.partitions || []).length * 52
+            Layout.minimumHeight: Layout.preferredHeight
             radius: 8
             color: "#132d3a"
             border.color: "#355362"
@@ -286,6 +303,7 @@ Dialog {
                 ? qsTr("Image partitions stay as supplied. Adjusting RECORDINGS leaves the remaining capacity unallocated.")
                 : qsTr("ImageWriter prepares and verifies the shown layout before reporting success.")
             color: "#a9bac5"
+        }
         }
     }
 }

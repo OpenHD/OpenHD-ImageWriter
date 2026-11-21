@@ -178,6 +178,19 @@ ApplicationWindow {
         currentView = name
     }
 
+    function openPartitionReview(plan, sourceName, targetName) {
+        partitionPlanPopup.plan = plan
+        partitionPlanPopup.sourceName = sourceName
+        partitionPlanPopup.targetName = targetName
+        partitionPlanPopup.openPopup()
+    }
+
+    function acceptPartitionReview(recordingsSizeBytes) {
+        var feature = currentFeature()
+        if (feature && feature.acceptPartitionReview)
+            feature.acceptPartitionReview(recordingsSizeBytes)
+    }
+
     Connections {
         target: imageWriter
         function onSettingChanged(key, value) {
@@ -874,6 +887,17 @@ ApplicationWindow {
                 font.pixelSize: 12
             }
         }
+    }
+
+    PartitionPlanPopup {
+        id: partitionPlanPopup
+        mainWindow: window
+        parent: window.Overlay.overlay
+        x: 0
+        y: 0
+        width: parent.width
+        height: parent.height
+        onYes: window.acceptPartitionReview(selectedRecordingsBytes)
     }
 
     // Frameless desktop windows do not receive native resize borders. These
