@@ -47,7 +47,7 @@ QVariantList VectorMapCatalog::regions() const
     for (const auto &key : m_regions.keys()) {
         const auto region = m_regions.value(key).toObject();
         const auto size = region.value("map").toObject().value("size").toDouble();
-        result.append(tr("%1 � %2 (%3 MB)").arg(region.value("country").toString(),
+        result.append(tr("%1 - %2 (%3 MB)").arg(region.value("country").toString(),
                       region.value("name").toString()).arg(qint64((size + 999999) / 1000000)));
     }
     return result;
@@ -60,7 +60,7 @@ void VectorMapCatalog::refresh()
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
     auto *reply = m_network.get(request);
     m_reply = reply;
-    m_status = tr("Loading map regions�");
+    m_status = tr("Loading map regions...");
     m_timeout.start();
     connect(reply, &QNetworkReply::finished, this, [this, reply] {
         if (reply != m_reply) return;

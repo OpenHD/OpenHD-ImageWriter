@@ -2223,7 +2223,8 @@ void ImageWriter::stageFleetControlOfflineMap(const QString &profileId, const QS
         emit fleetControlOfflineMapStaged(mapId, QString(), tr("Could not create the offline map folder."));
         return;
     }
-    const QString filePath = directory.filePath(mapId + ".glidemap");
+    const bool vectorRegion = mapId.startsWith("vector-");
+    const QString filePath = directory.filePath(mapId + (vectorRegion ? ".mbtiles" : ".glidemap"));
     auto *output = new QSaveFile(filePath);
     if (!output->open(QIODevice::WriteOnly)) {
         delete output;
@@ -2247,7 +2248,7 @@ void ImageWriter::stageFleetControlOfflineMap(const QString &profileId, const QS
         }
     });
     connect(reply, &QNetworkReply::finished, this,
-            [this, reply, manager, output, hash, size, prefix, filePath, mapId, sha256]() {
+            [this, reply, manager, output, hash, size, prefix, filePath, mapId, sha256, vectorRegion]() {
         const QByteArray tail = reply->readAll();
         if (prefix->size() < 8) prefix->append(tail.left(8 - prefix->size()));
         *size += tail.size();
@@ -2262,7 +2263,7 @@ void ImageWriter::stageFleetControlOfflineMap(const QString &profileId, const QS
         else if (*size > 100 * 1024 * 1024 ||
                  QString::fromLatin1(hash->result().toHex()).compare(sha256, Qt::CaseInsensitive) != 0)
             error = tr("Offline map size or checksum is invalid.");
-        if (error.isEmpty() && *prefix != QByteArray("GLDMAP1\0", 8))
+        if (error.isEmpty() && *prefix != (vectorRegion ? QByteArray("SQLite f") : QByteArray("GLDMAP1\0", 8)))
             error = tr("Downloaded file is not an OpenHD offline map.");
         if (error.isEmpty() && !output->commit())
             error = tr("Could not save the offline map.");
