@@ -14,6 +14,12 @@ function method(source, name) {
     }
     return source.slice(start, end + 1);
 }
+const fleetHelper = fs.readFileSync(path.join(__dirname, '../qmlcomponents/FleetProfilesHelper.js'), 'utf8');
+const zero3wHdmiModes = [
+    ['rock3-hdmi-csi', 'TC358743 (2 CSI lanes)', '90', ['1280x720@30', '1280x720@60', '1920x1080@30']],
+    ['rock3-hdmi-csi', 'TC358743 (4 CSI lanes)', '99', ['1280x720@30', '1280x720@60', '1920x1080@30', '1920x1080@60']],
+    ['radxa-rk628', 'Radxa HDMI to CSI (RK628H)', '100', ['1280x720@30', '1280x720@60', '1920x1080@30', '1920x1080@60']],
+];
 for (const page of ['ImageOptionsPage.qml', 'configure.qml']) {
     const source = fs.readFileSync(path.join(__dirname, '..', page), 'utf8');
     const group = {selectedVendor: {options: [{id: 'IMX708', valueWritten: '32'}]}};
@@ -76,6 +82,20 @@ for (const page of ['ImageOptionsPage.qml', 'configure.qml']) {
     context.rebuildCameraOptions();
     assert.strictEqual(context.camera, 'OV5647');
     assert.strictEqual(context.cameraOptionsModel.get(0).displayText, 'Raspberry Pi Camera v1 (OV5647)');
+
+    vm.runInContext(method(fleetHelper, 'usesHdmiEdid'), context);
+    assert(!context.usesHdmiEdid(map, group.selectedVendor, 'OV5647'));
+    for (const [vendorId, name, cameraId, resolutions] of zero3wHdmiModes) {
+        group.selectedVendor = zero3w.vendors.find(vendor => vendor.id === vendorId);
+        context.camera = name;
+        context.cameraResolution = '1280x720@30';
+        context.rebuildCameraOptions();
+        assert(context.usesHdmiEdid(map, group.selectedVendor, context.camera));
+        assert.strictEqual(context.cameraOptionsModel.get(context.cameraSelector.currentIndex).value, cameraId);
+        assert.deepStrictEqual(Array.from({length: context.cameraResolutionOptionsModel.count},
+            (_, idx) => context.cameraResolutionOptionsModel.get(idx).value), resolutions, page + ': ' + name);
+        assert.strictEqual(context.cameraResolution, '1280x720@30');
+    }
 }
 assert.strictEqual(map.camera.firmwareDefaults['luckfox-pico'].resolution, '1280x720@60');
 assert.strictEqual(map.cameraResolution.defaultByCameraValue['64'], '1920x1080@30');

@@ -142,6 +142,36 @@ bool testZero3wImx519Provisioning()
                  "Zero 3W IMX519 resolution was lost");
 }
 
+bool testZero3wHdmiProvisioning()
+{
+    struct Profile { const char *label; const char *cameraType; const char *resolution; };
+    const Profile profiles[] = {
+        {"TC358743 (2 CSI lanes)", "90", "1920x1080@30"},
+        {"TC358743 (4 CSI lanes)", "99", "1920x1080@60"},
+        {"Radxa HDMI to CSI (RK628H)", "100", "1280x720@30"},
+    };
+    QTemporaryDir directory;
+    QSettings settings(directory.filePath("settings.ini"), QSettings::IniFormat);
+    settings.setValue("bootType", "Air");
+    settings.setValue("platform", "zero3w");
+    settings.setValue("sbc", "zero3w");
+    for (const auto &profile : profiles) {
+        settings.setValue("camera", profile.label);
+        settings.setValue("cameraResolution", profile.resolution);
+        const auto boot = directory.filePath(QString::fromLatin1(profile.cameraType));
+        if (!check(OpenHDImageCustomizer::apply(boot, settings).succeeded(),
+                   "Could not provision the Zero 3W HDMI profile")) return false;
+        QFile file(QDir(boot).filePath("openhd/settings.json"));
+        if (!check(file.open(QIODevice::ReadOnly), "Zero 3W HDMI settings were not staged")) return false;
+        const auto result = QJsonDocument::fromJson(file.readAll()).object();
+        if (!check(result.value("camera").toString() == QLatin1String(profile.cameraType) &&
+                   result.value("camera_resolution_fps").toString() == QLatin1String(profile.resolution) &&
+                   result.value("role").toString() == "air",
+                   "Zero 3W HDMI camera or input mode was lost")) return false;
+    }
+    return true;
+}
+
 bool testImageNameRoleOverrides()
 {
     QTemporaryDir temporaryDirectory;
@@ -1257,6 +1287,7 @@ int main(int argc, char *argv[])
     failures += testGroundSettingsAndCameraMapping() ? 0 : 1;
     failures += testZero3wImx708Provisioning() ? 0 : 1;
     failures += testZero3wImx519Provisioning() ? 0 : 1;
+    failures += testZero3wHdmiProvisioning() ? 0 : 1;
     failures += testImageNameRoleOverrides() ? 0 : 1;
     failures += testCustomizationInstall() ? 0 : 1;
     failures += testBootSplashPreparation() ? 0 : 1;

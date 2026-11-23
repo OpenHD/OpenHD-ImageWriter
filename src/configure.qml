@@ -491,7 +491,8 @@ ImButton {
                                     }
 
                                     Label {
-                                        text: qsTr("Primary resolution")
+                                        text: FleetProfilesHelper.usesHdmiEdid(settingsMap, cameraLayout.selectedVendor, camera)
+                                              ? qsTr("HDMI input resolution (EDID)") : qsTr("Primary resolution")
                                         visible: cameraResolutionOptionsModel.count > 0
                                     }
 

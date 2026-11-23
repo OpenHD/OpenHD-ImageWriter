@@ -354,7 +354,8 @@ Rectangle {
                                         }
 
                                         Label {
-                                            text: qsTr("Primary resolution")
+                                            text: FleetProfilesHelper.usesHdmiEdid(settingsMap, cameraGroup.selectedVendor, camera)
+                                                  ? qsTr("HDMI input resolution (EDID)") : qsTr("Primary resolution")
                                             visible: cameraResolutionOptionsModel.count > 0
                                         }
 

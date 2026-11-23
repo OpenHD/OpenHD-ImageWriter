@@ -138,6 +138,15 @@ function getVendorsForSbc(settingsMap, sbcKey) {
     return list;
 }
 
+function usesHdmiEdid(settingsMap, vendor, cameraId) {
+    var edidCameras = settingsMap && settingsMap.cameraResolution &&
+                      settingsMap.cameraResolution.edidCameraValues;
+    if (!edidCameras || !vendor || !cameraId) return false;
+    return (vendor.options || []).some(function(option) {
+        return option.id === cameraId && edidCameras.indexOf(String(option.valueWritten)) !== -1;
+    });
+}
+
 function getResolutionsForCamera(settingsMap, sbcKey, vendorId, cameraId) {
     if (!settingsMap || !settingsMap.cameraResolution || !settingsMap.cameraResolution.byCameraValue || !cameraId) {
         return [];

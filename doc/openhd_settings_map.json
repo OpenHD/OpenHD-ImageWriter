@@ -1005,6 +1005,7 @@
     }
   },
   "cameraResolution": {
+    "edidCameraValues": ["90", "99", "100"],
     "_comment": "Resolution/fps choices keyed by OpenHD camera type value (widthxheight@fps).",
     "valueEncoding": "string written to openhd/settings.json as camera_resolution_fps and camera2_resolution_fps",
     "byCameraValue": {
