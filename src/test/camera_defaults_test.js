@@ -68,7 +68,8 @@ for (const page of ['ImageOptionsPage.qml', 'configure.qml']) {
     const zero3w = map.camera.sbcGroups.find(group => group.sbc.includes('zero3w'));
     group.selectedVendor = zero3w.vendors[0];
     const modes = new Map([
-        ['OV5647', false], ['IMX519', true], ['IMX708', true], ['IMX462 Pivariety', false],
+        ['OV5647', false], ['IMX519', true], ['IMX708', true], ['IMX415', false],
+        ['IMX462 Pivariety', false],
         ['IMX219', false], ['IMX462', true],
     ]);
     assert.deepStrictEqual(group.selectedVendor.options.filter(option => !option.hidden).map(option => option.id), [...modes.keys()]);
@@ -133,8 +134,11 @@ vm.createContext(fleet);
 vm.runInContext(method(fleetSource, 'refreshEditorCameras'), fleet);
 vm.runInContext(method(fleetSource, 'selectedEditorCamera'), fleet);
 fleet.refreshEditorCameras(true);
-assert.strictEqual(fleet.cameraDropdown.model.length, 6);
+assert.strictEqual(fleet.cameraDropdown.model.length, 7);
 assert.strictEqual(fleet.selectedEditorCamera(), 'IMX462 Pivariety');
+fleet.savedCamera = 'IMX415';
+fleet.refreshEditorCameras(true);
+assert.strictEqual(fleet.selectedEditorCamera(), 'IMX415');
 fleet.refreshEditorCameras(false);
 assert.strictEqual(fleet.selectedEditorCamera(), 'OV5647');
 for (const vendorId of ['rock3-hdmi-csi', 'radxa-rk628']) {
