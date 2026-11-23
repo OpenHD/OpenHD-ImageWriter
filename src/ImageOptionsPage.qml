@@ -597,7 +597,7 @@ Rectangle {
                                         var selectedResolution = cameraResolution
                                         var vendor = cameraGroup.selectedVendor
                                         cameraOptionsModel.clear()
-                                        if (!vendor || !vendor.requiresCameraSelection)
+                                        if (!FleetProfilesHelper.requiresCameraSelection(vendor))
                                             cameraOptionsModel.append({ displayText: firmwareCameraLabel(), cameraId: "", value: "" })
 
                                         if (vendor && vendor.options) {

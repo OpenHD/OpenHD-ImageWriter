@@ -138,6 +138,12 @@ function getVendorsForSbc(settingsMap, sbcKey) {
     return list;
 }
 
+function requiresCameraSelection(vendor) {
+    // Older image manifests omitted this flag for Rockchip HDMI adapters.
+    return !!vendor && (vendor.requiresCameraSelection ||
+                        vendor.id === "rock3-hdmi-csi" || vendor.id === "radxa-rk628");
+}
+
 function usesHdmiEdid(settingsMap, vendor, cameraId) {
     var edidCameras = settingsMap && settingsMap.cameraResolution &&
                       settingsMap.cameraResolution.edidCameraValues;

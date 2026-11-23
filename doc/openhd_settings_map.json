@@ -378,6 +378,7 @@
           {
             "id": "rock3-hdmi-csi",
             "displayName": "HDMI to CSI",
+            "requiresCameraSelection": true,
             "options": [
               {
                 "id": "TC358743 (2 CSI lanes)",
@@ -411,6 +412,7 @@
           {
             "id": "rock3-hdmi-csi",
             "displayName": "HDMI to CSI",
+            "requiresCameraSelection": true,
             "options": [
               {
                 "id": "TC358743 (2 CSI lanes)",
@@ -421,6 +423,7 @@
           {
             "id": "radxa-rk628",
             "displayName": "Radxa",
+            "requiresCameraSelection": true,
             "options": [
               {
                 "id": "Radxa HDMI to CSI (RK628H)",
@@ -482,6 +485,7 @@
           {
             "id": "rock3-hdmi-csi",
             "displayName": "HDMI to CSI",
+            "requiresCameraSelection": true,
             "options": [
               {
                 "id": "TC358743 (2 CSI lanes)",
@@ -496,6 +500,7 @@
           {
             "id": "radxa-rk628",
             "displayName": "Radxa",
+            "requiresCameraSelection": true,
             "options": [
               {
                 "id": "Radxa HDMI to CSI (RK628H)",
@@ -553,6 +558,7 @@
           {
             "id": "rock3-hdmi-csi",
             "displayName": "HDMI to CSI",
+            "requiresCameraSelection": true,
             "options": [
               {
                 "id": "TC358743 (2 CSI lanes)",

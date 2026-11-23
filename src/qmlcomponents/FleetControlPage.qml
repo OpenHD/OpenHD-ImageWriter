@@ -643,7 +643,7 @@ Item {
         var vendor = (editorVendors && vendorDropdown.currentIndex >= 0 && vendorDropdown.currentIndex < editorVendors.length)
                      ? editorVendors[vendorDropdown.currentIndex] : null
 
-        var cameras = vendor && vendor.requiresCameraSelection ? [] : [{id: "NONE", label: "NONE"}]
+        var cameras = FleetProfilesHelper.requiresCameraSelection(vendor) ? [] : [{id: "NONE", label: "NONE"}]
         if (vendor && vendor.options) {
             for (var i = 0; i < vendor.options.length; i++) {
                 var option = vendor.options[i]

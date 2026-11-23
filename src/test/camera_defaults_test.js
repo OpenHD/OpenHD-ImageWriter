@@ -20,10 +20,12 @@ const zero3wHdmiModes = [
     ['rock3-hdmi-csi', 'TC358743 (4 CSI lanes)', '99', ['1280x720@30', '1280x720@60', '1920x1080@30', '1920x1080@60']],
     ['radxa-rk628', 'Radxa HDMI to CSI (RK628H)', '100', ['1280x720@30', '1280x720@60', '1920x1080@30', '1920x1080@60']],
 ];
+const helper = vm.createContext({});
+vm.runInContext(method(fleetHelper, 'requiresCameraSelection'), helper);
 for (const page of ['ImageOptionsPage.qml', 'configure.qml']) {
     const source = fs.readFileSync(path.join(__dirname, '..', page), 'utf8');
     const group = {selectedVendor: {options: [{id: 'IMX708', valueWritten: '32'}]}};
-    const context = {settingsMap: map, camera: 'IMX708', cameraResolution: '1920x1080@30',
+    const context = {settingsMap: map, FleetProfilesHelper: helper, camera: 'IMX708', cameraResolution: '1920x1080@30',
         rebuilding: false, cameraGroup: group, cameraLayout: group,
         rebuildSecondaryCameraOptions() {}, firmwareCameraLabel: () => 'Firmware camera',
         firmwareResolutionLabel: () => 'Firmware resolution'};
@@ -83,6 +85,21 @@ for (const page of ['ImageOptionsPage.qml', 'configure.qml']) {
     assert.strictEqual(context.camera, 'OV5647');
     assert.strictEqual(context.cameraOptionsModel.get(0).displayText, 'Raspberry Pi Camera v1 (OV5647)');
 
+    for (const vendorId of ['rock3-hdmi-csi', 'radxa-rk628']) {
+        const vendor = zero3w.vendors.find(vendor => vendor.id === vendorId);
+        assert.strictEqual(vendor.requiresCameraSelection, true);
+        // Configure also reads manifests written before the selection flag was added.
+        group.selectedVendor = {...vendor, requiresCameraSelection: undefined};
+        context.camera = 'IMX462';
+        context.cameraResolution = '1920x1080@60';
+        context.rebuildCameraOptions();
+        assert.deepStrictEqual(Array.from({length: context.cameraOptionsModel.count},
+            (_, idx) => context.cameraOptionsModel.get(idx).cameraId), vendor.options.map(option => option.id));
+        assert.strictEqual(context.camera, vendor.options[0].id);
+        assert.strictEqual(context.cameraResolution, map.cameraResolution.defaultByCameraValue[vendor.options[0].valueWritten]);
+    }
+
+    group.selectedVendor = zero3w.vendors[0];
     vm.runInContext(method(fleetHelper, 'usesHdmiEdid'), context);
     assert(!context.usesHdmiEdid(map, group.selectedVendor, 'OV5647'));
     for (const [vendorId, name, cameraId, resolutions] of zero3wHdmiModes) {
@@ -104,6 +121,7 @@ console.log('Camera defaults and restored selections passed for both QML screens
 
 const fleetSource = fs.readFileSync(path.join(__dirname, '../qmlcomponents/FleetControlPage.qml'), 'utf8');
 const fleet = {
+    FleetProfilesHelper: helper,
     editorVendors: map.camera.sbcGroups.find(group => group.sbc.includes('zero3w')).vendors,
     vendorDropdown: {currentIndex: 0},
     cameraDropdown: {currentIndex: -1},
@@ -119,6 +137,13 @@ assert.strictEqual(fleet.cameraDropdown.model.length, 6);
 assert.strictEqual(fleet.selectedEditorCamera(), 'IMX462 Pivariety');
 fleet.refreshEditorCameras(false);
 assert.strictEqual(fleet.selectedEditorCamera(), 'OV5647');
+for (const vendorId of ['rock3-hdmi-csi', 'radxa-rk628']) {
+    fleet.vendorDropdown.currentIndex = fleet.editorVendors.findIndex(vendor => vendor.id === vendorId);
+    fleet.refreshEditorCameras(false);
+    const options = fleet.editorVendors[fleet.vendorDropdown.currentIndex].options;
+    assert.strictEqual(fleet.cameraDropdown.model.length, options.length);
+    assert.strictEqual(fleet.selectedEditorCamera(), options[0].id);
+}
 
 const flashSource = fs.readFileSync(path.join(__dirname, '../flash.qml'), 'utf8');
 for (const luckfox of [true, false]) {
