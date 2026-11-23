@@ -474,7 +474,8 @@ bool DiskFormatter::prepareOpenHDStorage(char *firstBlock, std::size_t firstBloc
     if (!firstBlock || firstBlockSize < 512 || imageSize > targetSize)
         return fail(QStringLiteral("Invalid image or target size"));
     if (quint8(firstBlock[510]) != 0x55 || quint8(firstBlock[511]) != 0xaa)
-        return true; // Not a partitioned image.
+        return recordingsSizeBytes == 0 ||
+            fail(QStringLiteral("This image has no adjustable recordings partition"));
     const auto read32 = [](const char *p) {
         return qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(p));
     };
@@ -526,7 +527,8 @@ bool DiskFormatter::prepareOpenHDStorage(char *firstBlock, std::size_t firstBloc
         for (int i = 0; i < 4; ++i) {
             const quint8 type = quint8(firstBlock[446 + 16 * i + 4]);
             if (type == 0x05 || type == 0x0f || type == 0x85 || type == 0xee)
-                return true;
+                return recordingsSizeBytes == 0 ||
+                    fail(QStringLiteral("This partition table does not support adjustable recordings"));
         }
         lastUsable = std::min<quint64>(lastUsable, 0xffffffffULL);
     }
@@ -588,19 +590,17 @@ bool DiskFormatter::prepareOpenHDStorage(char *firstBlock, std::size_t firstBloc
     }
     if (!openhd) {
         if (plan) plan->append(QStringLiteral("No OPENHD config volume detected; no automatic recordings partition will be created."));
-        return true; // Never provision arbitrary OS images.
+        return recordingsSizeBytes == 0 ||
+            fail(QStringLiteral("The OPENHD configuration volume required for recordings is missing"));
     }
     quint64 start = 0;
     int selectedEntry = -1;
     if (recordings >= 0) {
         const auto &part = partitions[std::size_t(recordings)];
-        if (part.end != lastEnd && recordingsSizeBytes != 0 &&
-            recordingsSizeBytes != (part.end - part.start + 1) * 512) {
-            return fail(QStringLiteral("Cannot resize a RECORDINGS partition followed by another partition"));
-        }
         if (part.end != lastEnd || (recordingsSizeBytes == 0 && part.end == lastUsable)) {
             if (plan) plan->append(QStringLiteral("Existing RECORDINGS partition kept at its image size."));
-            return true;
+            return recordingsSizeBytes == 0 ||
+                fail(QStringLiteral("The existing recordings partition cannot be resized"));
         }
         start = part.start;
         selectedEntry = int(part.index);

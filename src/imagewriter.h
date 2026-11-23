@@ -11,6 +11,8 @@
 #include <QUrl>
 #include <QSettings>
 #include <QVariant>
+#include <atomic>
+#include <memory>
 #include "config.h"
 #include "powersaveblocker.h"
 #include "drivelistmodel.h"
@@ -76,7 +78,8 @@ public:
 
     /* Start writing */
     Q_INVOKABLE void startWrite();
-    Q_INVOKABLE QVariantMap partitionPlan(quint64 recordingsSizeBytes = 0) const;
+    Q_INVOKABLE void requestPartitionPlan();
+    Q_INVOKABLE void cancelPartitionPlan();
     Q_INVOKABLE void setRecordingsSizeBytes(quint64 sizeBytes);
 
     /* Cancel write */
@@ -193,6 +196,7 @@ public:
     Q_INVOKABLE bool hasMouse();
 
 signals:
+    void partitionPlanReady(const QVariantMap &plan);
     void settingChanged(const QString &key, const QVariant &value);
     /* We are emiting signals with QVariant as parameters because QML likes it that way */
 
@@ -247,6 +251,14 @@ protected slots:
     void onUpdateUploadError(const QString &msg);
     void onUpdateUploadSuccess();
 
+private:
+    static QVariantMap createPartitionPlan(const QUrl &source, const QUrl &input,
+                                           const QString &destination, quint64 capacity,
+                                           quint64 sizeHint, bool multipleFiles,
+                                           quint64 recordingsSizeBytes,
+                                           const std::atomic_bool &cancelled);
+    std::shared_ptr<std::atomic_bool> _partitionPlanCancelled;
+
 protected:
     QUrl _src, _repo;
     QString _dst, _cacheFileName, _parentCategory, _osName, _currentLang, _currentLangcode, _currentKeyboard;
@@ -278,7 +290,6 @@ protected:
     QWinTaskbarButton *_taskbarButton;
 #endif
 
-    void _parseCompressedFile();
     QString findRpiBootExecutable() const;
     QString findSshExecutable() const;
     void startOrqaSshOperation(bool rebootToBootloader);

@@ -1514,7 +1514,7 @@ Rectangle {
             }
             if (usesRv1106Defaults || (fleetControlSignedIn && fleetControlProfileName.length > 0 && useProfileSettings) || optionsPage.configurationApplied) {
                 if (mainWindow && mainWindow.openPartitionReview)
-                    mainWindow.openPartitionReview(imageWriter.partitionPlan(), osbutton.text, dstbutton.text)
+                    mainWindow.openPartitionReview(osbutton.text, dstbutton.text)
             }
         }
     }

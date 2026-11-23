@@ -178,11 +178,12 @@ ApplicationWindow {
         currentView = name
     }
 
-    function openPartitionReview(plan, sourceName, targetName) {
-        partitionPlanPopup.plan = plan
+    function openPartitionReview(sourceName, targetName) {
+        partitionPlanPopup.plan = ({ loading: true })
         partitionPlanPopup.sourceName = sourceName
         partitionPlanPopup.targetName = targetName
         partitionPlanPopup.openPopup()
+        imageWriter.requestPartitionPlan()
     }
 
     function acceptPartitionReview(recordingsSizeBytes) {
@@ -193,6 +194,9 @@ ApplicationWindow {
 
     Connections {
         target: imageWriter
+        function onPartitionPlanReady(plan) {
+            partitionPlanPopup.plan = plan
+        }
         function onSettingChanged(key, value) {
             if (key === "offlineMapCreatorPackagePath")
                 window.localOfflineMapPath = value
@@ -891,12 +895,8 @@ ApplicationWindow {
 
     PartitionPlanPopup {
         id: partitionPlanPopup
-        mainWindow: window
         parent: window.Overlay.overlay
-        x: 0
-        y: 0
-        width: parent.width
-        height: parent.height
+        onClosed: imageWriter.cancelPartitionPlan()
         onYes: window.acceptPartitionReview(selectedRecordingsBytes)
     }
 

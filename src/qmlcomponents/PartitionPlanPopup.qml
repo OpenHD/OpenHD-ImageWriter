@@ -9,11 +9,15 @@ Dialog {
     property var plan: ({ "ok": true, "text": "", "partitions": [] })
     property string sourceName: ""
     property string targetName: ""
-    property var mainWindow: null
     property bool automaticPartitioning: true
     property double maximumRecordingsMiB: plan.recordingsMaxBytes
         ? Math.floor(Number(plan.recordingsMaxBytes) / (1024 * 1024)) : 0
     property double selectedRecordingsMiB: maximumRecordingsMiB
+    onMaximumRecordingsMiBChanged: {
+        if (automaticPartitioning)
+            selectedRecordingsMiB = maximumRecordingsMiB
+    }
+    readonly property bool hasPartitions: !!(plan.partitions && plan.partitions.length)
     readonly property bool canAdjust: plan.ok === true && plan.recordingsEditable === true && maximumRecordingsMiB >= 64
     readonly property double selectedRecordingsBytes: automaticPartitioning
         ? 0 : Math.floor(selectedRecordingsMiB) * 1024 * 1024
@@ -40,17 +44,19 @@ Dialog {
         return Math.max(0, Number(plan.diskBytes || 0) - allocatedBytes())
     }
 
-    parent: dialog.mainWindow ? dialog.mainWindow.Overlay.overlay : Overlay.overlay
-    x: 0
-    y: 0
-    // Bind to the top-level window explicitly. Popup's implicit sizing can
-    // otherwise follow the flash page (which starts to the right of the app
-    // sidebar) and leave that part of the application uncovered.
-    width: mainWindow ? mainWindow.width : parent.width
-    height: mainWindow ? mainWindow.height : parent.height
+    margins: 8
+    x: margins
+    y: margins
+    width: parent ? Math.max(0, parent.width - 2 * margins) : 0
+    height: parent ? Math.max(0, parent.height - 2 * margins) : 0
     modal: true
     title: qsTr("Review partition layout")
-    standardButtons: plan.ok ? Dialog.Ok | Dialog.Cancel : Dialog.Close
+    standardButtons: plan.loading ? Dialog.Cancel : (plan.ok ? Dialog.Ok | Dialog.Cancel : Dialog.Close)
+    onStandardButtonsChanged: updateConfirmLabel()
+    function updateConfirmLabel() {
+        var confirm = standardButton(Dialog.Ok)
+        if (confirm) confirm.text = qsTr("Erase and write")
+    }
     Material.theme: Material.Dark
     Material.background: "#102633"
     Material.foreground: "#e5edf2"
@@ -58,7 +64,7 @@ Dialog {
         partitionReviewScroll.contentY = 0
         automaticPartitioning = true
         selectedRecordingsMiB = maximumRecordingsMiB
-        if (standardButton(Dialog.Ok)) standardButton(Dialog.Ok).text = qsTr("Erase and write")
+        updateConfirmLabel()
     }
     onAccepted: if (plan.ok) yes()
 
@@ -68,6 +74,12 @@ Dialog {
         clip: true
         contentWidth: width
         contentHeight: reviewContents.height
+        onContentHeightChanged: {
+            if (dialog.opened && dialog.canAdjust && !dialog.automaticPartitioning) {
+                cancelFlick()
+                contentY = Math.max(0, contentHeight - height)
+            }
+        }
         flickableDirection: Flickable.VerticalFlick
         boundsBehavior: Flickable.StopAtBounds
         ScrollBar.vertical: ScrollBar {
@@ -107,6 +119,7 @@ Dialog {
 
         Label {
             Layout.fillWidth: true
+            visible: dialog.hasPartitions
             text: qsTr("Partition layout")
             font.pixelSize: 19
             font.bold: true
@@ -116,6 +129,7 @@ Dialog {
         Rectangle {
             id: diskBar
             objectName: "partitionBar"
+            visible: dialog.hasPartitions
             Layout.fillWidth: true
             Layout.preferredHeight: 26
             radius: 7
@@ -145,6 +159,7 @@ Dialog {
         }
 
         Flow {
+            visible: dialog.hasPartitions
             Layout.fillWidth: true
             Layout.preferredHeight: childrenRect.height
             width: parent.width
@@ -177,9 +192,9 @@ Dialog {
 
         Rectangle {
             objectName: "partitionTable"
+            visible: dialog.hasPartitions
             Layout.fillWidth: true
-            Layout.preferredHeight: 38 + (planText.visible ? planText.implicitHeight + 24
-                                                          : (dialog.plan.partitions || []).length * 52)
+            Layout.preferredHeight: 38 + (dialog.plan.partitions || []).length * 52
             Layout.minimumHeight: Layout.preferredHeight
             radius: 8
             color: "#132d3a"
@@ -191,7 +206,7 @@ Dialog {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 38
                     color: "#1b3a49"
-            RowLayout {
+                    RowLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 14; anchors.rightMargin: 14
                         Label { Layout.fillWidth: true; Layout.preferredWidth: parent.width * 0.27; text: qsTr("Device / partition"); color: "#aebfc8"; elide: Text.ElideRight }
@@ -218,7 +233,7 @@ Dialog {
                                 Label {
                                     Layout.fillWidth: true
                                     Layout.preferredWidth: parent.width * 0.27
-                                    text: "mmcblk0p" + modelData.number + "  ·  " + modelData.name
+                                    text: qsTr("Partition %1 · %2").arg(modelData.number).arg(modelData.name)
                                     color: "#e5edf2"
                                     elide: Text.ElideRight
                                 }
@@ -241,23 +256,24 @@ Dialog {
                             }
                         }
                     }
-                    Label {
-                        id: planText
-                        objectName: "partitionPlanText"
-                        Layout.fillWidth: true
-                        Layout.margins: 12
-                        visible: !(dialog.plan.partitions && dialog.plan.partitions.length)
-                        textFormat: Text.PlainText
-                        wrapMode: Text.Wrap
-                        text: dialog.plan.text || ""
-                        color: "#d0dce1"
-                    }
                 }
             }
         }
 
+        Label {
+            objectName: "partitionPlanText"
+            Layout.fillWidth: true
+            visible: !dialog.hasPartitions || (!!text && !dialog.canAdjust)
+            textFormat: Text.PlainText
+            wrapMode: Text.Wrap
+            text: dialog.plan.loading ? qsTr("Reading partition layout…")
+                                      : (dialog.hasPartitions ? (dialog.plan.detail || "") : (dialog.plan.text || ""))
+            color: "#d0dce1"
+        }
+
         ColumnLayout {
             Layout.fillWidth: true
+            visible: dialog.canAdjust
             spacing: 4
             Label { text: qsTr("Recordings storage"); font.bold: true; color: "#eef6f9" }
             RadioButton {
@@ -285,11 +301,10 @@ Dialog {
                 Layout.fillWidth: true
                 from: 64
                 to: Math.max(64, dialog.maximumRecordingsMiB)
-                stepSize: 64
+                stepSize: 1
                 snapMode: Slider.SnapAlways
                 value: dialog.selectedRecordingsMiB
-                onMoved: dialog.selectedRecordingsMiB = Math.min(dialog.maximumRecordingsMiB,
-                    Math.max(64, Math.floor(value / 64) * 64))
+                onMoved: dialog.selectedRecordingsMiB = Math.round(value)
             }
             Label {
                 Layout.preferredWidth: 100
@@ -303,10 +318,8 @@ Dialog {
             Layout.fillWidth: true
             textFormat: Text.PlainText
             wrapMode: Text.Wrap
-            visible: dialog.plan.ok
-            text: dialog.canAdjust
-                ? qsTr("Image partitions stay as supplied. Adjusting RECORDINGS leaves the remaining capacity unallocated.")
-                : qsTr("ImageWriter prepares and verifies the shown layout before reporting success.")
+            visible: dialog.canAdjust
+            text: qsTr("Adjusting RECORDINGS leaves the remaining capacity unallocated.")
             color: "#a9bac5"
         }
         }

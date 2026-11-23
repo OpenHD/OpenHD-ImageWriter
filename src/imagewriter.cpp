@@ -18,12 +18,12 @@
 #include "rockchipflashthread.h"
 #include "rockchipdevice.h"
 #include "nxpflashthread.h"
-#include <archive.h>
-#include <archive_entry.h>
+#include "partitionimagereader.h"
 #include <random>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QFutureWatcher>
 #include <QIODevice>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -44,6 +44,7 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QVersionNumber>
+#include <QtConcurrent/QtConcurrentRun>
 #include <QtNetwork>
 #ifndef QT_NO_WIDGETS
 #include <QFileDialog>
@@ -234,6 +235,7 @@ ImageWriter::ImageWriter(QObject *parent)
 
 ImageWriter::~ImageWriter()
 {
+    cancelPartitionPlan();
     if (_orqaSshProcess)
     {
         _orqaSshProcess->kill();
@@ -317,6 +319,7 @@ void ImageWriter::makeUser()
 /* Set URL to download from */
 void ImageWriter::setSrc(const QUrl &url, quint64 downloadLen, quint64 extrLen, QByteArray expectedHash, bool multifilesinzip, QString parentcategory, QString osname, QByteArray initFormat)
 {
+    cancelPartitionPlan();
     _recordingsSizeBytes = 0;
     _src = url;
     _downloadLen = downloadLen;
@@ -341,6 +344,7 @@ void ImageWriter::setSrc(const QUrl &url, quint64 downloadLen, quint64 extrLen, 
 /* Set device to write to */
 void ImageWriter::setDst(const QString &device, quint64 deviceSize)
 {
+    cancelPartitionPlan();
     _recordingsSizeBytes = 0;
     _dst = device;
     _devLen = deviceSize;
@@ -427,65 +431,136 @@ bool ImageWriter::readyToWrite()
 }
 
 
-QVariantMap ImageWriter::partitionPlan(quint64 recordingsSizeBytes) const
+namespace {
+bool isCompressedDiskImage(const QUrl &source)
 {
-    QVariantMap result;
-    result["ok"] = true;
-    if (_src.toString() == QStringLiteral("internal://format")) {
+    const QString url = source.toString(QUrl::FullyEncoded).toLower();
+    const QString path = source.path().toLower();
+    if (url.contains("archive=.img") || url.endsWith(".img") || path.endsWith(".img"))
+        return false;
+    for (const QString &suffix : {QStringLiteral(".zip"), QStringLiteral(".xz"),
+                                 QStringLiteral(".bz2"), QStringLiteral(".gz"),
+                                 QStringLiteral(".zst"), QStringLiteral(".7z"),
+                                 QStringLiteral(".cache")}) {
+        if (url.endsWith(suffix) || path.endsWith(suffix) || url.contains("archive=" + suffix))
+            return true;
+    }
+    return false;
+}
+}
+
+void ImageWriter::requestPartitionPlan()
+{
+    cancelPartitionPlan();
+    const auto cancelled = std::make_shared<std::atomic_bool>(false);
+    _partitionPlanCancelled = cancelled;
+    const QUrl source = _src;
+    const QString destination = _dst;
+    const quint64 capacity = _devLen;
+    const quint64 sizeHint = _extrLen;
+    const bool multipleFiles = _multipleFilesInZip;
+    const QFileInfo cached(cacheFileNameForHash(_expectedHash));
+    const bool useCache = !_expectedHash.isEmpty() && cached.isReadable() && cached.size() > 0;
+    const QUrl input = useCache ? QUrl::fromLocalFile(cached.absoluteFilePath()) : source;
+    auto *watcher = new QFutureWatcher<QVariantMap>(this);
+    connect(watcher, &QFutureWatcher<QVariantMap>::finished, this, [this, watcher, cancelled] {
+        watcher->deleteLater();
+        if (!cancelled->load())
+            emit partitionPlanReady(watcher->result());
+    });
+    watcher->setFuture(QtConcurrent::run([source, input, destination, capacity, sizeHint, multipleFiles, cancelled] {
+        return createPartitionPlan(source, input, destination, capacity, sizeHint,
+                                   multipleFiles, 0, *cancelled);
+    }));
+}
+
+void ImageWriter::cancelPartitionPlan()
+{
+    if (_partitionPlanCancelled)
+        _partitionPlanCancelled->store(true);
+}
+
+QVariantMap ImageWriter::createPartitionPlan(const QUrl &source, const QUrl &input,
+                                            const QString &destination, quint64 capacity,
+                                            quint64 sizeHint, bool multipleFiles,
+                                            quint64 recordingsSizeBytes,
+                                            const std::atomic_bool &cancelled)
+{
+    QVariantMap result{{"ok", true}};
+    if (source.toString() == QStringLiteral("internal://format")) {
         result["text"] = tr("Create a new partition table and one FAT32 partition using the whole device. All existing partitions and files will be erased.");
         return result;
     }
-    if (isOhdFile(_src)) {
+    if (OpenHDStorageService::isOhdFile(source)) {
         result["text"] = tr("Update upload: existing partitions and recordings are preserved.");
         return result;
     }
-    if (!_src.isLocalFile() || QFileInfo(_src.toLocalFile()).suffix().compare("img", Qt::CaseInsensitive) != 0) {
-        result["text"] = tr("The package supplies the image partitions. Boot, root and configuration partitions are kept from the image. For supported raw images, a separate RECORDINGS volume is prepared in unused space. Detailed partition sizes can be previewed for local .img files.");
+    if (destination.contains(QStringLiteral("rockusb")) || destination.startsWith(QStringLiteral("nxpusb:"))) {
+        result["text"] = tr("The firmware package defines the storage layout for this USB bootloader target.");
         return result;
     }
-    QFile source(_src.toLocalFile());
-    if (!source.open(QIODevice::ReadOnly)) {
-        result["ok"] = false;
-        result["text"] = tr("Cannot read the selected image: %1").arg(source.errorString());
-        return result;
-    }
-    // This adapter deliberately cannot write: a partition preview reads the
-    // source file and never opens the target device.
-    class ImageReader final : public FileOperations {
-    public:
-        explicit ImageReader(QFile &source) : file(source) {}
-        FileError openDevice(const QString &, bool) override { return FileError::AccessDenied; }
-        FileError adoptNativeHandle(qintptr, bool, bool) override { return FileError::AccessDenied; }
-        FileError close() override { return FileError::Success; }
-        bool isOpen() const override { return file.isOpen(); }
-        qintptr nativeHandle() const override { return -1; }
-        FileError writeSequential(const quint8 *, std::size_t, std::size_t &n) override { n = 0; return FileError::AccessDenied; }
-        FileError readSequential(quint8 *data, std::size_t size, std::size_t &n) override {
-            const qint64 count = file.read(reinterpret_cast<char *>(data), qint64(size));
-            n = count < 0 ? 0 : std::size_t(count);
-            return count < 0 ? FileError::IoError : FileError::Success;
+    const bool localZip = input.isLocalFile() && source.path().endsWith(".zip", Qt::CaseInsensitive);
+    if (localZip && !multipleFiles) {
+        quint64 zipSize = 0;
+        if (!PartitionImageReader::zipContents(input.toLocalFile(), zipSize, multipleFiles)) {
+            result["ok"] = false;
+            result["text"] = tr("Cannot read the selected ZIP archive.");
+            return result;
         }
-        FileError seek(quint64 pos) override { return file.seek(qint64(pos)) ? FileError::Success : FileError::IoError; }
-        quint64 position() const override { return quint64(file.pos()); }
-        FileError size(quint64 &n) const override { n = quint64(file.size()); return FileError::Success; }
-        FileError flush() override { return FileError::AccessDenied; }
-        void cancel() override {}
-        void resetCancellation() override {}
-        QFile &file;
-    } reader(source);
-    QByteArray first = source.read(1024 * 1024);
-    quint64 capacity = _devLen;
-    if (!capacity) {
-        for (const auto &disk : Drivelist::ListStorageDevices())
-            if (QString::fromStdString(disk.device).compare(_dst, Qt::CaseInsensitive) == 0) capacity = disk.size;
+        if (zipSize)
+            sizeHint = zipSize;
     }
-    if (!capacity && QFileInfo(_dst).isFile()) capacity = quint64(QFileInfo(_dst).size());
+    if (multipleFiles) {
+        result["text"] = tr("ImageWriter will create a FAT32 partition and extract the package files onto it.");
+        return result;
+    }
+    if (!capacity) {
+        for (const auto &disk : Drivelist::ListStorageDevices()) {
+            if (QString::fromStdString(disk.device).compare(destination, Qt::CaseInsensitive) == 0)
+                capacity = disk.size;
+        }
+    }
+    if (!capacity && QFileInfo(destination).isFile())
+        capacity = quint64(QFileInfo(destination).size());
+    if (!capacity) {
+        result["ok"] = false;
+        result["text"] = tr("Cannot determine the selected target’s capacity. Select the target again.");
+        return result;
+    }
+
+    const auto unavailable = [&] {
+        result["text"] = tr("A partition preview is unavailable for this download. Select a local copy to review the layout before writing.");
+        return result;
+    };
+    const auto failure = [&](const QString &reason) {
+        result["ok"] = false;
+        result["text"] = tr("Cannot prepare this partition plan: %1\nNothing has been written.").arg(reason);
+        return result;
+    };
+    PartitionImageReader reader(input, cancelled);
+    if (!reader.open(isCompressedDiskImage(source), sizeHint, capacity))
+        return !input.isLocalFile() ? unavailable() : failure(tr("Cannot read the selected disk image or archive"));
+    quint64 imageSize = 0;
+    reader.size(imageSize);
+    if (imageSize > capacity)
+        return failure(tr("The image is larger than the selected target"));
+
+    QByteArray first(int(qMin<quint64>(imageSize, IMAGEWRITER_BLOCKSIZE)), Qt::Uninitialized);
+    std::size_t readBytes = 0;
+    if (reader.readSequential(reinterpret_cast<quint8 *>(first.data()), first.size(), readBytes) != FileError::Success ||
+        readBytes != std::size_t(first.size()))
+        return !input.isLocalFile() ? unavailable() : failure(tr("Cannot read the image partition table"));
     QStringList plan;
     QString error;
     const bool ok = DiskFormatter::prepareOpenHDStorage(first.data(), first.size(), reader,
-        quint64(source.size()), capacity, &error, &plan, true, recordingsSizeBytes);
-    result["ok"] = ok;
-    result["text"] = ok ? plan.join("\n\n") : tr("Cannot prepare this partition plan: %1\nNothing has been written.").arg(error);
+        imageSize, capacity, &error, &plan, true, recordingsSizeBytes);
+    if (reader.previewUnavailable())
+        return unavailable();
+    if (!ok)
+        return failure(error);
+    if (plan.isEmpty())
+        plan.append(tr("The image supplies its own layout. There is no adjustable recordings partition."));
+    result["text"] = plan.join("\n\n");
     result["diskBytes"] = QVariant::fromValue<qulonglong>(capacity);
     QVariantList partitions;
     quint64 recordingMaxBytes = 0;
@@ -531,7 +606,19 @@ QVariantMap ImageWriter::partitionPlan(quint64 recordingsSizeBytes) const
             row["action"] = recordingMatch.captured(1) == QStringLiteral("Create")
                 ? tr("Created by ImageWriter") : tr("Expanded by ImageWriter");
             row["recordings"] = true;
-            partitions.append(row);
+            // An expanded partition replaces the corresponding original row.
+            bool replaced = false;
+            for (auto &partition : partitions) {
+                if (partition.toMap().value("number") == row.value("number")) {
+                    partition = row;
+                    replaced = true;
+                    break;
+                }
+            }
+            if (!replaced)
+                partitions.append(row);
+        } else {
+            result["detail"] = line;
         }
     }
     result["partitions"] = partitions;
@@ -557,7 +644,9 @@ void ImageWriter::startWrite()
     // Reject invalid local image layouts before any target preparation/erase.
     if (_src.isLocalFile() && QFileInfo(_src.toLocalFile()).suffix().compare("img", Qt::CaseInsensitive) == 0 &&
         !_dst.startsWith(QStringLiteral("rockusb:")) && !_dst.startsWith(QStringLiteral("nxpusb:"))) {
-        const auto plan = partitionPlan(_recordingsSizeBytes);
+        const std::atomic_bool cancelled(false);
+        const auto plan = createPartitionPlan(_src, _src, _dst, _devLen, _extrLen,
+                                              _multipleFilesInZip, _recordingsSizeBytes, cancelled);
         if (!plan.value("ok").toBool()) {
             onError(plan.value("text").toString());
             return;
@@ -627,28 +716,19 @@ void ImageWriter::startWrite()
         return;
     }
 
-   QByteArray urlstr = _src.toString(_src.FullyEncoded).toLatin1();
-   QString lowercaseurl = urlstr.toLower();
-   QString lowercasepath = _src.path().toLower();
-   const auto isCompressedName = [](const QString &s) {
-       return s.endsWith(".zip") || s.endsWith(".xz") || s.endsWith(".bz2") ||
-              s.endsWith(".gz") || s.endsWith(".7z") || s.endsWith(".zst") ||
-              s.endsWith(".cache");
-   };
-   bool compressed = isCompressedName(lowercaseurl) || isCompressedName(lowercasepath) ||
-                     lowercaseurl.contains("archive=.zip") || lowercaseurl.contains("archive=.xz") ||
-                     lowercaseurl.contains("archive=.gz") || lowercaseurl.contains("archive=.bz2") ||
-                     lowercaseurl.contains("archive=.zst");
-   if (lowercaseurl.contains("archive=.img") || lowercaseurl.endsWith(".img") || lowercasepath.endsWith(".img"))
-       compressed = false;
-
+    QByteArray urlstr = _src.toString(_src.FullyEncoded).toLatin1();
+    const bool compressed = isCompressedDiskImage(_src);
 
     if (!_extrLen && _src.isLocalFile())
     {
         if (!compressed)
             _extrLen = _downloadLen;
-        else if (lowercaseurl.endsWith(".zip"))
-            _parseCompressedFile();
+        else if (_src.path().endsWith(".zip", Qt::CaseInsensitive) &&
+                 !PartitionImageReader::zipContents(_src.toLocalFile(), _extrLen, _multipleFilesInZip))
+        {
+            onError(tr("Cannot read the selected ZIP archive."));
+            return;
+        }
     }
 
     if (_devLen && _extrLen > _devLen)
@@ -1352,35 +1432,6 @@ void ImageWriter::onFileSelected(QString filename)
 
     sender()->deleteLater();
 #endif
-}
-
-void ImageWriter::_parseCompressedFile()
-{
-    struct archive *a = archive_read_new();
-    struct archive_entry *entry;
-    QByteArray fn = _src.toLocalFile().toLatin1();
-    int numFiles = 0;
-    _extrLen = 0;
-
-    archive_read_support_filter_all(a);
-    archive_read_support_format_all(a);
-
-    if (archive_read_open_filename(a, fn.data(), 10240) == ARCHIVE_OK)
-    {
-        while ( (archive_read_next_header(a, &entry)) == ARCHIVE_OK)
-        {
-            if (archive_entry_size(entry) > 0)
-            {
-              _extrLen += archive_entry_size(entry);
-              numFiles++;
-            }
-        }
-    }
-
-    if (numFiles > 1)
-        _multipleFilesInZip = true;
-
-    qDebug() << "Parsed .zip file containing" << numFiles << "files, uncompressed size:" << _extrLen;
 }
 
 bool ImageWriter::isOnline()

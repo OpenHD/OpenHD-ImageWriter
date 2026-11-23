@@ -325,8 +325,12 @@ int main(int argc, char *argv[])
 #ifndef QT_NO_WIDGETS
     /* Center each desktop launch in the primary screen's usable work area. */
     const QRect screenGeometry = app.primaryScreen()->availableGeometry();
-    int w = qmlwindow->property("width").toInt();
-    int h = qmlwindow->property("height").toInt();
+    qmlwindow->setProperty("minimumWidth", qMin(qmlwindow->property("minimumWidth").toInt(), screenGeometry.width()));
+    qmlwindow->setProperty("minimumHeight", qMin(qmlwindow->property("minimumHeight").toInt(), screenGeometry.height()));
+    const int w = qMin(qmlwindow->property("width").toInt(), screenGeometry.width());
+    const int h = qMin(qmlwindow->property("height").toInt(), screenGeometry.height());
+    qmlwindow->setProperty("width", w);
+    qmlwindow->setProperty("height", h);
     int x = screenGeometry.x() + qMax(0, (screenGeometry.width() - w) / 2);
     int y = screenGeometry.y() + qMax(0, (screenGeometry.height() - h) / 2);
 

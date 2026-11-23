@@ -16,7 +16,7 @@ option(OPENHD_BUNDLE_MAP_RENDERER "Bundle the MapLibre desktop offline-map rende
 
 project(OpenHDImageWriter LANGUAGES CXX C)
 set(IMAGER_VERSION_MAJOR 4)
-set(IMAGER_VERSION_MINOR 2)
+set(IMAGER_VERSION_MINOR 1)
 set(IMAGER_VERSION_PATCH 0)
 set(IMAGER_VERSION_STR "${IMAGER_VERSION_MAJOR}.${IMAGER_VERSION_MINOR}.${IMAGER_VERSION_PATCH}")
 set(IMAGER_VERSION_CSV "${IMAGER_VERSION_MAJOR},${IMAGER_VERSION_MINOR},${IMAGER_VERSION_PATCH},0")
@@ -28,7 +28,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 # Adding headers explicity so they are displayed in Qt Creator
-set(HEADERS offlinemaps/offlinemapbuilder.h config.h archivepathvalidator.h certificatevalidator.h blockbatcher.h curlnetworkconfig.h curlretrypolicy.h diskformatter.h drivesafetypolicy.h drivelist/drivelist.h file_operations.h ringbuffer.h writeprogresswatchdog.h openhdimagecustomizer.h openhdstorageselector.h openhdstorageservice.h imagewriter.h networkaccessmanagerfactory.h nan.h drivelistitem.h drivelistmodel.h drivelistmodelpollthread.h rockchipdevice.h rockchipfirmwarelayout.h nxpflashthread.h driveformatthread.h powersaveblocker.h cli.h
+set(HEADERS offlinemaps/offlinemapbuilder.h config.h archivepathvalidator.h certificatevalidator.h blockbatcher.h curlnetworkconfig.h curlretrypolicy.h diskformatter.h partitionimagereader.h drivesafetypolicy.h drivelist/drivelist.h file_operations.h ringbuffer.h writeprogresswatchdog.h openhdimagecustomizer.h openhdstorageselector.h openhdstorageservice.h imagewriter.h networkaccessmanagerfactory.h nan.h drivelistitem.h drivelistmodel.h drivelistmodelpollthread.h rockchipdevice.h rockchipfirmwarelayout.h nxpflashthread.h driveformatthread.h powersaveblocker.h cli.h
     downloadthread.h downloadextractthread.h localfileextractthread.h downloadstatstelemetry.h updateuploadthread.h dependencies/mountutils/src/mountutils.hpp dependencies/sha256crypt/sha256crypt.h)
 
 # Add dependencies
@@ -96,7 +96,7 @@ if (NOT atomicbuiltin)
         endif()
 endif()
 
-set(SOURCES "offlinemaps/offlinemapbuilder.cpp" "main.cpp" "fatimagewriter.cpp" "rockchipconfiguration.cpp" "dependencies/fatfs/ff.c" "dependencies/fatfs/ffunicode.c" "archivepathvalidator.cpp" "certificatevalidator.cpp" "blockbatcher.cpp" "curlnetworkconfig.cpp" "curlretrypolicy.cpp" "diskformatter.cpp" "drivesafetypolicy.cpp" "file_operations.cpp" "ringbuffer.cpp" "writeprogresswatchdog.cpp" "openhdimagecustomizer.cpp" "openhdstorageselector.cpp" "openhdstorageservice.cpp" "imagewriter.cpp" "networkaccessmanagerfactory.cpp"
+set(SOURCES "offlinemaps/offlinemapbuilder.cpp" "main.cpp" "fatimagewriter.cpp" "rockchipconfiguration.cpp" "dependencies/fatfs/ff.c" "dependencies/fatfs/ffunicode.c" "archivepathvalidator.cpp" "certificatevalidator.cpp" "blockbatcher.cpp" "curlnetworkconfig.cpp" "curlretrypolicy.cpp" "diskformatter.cpp" "partitionimagereader.cpp" "drivesafetypolicy.cpp" "file_operations.cpp" "ringbuffer.cpp" "writeprogresswatchdog.cpp" "openhdimagecustomizer.cpp" "openhdstorageselector.cpp" "openhdstorageservice.cpp" "imagewriter.cpp" "networkaccessmanagerfactory.cpp"
     "drivelistitem.cpp" "drivelistmodel.cpp" "drivelistmodelpollthread.cpp" "rockchipdevice.cpp" "rockchipfirmwarelayout.cpp" "rockchipflashthread.cpp" "nxpflashthread.cpp" "downloadthread.cpp" "downloadextractthread.cpp"
      "driveformatthread.cpp" "localfileextractthread.cpp" "powersaveblocker.cpp" "downloadstatstelemetry.cpp" "updateuploadthread.cpp" "qml.qrc" "dependencies/sha256crypt/sha256crypt.c" "cli.cpp")
 

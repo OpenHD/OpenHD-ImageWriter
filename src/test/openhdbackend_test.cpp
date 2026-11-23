@@ -27,6 +27,7 @@ bool testRockchipConfiguration(const QString &fatImage, const QString &staging);
 #include <QFile>
 #include <QJsonDocument>
 #include <QList>
+#include <QRegularExpression>
 #include <QSettings>
 #include <QTemporaryDir>
 
@@ -873,17 +874,26 @@ bool testExternalImagePartitionPreview()
         targetSize = quint64(targetInfo.size());
         targetInfo.close();
     }
+    const quint64 recordingsSize = qEnvironmentVariable("OPENHD_STORAGE_TEST_RECORDINGS_BYTES").toULongLong();
     QStringList plan;
     QString error;
     const bool ok = DiskFormatter::prepareOpenHDStorage(first.data(), first.size(), image,
-        imageSize, targetSize, &error, &plan, true);
+        imageSize, targetSize, &error, &plan, true, recordingsSize);
+    const QRegularExpression recordingRange(QStringLiteral("RECORDINGS \\(FAT32\\): [0-9.]+ GiB, sectors (\\d+)-(\\d+)"));
+    const auto recordings = recordingRange.match(plan.join("\n"));
     if (!check(ok, "Selected image partition preview failed: " + error) ||
         !check(first == original, "Selected image preview modified the source image") ||
-        !check(plan.join(" ").contains("RECORDINGS"), "Selected image preview omitted recordings storage"))
+        !check(recordings.hasMatch(), "Selected image preview omitted recordings storage"))
         return false;
 
     // Optional full image-stream and finalization test against a sparse file.
     // No physical disk is opened; callers must explicitly provide the target.
+    if (recordingsSize) {
+        const quint64 start = recordings.captured(1).toULongLong();
+        const quint64 end = recordings.captured(2).toULongLong();
+        if (!check((end - start + 1) * 512 == recordingsSize,
+                   "Selected image preview used the wrong recordings size")) return false;
+    }
     if (targetPath.isEmpty()) return true;
     std::unique_ptr<FileOperations> target = FileOperations::create();
     if (!check(target->openDevice(targetPath, false) == FileError::Success,
@@ -907,7 +917,7 @@ bool testExternalImagePartitionPreview()
     if (!check(target->flush() == FileError::Success, "Could not flush simulated image body")) return false;
     QByteArray committed = original;
     if (!check(DiskFormatter::prepareOpenHDStorage(committed.data(), committed.size(), *target,
-                 imageSize, targetSize, &error), "Full image provisioning failed: " + error))
+                 imageSize, targetSize, &error, nullptr, false, recordingsSize), "Full image provisioning failed: " + error))
         return false;
     // prepareOpenHDStorage publishes both GPT copies as part of the same
     // operation once the recordings filesystem has been verified.
@@ -925,7 +935,8 @@ bool testExternalImagePartitionPreview()
                read == std::size_t(readback.size()) && readback == committed,
                "Simulated image partition map readback failed")) return false;
     QByteArray recordingsBoot(512, 0);
-    if (!check(target->seek(imageSize) == FileError::Success &&
+    const quint64 recordingsStart = recordings.captured(1).toULongLong() * 512;
+    if (!check(target->seek(recordingsStart) == FileError::Success &&
                target->readSequential(reinterpret_cast<quint8 *>(recordingsBoot.data()), 512, read) == FileError::Success &&
                read == 512 && recordingsBoot.mid(71, 11) == QByteArray("RECORDINGS "),
                "Simulated recordings FAT32 volume is missing")) return false;

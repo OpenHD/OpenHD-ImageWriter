@@ -26,6 +26,19 @@ Item {
             mouseClick(plan.standardButton(Dialog.Cancel))
             compare(confirmed.count, 0)
         }
+        function test_loading_plan_disables_writing_until_ready() {
+            plan.plan = ({loading: true})
+            plan.openPopup()
+            tryCompare(plan, "opened", true)
+            verify(plan.standardButton(Dialog.Ok) === null)
+            plan.plan = ({ok: true, text: "The image supplies the partition layout.",
+                recordingsMaxBytes: 128 * 1024 * 1024, recordingsEditable: true})
+            verify(plan.standardButton(Dialog.Ok).visible)
+            compare(plan.standardButton(Dialog.Ok).text, "Erase and write")
+            verify(plan.canAdjust)
+            plan.automaticPartitioning = false
+            compare(plan.selectedRecordingsBytes, 128 * 1024 * 1024)
+        }
         function test_invalid_plan_cannot_start_writing() {
             plan.plan = ({ok: false, text: "Invalid image layout. Nothing has been written."})
             plan.openPopup()
@@ -60,7 +73,11 @@ Item {
             plan.selectedRecordingsMiB = 128
             compare(plan.selectedRecordingsBytes, 128 * 1024 * 1024)
             compare(plan.freeBytes(), 768 * 1024 * 1024)
-            verify(findChild(plan, "recordingsSizeSlider").visible)
+            var slider = findChild(plan, "recordingsSizeSlider")
+            verify(slider.visible)
+            slider.forceActiveFocus()
+            keyClick(Qt.Key_Right)
+            compare(plan.selectedRecordingsBytes, 129 * 1024 * 1024)
         }
         function test_review_scrolls_all_rows_and_recordings_controls_into_view() {
             var partitions = []
@@ -81,8 +98,8 @@ Item {
                 partitions: partitions})
             plan.openPopup()
             tryCompare(plan, "opened", true)
-            compare(plan.width, testRoot.width)
-            compare(plan.height, testRoot.height)
+            compare(plan.width, testRoot.width - 2 * plan.margins)
+            compare(plan.height, testRoot.height - 2 * plan.margins)
             tryCompare(findChild(plan, "partitionTable"), "height", 38 + partitions.length * 52)
             var scroll = findChild(plan, "partitionReviewScroll")
             tryVerify(function() { return scroll.contentHeight > scroll.height })
@@ -98,9 +115,15 @@ Item {
             tryVerify(function() { return scroll.contentHeight > beforeAdjusting })
             var slider = findChild(plan, "recordingsSizeSlider")
             verify(slider.visible)
-            scroll.contentY = scroll.contentHeight - scroll.height
-            verify(slider.mapToItem(scroll, 0, slider.height).y <= scroll.height)
-            verify(plan.standardButton(Dialog.Ok).visible)
+            tryVerify(function() { return slider.mapToItem(scroll, 0, slider.height).y <= scroll.height })
+            compare(scroll.contentWidth, scroll.width)
+            var erase = plan.standardButton(Dialog.Ok)
+            var cancel = plan.standardButton(Dialog.Cancel)
+            verify(erase.visible && cancel.visible)
+            verify(erase.mapToItem(testRoot, erase.width, erase.height).x <= testRoot.width)
+            verify(erase.mapToItem(testRoot, erase.width, erase.height).y <= testRoot.height)
+            mouseClick(erase)
+            compare(confirmed.count, 1)
         }
     }
 }
