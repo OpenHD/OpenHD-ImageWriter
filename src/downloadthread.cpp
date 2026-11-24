@@ -433,7 +433,7 @@ void DownloadThread::run()
             if (!_cancelled)
                 _onDownloadError(_lastFileError == FileError::Success
                     ? tr("Error writing file to disk")
-                    : tr("Error writing to storage: %1").arg(fileErrorMessage(_lastFileError)));
+                    : tr("Error writing to storage: %1").arg(_storageFailureDetail()));
         break;
     case CURLE_ABORTED_BY_CALLBACK:
         deleteDownloadedFile();
@@ -514,6 +514,13 @@ void DownloadThread::_openCacheFile()
 void DownloadThread::_hashData(const char *buf, size_t len)
 {
     _writehash.addData(buf, len);
+}
+
+QString DownloadThread::_storageFailureDetail() const
+{
+    const QString nativeDetail = _file->lastErrorDetail();
+    const QString error = fileErrorMessage(_lastFileError);
+    return nativeDetail.isEmpty() ? error : error + QStringLiteral("<br>") + nativeDetail.toHtmlEscaped();
 }
 
 bool DownloadThread::_writeBatch(const quint8 *data, std::size_t size)
@@ -823,7 +830,7 @@ void DownloadThread::_writeComplete()
             _firstBlock = nullptr;
         }
         if (!_cancelled)
-            DownloadThread::_onDownloadError(tr("Error writing final block to storage"));
+            DownloadThread::_onDownloadError(tr("Error writing final block to storage: %1").arg(_storageFailureDetail()));
         _closeFiles();
         return;
     }
@@ -848,7 +855,7 @@ void DownloadThread::_writeComplete()
     if (!_flushDevice())
     {
         if (!_cancelled)
-            DownloadThread::_onDownloadError(tr("Error writing to storage (while flushing)"));
+            DownloadThread::_onDownloadError(tr("Error writing to storage while flushing: %1").arg(_storageFailureDetail()));
         _closeFiles();
         return;
     }
@@ -947,7 +954,7 @@ void DownloadThread::_writeComplete()
             _firstBlock = nullptr;
 
             if (!_cancelled)
-                DownloadThread::_onDownloadError(tr("Error writing first block (partition table)"));
+                DownloadThread::_onDownloadError(tr("Error writing first block (partition table): %1").arg(_storageFailureDetail()));
             _closeFiles();
             return;
         }

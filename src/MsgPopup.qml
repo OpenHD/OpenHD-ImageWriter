@@ -37,6 +37,7 @@ Popup {
     property bool closeButton: false
     property bool rescanButton: false
     property bool retryButton: false
+    property string retryButtonText: qsTr("RETRY")
     property bool resetButton: false
     property bool showCloseIcon: true
     property string detailsSnapshot: ""
@@ -162,7 +163,7 @@ Popup {
             }
 
             ImButton {
-                text: qsTr("RETRY")
+                text: msgpopup.retryButtonText
                 onClicked: {
                     msgpopup.close()
                     msgpopup.retry()

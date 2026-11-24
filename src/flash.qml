@@ -2079,9 +2079,15 @@ Rectangle {
 
     MsgPopup {
         id: msgpopup
+        property bool retryRequiresTarget: false
+        retryButtonText: retryRequiresTarget ? qsTr("CHOOSE STORAGE AGAIN") : qsTr("RETRY")
         onRetry: {
             retryButton = false
             resetButton = false
+            if (retryRequiresTarget) {
+                window.chooseRetryTarget()
+                return
+            }
             completionHandled = false
             resetDownloadTracking()
             progressText.text = qsTr("Retrying download...")
@@ -2356,21 +2362,33 @@ Rectangle {
     }
 
     function onError(msg) {
+        var chooseTargetAgain = isFlashing && !imageWriter.isOhdFile(imageWriter.src()) &&
+                                String(imageWriter.dst()).toLowerCase().indexOf("physicaldrive") === 4
         completionHandled = true
         rockchipFinalizationFallback.stop()
         msgpopup.title = qsTr("Error")
         msgpopup.text = msg
         var downloadFailure = String(msg).indexOf("Error downloading:") === 0
-        msgpopup.retryButton = false
-        msgpopup.resetButton = false
-        msgpopup.continueButton = true
-        msgpopup.showCloseIcon = true
+        msgpopup.retryRequiresTarget = chooseTargetAgain && !downloadFailure
         msgpopup.continueButton = !downloadFailure
-        msgpopup.retryButton = downloadFailure
+        msgpopup.retryButton = downloadFailure || msgpopup.retryRequiresTarget
         msgpopup.resetButton = downloadFailure
         msgpopup.showCloseIcon = !downloadFailure
         msgpopup.openPopup()
         resetWriteButton()
+        if (msgpopup.retryRequiresTarget)
+            reviewingOperation = true
+    }
+
+    function chooseRetryTarget() {
+        imageWriter.setDst("")
+        selectedTargetSize = 0
+        selectedTargetIsComputeModule = false
+        selectedTargetIsRv1106 = false
+        dstbutton.text = qsTr("CHOOSE STORAGE")
+        reviewingOperation = false
+        selectingTarget = true
+        imageWriter.startDriveListPolling()
     }
 
     function onSuccess() {

@@ -285,7 +285,7 @@ void DownloadExtractThread::extractImageRun()
     catch (const ImageStorageWriteError &)
     {
         const bool reportError = !_cancelled;
-        const QString detail = fileErrorMessage(_lastFileError);
+        const QString detail = _storageFailureDetail();
         if (reportError)
             cancelDownload();
         _closeDevice();

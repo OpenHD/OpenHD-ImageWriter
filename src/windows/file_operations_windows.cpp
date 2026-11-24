@@ -57,6 +57,9 @@ public:
         _lastErrorDetail.clear();
         const bool physicalDrive = path.startsWith(QStringLiteral("\\\\.\\PHYSICALDRIVE"),
                                                    Qt::CaseInsensitive);
+        _physicalDrive = physicalDrive;
+        _writeChunkLimit = std::numeric_limits<DWORD>::max();
+        _haveMediaChangeCount = false;
         // Windows storage services and security scanners commonly retain handles
         // that request read/write sharing even after every mounted volume has been
         // locked and dismounted.  Permit both share modes for the physical disk;
@@ -79,10 +82,13 @@ public:
                     DeviceIoControl(_handle, FSCTL_ALLOW_EXTENDED_DASD_IO, nullptr, 0,
                                     nullptr, 0, &returned, nullptr);
                 }
+                if (physicalDrive)
+                    _haveMediaChangeCount = readMediaChangeCount(_mediaChangeCount);
                 return FileError::Success;
             }
             result = recordError(GetLastError());
-            if (result != FileError::Busy || attempt + 1 == attempts) break;
+            if ((result != FileError::Busy && result != FileError::NotReady) ||
+                attempt + 1 == attempts) break;
             Sleep(100);
         }
         return result;
@@ -92,6 +98,9 @@ public:
     {
         close();
         resetCancellation();
+        _physicalDrive = false;
+        _writeChunkLimit = std::numeric_limits<DWORD>::max();
+        _haveMediaChangeCount = false;
         const HANDLE source = reinterpret_cast<HANDLE>(handle);
         if (!source || source == INVALID_HANDLE_VALUE) return FileError::InvalidArgument;
         if (takeOwnership)
@@ -126,23 +135,74 @@ public:
                               std::size_t &bytesWritten) override
     {
         bytesWritten = 0;
+        _lastErrorDetail.clear();
         if (!isOpen()) return FileError::NotOpen;
         if (!data && size) return FileError::InvalidArgument;
 
+        constexpr DWORD compatibilityChunkSize = 128 * 1024;
+        int retries = 0;
         while (bytesWritten < size)
         {
             if (_cancelled.load()) return FileError::Cancelled;
             const DWORD chunk = static_cast<DWORD>(std::min<std::size_t>(
-                size - bytesWritten, std::numeric_limits<DWORD>::max()));
+                size - bytesWritten, _writeChunkLimit));
+            LARGE_INTEGER offset = {};
+            const bool haveOffset = _physicalDrive &&
+                SetFilePointerEx(_handle, offset, &offset, FILE_CURRENT);
             DWORD written = 0;
             if (!WriteFile(_handle, data + bytesWritten, chunk, &written, nullptr))
             {
                 const DWORD code = GetLastError();
-                qWarning() << "Windows storage write failed at byte" << position() << "with error" << code;
-                return recordError(code);
+                const FileError error = recordError(code);
+                _lastErrorDetail += QStringLiteral(" (WriteFile at byte %1, %2-byte write)")
+                    .arg(haveOffset ? static_cast<quint64>(offset.QuadPart) : position()).arg(chunk);
+                qWarning().noquote() << _lastErrorDetail;
+                if (!haveOffset || _cancelled.load() || retries == 5 ||
+                    (code != ERROR_NOT_READY &&
+                     !(error == FileError::InvalidArgument && chunk > compatibilityChunkSize)))
+                    return error;
+                // Retry the same bytes on the locked disk at the original offset.
+                // Some readers accept smaller transfers after rejecting a full batch.
+                if (code == ERROR_NOT_READY)
+                {
+                    if (!_haveMediaChangeCount)
+                    {
+                        _lastErrorDetail += QStringLiteral("; reader did not report the initial media change count");
+                        return error;
+                    }
+                    for (;;)
+                    {
+                        Sleep(100U << retries++);
+                        if (_cancelled.load()) return FileError::Cancelled;
+                        ULONG mediaChangeCount = 0;
+                        if (readMediaChangeCount(mediaChangeCount))
+                        {
+                            if (mediaChangeCount != _mediaChangeCount)
+                            {
+                                _lastErrorDetail += QStringLiteral("; media change detected");
+                                return error;
+                            }
+                            break;
+                        }
+                        if (retries == 5)
+                        {
+                            _lastErrorDetail += QStringLiteral("; media did not become ready during recovery");
+                            return error;
+                        }
+                    }
+                }
+                else
+                {
+                    ++retries;
+                }
+                _writeChunkLimit = compatibilityChunkSize;
+                const FileError rewind = seek(static_cast<quint64>(offset.QuadPart));
+                if (rewind != FileError::Success) return rewind;
+                continue;
             }
             if (written == 0) return FileError::IoError;
             bytesWritten += written;
+            retries = 0;
         }
         return FileError::Success;
     }
@@ -167,10 +227,15 @@ public:
     FileError seek(quint64 position) override
     {
         if (!isOpen()) return FileError::NotOpen;
+        _lastErrorDetail.clear();
         LARGE_INTEGER target;
         target.QuadPart = static_cast<LONGLONG>(position);
-        return SetFilePointerEx(_handle, target, nullptr, FILE_BEGIN)
-                   ? FileError::Success : recordError(GetLastError());
+        if (SetFilePointerEx(_handle, target, nullptr, FILE_BEGIN))
+            return FileError::Success;
+        const DWORD code = GetLastError();
+        const FileError error = recordError(code);
+        _lastErrorDetail += QStringLiteral(" (SetFilePointerEx at byte %1)").arg(position);
+        return error;
     }
 
     quint64 position() const override
@@ -204,8 +269,12 @@ public:
     {
         if (!isOpen()) return FileError::NotOpen;
         if (_cancelled.load()) return FileError::Cancelled;
-        return FlushFileBuffers(_handle) ? FileError::Success
-                                         : recordError(GetLastError());
+        _lastErrorDetail.clear();
+        if (FlushFileBuffers(_handle)) return FileError::Success;
+        const DWORD code = GetLastError();
+        const FileError error = recordError(code);
+        _lastErrorDetail += QStringLiteral(" (FlushFileBuffers at byte %1)").arg(position());
+        return error;
     }
 
     QString lastErrorDetail() const override { return _lastErrorDetail; }
@@ -219,6 +288,14 @@ public:
     void resetCancellation() override { _cancelled.store(false); }
 
 private:
+    bool readMediaChangeCount(ULONG &count) const
+    {
+        DWORD returned = 0;
+        return DeviceIoControl(_handle, IOCTL_STORAGE_CHECK_VERIFY, nullptr, 0,
+                               &count, sizeof(count), &returned, nullptr) &&
+               returned == sizeof(count);
+    }
+
     FileError recordError(DWORD code) const
     {
         wchar_t *buffer = nullptr;
@@ -233,6 +310,10 @@ private:
     }
     mutable QString _lastErrorDetail;
     HANDLE _handle = INVALID_HANDLE_VALUE;
+    bool _physicalDrive = false;
+    bool _haveMediaChangeCount = false;
+    ULONG _mediaChangeCount = 0;
+    DWORD _writeChunkLimit = std::numeric_limits<DWORD>::max();
     std::atomic<bool> _cancelled{false};
 };
 

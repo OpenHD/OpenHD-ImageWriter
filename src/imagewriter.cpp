@@ -636,9 +636,8 @@ void ImageWriter::setRecordingsSizeBytes(quint64 sizeBytes)
 void ImageWriter::startWrite()
 {
     qDebug() << "Write function executed.";
-    stopDriveListPolling();
 
-    if (!readyToWrite())
+    if (!readyToWrite() || isWriting())
         return;
 
     // Reject invalid local image layouts before any target preparation/erase.
@@ -652,6 +651,10 @@ void ImageWriter::startWrite()
             return;
         }
     }
+
+    stopDriveListPolling();
+    delete _thread;
+    _thread = nullptr;
 
     if (_dst.startsWith(QStringLiteral("nxpusb:")))
     {

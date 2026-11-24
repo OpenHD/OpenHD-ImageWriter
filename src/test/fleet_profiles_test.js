@@ -54,6 +54,31 @@ assert.strictEqual(context.isRv1106Device({device:'disk',usbVendorId:0x2207,usbP
 assert.strictEqual(context.isRv1106Device({device:'rockusb:board'}),false);
 // Exercise the actual write entry point with a saved Ground profile present.
 const flashQml=fs.readFileSync(require.resolve('../flash.qml'),'utf8');
+const retryFunctions=flashQml.slice(flashQml.indexOf('    function onError(msg)'),
+  flashQml.indexOf('    function onSuccess()'));
+const retryUi={
+  isFlashing: true, reviewingOperation: false, selectingTarget: false,
+  optionsPage: {configurationApplied: true}, dstbutton: {},
+  imageWriter: {
+    source: 'file:///openhd-image-pi.img.xz', target: '\\\\.\\PHYSICALDRIVE1',
+    src() { return this.source; }, dst() { return this.target; },
+    isOhdFile: () => false, setDst(value) { this.target = value; },
+    startDriveListPolling() { this.polling = true; }
+  },
+  msgpopup: {openPopup() {}}, rockchipFinalizationFallback: {stop() {}},
+  qsTr: text => text, resetWriteButton() {}
+};
+vm.runInNewContext(retryFunctions, retryUi);
+retryUi.onError('Error writing to storage: Storage device is not ready');
+assert.strictEqual(retryUi.msgpopup.retryRequiresTarget, true);
+assert.strictEqual(retryUi.reviewingOperation, true);
+retryUi.chooseRetryTarget();
+assert.strictEqual(retryUi.selectingTarget, true);
+assert.strictEqual(retryUi.imageWriter.polling, true);
+assert.strictEqual(retryUi.imageWriter.target, '');
+assert.strictEqual(retryUi.imageWriter.source, 'file:///openhd-image-pi.img.xz');
+assert.strictEqual(retryUi.optionsPage.configurationApplied, true);
+
 const resetImageSettings=flashQml.match(/    function resetOpenHdSettingsForNewImage\(\) \{[^]*?\n    \}/)[0];
 settings.platform = 'zero3w';
 settings.sbc = 'zero3w';

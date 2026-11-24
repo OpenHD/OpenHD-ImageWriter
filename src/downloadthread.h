@@ -145,6 +145,7 @@ protected:
                              std::size_t &bytesWritten);
     bool _flushDevice();
     bool _writeBatch(const quint8 *data, std::size_t size);
+    QString _storageFailureDetail() const;
     void _writeComplete();
     bool _verify();
     int _authopen(const QByteArray &filename);
