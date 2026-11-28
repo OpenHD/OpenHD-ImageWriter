@@ -5,7 +5,7 @@ on:
     branches:
       - "2.5-evo"
       - "dev-release"
-      - "release"
+      - "master"
       - "testing"
     paths-ignore:
       - '**.md'

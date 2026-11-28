@@ -5,7 +5,7 @@ on:
     branches:
       - "debug"
       - "dev-release"
-      - "release"
+      - "master"
       - "2.0.4"
 
 jobs:
