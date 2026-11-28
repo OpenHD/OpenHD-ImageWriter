@@ -1,4 +1,5 @@
 #include <windows.h>
+#include "imager_windows_version.h"
 
 IDI_ICON1 ICON DISCARDABLE "../icons/openhdimagewriter.ico"
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "openhdimagewriter.manifest"
@@ -13,9 +14,9 @@ PRODUCTVERSION IMAGER_VERSION_CSV
         {
             VALUE "CompanyName",     "OpenHD"
             VALUE "FileDescription", "OpenHD ImageWriter"
-            VALUE "FileVersion",     IMAGER_VERSION_STR
+            VALUE "FileVersion",     IMAGER_RC_VERSION_STR
             VALUE "ProductName",     "OpenHD ImageWriter"
-            VALUE "ProductVersion",  IMAGER_VERSION_STR
+            VALUE "ProductVersion",  IMAGER_RC_VERSION_STR
         }
     }
     BLOCK "VarFileInfo"

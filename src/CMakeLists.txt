@@ -72,6 +72,7 @@ elseif (UNIX)
         set(DEPENDENCIES ${DEPENDENCIES} acceleratedcryptographichash.cpp)
     endif()
 elseif (WIN32)
+    configure_file(windows/imager_windows_version.h.in imager_windows_version.h @ONLY)
     set(FILE_OPERATIONS_PLATFORM_SOURCE windows/file_operations_windows.cpp)
     set(DEPENDENCIES acceleratedcryptographichash.cpp ${FILE_OPERATIONS_PLATFORM_SOURCE} dependencies/mountutils/src/windows/functions.cpp drivelist/drivelist_windows.cpp
         windows/windowsdiskpreparation.cpp windows/windowsdiskpreparation.h
