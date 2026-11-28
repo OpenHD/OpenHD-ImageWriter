@@ -2527,7 +2527,7 @@
         </message>
         <message>
             <location filename="../flash.qml" line="561" />
-            <source>No current dev-release image artifacts were found.</source>
+            <source>No current snapshot image artifacts were found.</source>
             <translation>Er zijn geen actuele dev-release afbeeldingen gevonden.</translation>
         </message>
         <message>

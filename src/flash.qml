@@ -573,7 +573,7 @@ Rectangle {
             }
 
             if (githubDevImageCount === 0)
-                githubDevError = qsTr("No current dev-release image artifacts were found.")
+                githubDevError = qsTr("No current snapshot image artifacts were found.")
         }
 
         function refreshGithubDevImages() {

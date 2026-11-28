@@ -2595,7 +2595,7 @@
         </message>
         <message>
             <location line="+18" />
-            <source>No current dev-release image artifacts were found.</source>
+            <source>No current snapshot image artifacts were found.</source>
             <translation>No se encontraron artefactos de imagen de liberación actual.</translation>
         </message>
         <message>

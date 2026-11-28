@@ -137,7 +137,7 @@ function _channel(entry) {
     var value = _text(entry)
     return value.indexOf("development") >= 0 || value.indexOf("nightly") >= 0 ||
             value.indexOf("snapshot") >= 0 || value.indexOf("testing") >= 0 ||
-            value.indexOf("beta") >= 0 || value.indexOf("dev-release") >= 0
+            value.indexOf("beta") >= 0 || value.indexOf("dev-release") >= 0 || value.indexOf("snapshot") >= 0
             ? "development" : "stable"
 }
 

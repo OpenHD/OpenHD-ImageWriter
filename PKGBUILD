@@ -15,11 +15,15 @@ optdepends=('udisks2: desktop authorization and device management'
             'qt5-location: offline map selection')
 provides=('openhdimagewriter')
 conflicts=('openhdimagewriter')
-source=('OpenHD-ImageWriter::git+https://github.com/OpenHD/OpenHD-ImageWriter.git#branch=dev-release')
+source=('OpenHD-ImageWriter::git+https://github.com/OpenHD/OpenHD-ImageWriter.git#branch=snapshots')
 sha256sums=('SKIP')
 
 pkgver() {
   cd "$srcdir/OpenHD-ImageWriter"
+  if [[ ${OPENHD_SNAPSHOT_NUMBER:-} =~ ^[1-9][0-9]*$ ]]; then
+    printf '0.0.%s\n' "$OPENHD_SNAPSHOT_NUMBER"
+    return
+  fi
   printf 'r%s.g%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 

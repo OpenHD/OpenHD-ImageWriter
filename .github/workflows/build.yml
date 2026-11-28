@@ -2,7 +2,7 @@ name: OpenHD ImageWriter builds
 
 on:
   push:
-    branches: [dev-release, release]
+    branches: [snapshots, master]
     tags: ['v*']
   pull_request:
   workflow_dispatch:
@@ -11,6 +11,7 @@ permissions:
   contents: read
 
 env:
+  OPENHD_SNAPSHOT_NUMBER: ${{ github.ref_name == 'snapshots' && github.run_number || '' }}
   BUILD_TYPE: Release
 
 jobs:
@@ -43,9 +44,9 @@ jobs:
           mkdir aur-build
           cp PKGBUILD aur-build/
           chown -R builder:builder aur-build
-          sudo -u builder env SOURCE_REPO="$GITHUB_WORKSPACE" bash -c '
+          sudo -u builder env SOURCE_REPO="$GITHUB_WORKSPACE" OPENHD_SNAPSHOT_NUMBER="$OPENHD_SNAPSHOT_NUMBER" bash -c '
             cd aur-build
-            sed -i "s|git+https://github.com/OpenHD/OpenHD-ImageWriter.git#branch=dev-release|git+file://${SOURCE_REPO}#commit=$(git -C "$SOURCE_REPO" rev-parse HEAD)|" PKGBUILD
+            sed -i "s|git+https://github.com/OpenHD/OpenHD-ImageWriter.git#branch=snapshots|git+file://${SOURCE_REPO}#commit=$(git -C "$SOURCE_REPO" rev-parse HEAD)|" PKGBUILD
             makepkg --syncdeps --cleanbuild --force --noconfirm
           '
       - name: Inspect package
@@ -111,7 +112,10 @@ jobs:
           source_dir=$(mktemp -d)
           cp -a . "$source_dir/source"
           cd "$source_dir/source"
-          debuild -uc -us
+          if [ -n "$OPENHD_SNAPSHOT_NUMBER" ]; then
+            DEBFULLNAME=OpenHD DEBEMAIL=builds@openhd.tech dch --newversion "0.0.$OPENHD_SNAPSHOT_NUMBER" --force-bad-version --distribution unstable "Snapshot build."
+          fi
+          debuild --preserve-envvar OPENHD_SNAPSHOT_NUMBER -uc -us
           cp "$source_dir"/*.deb "$GITHUB_WORKSPACE/"
 
       - name: Upload to GitHub
@@ -123,7 +127,7 @@ jobs:
           if-no-files-found: error
 
       - name: Push to Cloudsmith
-        if: github.event_name == 'push' && github.ref_name == 'release'
+        if: github.event_name == 'push' && github.ref_name == 'master'
         id: push
         uses: cloudsmith-io/action@master
         with:
@@ -131,7 +135,7 @@ jobs:
           command: "push"
           format: "deb"
           owner: "openhd"
-          repo: ${{ github.ref_name }}
+          repo: ${{ github.ref_name == 'snapshots' && 'dev-release' || github.ref_name == 'master' && 'release' || github.ref_name }}
           distro: "ubuntu"
           release: "${{ matrix.distro.name }}"
           republish: "true"
