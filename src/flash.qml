@@ -48,12 +48,12 @@ Rectangle {
     }
     onReviewingOperationChanged: {
         if (reviewingOperation && fleetControlSignedIn && fleetControlProfileName.length === 0) {
-            var savedCraft = imageWriter.getValue("fleetcontrol_craft_name")
+            var savedCraft = imageWriter.getValue("fleetcontrol_craft_id")
             if (savedCraft && savedCraft.length > 0) {
                 var profs = FleetProfilesHelper.loadProfiles(imageWriter)
                 for (var k = 0; k < profs.length; ++k) {
-                    if (profs[k].craftName === savedCraft) {
-                        fleetControlProfileName = savedCraft
+                    if (profs[k].craftId === savedCraft) {
+                        fleetControlProfileName = profs[k].craftName
                         fleetControlProfileDetail = FleetProfilesHelper.profileSummary(profs[k])
                         fleetControlProfileIcon = profs[k].craftIcon || ""
                         break
@@ -1438,8 +1438,16 @@ Rectangle {
         }
     }
 
-    function reopenFleetProfilePicker() {
-        if (reviewingOperation) operationReview.openProfilePicker()
+    function selectCreatedFleetCraft(craftId) {
+        if (!reviewingOperation) return
+        var profiles = FleetProfilesHelper.loadProfiles(imageWriter)
+        for (var i = 0; i < profiles.length; ++i) {
+            if (profiles[i].craftId === craftId) {
+                operationReview.selectCraft(profiles[i])
+                return
+            }
+        }
+        operationReview.openProfilePicker()
     }
 
     OperationReviewPage {
@@ -1476,7 +1484,7 @@ Rectangle {
             stageProfileOfflineMap(profile)
         }
         onProfileSettingsToggled: function(enabled) {
-            useProfileSettings = enabled
+            window.useProfileSettings = enabled
         }
         onClearProfileRequested: {
             fleetControlProfileName = ""
@@ -1590,7 +1598,7 @@ Rectangle {
         if (!usesRv1106Defaults && fleetControlSignedIn && useProfileSettings && fleetControlProfileName.length > 0) {
             var activeProfiles = FleetProfilesHelper.loadProfiles(imageWriter)
             for (var aIdx = 0; aIdx < activeProfiles.length; ++aIdx) {
-                if (activeProfiles[aIdx].craftName === fleetControlProfileName) {
+                if (activeProfiles[aIdx].craftId === imageWriter.getValue("fleetcontrol_craft_id")) {
                     selectedCraft = activeProfiles[aIdx]
                     break
                 }

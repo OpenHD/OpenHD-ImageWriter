@@ -405,7 +405,7 @@ Item {
             if (xhr.status >= 200 && xhr.status < 300 && resp && resp.profile && resp.profile.id) {
                 var callback = profileCreatedCallback
                 closeEditor()
-                loadCrafts(callback)
+                loadCrafts(callback ? function() { callback(resp.profile.id) } : undefined)
                 message = qsTr("Saved '%1' in your Hangar.").arg(name)
             } else {
                 message = resp && resp.message

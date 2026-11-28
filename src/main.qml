@@ -136,11 +136,11 @@ ApplicationWindow {
     function createFleetProfileFromFlash() {
         if (!fleetControlSignedIn || !fleetControlLoader.item) return
         openFeature("fleetcontrol", true)
-        if (currentView === "fleetcontrol") fleetControlLoader.item.openNewUnitEditor(function() {
+        if (currentView === "fleetcontrol") fleetControlLoader.item.openNewUnitEditor(function(craftId) {
             if (currentView !== "fleetcontrol") return
             openFeature("flash", true)
             Qt.callLater(function() {
-                if (currentView === "flash") forwardIfAvailable("reopenFleetProfilePicker", [])
+                if (currentView === "flash") forwardIfAvailable("selectCreatedFleetCraft", [craftId])
             })
         })
     }

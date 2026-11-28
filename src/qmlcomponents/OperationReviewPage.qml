@@ -39,6 +39,14 @@ Item {
     signal profileSettingsToggled(bool enabled)
     signal profileSelected(var profile)
     signal createProfileRequested()
+    property string selectedCraftId: ""
+    function selectCraft(profile) {
+        FleetProfilesHelper.applyProfile(imageWriter, profile)
+        selectedCraftId = profile.craftId
+        useProfileSettings = true
+        profileSettingsToggled(true)
+        profileSelected(profile)
+    }
     function openProfilePicker() { profilePickerPopup.openPicker() }
     signal clearProfileRequested()
 
@@ -320,7 +328,7 @@ Item {
                             width: root.narrow ? 116 : 142
                             implicitHeight: root.narrow ? 34 : 38
                             primary: true
-                            text: qsTr("Select profile ▾")
+                            text: qsTr("Choose craft…")
                             onClicked: profilePickerPopup.openPicker()
                         }
                     }
@@ -508,6 +516,8 @@ Item {
         property var profilesList: []
 
         function openPicker() {
+            craftSearch.text = ""
+            root.selectedCraftId = imageWriter.getValue("fleetcontrol_craft_id") || ""
             profilesList = FleetProfilesHelper.loadProfiles(imageWriter)
             open()
         }
@@ -536,7 +546,7 @@ Item {
 
                 Text {
                     Layout.fillWidth: true
-                    text: qsTr("Select Hangar Craft")
+                    text: qsTr("Choose FleetControl craft")
                     color: "#ffffff"
                     font.pixelSize: root.narrow ? 15 : 17
                     font.bold: true
@@ -550,15 +560,14 @@ Item {
                 }
             }
 
-            Text {
+            TextField {
+                id: craftSearch
                 width: parent.width
-                text: qsTr("Choose a craft from your fleet or a preset to automatically preconfigure write options:")
-                color: "#89aebb"
-                font.pixelSize: 11
-                wrapMode: Text.WordWrap
+                placeholderText: qsTr("Search by name, hardware or role")
+                selectByMouse: true
             }
             ModernActionButton {
-                text: qsTr("Create new FleetControl profile")
+                text: qsTr("Create craft or station…")
                 visible: root.fleetControlSignedIn
                 onClicked: {
                     profilePickerPopup.close()
@@ -587,14 +596,17 @@ Item {
                     spacing: 6
 
                     Repeater {
-                        model: profilePickerPopup.profilesList
+                        model: profilePickerPopup.profilesList.filter(function(p) {
+                            var query = craftSearch.text.trim().toLowerCase()
+                            return [p.craftName, p.craftHardware, p.craftRole, p.craftId].join(" ").toLowerCase().indexOf(query) >= 0
+                        })
 
                         Rectangle {
                             id: itemCard
                             width: profileListView.width
                             height: 52
                             radius: 6
-                            readonly property bool isSelected: modelData.craftName === root.profileName && root.useProfileSettings
+                            readonly property bool isSelected: modelData.craftId === root.selectedCraftId && root.useProfileSettings
                             readonly property bool isHovered: itemMouse.containsMouse
                             color: isSelected ? "#0e354c" : isHovered ? "#143347" : "#0d2230"
                             border.width: isSelected ? 2 : 1
@@ -606,13 +618,7 @@ Item {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    FleetProfilesHelper.applyProfile(imageWriter, modelData)
-                                    root.profileName = modelData.craftName
-                                    root.profileIcon = modelData.craftIcon || ""
-                                    root.profileDetail = FleetProfilesHelper.profileSummary(modelData)
-                                    root.useProfileSettings = true
-                                    root.configurationComplete = true
-                                    root.profileSelected(modelData)
+                                    root.selectCraft(modelData)
                                     profilePickerPopup.close()
                                 }
                             }
@@ -639,7 +645,9 @@ Item {
                                         spacing: 6
 
                                         Text {
-                                            text: modelData.craftName
+                                            text: profilePickerPopup.profilesList.some(function(p) {
+                                                return p.craftName === modelData.craftName && p.craftId !== modelData.craftId
+                                            }) ? modelData.craftName + " · " + modelData.craftId.slice(-8) : modelData.craftName
                                             color: "#ffffff"
                                             font.pixelSize: 13
                                             font.bold: true
@@ -702,10 +710,9 @@ Item {
                     text: qsTr("Clear profile (Manual configuration)")
                     font.pixelSize: 11
                     onClicked: {
-                        root.profileName = ""
-                        root.profileDetail = ""
-                        root.profileIcon = ""
+                        root.selectedCraftId = ""
                         root.useProfileSettings = false
+                        root.profileSettingsToggled(false)
                         root.clearProfileRequested()
                         profilePickerPopup.close()
                     }
