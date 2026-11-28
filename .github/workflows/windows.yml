@@ -261,6 +261,8 @@ jobs:
         project-slug: ${{ inputs.project-slug }}
         signing-policy-slug: ${{ inputs.signing-policy-slug }}
         artifact-configuration-slug: imagewriter-application
+        parameters: |
+          version: ${{ toJSON(env.IMAGEWRITER_PRODUCT_VERSION) }}
         github-artifact-id: ${{ steps.unsigned-application.outputs.artifact-id }}
         wait-for-completion: true
         wait-for-completion-timeout-in-seconds: 1800
@@ -317,6 +319,8 @@ jobs:
         project-slug: ${{ inputs.project-slug }}
         signing-policy-slug: ${{ inputs.signing-policy-slug }}
         artifact-configuration-slug: imagewriter-installer
+        parameters: |
+          version: ${{ toJSON(env.IMAGEWRITER_PRODUCT_VERSION) }}
         github-artifact-id: ${{ steps.unsigned-installer.outputs.artifact-id }}
         wait-for-completion: true
         wait-for-completion-timeout-in-seconds: 1800
