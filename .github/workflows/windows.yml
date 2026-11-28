@@ -236,7 +236,11 @@ jobs:
         if ($generator.ExitCode -ne 0 -or -not (Test-Path -LiteralPath "$stage\uninstall.exe")) {
           throw 'Generating the uninstaller failed'
         }
-        Copy-Item deploy/OpenHDImageWriter.exe, deploy/fat32format.exe -Destination $stage
+        Copy-Item deploy/OpenHDImageWriter.exe -Destination $stage
+        $appVersion = (Get-Item -LiteralPath "$stage/OpenHDImageWriter.exe").VersionInfo.ProductVersion
+        $uninstallVersion = (Get-Item -LiteralPath "$stage/uninstall.exe").VersionInfo.ProductVersion
+        if (!$appVersion -or $appVersion -ne $uninstallVersion) { throw "ImageWriter and uninstaller product versions differ" }
+        "IMAGEWRITER_PRODUCT_VERSION=$appVersion" >> $Env:GITHUB_ENV
 
     - name: Upload unsigned application
       if: inputs.sign
@@ -248,7 +252,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
 
-    - name: Sign application, formatter and uninstaller with SignPath
+    - name: Sign application and uninstaller with SignPath
       if: inputs.sign
       uses: signpath/github-action-submit-signing-request@v3
       with:
@@ -269,7 +273,7 @@ jobs:
       env:
         SIGNING_MODE: ${{ inputs.signing-mode }}
       run: |
-        foreach ($file in @('OpenHDImageWriter.exe', 'fat32format.exe', 'uninstall.exe')) {
+        foreach ($file in @('OpenHDImageWriter.exe', 'uninstall.exe')) {
           $source = Join-Path $Env:RUNNER_TEMP "imagewriter-signed-application/$file"
           & scripts/verify_windows_signature.ps1 -Path $source -SigningMode $Env:SIGNING_MODE -ExpectedSignerThumbprint $Env:SIGNPATH_TEST_CERTIFICATE_THUMBPRINT
           Copy-Item -LiteralPath $source -Destination "src/build/deploy/$file" -Force
@@ -287,6 +291,12 @@ jobs:
         }
         & "${Env:ProgramFiles(x86)}\NSIS\makensis.exe" @arguments
         if ($LASTEXITCODE -ne 0) { throw 'Building the NSIS installer failed' }
+        if ($Env:SIGN_BUILD -eq 'true') {
+          $installer = Get-Item -LiteralPath "OpenHD-ImageWriter-$Env:IMAGEWRITER_PRODUCT_VERSION.exe"
+          if ($installer.VersionInfo.ProductVersion -ne $Env:IMAGEWRITER_PRODUCT_VERSION) {
+            throw 'ImageWriter installer product version does not match the application'
+          }
+        }
 
     - name: Upload unsigned installer
       if: inputs.sign

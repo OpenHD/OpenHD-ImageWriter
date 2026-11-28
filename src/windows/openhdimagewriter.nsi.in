@@ -23,12 +23,13 @@
 
 ######################################################################
 
-VIProductVersion "@IMAGER_VERSION_MAJOR@.@IMAGER_VERSION_MINOR@.0.0"
+VIProductVersion "${VERSION}.0"
 VIAddVersionKey "ProductName"  "${APP_NAME}"
 VIAddVersionKey "CompanyName"  "${COMP_NAME}"
 VIAddVersionKey "LegalCopyright"  "${COPYRIGHT}"
 VIAddVersionKey "FileDescription"  "${DESCRIPTION}"
 VIAddVersionKey "FileVersion"  "${VERSION}"
+VIAddVersionKey "ProductVersion"  "${VERSION}"
 
 ######################################################################
 

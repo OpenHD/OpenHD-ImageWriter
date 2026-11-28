@@ -20,7 +20,7 @@ commit (`github.sha`), so the source matches the build's origin metadata.
 2. Add these artifact configurations to the **ImageWriter** project:
    - `imagewriter-application`: [application XML](signpath/imagewriter-application.xml)
    - `imagewriter-installer`: [installer XML](signpath/imagewriter-installer.xml)
-   Both expect ZIP artifacts from `actions/upload-artifact@v4`. Configurations
+   Both expect ZIP artifacts from GitHub Actions. Configurations
    previously added to the OpenHD project do not configure the new project.
 3. In **OpenHD/OpenHD-ImageWriter**, configure these repository variables with
    the exact values from the new project's settings:
@@ -53,9 +53,10 @@ the test certificate; they require normal Windows trust and timestamping.
 ## Signed artifacts
 
 All compilation and signing run on GitHub-hosted Windows. The application,
-locally built FAT32 formatter and generated NSIS uninstaller are signed first.
-The installer embeds those files, then the outer installer is signed. Third-party
-Qt/OpenSSL/UUU binaries are redistributed as supplied.
+and generated NSIS uninstaller are signed first. The installer embeds those
+files, then the outer installer is signed. The bundled upstream FAT32 formatter,
+Qt, OpenSSL and UUU are outside the signing configurations. The application,
+uninstaller and installer use the same Windows product version.
 
 The run publishes `OpenHDImageWriter-Build-Full-Signed` and
 `OpenHDImageWriter-Windows-Portable-Signed` for release mode. Test mode publishes

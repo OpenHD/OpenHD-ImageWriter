@@ -9,10 +9,13 @@ PRODUCTVERSION IMAGER_VERSION_CSV
 {
     BLOCK "StringFileInfo"
     {
-        BLOCK "040904b0"
+        BLOCK "040904e4"
         {
             VALUE "CompanyName",     "OpenHD"
             VALUE "FileDescription", "OpenHD ImageWriter"
+            VALUE "FileVersion",     IMAGER_VERSION_STR
+            VALUE "ProductName",     "OpenHD ImageWriter"
+            VALUE "ProductVersion",  IMAGER_VERSION_STR
         }
     }
     BLOCK "VarFileInfo"
