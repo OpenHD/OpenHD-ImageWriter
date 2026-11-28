@@ -21,7 +21,7 @@ sha256sums=('SKIP')
 pkgver() {
   cd "$srcdir/OpenHD-ImageWriter"
   if [[ ${OPENHD_SNAPSHOT_NUMBER:-} =~ ^[1-9][0-9]*$ ]]; then
-    printf '0.0.%s\n' "$OPENHD_SNAPSHOT_NUMBER"
+    printf '4.2.%s\n' "$OPENHD_SNAPSHOT_NUMBER"
     return
   fi
   printf 'r%s.g%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"

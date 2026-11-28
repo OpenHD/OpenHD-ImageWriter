@@ -113,7 +113,7 @@ jobs:
           cp -a . "$source_dir/source"
           cd "$source_dir/source"
           if [ -n "$OPENHD_SNAPSHOT_NUMBER" ]; then
-            DEBFULLNAME=OpenHD DEBEMAIL=builds@openhd.tech dch --newversion "0.0.$OPENHD_SNAPSHOT_NUMBER" --force-bad-version --distribution unstable "Snapshot build."
+            DEBFULLNAME=OpenHD DEBEMAIL=builds@openhd.tech dch --newversion "4.2.$OPENHD_SNAPSHOT_NUMBER" --force-bad-version --distribution unstable "Snapshot build."
           fi
           debuild --preserve-envvar OPENHD_SNAPSHOT_NUMBER -uc -us
           cp "$source_dir"/*.deb "$GITHUB_WORKSPACE/"
